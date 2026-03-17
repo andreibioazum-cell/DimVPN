@@ -19,8 +19,8 @@ jobs:
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/java/com/dimvpn/app
           
-      - name: Copy config
-        run: cp config.json app/src/main/assets/config.json
+      - name: Copy config from config folder
+        run: cp config/config.json app/src/main/assets/config.json
       
       - name: Create build.gradle
         run: |
