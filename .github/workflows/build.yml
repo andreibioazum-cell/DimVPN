@@ -5,18 +5,6 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        variant: [
-          { name: "v2rayng-jitpack", repo: "jitpack", dep: "com.github.v2rayng:V2RayCore:1.8.1" },
-          { name: "v2fly-maven-5.16.1", repo: "v2fly", dep: "com.v2ray.core:core:5.16.1" },
-          { name: "v2fly-maven-5.14.0", repo: "v2fly", dep: "com.v2ray.core:core:5.14.0" },
-          { name: "v2fly-maven-5.13.0", repo: "v2fly", dep: "com.v2ray.core:core:5.13.0" },
-          { name: "v2fly-maven-5.12.0", repo: "v2fly", dep: "com.v2ray.core:core:5.12.0" },
-          { name: "2dust-jitpack", repo: "jitpack", dep: "com.github.2dust:AndroidV2Core:5.16.1" }
-        ]
-    
     steps:
       - uses: actions/checkout@v3
       
@@ -30,13 +18,20 @@ jobs:
         run: |
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/java/com/dimvpn/app
+          mkdir -p app/libs
           
       - name: Copy config
         run: cp config/config.json app/src/main/assets/config.json
       
-      - name: Create build.gradle with ${{ matrix.variant.name }}
+      - name: Download V2RayCore AAR
         run: |
-          cat > app/build.gradle << EOF
+          curl -L -o app/libs/v2ray-core.aar https://github.com/2dust/v2rayCore/releases/download/5.16.1/v2ray-core-5.16.1.aar || \
+          curl -L -o app/libs/v2ray-core.aar https://github.com/v2fly/v2ray-core/releases/download/5.16.1/v2ray-core-android.aar || \
+          curl -L -o app/libs/v2ray-core.aar https://github.com/v2ray/v2ray-core/releases/download/5.16.1/v2ray-core.aar
+      
+      - name: Create build.gradle with local AAR
+        run: |
+          cat > app/build.gradle << 'EOF'
           buildscript {
               repositories {
                   google()
@@ -68,10 +63,18 @@ jobs:
               }
           }
 
+          repositories {
+              flatDir {
+                  dirs 'libs'
+              }
+              google()
+              mavenCentral()
+          }
+
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.11.0'
-              implementation '${{ matrix.variant.dep }}'
+              implementation fileTree(dir: 'libs', include: ['*.aar'])
           }
           EOF
       
@@ -90,8 +93,6 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
-                  maven { url 'https://jitpack.io' }
-                  maven { url 'https://raw.githubusercontent.com/v2fly/v2fly-maven/master/release' }
               }
           }
           rootProject.name = "DimVPN"
@@ -205,10 +206,10 @@ jobs:
                       is.close();
                       String config = new String(buffer);
                       
-                      // Пытаемся загрузить V2RayCore если он доступен
+                      // Пытаемся загрузить V2RayService
                       try {
-                          Class.forName("com.v2ray.core.V2RayService");
-                          Intent intent = new Intent(this, Class.forName("com.v2ray.core.V2RayService"));
+                          Class<?> v2rayClass = Class.forName("com.v2ray.core.V2RayService");
+                          Intent intent = new Intent(this, v2rayClass);
                           intent.setAction("com.v2ray.core.ACTION_START_V2RAY");
                           intent.putExtra("config", config);
                           startService(intent);
@@ -218,7 +219,7 @@ jobs:
                           toggleButton.setText("ОСТАНОВИТЬ VPN");
                           Toast.makeText(this, "VPN запущен", Toast.LENGTH_SHORT).show();
                       } catch (ClassNotFoundException e) {
-                          Toast.makeText(this, "V2RayCore не найден в этой сборке", Toast.LENGTH_LONG).show();
+                          Toast.makeText(this, "V2RayCore не найден. Класс: " + e.getMessage(), Toast.LENGTH_LONG).show();
                       }
                       
                   } catch (Exception e) {
@@ -228,7 +229,8 @@ jobs:
               
               private void stopVPN() {
                   try {
-                      Intent intent = new Intent(this, Class.forName("com.v2ray.core.V2RayService"));
+                      Class<?> v2rayClass = Class.forName("com.v2ray.core.V2RayService");
+                      Intent intent = new Intent(this, v2rayClass);
                       intent.setAction("com.v2ray.core.ACTION_STOP_V2RAY");
                       startService(intent);
                       
@@ -264,16 +266,11 @@ jobs:
           echo 'exec java -Xmx64m -classpath "$(dirname "$0")/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' >> gradlew
           chmod +x gradlew
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
       - name: Build APK
         run: ./gradlew assembleDebug --stacktrace
-        continue-on-error: true
 
-      - name: Upload APK (if successful)
-        if: success()
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-APK-${{ matrix.variant.name }}
+          name: DimVPN-APK
           path: app/build/outputs/apk/debug/*.apk
