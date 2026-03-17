@@ -24,90 +24,234 @@ jobs:
       
       - name: Create build.gradle
         run: |
-          echo 'plugins {
+          cat > app/build.gradle << 'EOF'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath "com.android.tools.build:gradle:8.0.0"
+              }
+          }
+          
+          plugins {
               id "com.android.application"
           }
+          
           android {
               namespace "com.dimvpn.app"
               compileSdk 34
+              
               defaultConfig {
                   applicationId "com.dimvpn.app"
                   minSdk 21
                   targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              
+              buildTypes {
+                  debug {
+                      minifyEnabled false
+                  }
               }
           }
+          
           dependencies {
+              implementation "androidx.appcompat:appcompat:1.6.1"
+              implementation "com.google.android.material:material:1.11.0"
               implementation "com.github.v2ray:V2Ray-Android-core:5.16.1"
-          }' > app/build.gradle
+          }
+          EOF
       
       - name: Create settings.gradle
         run: |
-          echo 'dependencyResolutionManagement {
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories {
                   google()
                   mavenCentral()
                   maven { url "https://jitpack.io" }
               }
           }
-          include ":app"' > settings.gradle
+          rootProject.name = "DimVPN"
+          include ':app'
+          EOF
+      
+      - name: Create gradle.properties
+        run: |
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m
+          android.useAndroidX=true
+          EOF
       
       - name: Create AndroidManifest.xml
         run: |
-          mkdir -p app/src/main
-          echo '<?xml version="1.0" encoding="utf-8"?>
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
-              <application android:label="DimVPN">
-                  <activity android:name=".MainActivity" android:exported="true">
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="DimVPN"
+                  android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+                  
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
               </application>
-          </manifest>' > app/src/main/AndroidManifest.xml
+          </manifest>
+          EOF
       
       - name: Create MainActivity
         run: |
-          echo 'package com.dimvpn.app;
+          cat > app/src/main/java/com/dimvpn/app/MainActivity.java << 'EOF'
+          package com.dimvpn.app;
+
           import android.app.Activity;
           import android.content.Intent;
           import android.os.Bundle;
           import android.widget.Button;
+          import android.widget.LinearLayout;
+          import android.widget.TextView;
+          import android.widget.Toast;
+          import android.graphics.Color;
+          import android.view.Gravity;
           import com.v2ray.core.V2RayService;
+          import java.io.InputStream;
+
           public class MainActivity extends Activity {
-              protected void onCreate(Bundle b) {
-                  super.onCreate(b);
-                  Button btn = new Button(this);
-                  btn.setText("Start VPN");
-                  setContentView(btn);
-                  btn.setOnClickListener(v -> {
-                      try {
-                          String config = new String(getAssets().open("config.json").readAllBytes());
-                          Intent i = new Intent(this, V2RayService.class);
-                          i.setAction(V2RayService.ACTION_START_V2RAY);
-                          i.putExtra("config", config);
-                          startService(i);
-                      } catch(Exception e) {}
+              private boolean isRunning = false;
+              private Button toggleButton;
+              private TextView statusText;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setGravity(Gravity.CENTER);
+                  layout.setBackgroundColor(Color.parseColor("#1a1a1a"));
+                  layout.setPadding(50, 50, 50, 50);
+                  
+                  TextView title = new TextView(this);
+                  title.setText("DimVPN");
+                  title.setTextSize(32);
+                  title.setTextColor(Color.parseColor("#4CAF50"));
+                  title.setGravity(Gravity.CENTER);
+                  layout.addView(title);
+                  
+                  statusText = new TextView(this);
+                  statusText.setText("Статус: Отключено");
+                  statusText.setTextSize(18);
+                  statusText.setTextColor(Color.WHITE);
+                  statusText.setGravity(Gravity.CENTER);
+                  statusText.setPadding(0, 50, 0, 50);
+                  layout.addView(statusText);
+                  
+                  toggleButton = new Button(this);
+                  toggleButton.setText("ЗАПУСТИТЬ VPN");
+                  toggleButton.setTextSize(16);
+                  toggleButton.setBackgroundColor(Color.parseColor("#4CAF50"));
+                  toggleButton.setTextColor(Color.WHITE);
+                  toggleButton.setPadding(50, 20, 50, 20);
+                  layout.addView(toggleButton);
+                  
+                  setContentView(layout);
+                  
+                  toggleButton.setOnClickListener(v -> {
+                      if (isRunning) {
+                          stopVPN();
+                      } else {
+                          startVPN();
+                      }
                   });
               }
-          }' > app/src/main/java/com/dimvpn/app/MainActivity.java
+              
+              private void startVPN() {
+                  try {
+                      InputStream is = getAssets().open("config.json");
+                      byte[] buffer = new byte[is.available()];
+                      is.read(buffer);
+                      is.close();
+                      String config = new String(buffer);
+                      
+                      Intent intent = new Intent(this, V2RayService.class);
+                      intent.setAction(V2RayService.ACTION_START_V2RAY);
+                      intent.putExtra("config", config);
+                      startService(intent);
+                      
+                      isRunning = true;
+                      statusText.setText("Статус: Подключено");
+                      toggleButton.setText("ОСТАНОВИТЬ VPN");
+                      Toast.makeText(this, "VPN запущен", Toast.LENGTH_SHORT).show();
+                      
+                  } catch (Exception e) {
+                      Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                  }
+              }
+              
+              private void stopVPN() {
+                  Intent intent = new Intent(this, V2RayService.class);
+                  intent.setAction(V2RayService.ACTION_STOP_V2RAY);
+                  startService(intent);
+                  
+                  isRunning = false;
+                  statusText.setText("Статус: Отключено");
+                  toggleButton.setText("ЗАПУСТИТЬ VPN");
+                  Toast.makeText(this, "VPN остановлен", Toast.LENGTH_SHORT).show();
+              }
+          }
+          EOF
       
-      - name: Create gradlew
+      - name: Create gradle-wrapper.properties
         run: |
           mkdir -p gradle/wrapper
-          echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0-bin.zip" > gradle/wrapper/gradle-wrapper.properties
-          curl -O https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar
-          mv gradle-wrapper.jar gradle/wrapper/
+          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.0-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+
+      - name: Download gradle-wrapper.jar
+        run: |
+          curl -L -o gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/master/gradle/wrapper/gradle-wrapper.jar
+
+      - name: Create gradlew
+        run: |
           echo '#!/bin/sh' > gradlew
-          echo 'exec java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain "$@"' >> gradlew
+          echo 'exec java -Xmx64m -classpath "$(dirname "$0")/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' >> gradlew
           chmod +x gradlew
-      
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       - name: Build APK
-        run: ./gradlew assembleDebug
-      
+        run: ./gradlew assembleDebug --stacktrace
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN
+          name: DimVPN-APK
           path: app/build/outputs/apk/debug/*.apk
