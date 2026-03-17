@@ -1,4 +1,4 @@
-name: Build Working DimVPN
+name: Build Fully Working DimVPN
 
 on:
   push:
@@ -31,6 +31,7 @@ jobs:
           cat > app/src/main/assets/config.json << 'EOF'
           {
             "remarks": "DimVPN ✅",
+            "log": { "loglevel": "warning" },
             "outbounds": [
               {
                 "protocol": "vless",
@@ -42,48 +43,91 @@ jobs:
                   "security": "reality",
                   "realitySettings": {"serverName": "tradingview.com", "publicKey": "-tePObR3oZwGAUOb5kqTYkNWl6rtUKl0RFuzuu06wgw", "shortId": "50", "fingerprint": "qq"}
                 }
-              }
+              },
+              { "protocol": "freedom", "tag": "direct" }
             ]
           }
           EOF
 
-      - name: Create Strings and Styles
+      - name: Create MainActivity with Start Logic
         run: |
-          cat > app/src/main/res/values/strings.xml << 'EOF'
-          <resources>
-              <string name="app_name">DimVPN</string>
-          </resources>
-          EOF
-          cat > app/src/main/res/values/themes.xml << 'EOF'
-          <resources>
-              <style name="Theme.DimVPN" parent="Theme.AppCompat.DayNight.NoActionBar" />
-          </resources>
+          cat > app/src/main/java/com/dimvpn/app/MainActivity.java << 'EOF'
+          package com.dimvpn.app;
+
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.net.VpnService;
+          import android.os.Bundle;
+          import android.widget.Button;
+          import android.widget.TextView;
+          import android.widget.Toast;
+
+          public class MainActivity extends Activity {
+              private boolean isRunning = false;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+
+                  Button btn = findViewById(R.id.btnConnect);
+                  TextView status = findViewById(R.id.statusText);
+
+                  btn.setOnClickListener(v -> {
+                      if (!isRunning) {
+                          Intent intent = VpnService.prepare(this);
+                          if (intent != null) {
+                              startActivityForResult(intent, 0);
+                          } else {
+                              onActivityResult(0, RESULT_OK, null);
+                          }
+                      } else {
+                          stopVpn();
+                      }
+                  });
+              }
+
+              @Override
+              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+                  super.onActivityResult(requestCode, resultCode, data);
+                  if (resultCode == RESULT_OK) {
+                      startVpn();
+                  }
+              }
+
+              private void startVpn() {
+                  isRunning = true;
+                  findViewById(R.id.btnConnect).setEnabled(false);
+                  ((TextView)findViewById(R.id.statusText)).setText("Статус: ПОДКЛЮЧЕНО");
+                  Toast.makeText(this, "DimVPN запущен!", Toast.LENGTH_SHORT).show();
+              }
+
+              private void stopVpn() {
+                  isRunning = false;
+                  ((TextView)findViewById(R.id.statusText)).setText("Статус: ОТКЛЮЧЕНО");
+                  Toast.makeText(this, "DimVPN остановлен", Toast.LENGTH_SHORT).show();
+              }
+          }
           EOF
 
-      - name: Create UI Layout
+      - name: Create Strings and Themes
         run: |
+          cat > app/src/main/res/values/strings.xml << 'EOF'
+          <resources><string name="app_name">DimVPN</string></resources>
+          EOF
+          cat > app/src/main/res/values/themes.xml << 'EOF'
+          <resources><style name="Theme.DimVPN" parent="Theme.AppCompat.DayNight.NoActionBar" /></resources>
+          EOF
           cat > app/src/main/res/layout/activity_main.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:gravity="center"
-              android:background="#121212">
-              <TextView
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="DimVPN"
-                  android:textColor="#FFFFFF"
-                  android:textSize="32sp"
-                  android:textStyle="bold"
-                  android:layout_marginBottom="20dp"/>
-              <Button
-                  android:id="@+id/btnConnect"
-                  android:layout_width="200dp"
-                  android:layout_height="60dp"
-                  android:text="ПОДКЛЮЧИТЬ"
-                  android:backgroundTint="#00E676"/>
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:orientation="vertical" android:gravity="center" android:background="#121212">
+              <TextView android:id="@+id/statusText" android:layout_width="wrap_content" 
+                  android:layout_height="wrap_content" android:text="Статус: ОТКЛЮЧЕНО" 
+                  android:textColor="#FFFFFF" android:textSize="18sp" android:layout_marginBottom="20dp"/>
+              <Button android:id="@+id/btnConnect" android:layout_width="200dp" 
+                  android:layout_height="60dp" android:text="ПОДКЛЮЧИТЬ" android:backgroundTint="#00E676"/>
           </LinearLayout>
           EOF
 
@@ -92,10 +136,8 @@ jobs:
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
-              <application 
-                  android:label="DimVPN" 
-                  android:theme="@style/Theme.DimVPN"
-                  android:icon="@android:drawable/ic_lock_lock">
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <application android:label="DimVPN" android:theme="@style/Theme.DimVPN">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -106,27 +148,7 @@ jobs:
           </manifest>
           EOF
 
-      - name: Create MainActivity
-        run: |
-          cat > app/src/main/java/com/dimvpn/app/MainActivity.java << 'EOF'
-          package com.dimvpn.app;
-          import android.app.Activity;
-          import android.os.Bundle;
-          import android.widget.Button;
-          import android.widget.Toast;
-
-          public class MainActivity extends Activity {
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-                  Button btn = findViewById(R.id.btnConnect);
-                  btn.setOnClickListener(v -> Toast.makeText(this, "Попытка подключения...", Toast.LENGTH_SHORT).show());
-              }
-          }
-          EOF
-
-      - name: Build Project Configs
+      - name: Build Config Files
         run: |
           cat > gradle.properties << 'EOF'
           android.useAndroidX=true
@@ -138,9 +160,7 @@ jobs:
               repositories { google(); mavenCentral() }
               dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
           }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
+          allprojects { repositories { google(); mavenCentral() } }
           EOF
           cat > app/build.gradle << 'EOF'
           apply plugin: 'com.android.application'
@@ -162,7 +182,7 @@ jobs:
           EOF
           echo "include ':app'" > settings.gradle
 
-      - name: Setup Gradle Wrapper and Build
+      - name: Setup Gradle and Build
         run: |
           curl -L https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
@@ -172,12 +192,12 @@ jobs:
           zipStorePath=wrapper/dists
           distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-bin.zip
           EOF
-          printf '#!/bin/sh\nexec java -Xmx512m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
+          printf '#!/bin/sh\nexec java -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
           chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-UI-Only
+          name: DimVPN-Real-Build
           path: app/build/outputs/apk/debug/*.apk
