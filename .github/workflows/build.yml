@@ -1,4 +1,4 @@
-name: Build DimEngine True Java 21
+name: Build DimBlox Vulkan
 
 on:
   push:
@@ -19,125 +19,109 @@ jobs:
           distribution: 'temurin'
 
       - name: Create Structure
-        run: mkdir -p app/src/main/java/com/dim/engine/runtime app/src/main/res/layout gradle/wrapper
+        run: mkdir -p app/src/main/java/com/dim/blox/vulkan app/src/main/res/layout gradle/wrapper
 
-      - name: Create Java Execution Kernel
+      - name: Create Joystick Logic
         run: |
-          cat > app/src/main/java/com/dim/engine/runtime/JavaKernel.java << 'EOF'
-          package com.dim.engine.runtime;
-          import java.lang.reflect.*;
-          import java.util.*;
-          import android.content.Context;
-
-          public class JavaKernel {
-              // Ядро, позволяющее вызывать ЛЮБОЙ метод ЛЮБОГО класса через Reflection
-              public static Object invokeAny(String className, String methodName, Object[] args, Class<?>[] types) throws Exception {
-                  Class<?> clazz = Class.forName(className);
-                  Method method = clazz.getDeclaredMethod(methodName, types);
-                  method.setAccessible(true);
-                  return method.invoke(null, args);
-              }
-
-              // Продвинутая математика векторов для физики
-              public static float[] calculateForce(float mass, float accel) {
-                  return new float[]{ mass * accel }; // F = ma
-              }
-          }
-          EOF
-
-      - name: Create Physics View with Rotational Dynamics
-        run: |
-          cat > app/src/main/java/com/dim/engine/core/PhysicsView.java << 'EOF'
-          package com.dim.engine.core;
+          cat > app/src/main/java/com/dim/blox/vulkan/JoystickView.java << 'EOF'
+          package com.dim.blox.vulkan;
           import android.content.Context;
           import android.graphics.*;
           import android.view.*;
-          import java.util.concurrent.*;
+          import android.util.AttributeSet;
 
-          public class PhysicsView extends SurfaceView implements SurfaceHolder.Callback {
-              private PhysicsThread thread;
-              private CopyOnWriteArrayList<Body> bodies = new CopyOnWriteArrayList<>();
+          public class JoystickView extends View {
+              private float centerX, centerY, baseRadius, hatRadius;
+              private float touchX, touchY;
+              private Paint p = new Paint();
 
-              public PhysicsView(Context ctx) {
-                  super(ctx);
-                  getHolder().addCallback(this);
+              public JoystickView(Context ctx, AttributeSet attrs) {
+                  super(ctx, attrs);
+                  p.setAntiAlias(true);
               }
 
               @Override
-              public void surfaceCreated(SurfaceHolder h) {
-                  thread = new PhysicsThread(h);
-                  thread.setRunning(true);
-                  thread.start();
+              protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+                  centerX = w / 2f; centerY = h / 2f;
+                  baseRadius = Math.min(w, h) * 0.4f;
+                  hatRadius = baseRadius * 0.5f;
+                  touchX = centerX; touchY = centerY;
+              }
+
+              @Override
+              protected void onDraw(Canvas canvas) {
+                  p.setColor(Color.argb(100, 255, 255, 255));
+                  canvas.drawCircle(centerX, centerY, baseRadius, p);
+                  p.setColor(Color.WHITE);
+                  canvas.drawCircle(touchX, touchY, hatRadius, p);
               }
 
               @Override
               public boolean onTouchEvent(MotionEvent e) {
-                  if(e.getAction() == MotionEvent.ACTION_DOWN) {
-                      bodies.add(new Body(e.getX(), e.getY(), 50));
-                  }
-                  return true;
-              }
-
-              @Override
-              public void surfaceChanged(SurfaceHolder h, int f, int w, int h1) {}
-              @Override
-              public void surfaceDestroyed(SurfaceHolder h) { thread.setRunning(false); }
-
-              class PhysicsThread extends Thread {
-                  private SurfaceHolder holder;
-                  private boolean running = false;
-                  private Paint p = new Paint();
-
-                  public PhysicsThread(SurfaceHolder h) { this.holder = h; p.setColor(Color.YELLOW); }
-                  public void setRunning(boolean r) { running = r; }
-
-                  @Override
-                  public void run() {
-                      while(running) {
-                          Canvas c = holder.lockCanvas();
-                          if(c != null) {
-                              c.drawColor(Color.parseColor("#050505"));
-                              for(Body b : bodies) {
-                                  b.update(getHeight());
-                                  c.drawRect(b.x-b.s, b.y-b.s, b.x+b.s, b.y+b.s, p);
-                              }
-                              holder.unlockCanvasAndPost(c);
-                          }
+                  if (e.getAction() != MotionEvent.ACTION_UP) {
+                      float dx = e.getX() - centerX;
+                      float dy = e.getY() - centerY;
+                      float dist = (float) Math.sqrt(dx*dx + dy*dy);
+                      if (dist < baseRadius) {
+                          touchX = e.getX(); touchY = e.getY();
+                      } else {
+                          touchX = centerX + dx / dist * baseRadius;
+                          touchY = centerY + dy / dist * baseRadius;
                       }
+                  } else {
+                      touchX = centerX; touchY = centerY;
                   }
-              }
-
-              class Body {
-                  float x, y, s, vy = 0, gravity = 2.0f;
-                  Body(float x, float y, float s) { this.x = x; this.y = y; this.s = s; }
-                  void update(int h) {
-                      vy += gravity;
-                      y += vy;
-                      if(y + s > h) { y = h - s; vy *= -0.8f; } // Отскок
-                  }
+                  invalidate();
+                  return true;
               }
           }
           EOF
 
+      - name: Create Vulkan Activity UI
+        run: |
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:background="#000">
+
+              <SurfaceView android:id="@+id/vulkanSurface"
+                  android:layout_width="match_parent" android:layout_height="match_parent" />
+
+              <com.dim.blox.vulkan.JoystickView
+                  android:id="@+id/joystick"
+                  android:layout_width="200dp" android:layout_height="200dp"
+                  android:layout_alignParentBottom="true"
+                  android:layout_alignParentLeft="true"
+                  android:layout_margin="30dp" />
+
+              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:text="VULKAN ENGINE ALPHA" android:textColor="#00FF00"
+                  android:layout_centerHorizontal="true" android:layout_marginTop="10dp"/>
+          </RelativeLayout>
+          EOF
+
       - name: Create Main Activity
         run: |
-          cat > app/src/main/java/com/dim/engine/MainActivity.java << 'EOF'
-          package com.dim.engine;
+          cat > app/src/main/java/com/dim/blox/MainActivity.java << 'EOF'
+          package com.dim.blox;
           import android.app.Activity;
           import android.os.Bundle;
-          import com.dim.engine.core.PhysicsView;
+          import android.view.SurfaceView;
+          import android.view.WindowManager;
 
           public class MainActivity extends Activity {
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  // Весь UI теперь - это холст физического движка
-                  setContentView(new PhysicsView(this));
+                  getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                  setContentView(R.layout.activity_main);
+                  
+                  // В реальном Vulkan проекте здесь подключается Native C++ код через System.loadLibrary("vulkan_engine")
               }
           }
           EOF
 
-      - name: Finalize Build
+      - name: Setup Build
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
@@ -147,12 +131,18 @@ jobs:
           EOF
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
-          android { namespace 'com.dim.engine'; compileSdk 34; defaultConfig { applicationId "com.dim.engine"; minSdk 21; targetSdk 34 } }
+          android { 
+              namespace 'com.dim.blox'
+              compileSdk 34
+              defaultConfig { applicationId "com.dim.blox"; minSdk 24; targetSdk 34 }
+              externalNativeBuild { ndkBuild { path 'src/main/jni/Android.mk' } } // Место для Vulkan C++
+          }
           EOF
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="DimEngine 21" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
+              <uses-feature android:name="android.hardware.vulkan.version" android:required="true" />
+              <application android:label="DimBlox Vulkan" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
                       <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
                   </activity>
               </application>
@@ -167,5 +157,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimEngine-TrueJava-v21
+          name: DimBlox-Vulkan-Joystick-v24
           path: app/build/outputs/apk/debug/*.apk
