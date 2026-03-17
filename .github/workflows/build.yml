@@ -21,8 +21,15 @@ jobs:
       - name: Create Structure
         run: mkdir -p app/src/main/java/com/dimcheat/app app/src/main/res/layout app/src/main/res/values gradle/wrapper
 
+      - name: Create Properties (FIX ANDROIDX)
+        run: |
+          echo "android.useAndroidX=true" > gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
+
       - name: Create Logic & UI
         run: |
+          # Java Code с исправленными кликами
           cat > app/src/main/java/com/dimcheat/app/OverlayService.java << 'EOF'
           package com.dimcheat.app;
           import android.app.Service;
@@ -59,38 +66,31 @@ jobs:
                   EditText edit = v.findViewById(R.id.editValue);
                   LinearLayout list = v.findViewById(R.id.listAddresses);
 
-                  // SCAN logic
                   v.findViewById(R.id.btnScan).setOnClickListener(view -> {
                       list.removeAllViews();
-                      String currentVal = edit.getText().toString().isEmpty() ? "0" : edit.getText().toString();
-                      for(int i=0; i<15; i++) {
-                          Button addrBtn = new Button(this);
-                          addrBtn.setText("0x" + Integer.toHexString(new Random().nextInt(0xFFFFFFF)) + " | " + currentVal);
-                          addrBtn.setTextColor(0xFF00FF00);
-                          addrBtn.setBackgroundColor(0x00000000);
-                          addrBtn.setAllCaps(false);
-                          addrBtn.setTextSize(12);
-
-                          // ГЛАВНОЕ: Клик по адресу для изменения
-                          addrBtn.setOnClickListener(vAddr -> {
-                              String newVal = edit.getText().toString();
-                              if(newVal.isEmpty()) newVal = "999";
-                              addrBtn.setText(addrBtn.getText().toString().split("\\|")[0] + "| " + newVal);
-                              addrBtn.setTextColor(0xFFFFFF00);
-                              Toast.makeText(this, "Value Changed!", Toast.LENGTH_SHORT).show();
+                      String val = edit.getText().toString().isEmpty() ? "0" : edit.getText().toString();
+                      for(int i=0; i<10; i++) {
+                          Button b = new Button(this);
+                          b.setText("0x" + Integer.toHexString(new Random().nextInt(0x0FFFFFFF)) + " : " + val);
+                          b.setTextColor(0xFF00FF00);
+                          b.setBackgroundColor(0x22FFFFFF);
+                          b.setPadding(10, 10, 10, 10);
+                          
+                          // Настройка клика для изменения
+                          b.setOnClickListener(vB -> {
+                              String currentEdit = edit.getText().toString();
+                              b.setText(b.getText().toString().split(" : ")[0] + " : " + currentEdit);
+                              b.setTextColor(0xFFFFFF00);
+                              Toast.makeText(this, "Value Patched!", Toast.LENGTH_SHORT).show();
                           });
-
-                          list.addView(addrBtn);
+                          list.addView(b);
                       }
                   });
 
                   // Фокус для клавиатуры
-                  edit.setOnTouchListener((view, e) -> {
-                      if(e.getAction() == MotionEvent.ACTION_DOWN) {
-                          p.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
-                          wm.updateViewLayout(v, p);
-                      }
-                      return false;
+                  edit.setOnClickListener(view -> {
+                      p.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
+                      wm.updateViewLayout(v, p);
                   });
 
                   v.findViewById(R.id.btnClose).setOnClickListener(view -> stopSelf());
@@ -109,24 +109,19 @@ jobs:
       - name: Create Final Layout
         run: |
           cat > app/src/main/res/layout/overlay_layout.xml << 'EOF'
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="200dp" android:layout_height="wrap_content" android:background="#F20A0A0A" android:padding="10dp" android:orientation="vertical">
-              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="DIM ENGINE 2.1" android:textColor="#00FF00" android:gravity="center" android:textStyle="bold"/>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="180dp" android:layout_height="wrap_content" android:background="#F2111111" android:padding="8dp" android:orientation="vertical">
+              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="DIM ENGINE 2.2" android:textColor="#00FF00" android:gravity="center" android:textStyle="bold"/>
               <EditText android:id="@+id/editValue" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="New Value" android:textColor="#FFF" android:inputType="number" android:textSize="14sp" />
-              <Button android:id="@+id/btnScan" android:layout_width="match_parent" android:layout_height="40dp" android:text="SEARCH" android:backgroundTint="#2196F3"/>
-              
-              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Tap address to patch:" android:textColor="#666" android:textSize="10sp" android:gravity="center" android:layout_marginTop="5dp"/>
-              
-              <ScrollView android:layout_width="match_parent" android:layout_height="120dp" android:background="#111" android:layout_marginVertical="5dp">
+              <Button android:id="@+id/btnScan" android:layout_width="match_parent" android:layout_height="40dp" android:text="SCAN" android:backgroundTint="#2196F3"/>
+              <ScrollView android:layout_width="match_parent" android:layout_height="120dp" android:layout_marginVertical="5dp">
                   <LinearLayout android:id="@+id/listAddresses" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
               </ScrollView>
-              
-              <Button android:id="@+id/btnClose" android:layout_width="match_parent" android:layout_height="35dp" android:text="CLOSE" android:backgroundTint="#CC4444"/>
+              <Button android:id="@+id/btnClose" android:layout_width="match_parent" android:layout_height="35dp" android:text="CLOSE" android:backgroundTint="#444"/>
           </LinearLayout>
           EOF
 
-      - name: Finalize Build
+      - name: Setup Build Files
         run: |
-          echo "include ':app'" > settings.gradle
           cat > build.gradle << 'EOF'
           buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.0.2' } }
           allprojects { repositories { google(); mavenCentral() } }
@@ -156,7 +151,7 @@ jobs:
           public class MainActivity extends Activity {
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  Button btn = new Button(this); btn.setText("START ENGINE"); setContentView(btn);
+                  Button btn = new Button(this); btn.setText("START"); setContentView(btn);
                   btn.setOnClickListener(v -> {
                       if (!Settings.canDrawOverlays(this)) startActivityForResult(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:"+getPackageName())), 1);
                       else startService(new Intent(this, OverlayService.class));
@@ -164,10 +159,7 @@ jobs:
               }
           }
           EOF
-          printf "android.useAndroidX=true\nandroid.enableJetifier=true\nandroid.suppressUnsupportedCompileSdk=34" > gradle.properties
           curl -L https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
-          printf "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" > gradle.properties
-          # Внимание: пересоздаем gradlew правильно
           printf "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
           printf '#!/bin/sh\nexec java -Xmx512m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
           chmod +x gradlew
@@ -178,5 +170,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimCheat-v2.1-Editor
+          name: DimCheat-v2.2-Final
           path: app/build/outputs/apk/debug/*.apk
