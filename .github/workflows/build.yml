@@ -1,4 +1,4 @@
-name: Build DimOpenOS Runner v9
+name: Build DimStudio Media Pro
 
 on:
   push:
@@ -19,130 +19,101 @@ jobs:
           distribution: 'temurin'
 
       - name: Create Structure
-        run: mkdir -p app/src/main/java/com/dim/openos/core app/src/main/res/layout gradle/wrapper
+        run: mkdir -p app/src/main/java/com/dim/studio app/src/main/res/layout gradle/wrapper
 
-      - name: Create Proxy Engine
+      - name: Create Main Activity with Permissions
         run: |
-          cat > app/src/main/java/com/dim/openos/core/ProxyActivity.java << 'EOF'
-          package com.dim.openos.core;
-          import android.app.Activity;
-          import android.content.res.AssetManager;
-          import android.content.res.Resources;
-          import android.os.Bundle;
-          import android.widget.Toast;
-          import dalvik.system.DexClassLoader;
-          import java.lang.reflect.Method;
-
-          public class ProxyActivity extends Activity {
-              protected String apkPath;
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  apkPath = getIntent().getStringExtra("apkPath");
-                  try {
-                      // 1. Загрузка кода
-                      DexClassLoader loader = new DexClassLoader(apkPath, getCacheDir().getAbsolutePath(), null, getClassLoader());
-                      // 2. Попытка найти главный класс (упрощенно)
-                      Toast.makeText(this, "Virtual Launch: " + apkPath, Toast.LENGTH_SHORT).show();
-                      // В реальной ВМ здесь идет запуск onCreate загруженного класса
-                  } catch (Exception e) {
-                      e.printStackTrace();
-                  }
-              }
-              // Переопределение ресурсов, чтобы APK видел СВОИ картинки
-              @Override public Resources getResources() { 
-                  if (apkPath == null) return super.getResources();
-                  try {
-                      AssetManager am = AssetManager.class.newInstance();
-                      Method addAssetPath = am.getClass().getMethod("addAssetPath", String.class);
-                      addAssetPath.invoke(am, apkPath);
-                      return new Resources(am, super.getResources().getDisplayMetrics(), super.getResources().getConfiguration());
-                  } catch (Exception e) { return super.getResources(); }
-              }
-          }
-          EOF
-
-      - name: Update MainActivity (Launcher)
-        run: |
-          cat > app/src/main/java/com/dim/openos/MainActivity.java << 'EOF'
-          package com.dim.openos;
+          cat > app/src/main/java/com/dim/studio/MainActivity.java << 'EOF'
+          package com.dim.studio;
+          import android.Manifest;
           import android.app.Activity;
           import android.content.Intent;
+          import android.content.pm.PackageManager;
           import android.net.Uri;
           import android.os.Bundle;
           import android.widget.*;
-          import com.dim.openos.core.ProxyActivity;
-          import java.io.*;
-          import java.util.ArrayList;
+          import android.view.View;
 
           public class MainActivity extends Activity {
-              private ArrayList<File> installedFiles = new ArrayList<>();
-              private ArrayAdapter<String> adapter;
-              private ArrayList<String> names = new ArrayList<>();
+              private ImageView previewImage;
+              private static final int PICK_IMAGE = 1;
+              private static final int PERM_CODE = 100;
 
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  LinearLayout l = new LinearLayout(this);
-                  l.setOrientation(LinearLayout.VERTICAL);
-                  l.setBackgroundColor(0xFF000000);
+                  setContentView(R.layout.activity_main);
 
-                  GridView g = new GridView(this);
-                  g.setNumColumns(3);
-                  adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names);
-                  g.setAdapter(adapter);
+                  previewImage = findViewById(R.id.imgPreview);
+                  Button btnImg = findViewById(R.id.btnAddImg);
+                  TextView terminal = findViewById(R.id.terminal);
 
-                  Button btn = new Button(this);
-                  btn.setText("INSTALL APK");
-                  btn.setOnClickListener(v -> {
-                      Intent i = new Intent(Intent.ACTION_GET_CONTENT);
-                      i.setType("application/vnd.android.package-archive");
-                      startActivityForResult(i, 7);
+                  btnImg.setOnClickListener(v -> {
+                      // ЗАПРОС РАЗРЕШЕНИЙ (Важнейшая часть)
+                      if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+                          String[] permissions = {Manifest.permission.READ_EXTERNAL_STORAGE};
+                          requestPermissions(permissions, PERM_CODE);
+                      } else {
+                          openGallery();
+                      }
                   });
+              }
 
-                  l.addView(btn); l.addView(g);
-                  setContentView(l);
+              private void openGallery() {
+                  Intent intent = new Intent(Intent.ACTION_PICK);
+                  intent.setType("image/*");
+                  startActivityForResult(intent, PICK_IMAGE);
+              }
 
-                  g.setOnItemClickListener((p, v, pos, id) -> {
-                      Intent intent = new Intent(this, ProxyActivity.class);
-                      intent.putExtra("apkPath", installedFiles.get(pos).getAbsolutePath());
-                      startActivity(intent);
-                  });
-                  refresh();
+              @Override
+              public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
+                  if (req == PERM_CODE && res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) {
+                      openGallery();
+                  } else {
+                      Toast.makeText(this, "Permission Denied!", Toast.LENGTH_SHORT).show();
+                  }
               }
 
               @Override
               protected void onActivityResult(int req, int res, Intent data) {
-                  if (req == 7 && res == RESULT_OK) {
-                      try {
-                          File dir = new File(getFilesDir(), "v_apps");
-                          if (!dir.exists()) dir.mkdirs();
-                          File dest = new File(dir, "app_" + System.currentTimeMillis() + ".apk");
-                          InputStream in = getContentResolver().openInputStream(data.getData());
-                          OutputStream out = new FileOutputStream(dest);
-                          byte[] buf = new byte[4096]; int len;
-                          while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
-                          in.close(); out.close();
-                          refresh();
-                      } catch (Exception e) { Toast.makeText(this, "Fail", 0).show(); }
+                  if (res == RESULT_OK && req == PICK_IMAGE && data != null) {
+                      Uri imageUri = data.getData();
+                      previewImage.setImageURI(imageUri);
+                      previewImage.setVisibility(View.VISIBLE);
                   }
-              }
-
-              private void refresh() {
-                  installedFiles.clear(); names.clear();
-                  File dir = new File(getFilesDir(), "v_apps");
-                  if (dir.exists()) {
-                      for (File f : dir.listFiles()) {
-                          installedFiles.add(f);
-                          names.add(f.getName());
-                      }
-                  }
-                  adapter.notifyDataSetChanged();
               }
           }
           EOF
 
-      - name: Finalize Build
+      - name: Create Layout with Image Preview
+        run: |
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:orientation="vertical" android:background="#1E1E1E">
+              
+              <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#252526">
+                  <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="5dp">
+                      <Button android:id="@+id/btnAddImg" android:layout_width="wrap_content" android:layout_height="40dp" android:text="ADD IMAGE" android:textSize="12sp" android:backgroundTint="#0E639C"/>
+                      <Button android:id="@+id/btnBuild" android:layout_width="wrap_content" android:layout_height="40dp" android:text="BUILD APK" android:textSize="12sp" android:backgroundTint="#28A745" android:layout_marginLeft="5dp"/>
+                  </LinearLayout>
+              </HorizontalScrollView>
+
+              <EditText android:id="@+id/codeEditor" android:layout_width="match_parent" 
+                  android:layout_height="200dp" android:background="#1E1E1E" android:textColor="#D4D4D4"
+                  android:fontFamily="monospace" android:gravity="top" android:hint="// Code here..." android:padding="15dp"/>
+
+              <ImageView android:id="@+id/imgPreview" android:layout_width="match_parent" 
+                  android:layout_height="150dp" android:scaleType="centerInside" 
+                  android:visibility="gone" android:background="#000" android:layout_margin="10dp"/>
+
+              <TextView android:id="@+id/terminal" android:layout_width="match_parent"
+                  android:layout_height="match_parent" android:background="#000" android:textColor="#0F0"
+                  android:padding="10dp" android:fontFamily="monospace" android:text="Console > Waiting for media..."/>
+          </LinearLayout>
+          EOF
+
+      - name: Finalize Build Configuration
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
@@ -152,14 +123,16 @@ jobs:
           EOF
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
-          android { namespace 'com.dim.openos'; compileSdk 34; defaultConfig { applicationId "com.dim.openos"; minSdk 21; targetSdk 34 } }
+          android { namespace 'com.dim.studio'; compileSdk 34; defaultConfig { applicationId "com.dim.studio"; minSdk 21; targetSdk 34 } }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="DimOpenOS" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity>
-                  <activity android:name=".core.ProxyActivity" />
+              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+              <application android:label="DimStudio Media" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+                  </activity>
               </application>
           </manifest>
           EOF
@@ -172,5 +145,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimOpenOS-Runner-v9
+          name: DimStudio-Media-v18
           path: app/build/outputs/apk/debug/*.apk
