@@ -59,7 +59,7 @@ jobs:
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.11.0'
-              implementation 'com.github.2dust:AndroidV2Core:5.16.1'
+              implementation 'com.v2ray.core:core:5.16.1'
           }
           EOF
       
@@ -78,8 +78,7 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
-                  maven { url 'https://jitpack.io' }
-                  maven { url 'https://raw.githubusercontent.com/2dust/2dust-maven/master/release' }
+                  maven { url 'https://raw.githubusercontent.com/v2fly/v2fly-maven/master/release' }
               }
           }
           rootProject.name = "DimVPN"
