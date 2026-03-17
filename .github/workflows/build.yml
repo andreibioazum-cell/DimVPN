@@ -1,0 +1,113 @@
+name: Build APK
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Create Android project
+        run: |
+          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/java/com/dimvpn/app
+          
+      - name: Copy config
+        run: cp config.json app/src/main/assets/config.json
+      
+      - name: Create build.gradle
+        run: |
+          echo 'plugins {
+              id "com.android.application"
+          }
+          android {
+              namespace "com.dimvpn.app"
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.dimvpn.app"
+                  minSdk 21
+                  targetSdk 34
+              }
+          }
+          dependencies {
+              implementation "com.github.v2ray:V2Ray-Android-core:5.16.1"
+          }' > app/build.gradle
+      
+      - name: Create settings.gradle
+        run: |
+          echo 'dependencyResolutionManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  maven { url "https://jitpack.io" }
+              }
+          }
+          include ":app"' > settings.gradle
+      
+      - name: Create AndroidManifest.xml
+        run: |
+          mkdir -p app/src/main
+          echo '<?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:label="DimVPN">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>' > app/src/main/AndroidManifest.xml
+      
+      - name: Create MainActivity
+        run: |
+          echo 'package com.dimvpn.app;
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.os.Bundle;
+          import android.widget.Button;
+          import com.v2ray.core.V2RayService;
+          public class MainActivity extends Activity {
+              protected void onCreate(Bundle b) {
+                  super.onCreate(b);
+                  Button btn = new Button(this);
+                  btn.setText("Start VPN");
+                  setContentView(btn);
+                  btn.setOnClickListener(v -> {
+                      try {
+                          String config = new String(getAssets().open("config.json").readAllBytes());
+                          Intent i = new Intent(this, V2RayService.class);
+                          i.setAction(V2RayService.ACTION_START_V2RAY);
+                          i.putExtra("config", config);
+                          startService(i);
+                      } catch(Exception e) {}
+                  });
+              }
+          }' > app/src/main/java/com/dimvpn/app/MainActivity.java
+      
+      - name: Create gradlew
+        run: |
+          mkdir -p gradle/wrapper
+          echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0-bin.zip" > gradle/wrapper/gradle-wrapper.properties
+          curl -O https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar
+          mv gradle-wrapper.jar gradle/wrapper/
+          echo '#!/bin/sh' > gradlew
+          echo 'exec java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain "$@"' >> gradlew
+          chmod +x gradlew
+      
+      - name: Build APK
+        run: ./gradlew assembleDebug
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: DimVPN
+          path: app/build/outputs/apk/debug/*.apk
