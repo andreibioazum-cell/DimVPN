@@ -46,22 +46,20 @@ jobs:
           }
           EOF
 
-      - name: Create AndroidManifest
+      - name: Create UI Layout
         run: |
-          cat > app/src/main/AndroidManifest.xml << 'EOF'
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-              <application android:label="DimVPN" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+              <Button
+                  android:id="@+id/btnConnect"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="ЗАПУСТИТЬ DIMVPN"
+                  android:layout_centerInParent="true"/>
+          </RelativeLayout>
           EOF
 
       - name: Create MainActivity
@@ -80,10 +78,9 @@ jobs:
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  Button btn = new Button(this);
-                  btn.setText("ЗАПУСТИТЬ DIMVPN");
-                  setContentView(btn);
-
+                  setContentView(R.layout.activity_main);
+                  
+                  Button btn = findViewById(R.id.btnConnect);
                   btn.setOnClickListener(v -> {
                       Intent intent = VpnService.prepare(this);
                       if (intent != null) {
@@ -98,48 +95,35 @@ jobs:
               protected void onActivityResult(int requestCode, int resultCode, Intent data) {
                   super.onActivityResult(requestCode, resultCode, data);
                   if (resultCode == RESULT_OK) {
-                      Toast.makeText(this, "DimVPN: Готов к работе!", Toast.LENGTH_LONG).show();
+                      Toast.makeText(this, "DimVPN подготовлен!", Toast.LENGTH_LONG).show();
                   }
               }
           }
           EOF
 
-      - name: Build Project Configs
+      - name: Create Project Configs
         run: |
           cat > gradle.properties << 'EOF'
           android.useAndroidX=true
           android.enableJetifier=true
           EOF
 
-          # Корневой build.gradle (упрощенный)
           cat > build.gradle << 'EOF'
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
           }
-          EOF
-
-          # Настройки репозиториев теперь должны быть здесь для Gradle 8+
-          cat > settings.gradle << 'EOF'
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
+          allprojects {
+              repositories { 
                   google()
                   mavenCentral()
                   maven { url 'https://jitpack.io' }
               }
           }
-          include ':app'
           EOF
 
-          # build.gradle приложения с исправленной зависимостью
           cat > app/build.gradle << 'EOF'
-          plugins {
-              id 'com.android.application'
-          }
+          apply plugin: 'com.android.application'
           android {
               namespace 'com.dimvpn.app'
               compileSdk 34
@@ -150,24 +134,19 @@ jobs:
                   versionCode 1
                   versionName "1.0"
               }
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      signingConfig signingConfigs.debug
-                  }
-              }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              // Используем стабильную ветку lib
-              implementation 'com.github.2dust:androidLibV2rayLite:master-SNAPSHOT'
+              // СМЕНА БИБЛИОТЕКИ НА БОЛЕЕ СТАБИЛЬНУЮ
+              implementation 'com.github.dev-ser0:V2RayKit:1.0.1'
           }
           EOF
+
+          echo "include ':app'" > settings.gradle
 
       - name: Setup Gradle Wrapper and Build
         run: |
           curl -L https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
-          
           cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
@@ -175,14 +154,12 @@ jobs:
           zipStorePath=wrapper/dists
           distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-bin.zip
           EOF
-          
-          printf '#!/bin/sh\nexec java -Xmx64m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
+          printf '#!/bin/sh\nexec java -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
           chmod +x gradlew
-          
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-Installer
+          name: DimVPN-Final
           path: app/build/outputs/apk/debug/*.apk
