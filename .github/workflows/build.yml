@@ -1,4 +1,4 @@
-name: Build APK
+name: Build APK with C++
 
 on: [push]
 
@@ -9,10 +9,10 @@ jobs:
       fail-fast: false
       matrix:
         method: [
-          { name: "groovy-buildscript", type: "groovy", buildscript: "yes" },
-          { name: "groovy-plugins", type: "groovy", buildscript: "no" },
-          { name: "kts-buildscript", type: "kts", buildscript: "yes" },
-          { name: "kts-plugins", type: "kts", buildscript: "no" }
+          { name: "cpp-simple", abi: "armeabi-v7a" },
+          { name: "cpp-full", abi: "arm64-v8a" },
+          { name: "cpp-minimal", abi: "x86" },
+          { name: "cpp-compat", abi: "x86_64" }
         ]
     
     steps:
@@ -24,184 +24,135 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       
+      - name: Setup Android NDK
+        run: |
+          echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;25.1.8937393"
+          echo "NDK installed"
+      
       - name: Create Android project
         run: |
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/java/com/dimvpn/app
+          mkdir -p app/src/main/cpp
+          mkdir -p app/src/main/jniLibs/${{ matrix.method.abi }}
           
       - name: Copy config
         run: cp config/config.json app/src/main/assets/config.json || echo "no config"
       
-      # СПОСОБ 1: Groovy + buildscript
-      - name: Method 1 - Groovy with buildscript
-        if: matrix.method.name == 'groovy-buildscript'
+      # Create C++ code
+      - name: Create native C++ code
         run: |
-          cat > settings.gradle << 'EOF'
-          include ':app'
-          EOF
+          cat > app/src/main/cpp/native-lib.cpp << 'EOF'
+          #include <jni.h>
+          #include <string>
+          #include <android/log.h>
           
+          #define LOG_TAG "DimVPN"
+          #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+          
+          extern "C" {
+          
+          JNIEXPORT jstring JNICALL
+          Java_com_dimvpn_app_MainActivity_stringFromJNI(
+                  JNIEnv* env,
+                  jobject /* this */) {
+              std::string hello = "DimVPN работает на C++";
+              LOGI("Native code loaded successfully");
+              return env->NewStringUTF(hello.c_str());
+          }
+          
+          JNIEXPORT jboolean JNICALL
+          Java_com_dimvpn_app_MainActivity_startVPNNative(
+                  JNIEnv* env,
+                  jobject /* this */) {
+              LOGI("Starting VPN from native code");
+              // Здесь будет код VPN на C++
+              return JNI_TRUE;
+          }
+          
+          }
+          EOF
+      
+      # Create CMakeLists.txt
+      - name: Create CMakeLists.txt
+        run: |
+          cat > app/src/main/cpp/CMakeLists.txt << 'EOF'
+          cmake_minimum_required(VERSION 3.18.1)
+          project("dimvpn")
+          
+          add_library(
+              native-lib
+              SHARED
+              native-lib.cpp
+          )
+          
+          find_library(
+              log-lib
+              log
+          )
+          
+          target_link_libraries(
+              native-lib
+              ${log-lib}
+          )
+          EOF
+      
+      # Create build.gradle
+      - name: Create build.gradle
+        run: |
           cat > app/build.gradle << 'EOF'
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.0.0'
-              }
-          }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          apply plugin: 'com.android.application'
           android {
               compileSdk 34
+              ndkVersion "25.1.8937393"
+              
               defaultConfig {
                   applicationId "com.dimvpn.app"
                   minSdk 21
                   targetSdk 34
                   versionCode 1
                   versionName "1.0"
+                  
+                  externalNativeBuild {
+                      cmake {
+                          cppFlags "-std=c++17"
+                          abiFilters "${{ matrix.method.abi }}"
+                      }
+                  }
+              }
+              
+              externalNativeBuild {
+                  cmake {
+                      path "src/main/cpp/CMakeLists.txt"
+                  }
               }
           }
+          
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
           }
           EOF
       
-      # СПОСОБ 2: Groovy + plugins
-      - name: Method 2 - Groovy with plugins
-        if: matrix.method.name == 'groovy-plugins'
+      # Create settings.gradle
+      - name: Create settings.gradle
         run: |
           cat > settings.gradle << 'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
           include ':app'
           EOF
-          
-          cat > app/build.gradle << 'EOF'
-          plugins {
-              id 'com.android.application'
-          }
-          android {
-              namespace 'com.dimvpn.app'
-              compileSdk 34
-              defaultConfig {
-                  applicationId 'com.dimvpn.app'
-                  minSdk 21
-                  targetSdk 34
-                  versionCode 1
-                  versionName '1.0'
-              }
-          }
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-          }
-          EOF
       
-      # СПОСОБ 3: KTS + buildscript
-      - name: Method 3 - KTS with buildscript
-        if: matrix.method.name == 'kts-buildscript'
-        run: |
-          cat > settings.gradle.kts << 'EOF'
-          include(":app")
-          EOF
-          
-          cat > app/build.gradle.kts << 'EOF'
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath("com.android.tools.build:gradle:8.0.0")
-              }
-          }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          apply(plugin = "com.android.application")
-          android {
-              compileSdk = 34
-              defaultConfig {
-                  applicationId = "com.dimvpn.app"
-                  minSdk = 21
-                  targetSdk = 34
-                  versionCode = 1
-                  versionName = "1.0"
-              }
-          }
-          dependencies {
-              implementation("androidx.appcompat:appcompat:1.6.1")
-          }
-          EOF
-      
-      # СПОСОБ 4: KTS + plugins
-      - name: Method 4 - KTS with plugins
-        if: matrix.method.name == 'kts-plugins'
-        run: |
-          cat > settings.gradle.kts << 'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          include(":app")
-          EOF
-          
-          cat > app/build.gradle.kts << 'EOF'
-          plugins {
-              id("com.android.application")
-          }
-          android {
-              namespace = "com.dimvpn.app"
-              compileSdk = 34
-              defaultConfig {
-                  applicationId = "com.dimvpn.app"
-                  minSdk = 21
-                  targetSdk = 34
-                  versionCode = 1
-                  versionName = "1.0"
-              }
-          }
-          dependencies {
-              implementation("androidx.appcompat:appcompat:1.6.1")
-          }
-          EOF
-      
-      # AndroidManifest.xml
+      # Create AndroidManifest.xml
       - name: Create AndroidManifest.xml
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
-              <application android:label="DimVPN">
-                  <activity android:name=".MainActivity" android:exported="true">
+              
+              <application 
+                  android:label="DimVPN"
+                  android:allowBackup="true">
+                  
+                  <activity 
+                      android:name=".MainActivity" 
+                      android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -211,25 +162,83 @@ jobs:
           </manifest>
           EOF
       
-      # MainActivity
+      # Create MainActivity.java with JNI
       - name: Create MainActivity
         run: |
           cat > app/src/main/java/com/dimvpn/app/MainActivity.java << 'EOF'
           package com.dimvpn.app;
+          
           import android.app.Activity;
           import android.os.Bundle;
           import android.widget.Button;
+          import android.widget.TextView;
+          import android.widget.LinearLayout;
           import android.widget.Toast;
+          import android.graphics.Color;
+          import android.view.Gravity;
+          
           public class MainActivity extends Activity {
+              
+              static {
+                  System.loadLibrary("native-lib");
+              }
+              
+              public native String stringFromJNI();
+              public native boolean startVPNNative();
+              
+              private boolean isRunning = false;
+              
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  Button btn = new Button(this);
-                  btn.setText("DimVPN");
-                  btn.setOnClickListener(v -> 
-                      Toast.makeText(this, "Работает!", Toast.LENGTH_SHORT).show()
-                  );
-                  setContentView(btn);
+                  
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setGravity(Gravity.CENTER);
+                  layout.setBackgroundColor(Color.parseColor("#1a1a1a"));
+                  layout.setPadding(50, 50, 50, 50);
+                  
+                  TextView title = new TextView(this);
+                  title.setText("DimVPN");
+                  title.setTextSize(32);
+                  title.setTextColor(Color.parseColor("#4CAF50"));
+                  title.setGravity(Gravity.CENTER);
+                  layout.addView(title);
+                  
+                  TextView statusText = new TextView(this);
+                  statusText.setText(stringFromJNI());
+                  statusText.setTextSize(18);
+                  statusText.setTextColor(Color.WHITE);
+                  statusText.setGravity(Gravity.CENTER);
+                  statusText.setPadding(0, 50, 0, 50);
+                  layout.addView(statusText);
+                  
+                  Button toggleButton = new Button(this);
+                  toggleButton.setText("ЗАПУСТИТЬ VPN");
+                  toggleButton.setTextSize(16);
+                  toggleButton.setBackgroundColor(Color.parseColor("#4CAF50"));
+                  toggleButton.setTextColor(Color.WHITE);
+                  toggleButton.setPadding(50, 20, 50, 20);
+                  layout.addView(toggleButton);
+                  
+                  setContentView(layout);
+                  
+                  toggleButton.setOnClickListener(v -> {
+                      if (!isRunning) {
+                          boolean result = startVPNNative();
+                          if (result) {
+                              isRunning = true;
+                              toggleButton.setText("ОСТАНОВИТЬ VPN");
+                              statusText.setText("VPN запущен (C++)");
+                              Toast.makeText(this, "VPN запущен", Toast.LENGTH_SHORT).show();
+                          }
+                      } else {
+                          isRunning = false;
+                          toggleButton.setText("ЗАПУСТИТЬ VPN");
+                          statusText.setText(stringFromJNI());
+                          Toast.makeText(this, "VPN остановлен", Toast.LENGTH_SHORT).show();
+                      }
+                  });
               }
           }
           EOF
@@ -258,5 +267,5 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-APK-${{ matrix.method.name }}
+          name: DimVPN-CPP-${{ matrix.method.name }}
           path: app/build/outputs/apk/debug/*.apk
