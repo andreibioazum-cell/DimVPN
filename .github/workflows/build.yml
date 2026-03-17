@@ -24,51 +24,42 @@ jobs:
           mkdir -p app/src/main/cpp
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
-          mkdir -p gradle/wrapper
 
-      - name: Create Full C++ Engine (engine.cpp)
+      - name: Create C++ Engine
         run: |
           cat << 'EOF' | tee app/src/main/cpp/engine.cpp
           #include <jni.h>
           #include <GLES3/gl3.h>
           #include <vector>
-          #include <string>
           #include <android/log.h>
 
           #define LOG_TAG "DimGun-Native"
-          #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-
-          struct Block { float x, y, z; int type; };
-          struct Weapon { std::string name; int damage; int ammo; };
-
-          std::vector<Block> currentMap;
-          Weapon currentWeapon = {"AK-47", 30, 30};
-
           extern "C" {
               JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_init(JNIEnv* env, jclass obj) {
                   glEnable(GL_DEPTH_TEST);
-                  LOGI("Engine Initialized");
-                  for(int x=-5; x<5; x++) {
-                      for(int z=-5; z<5; z++) {
-                          currentMap.push_back({(float)x, -1.0f, (float)z, 1});
-                      }
-                  }
               }
-
-              JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_addBlock(JNIEnv* env, jclass obj, jfloat x, jfloat y, jfloat z, jint type) {
-                  currentMap.push_back({x, y, z, type});
-                  LOGI("Block added at %f, %f, %f", x, y, z);
-              }
-
               JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_step(JNIEnv* env, jclass obj) {
-                  glClearColor(0.4f, 0.7f, 1.0f, 1.0f); // Небо Chicken Gun
+                  glClearColor(0.4f, 0.7f, 1.0f, 1.0f);
                   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+              }
+              JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_addBlock(JNIEnv* env, jclass obj, jfloat x, jfloat y, jfloat z, jint type) {
+                  // Логика добавления блоков
               }
           }
           EOF
 
-      - name: Create Java UI (Menu & HUD)
+      - name: Create Project Files
         run: |
+          # CMake
+          cat << 'EOF' | tee app/src/main/cpp/CMakeLists.txt
+          cmake_minimum_required(VERSION 3.22.1)
+          project("dimgun_core")
+          add_library(dimgun_core SHARED engine.cpp)
+          find_library(log-lib log)
+          target_link_libraries(dimgun_core ${log-lib} GLESv3 EGL)
+          EOF
+
+          # Java Native Bridge
           cat << 'EOF' | tee app/src/main/java/com/dim/gun/NativeLib.java
           package com.dim.gun;
           public class NativeLib {
@@ -79,12 +70,12 @@ jobs:
           }
           EOF
 
+          # MainActivity
           cat << 'EOF' | tee app/src/main/java/com/dim/gun/MainActivity.java
           package com.dim.gun;
           import android.app.Activity;
           import android.opengl.GLSurfaceView;
           import android.os.Bundle;
-          import android.view.Gravity;
           import android.widget.*;
           import javax.microedition.khronos.egl.EGLConfig;
           import javax.microedition.khronos.opengles.GL10;
@@ -93,55 +84,21 @@ jobs:
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  FrameLayout layout = new FrameLayout(this);
-                  
-                  GLSurfaceView glView = new GLSurfaceView(this);
-                  glView.setEGLContextClientVersion(3);
-                  glView.setRenderer(new GLSurfaceView.Renderer() {
+                  GLSurfaceView v = new GLSurfaceView(this);
+                  v.setEGLContextClientVersion(3);
+                  v.setRenderer(new GLSurfaceView.Renderer() {
                       public void onSurfaceCreated(GL10 gl, EGLConfig c) { NativeLib.init(); }
                       public void onSurfaceChanged(GL10 gl, int w, int h) {}
                       public void onDrawFrame(GL10 gl) { NativeLib.step(); }
                   });
-                  layout.addView(glView);
-
-                  LinearLayout hud = new LinearLayout(this);
-                  hud.setOrientation(LinearLayout.VERTICAL);
-                  hud.setPadding(20, 20, 20, 20);
-                  
-                  Button btnShoot = new Button(this);
-                  btnShoot.setText("ОГОНЬ");
-                  
-                  Button btnBuild = new Button(this);
-                  btnBuild.setText("МЕНЮ БЛОКОВ");
-                  btnBuild.setOnClickListener(v -> {
-                      NativeLib.addBlock(0, 0, -2, 1);
-                      Toast.makeText(this, "Блок установлен!", Toast.LENGTH_SHORT).show();
-                  });
-
-                  hud.addView(btnShoot);
-                  hud.addView(btnBuild);
-                  
-                  FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(500, 800);
-                  params.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL;
-                  layout.addView(hud, params);
-
-                  setContentView(layout);
+                  setContentView(v);
               }
           }
           EOF
 
-      - name: Build System Config
+      - name: Setup Gradle Project
         run: |
-          cat << 'EOF' | tee app/src/main/cpp/CMakeLists.txt
-          cmake_minimum_required(VERSION 3.22.1)
-          project("dimgun_core")
-          add_library(dimgun_core SHARED engine.cpp)
-          find_library(log-lib log)
-          target_link_libraries(dimgun_core ${log-lib} GLESv3 EGL)
-          EOF
-
           echo "include ':app'" | tee settings.gradle
-          
           cat << 'EOF' | tee build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -159,20 +116,16 @@ jobs:
                   applicationId "com.dim.gun"
                   minSdk 24
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-                  externalNativeBuild { cmake { cppFlags "" } }
               }
               externalNativeBuild { cmake { path "src/main/cpp/CMakeLists.txt" } }
           }
           EOF
 
-      - name: Manifest
-        run: |
+          mkdir -p app/src/main
           cat << 'EOF' | tee app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="Dim Gun" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
-                  <activity android:name="com.dim.gun.MainActivity" android:exported="true" android:screenOrientation="landscape">
+              <application android:label="Dim Gun">
+                  <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -182,20 +135,13 @@ jobs:
           </manifest>
           EOF
 
-      - name: Final Build
-        run: |
-          # Исправленная загрузка Gradle Wrapper
-          curl -sL https://github.com/gradle/gradle/raw/v8.5/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip" | tee gradle/wrapper/gradle-wrapper.properties
-          
-          # Создаем исполняемый файл gradlew
-          printf '#!/bin/sh\nexec java -Xmx512m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' | tee gradlew
-          chmod +x gradlew
-          
-          ./gradlew :app:assembleDebug
+      - name: Build with Gradle Action
+        uses: eskatos/gradle-command-action@v3
+        with:
+          arguments: assembleDebug
 
-      - name: Upload Full Game APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimGun-Alpha-Full
+          name: DimGun-Alpha
           path: app/build/outputs/apk/debug/*.apk
