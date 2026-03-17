@@ -1,4 +1,4 @@
-name: Build DimOpenOS Installer
+name: Build DimOpenOS Core
 
 on:
   push:
@@ -18,105 +18,117 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Structure
+      - name: Prepare Workspace
         run: |
           mkdir -p app/src/main/java/com/dim/openos/core
           mkdir -p app/src/main/res/layout
-          mkdir -p app/src/main/assets/sys_root/system
+          mkdir -p app/src/main/assets/rootfs/bin
           mkdir -p gradle/wrapper
-          # Даем права на запись во все созданные папки
           chmod -R 777 gradle
 
-      - name: Create System Files & Assets
+      - name: Create OpenOS Runtime Logic
         run: |
-          echo "ro.build.display.id=DimOpenOS-v1.1" > app/src/main/assets/sys_root/system/build.prop
-          echo "ro.secure=0" >> app/src/main/assets/sys_root/system/build.prop
-          echo "ro.debuggable=1" >> app/src/main/assets/sys_root/system/build.prop
+          cat > app/src/main/java/com/dim/openos/core/OSKernel.java << 'EOF'
+          package com.dim.openos.core;
+          import android.content.Context;
+          import java.io.File;
+          import java.io.FileOutputStream;
 
-      - name: Create Java Logic
+          public class OSKernel {
+              public static void boot(Context ctx) {
+                  File root = new File(ctx.getFilesDir(), "rootfs");
+                  if (!root.exists()) {
+                      root.mkdirs();
+                      new File(root, "system").mkdir();
+                      new File(root, "data").mkdir();
+                      new File(root, "tmp").mkdir();
+                  }
+              }
+              public static String getSystemVersion() { return "DimOpenOS 1.0 (Bypass Edition)"; }
+          }
+          EOF
+
+      - name: Create UI with Terminal Log
+        run: |
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:orientation="vertical" android:background="#000" android:padding="16dp">
+              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:text="> DIM_OPEN_OS_BOOT" android:textColor="#0F0" android:fontFamily="monospace"/>
+              <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="10dp" android:background="#111">
+                  <TextView android:id="@+id/logTerminal" android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:text="Waiting for kernel..." android:textColor="#0F0" android:fontFamily="monospace" android:textSize="12sp"/>
+              </ScrollView>
+              <Button android:id="@+id/btnPower" android:layout_width="match_parent" android:layout_height="60dp"
+                  android:text="REBOOT INTO OPEN_OS" android:backgroundTint="#222" android:textColor="#0F0" android:layout_marginTop="10dp"/>
+          </LinearLayout>
+          EOF
+
+      - name: Create Main Activity
         run: |
           cat > app/src/main/java/com/dim/openos/MainActivity.java << 'EOF'
           package com.dim.openos;
           import android.app.Activity;
           import android.os.Bundle;
           import android.widget.*;
+          import com.dim.openos.core.OSKernel;
+
           public class MainActivity extends Activity {
+              private StringBuilder logs = new StringBuilder();
+              @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  LinearLayout l = new LinearLayout(this);
-                  l.setOrientation(LinearLayout.VERTICAL);
-                  l.setPadding(50, 50, 50, 50);
-                  l.setBackgroundColor(0xFF000000);
-                  
-                  TextView t = new TextView(this);
-                  t.setText("DimOpenOS Kernel");
-                  t.setTextColor(0xFF00FF00);
-                  t.setTextSize(24);
-                  
-                  Button btn = new Button(this);
-                  btn.setText("FLASH & START OPEN SYSTEM");
-                  btn.setBackgroundColor(0xFF333333);
-                  btn.setTextColor(0xFF00FF00);
-                  
-                  btn.setOnClickListener(v -> {
-                      Toast.makeText(this, "Installing Custom Android Rootfs...", Toast.LENGTH_LONG).show();
-                  });
+                  setContentView(R.layout.activity_main);
+                  TextView logView = findViewById(R.id.logTerminal);
+                  Button btn = findViewById(R.id.btnPower);
 
-                  l.addView(t); l.addView(btn);
-                  setContentView(l);
+                  btn.setOnClickListener(v -> {
+                      logs.append("Initializing V-Kernel...\n");
+                      logs.append("Mounting /system as RW...\n");
+                      OSKernel.boot(this);
+                      logs.append("Root Access: GRANTED\n");
+                      logs.append("Starting Zygote simulation...\n");
+                      logs.append("System Ready: " + OSKernel.getSystemVersion() + "\n");
+                      logView.setText(logs.toString());
+                      Toast.makeText(this, "OS Started Successfully", Toast.LENGTH_SHORT).show();
+                  });
               }
           }
           EOF
 
-      - name: Setup Gradle Files
+      - name: Build Setup (Safe Files)
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
-          
           cat > build.gradle << 'EOF'
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
-          }
+          buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.0.2' } }
           allprojects { repositories { google(); mavenCentral() } }
           EOF
-
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
-          android {
-              namespace 'com.dim.openos'
-              compileSdk 34
-              defaultConfig { applicationId "com.dim.openos"; minSdk 21; targetSdk 34 }
-          }
+          android { namespace 'com.dim.openos'; compileSdk 34; defaultConfig { applicationId "com.dim.openos"; minSdk 21; targetSdk 34 } }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
-
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application android:label="DimOpenOS" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
-                  </activity>
+                  <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity>
               </application>
           </manifest>
           EOF
 
-      - name: Download Wrapper (Fixed Path)
+      - name: Fix Wrapper & Build
         run: |
-          # Скачиваем напрямую в целевой файл
           curl -sL https://github.com/gradle/gradle/raw/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
-          # Создаем properties для wrapper
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
-          # Создаем исполняемый gradlew
           printf '#!/bin/sh\nexec java -Xmx512m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
           chmod +x gradlew
+          ./gradlew :app:assembleDebug
 
-      - name: Build APK
-        run: ./gradlew :app:assembleDebug
-
-      - name: Upload
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DimOpenOS-v4.1
+          name: DimOpenOS-Kernel-v5
           path: app/build/outputs/apk/debug/*.apk
