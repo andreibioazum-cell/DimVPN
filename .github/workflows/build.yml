@@ -22,9 +22,9 @@ jobs:
       - name: Copy config
         run: cp config/config.json app/src/main/assets/config.json || echo "no config"
       
-      - name: Create settings.gradle
+      - name: Create settings.gradle.kts
         run: |
-          cat > settings.gradle << 'EOF'
+          cat > settings.gradle.kts << 'EOF'
           pluginManagement {
               repositories {
                   google()
@@ -33,38 +33,55 @@ jobs:
               }
           }
           dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories {
                   google()
                   mavenCentral()
               }
           }
           rootProject.name = "DimVPN"
-          include ':app'
+          include(":app")
           EOF
       
-      - name: Create build.gradle
+      - name: Create build.gradle.kts
         run: |
-          cat > app/build.gradle << 'EOF'
+          cat > app/build.gradle.kts << 'EOF'
           plugins {
-              id 'com.android.application' version '8.0.0' apply false
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
           }
 
           android {
-              namespace 'com.dimvpn.app'
-              compileSdk 34
+              namespace = "com.dimvpn.app"
+              compileSdk = 34
 
               defaultConfig {
-                  applicationId 'com.dimvpn.app'
-                  minSdk 21
-                  targetSdk 34
-                  versionCode 1
-                  versionName '1.0'
+                  applicationId = "com.dimvpn.app"
+                  minSdk = 21
+                  targetSdk = 34
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+
+              buildTypes {
+                  debug {
+                      isMinifyEnabled = false
+                  }
+              }
+              
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              
+              kotlinOptions {
+                  jvmTarget = "17"
               }
           }
 
           dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation("androidx.core:core-ktx:1.12.0")
+              implementation("androidx.appcompat:appcompat:1.6.1")
+              implementation("com.google.android.material:material:1.11.0")
           }
           EOF
       
@@ -87,91 +104,140 @@ jobs:
           </manifest>
           EOF
       
-      - name: Create MainActivity
+      - name: Create MainActivity.kt
         run: |
-          cat > app/src/main/java/com/dimvpn/app/MainActivity.java << 'EOF'
-          package com.dimvpn.app;
+          cat > app/src/main/java/com/dimvpn/app/MainActivity.kt << 'EOF'
+          package com.dimvpn.app
 
-          import android.app.Activity;
-          import android.content.Intent;
-          import android.net.VpnService;
-          import android.os.Bundle;
-          import android.widget.Button;
+          import android.content.Intent
+          import android.net.VpnService
+          import android.os.Bundle
+          import android.widget.Button
+          import android.widget.LinearLayout
+          import android.widget.TextView
+          import android.widget.Toast
+          import androidx.appcompat.app.AppCompatActivity
+          import androidx.core.content.ContextCompat
 
-          public class MainActivity extends Activity {
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
+          class MainActivity : AppCompatActivity() {
+              private var isRunning = false
+              
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
                   
-                  Button btn = new Button(this);
-                  btn.setText("Запустить VPN");
-                  btn.setOnClickListener(v -> {
-                      Intent intent = VpnService.prepare(this);
-                      if (intent != null) {
-                          startActivityForResult(intent, 0);
-                      } else {
-                          onActivityResult(0, RESULT_OK, null);
+                  val layout = LinearLayout(this).apply {
+                      orientation = LinearLayout.VERTICAL
+                      setBackgroundColor(android.graphics.Color.parseColor("#1a1a1a"))
+                      setPadding(50, 50, 50, 50)
+                  }
+                  
+                  val title = TextView(this).apply {
+                      text = "DimVPN"
+                      textSize = 32f
+                      setTextColor(android.graphics.Color.parseColor("#4CAF50"))
+                      textAlignment = TextView.TEXT_ALIGNMENT_CENTER
+                  }
+                  
+                  val statusText = TextView(this).apply {
+                      text = "Статус: Отключено"
+                      textSize = 18f
+                      setTextColor(android.graphics.Color.WHITE)
+                      textAlignment = TextView.TEXT_ALIGNMENT_CENTER
+                      setPadding(0, 50, 0, 50)
+                  }
+                  
+                  val toggleButton = Button(this).apply {
+                      text = "ЗАПУСТИТЬ VPN"
+                      setBackgroundColor(android.graphics.Color.parseColor("#4CAF50"))
+                      setTextColor(android.graphics.Color.WHITE)
+                      setOnClickListener {
+                          if (isRunning) stopVPN(statusText, this)
+                          else startVPN(statusText, this)
                       }
-                  });
+                  }
                   
-                  setContentView(btn);
+                  layout.addView(title)
+                  layout.addView(statusText)
+                  layout.addView(toggleButton)
+                  setContentView(layout)
               }
               
-              @Override
-              protected void onActivityResult(int request, int result, Intent data) {
+              private fun startVPN(statusText: TextView, button: Button) {
+                  val intent = VpnService.prepare(this)
+                  if (intent != null) {
+                      startActivityForResult(intent, 0)
+                  } else {
+                      onActivityResult(0, RESULT_OK, null)
+                  }
+                  
+                  isRunning = true
+                  statusText.text = "Статус: Подключено"
+                  button.text = "ОСТАНОВИТЬ VPN"
+                  Toast.makeText(this, "VPN запущен", Toast.LENGTH_SHORT).show()
+              }
+              
+              private fun stopVPN(statusText: TextView, button: Button) {
+                  val intent = Intent(this, VpnService::class.java)
+                  stopService(intent)
+                  
+                  isRunning = false
+                  statusText.text = "Статус: Отключено"
+                  button.text = "ЗАПУСТИТЬ VPN"
+                  Toast.makeText(this, "VPN остановлен", Toast.LENGTH_SHORT).show()
+              }
+              
+              override fun onActivityResult(request: Int, result: Int, data: Intent?) {
+                  super.onActivityResult(request, result, data)
                   if (result == RESULT_OK) {
-                      Intent intent = new Intent(this, VpnService.class);
-                      startService(intent);
+                      val intent = Intent(this, VpnService::class.java)
+                      ContextCompat.startForegroundService(this, intent)
                   }
               }
           }
           EOF
       
-      - name: Create VpnService
+      - name: Create VpnService.kt
         run: |
-          cat > app/src/main/java/com/dimvpn/app/VpnService.java << 'EOF'
-          package com.dimvpn.app;
+          cat > app/src/main/java/com/dimvpn/app/VpnService.kt << 'EOF'
+          package com.dimvpn.app
 
-          import android.net.VpnService;
-          import android.os.ParcelFileDescriptor;
-          import android.util.Log;
-          import java.io.IOException;
+          import android.net.VpnService
+          import android.os.ParcelFileDescriptor
+          import android.util.Log
+          import java.io.IOException
 
-          public class VpnService extends android.net.VpnService {
-              private ParcelFileDescriptor vpnInterface;
+          class VpnService : VpnService() {
+              private var vpnInterface: ParcelFileDescriptor? = null
               
-              @Override
-              public void onCreate() {
-                  super.onCreate();
-                  startVPN();
+              override fun onCreate() {
+                  super.onCreate()
+                  startVPN()
               }
               
-              private void startVPN() {
+              private fun startVPN() {
                   try {
-                      Builder builder = new Builder();
-                      builder.setSession("DimVPN")
-                             .setMtu(1500)
-                             .addAddress("10.0.0.2", 32)
-                             .addRoute("0.0.0.0", 0)
-                             .addDnsServer("8.8.8.8");
-                      
-                      vpnInterface = builder.establish();
-                      Log.d("DimVPN", "VPN started");
-                  } catch (Exception e) {
-                      Log.e("DimVPN", "Error: " + e.getMessage());
-                  }
-              }
-              
-              @Override
-              public void onDestroy() {
-                  try {
-                      if (vpnInterface != null) {
-                          vpnInterface.close();
+                      val builder = Builder().apply {
+                          setSession("DimVPN")
+                          setMtu(1500)
+                          addAddress("10.0.0.2", 32)
+                          addRoute("0.0.0.0", 0)
+                          addDnsServer("8.8.8.8")
                       }
-                  } catch (IOException e) {
-                      e.printStackTrace();
+                      
+                      vpnInterface = builder.establish()
+                      Log.d("DimVPN", "VPN запущен")
+                  } catch (e: Exception) {
+                      Log.e("DimVPN", "Ошибка: ${e.message}")
                   }
-                  super.onDestroy();
+              }
+              
+              override fun onDestroy() {
+                  try {
+                      vpnInterface?.close()
+                  } catch (e: IOException) {
+                      e.printStackTrace()
+                  }
+                  super.onDestroy()
               }
           }
           EOF
