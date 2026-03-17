@@ -25,7 +25,7 @@ jobs:
           mkdir -p app/src/main/java/com/dimcheat/app
           mkdir -p gradle/wrapper
 
-      - name: Create Overlay Service
+      - name: Create Overlay Service (С фиксом для игр)
         run: |
           cat > app/src/main/java/com/dimcheat/app/OverlayService.java << 'EOF'
           package com.dimcheat.app;
@@ -58,30 +58,31 @@ jobs:
                   final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                       WindowManager.LayoutParams.WRAP_CONTENT,
                       WindowManager.LayoutParams.WRAP_CONTENT,
-                      WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                      WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, // Важно для новых Android
                       WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                       PixelFormat.TRANSLUCENT);
 
-                  params.gravity = Gravity.TOP | Gravity.LEFT;
+                  params.gravity = Gravity.TOP | Gravity.START;
                   params.x = 0;
                   params.y = 100;
 
                   wm.addView(floatingView, params);
 
-                  // Перемещение окна
+                  // Логика перемещения
                   floatingView.setOnTouchListener(new View.OnTouchListener() {
-                      private int lastX, lastY;
-                      private float touchX, touchY;
+                      private int initialX, initialY;
+                      private float initialTouchX, initialTouchY;
+
                       @Override
                       public boolean onTouch(View v, MotionEvent event) {
                           switch (event.getAction()) {
                               case MotionEvent.ACTION_DOWN:
-                                  lastX = params.x; lastY = params.y;
-                                  touchX = event.getRawX(); touchY = event.getRawY();
+                                  initialX = params.x; initialY = params.y;
+                                  initialTouchX = event.getRawX(); initialTouchY = event.getRawY();
                                   return true;
                               case MotionEvent.ACTION_MOVE:
-                                  params.x = lastX + (int) (event.getRawX() - touchX);
-                                  params.y = lastY + (int) (event.getRawY() - touchY);
+                                  params.x = initialX + (int) (event.getRawX() - initialTouchX);
+                                  params.y = initialY + (int) (event.getRawY() - initialTouchY);
                                   wm.updateViewLayout(floatingView, params);
                                   return true;
                           }
@@ -89,8 +90,12 @@ jobs:
                       }
                   });
 
+                  // Кнопка Скан
                   floatingView.findViewById(R.id.btnScan).setOnClickListener(v -> 
-                      Toast.makeText(this, "Memory Scan: 0 values found", Toast.LENGTH_SHORT).show());
+                      Toast.makeText(this, "Scanning Game Memory...", Toast.LENGTH_SHORT).show());
+
+                  // Кнопка ЗАКРЫТЬ
+                  floatingView.findViewById(R.id.btnClose).setOnClickListener(v -> stopSelf());
               }
 
               @Override
@@ -101,66 +106,29 @@ jobs:
           }
           EOF
 
-      - name: Create UI for Overlay
+      - name: Create UI (Добавлена кнопка Close)
         run: |
           cat > app/src/main/res/layout/overlay_layout.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="wrap_content" android:layout_height="wrap_content"
-              android:background="#DD222222" android:padding="8dp" android:orientation="vertical">
-              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" 
-                  android:text="DimCheat v1.0" android:textColor="#00FF00" android:textSize="12sp"/>
-              <Button android:id="@+id/btnScan" android:layout_width="80dp" 
-                  android:layout_height="40dp" android:text="SCAN" android:textSize="10sp"/>
+              android:background="#E61A1A1A" android:padding="10dp" android:orientation="vertical">
+              <LinearLayout 
+                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:orientation="horizontal" android:gravity="center_vertical">
+                  <TextView android:layout_width="0dp" android:layout_height="wrap_content" 
+                      android:layout_weight="1" android:text="DimCheat v1.1" 
+                      android:textColor="#00FF00" android:textStyle="bold" android:textSize="12sp"/>
+                  <Button android:id="@+id/btnClose" android:layout_width="35dp" 
+                      android:layout_height="35dp" android:text="X" android:backgroundTint="#FF4444" 
+                      android:textSize="10sp" android:padding="0dp"/>
+              </LinearLayout>
+              <View android:layout_width="match_parent" android:layout_height="1dp" 
+                  android:background="#444" android:layout_marginVertical="5dp"/>
+              <Button android:id="@+id/btnScan" android:layout_width="match_parent" 
+                  android:layout_height="wrap_content" android:text="SCAN MEMORY" 
+                  android:backgroundTint="#2196F3" android:textSize="10sp"/>
           </LinearLayout>
-          EOF
-
-      - name: Create MainActivity
-        run: |
-          cat > app/src/main/java/com/dimcheat/app/MainActivity.java << 'EOF'
-          package com.dimcheat.app;
-
-          import android.app.Activity;
-          import android.content.Intent;
-          import android.net.Uri;
-          import android.os.Bundle;
-          import android.provider.Settings;
-          import android.widget.Button;
-
-          public class MainActivity extends Activity {
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  Button btn = new Button(this);
-                  btn.setText("START CHEAT OVERLAY");
-                  setContentView(btn);
-                  btn.setOnClickListener(v -> {
-                      if (!Settings.canDrawOverlays(this)) {
-                          startActivityForResult(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                  Uri.parse("package:" + getPackageName())), 1);
-                      } else {
-                          startService(new Intent(this, OverlayService.class));
-                      }
-                  });
-              }
-          }
-          EOF
-
-      - name: Create AndroidManifest
-        run: |
-          cat > app/src/main/AndroidManifest.xml << 'EOF'
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-              <application android:label="DimCheat" android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-                  <service android:name=".OverlayService" android:exported="false"/>
-              </application>
-          </manifest>
           EOF
 
       - name: Final Project Configs
@@ -193,6 +161,7 @@ jobs:
           }
           EOF
           echo "include ':app'" > settings.gradle
+          echo '<resources><style name="Theme.DimVPN" parent="Theme.AppCompat.DayNight.NoActionBar" /></resources>' > app/src/main/res/values/themes.xml
 
       - name: Build APK
         run: |
@@ -205,5 +174,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimCheat-Overlay-Ready
+          name: DimCheat-V1.1
           path: app/build/outputs/apk/debug/*.apk
