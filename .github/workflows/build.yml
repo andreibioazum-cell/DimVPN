@@ -1,4 +1,4 @@
-name: Build Fully Working DimVPN
+name: Build DimCheat Overlay
 
 on:
   push:
@@ -22,194 +22,171 @@ jobs:
         run: |
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/java/com/dimvpn/app
-          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/java/com/dimcheat/app
           mkdir -p gradle/wrapper
 
-      - name: Create VpnRunnerService (Логика туннеля)
+      - name: Create Overlay Service (Плавающее окно)
         run: |
-          cat > app/src/main/java/com/dimvpn/app/VpnRunnerService.java << 'EOF'
-          package com.dimvpn.app;
+          cat > app/src/main/java/com/dimcheat/app/OverlayService.java << 'EOF'
+          package com.dimcheat.app;
 
+          import android.app.Service;
           import android.content.Intent;
-          import android.net.VpnService;
-          import android.os.ParcelFileDescriptor;
-          import android.util.Log;
-
-          public class VpnRunnerService extends VpnService {
-              private ParcelFileDescriptor vpnInterface = null;
-
-              @Override
-              public int onStartCommand(Intent intent, int flags, int startId) {
-                  if (vpnInterface == null) {
-                      Builder builder = new Builder();
-                      // Устанавливаем параметры туннеля
-                      builder.setSession("DimVPN")
-                             .addAddress("10.0.0.2", 24)
-                             .addDnsServer("8.8.8.8")
-                             .addRoute("0.0.0.0", 0); // Перехватывать ВЕСЬ трафик
-                      
-                      try {
-                          vpnInterface = builder.establish();
-                          Log.d("DimVPN", "Туннель создан, ключик должен появиться");
-                      } catch (Exception e) {
-                          Log.e("DimVPN", "Ошибка создания туннеля", e);
-                      }
-                  }
-                  return START_STICKY;
-              }
-
-              @Override
-              public void onDestroy() {
-                  if (vpnInterface != null) {
-                      try {
-                          vpnInterface.close();
-                      } catch (Exception e) {}
-                      vpnInterface = null;
-                  }
-                  super.onDestroy();
-              }
-          }
-          EOF
-
-      - name: Create MainActivity (Запуск службы)
-        run: |
-          cat > app/src/main/java/com/dimvpn/app/MainActivity.java << 'EOF'
-          package com.dimvpn.app;
-
-          import android.app.Activity;
-          import android.content.Intent;
-          import android.net.VpnService;
-          import android.os.Bundle;
+          import android.graphics.PixelFormat;
+          import android.os.IBinder;
+          import android.view.Gravity;
+          import android.view.LayoutInflater;
+          import android.view.View;
+          import android.view.WindowManager;
           import android.widget.Button;
-          import android.widget.TextView;
+          import android.widget.EditText;
+          import android.widget.Toast;
 
-          public class MainActivity extends Activity {
-              private boolean isRunning = false;
+          public class OverlayService extends Service {
+              private WindowManager wm;
+              private View floatingView;
 
               @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
+              public IBinder onBind(Intent intent) { return null; }
 
-                  Button btn = findViewById(R.id.btnConnect);
-                  TextView status = findViewById(R.id.statusText);
+              @Override
+              public void onCreate() {
+                  super.onCreate();
+                  wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+                  floatingView = LayoutInflater.from(this).inflate(R.layout.overlay_layout, null);
 
-                  btn.setOnClickListener(v -> {
-                      if (!isRunning) {
-                          Intent intent = VpnService.prepare(this);
-                          if (intent != null) {
-                              startActivityForResult(intent, 0);
-                          } else {
-                              startService(new Intent(this, VpnRunnerService.class));
-                              isRunning = true;
-                              status.setText("Статус: ПОДКЛЮЧЕНО");
-                          }
-                      } else {
-                          stopService(new Intent(this, VpnRunnerService.class));
-                          isRunning = false;
-                          status.setText("Статус: ОТКЛЮЧЕНО");
-                      }
+                  final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                      WindowManager.LayoutParams.WRAP_CONTENT,
+                      WindowManager.LayoutParams.WRAP_CONTENT,
+                      WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                      PixelFormat.TRANSLUCENT);
+
+                  params.gravity = Gravity.TOP | Gravity.LEFT;
+                  params.x = 100;
+                  params.y = 100;
+
+                  wm.addView(floatingView, params);
+
+                  Button btnScan = floatingView.findViewById(R.id.btnScan);
+                  btnScan.setOnClickListener(v -> {
+                      Toast.makeText(this, "Поиск значения в памяти...", Toast.LENGTH_SHORT).show();
+                      // Здесь вызывается логика SandHook
                   });
               }
 
               @Override
-              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-                  super.onActivityResult(requestCode, resultCode, data);
-                  if (resultCode == RESULT_OK) {
-                      startService(new Intent(this, VpnRunnerService.class));
-                      isRunning = true;
-                      ((TextView)findViewById(R.id.statusText)).setText("Статус: ПОДКЛЮЧЕНО");
-                  }
+              public void onDestroy() {
+                  super.onDestroy();
+                  if (floatingView != null) wm.removeView(floatingView);
               }
           }
           EOF
 
-      - name: Create AndroidManifest (Регистрация службы)
+      - name: Create UI for Overlay
+        run: |
+          cat > app/src/main/res/layout/overlay_layout.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="wrap_content" android:layout_height="wrap_content"
+              android:background="#CC000000" android:padding="10dp" android:orientation="vertical">
+              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" 
+                  android:text="DimCheat Engine" android:textColor="#00FF00" android:textStyle="bold"/>
+              <EditText android:id="@+id/editValue" android:layout_width="100dp" 
+                  android:layout_height="wrap_content" android:hint="Значение" android:textColorHint="#AAA" android:textColor="#FFF"/>
+              <Button android:id="@+id/btnScan" android:layout_width="match_parent" 
+                  android:layout_height="wrap_content" android:text="SCAN"/>
+          </LinearLayout>
+          EOF
+
+      - name: Create MainActivity (Запрос разрешений)
+        run: |
+          cat > app/src/main/java/com/dimcheat/app/MainActivity.java << 'EOF'
+          package com.dimcheat.app;
+
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.net.Uri;
+          import android.os.Bundle;
+          import android.provider.Settings;
+          import android.widget.Button;
+
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  Button btn = new Button(this);
+                  btn.setText("ЗАПУСТИТЬ ОВЕРЛЕЙ");
+                  setContentView(btn);
+
+                  btn.setOnClickListener(v -> {
+                      if (!Settings.canDrawOverlays(this)) {
+                          Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                  Uri.parse("package:" + getPackageName()));
+                          startActivityForResult(intent, 123);
+                      } else {
+                          startService(new Intent(this, OverlayService.class));
+                      }
+                  });
+              }
+          }
+          EOF
+
+      - name: Create AndroidManifest
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-              
-              <application android:label="DimVPN" android:theme="@style/Theme.DimVPN">
+              <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+              <application android:label="DimCheat" android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
-                  
-                  <service android:name=".VpnRunnerService"
-                      android:permission="android.permission.BIND_VPN_SERVICE"
-                      android:exported="false">
-                      <intent-filter>
-                          <action android:name="android.net.VpnService" />
-                      </intent-filter>
-                  </service>
+                  <service android:name=".OverlayService" android:exported="false"/>
               </application>
           </manifest>
           EOF
 
-      - name: Update Configs and Build
+      - name: Project Configs (With SandHook)
         run: |
-          # Остальные конфиги без изменений
           cat > gradle.properties << 'EOF'
           android.useAndroidX=true
           android.enableJetifier=true
-          android.suppressUnsupportedCompileSdk=34
           EOF
           cat > build.gradle << 'EOF'
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
           }
-          allprojects { repositories { google(); mavenCentral() } }
+          allprojects {
+              repositories { google(); mavenCentral(); maven { url 'https://jitpack.io' } }
+          }
           EOF
           cat > app/build.gradle << 'EOF'
           apply plugin: 'com.android.application'
           android {
-              namespace 'com.dimvpn.app'
+              namespace 'com.dimcheat.app'
               compileSdk 34
               defaultConfig {
-                  applicationId "com.dimvpn.app"
+                  applicationId "com.dimcheat.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
               }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
+              // Библиотека для хуков в реальном времени
+              implementation 'com.github.ganyao114:SandHook:1.5.2'
           }
           EOF
           echo "include ':app'" > settings.gradle
-          
-          # UI Layout
-          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent" android:layout_height="match_parent"
-              android:orientation="vertical" android:gravity="center" android:background="#121212">
-              <TextView android:id="@+id/statusText" android:layout_width="wrap_content" 
-                  android:layout_height="wrap_content" android:text="Статус: ОТКЛЮЧЕНО" 
-                  android:textColor="#FFFFFF" android:textSize="18sp" android:layout_marginBottom="20dp"/>
-              <Button android:id="@+id/btnConnect" android:layout_width="200dp" 
-                  android:layout_height="60dp" android:text="СТАРТ / СТОП" android:backgroundTint="#00E676"/>
-          </LinearLayout>
-          EOF
-          mkdir -p app/src/main/res/values && echo '<resources><style name="Theme.DimVPN" parent="Theme.AppCompat.DayNight.NoActionBar" /></resources>' > app/src/main/res/values/themes.xml
 
       - name: Build APK
         run: |
           curl -L https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
-          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-bin.zip
-          EOF
+          printf "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
           printf '#!/bin/sh\nexec java -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
           chmod +x gradlew
           ./gradlew assembleDebug
@@ -217,5 +194,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-Key-Build
+          name: DimCheat-Overlay
           path: app/build/outputs/apk/debug/*.apk
