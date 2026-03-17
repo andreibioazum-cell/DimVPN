@@ -59,7 +59,7 @@ jobs:
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.11.0'
-              implementation 'com.v2ray.core:core:5.16.1'
+              implementation 'com.v2ray.core:core:5.14.0'
           }
           EOF
       
