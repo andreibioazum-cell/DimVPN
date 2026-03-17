@@ -1,4 +1,4 @@
-name: Build DimBlox CSharp Corrected
+name: Build Dim Gun Native
 
 on:
   push:
@@ -12,34 +12,60 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK (Fixed Action)
+      - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '9.0.x'
 
       - name: Install Android Workload
         run: dotnet workload install android
 
-      - name: Create Project and Files
+      - name: Create DimGun Project
         shell: pwsh
         run: |
-          # Создаем проект, если его нет
-          if (-not (Test-Path "DimBloxApp")) {
-              dotnet new android -n DimBloxApp
-          }
-          cd DimBloxApp
+          dotnet new android -n DimGun
+          cd DimGun
 
-          # Создаем код рендерера (Твой 3D фундамент)
+          # 1. Настраиваем проект (API 34 + .NET 9)
+          $csproj = @"
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <TargetFramework>net9.0-android</TargetFramework>
+              <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
+              <TargetPlatformVersion>34.0</TargetPlatformVersion>
+              <OutputType>Exe</OutputType>
+              <ImplicitUsings>enable</ImplicitUsings>
+            </PropertyGroup>
+          </Project>
+          "@
+          $csproj | Out-File -FilePath DimGun.csproj -Encoding utf8
+
+          # 2. Логика игрока (Петуха)
+          $player = @"
+          namespace DimGun {
+              public class ChickenPlayer {
+                  public float X, Y, Z;
+                  public float Rotation;
+                  public int Health = 100;
+                  
+                  public void Move(float dx, float dz) {
+                      X += dx; Z += dz;
+                  }
+              }
+          }
+          "@
+          $player | Out-File -FilePath ChickenPlayer.cs -Encoding utf8
+
+          # 3. Рендерер Dim Gun (3D Мир)
           $renderer = @"
-          using System;
           using Android.Opengl;
           using javax.microedition.khronos.egl;
           using javax.microedition.khronos.opengles;
 
-          namespace DimBlox {
-              public class MyRenderer : Java.Lang.Object, GLSurfaceView.IRenderer {
+          namespace DimGun {
+              public class GameRenderer : Java.Lang.Object, GLSurfaceView.IRenderer {
                   public void OnSurfaceCreated(IGL10 gl, EGLConfig config) {
-                      GLES30.GlClearColor(0.1f, 0.16f, 0.29f, 1.0f); // Цвет фона из style-core.css
+                      GLES30.GlClearColor(0.53f, 0.81f, 0.92f, 1.0f); // Небо (Sky Blue)
                       GLES30.GlEnable(GLES30.GlDepthTest);
                   }
                   public void OnSurfaceChanged(IGL10 gl, int width, int height) {
@@ -47,41 +73,20 @@ jobs:
                   }
                   public void OnDrawFrame(IGL10 gl) {
                       GLES30.GlClear(GLES30.GlColorBufferBit | GLES30.GlDepthBufferBit);
-                      // Сюда переносим отрисовку кубов из script.js
+                      // Здесь рисуем петухов и пушки
                   }
               }
           }
           "@
-          $renderer | Out-File -FilePath MyRenderer.cs -Encoding utf8
+          $renderer | Out-File -FilePath GameRenderer.cs -Encoding utf8
 
-          # Создаем Activity
-          $activity = @"
-          using Android.App;
-          using Android.OS;
-          using Android.Opengl;
-
-          namespace DimBlox {
-              [Activity(Label = "DimBlox Sharp", MainLauncher = true, Theme = "@android:style/Theme.NoTitleBar.Fullscreen", ScreenOrientation = Android.Content.PM.ScreenOrientation.Landscape)]
-              public class MainActivity : Activity {
-                  protected override void OnCreate(Bundle savedInstanceState) {
-                      base.OnCreate(savedInstanceState);
-                      var view = new GLSurfaceView(this);
-                      view.SetEGLContextClientVersion(3);
-                      view.SetRenderer(new MyRenderer());
-                      SetContentView(view);
-                  }
-              }
-          }
-          "@
-          $activity | Out-File -FilePath MainActivity.cs -Encoding utf8
-
-      - name: Build Android APK
+      - name: Build Dim Gun APK
         run: |
-          cd DimBloxApp
-          dotnet build -c Release -f net8.0-android
+          cd DimGun
+          dotnet publish -c Release -f net9.0-android /p:AndroidPackageFormat=apk /p:AndroidKeyStore=false
 
-      - name: Upload Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimBlox-CSharp-v41
-          path: DimBloxApp/bin/Release/net8.0-android/*-Signed.apk
+          name: DimGun-Alpha-v43
+          path: DimGun/bin/Release/net9.0-android/publish/*.apk
