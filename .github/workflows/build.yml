@@ -46,8 +46,8 @@ jobs:
         run: |
           cat > app/build.gradle.kts << 'EOF'
           plugins {
-              id("com.android.application")
-              id("org.jetbrains.kotlin.android")
+              id("com.android.application") version "8.0.0" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.0" apply false
           }
 
           android {
@@ -117,7 +117,6 @@ jobs:
           import android.widget.TextView
           import android.widget.Toast
           import androidx.appcompat.app.AppCompatActivity
-          import androidx.core.content.ContextCompat
 
           class MainActivity : AppCompatActivity() {
               private var isRunning = false
@@ -190,7 +189,7 @@ jobs:
                   super.onActivityResult(request, result, data)
                   if (result == RESULT_OK) {
                       val intent = Intent(this, VpnService::class.java)
-                      ContextCompat.startForegroundService(this, intent)
+                      startService(intent)
                   }
               }
           }
