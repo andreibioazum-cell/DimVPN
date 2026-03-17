@@ -6,10 +6,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -21,7 +21,7 @@ jobs:
           mkdir -p app/src/main/xml
           
       - name: Copy config
-        run: cp config/config.json app/src/main/assets/config.json
+        run: cp config/config.json app/src/main/assets/config.json || echo "no config"
       
       - name: Create build.gradle
         run: |
@@ -38,20 +38,13 @@ jobs:
                   applicationId 'com.dimvpn.app'
                   minSdk 21
                   targetSdk 34
-                  versionCode ${{ github.run_number }}
-                  versionName '1.0.${{ github.run_number }}'
-              }
-
-              buildTypes {
-                  debug {
-                      minifyEnabled false
-                  }
+                  versionCode 1
+                  versionName '1.0'
               }
           }
 
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
           }
           EOF
       
@@ -62,11 +55,9 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
-                  gradlePluginPortal()
               }
           }
           dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories {
                   google()
                   mavenCentral()
@@ -76,93 +67,23 @@ jobs:
           include ':app'
           EOF
       
-      - name: Create gradle.properties
-        run: |
-          cat > gradle.properties << 'EOF'
-          org.gradle.jvmargs=-Xmx2048m
-          android.useAndroidX=true
-          EOF
-      
       - name: Create AndroidManifest.xml
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
               
-              <application
-                  android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
-                  android:label="DimVPN"
-                  android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
-                  
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
+              <application android:label="DimVPN">
+                  <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
                   
-                  <service
-                      android:name=".DimVPNService"
-                      android:permission="android.permission.BIND_VPN_SERVICE"
-                      android:exported="false">
-                      <intent-filter>
-                          <action android:name="android.net.VpnService" />
-                      </intent-filter>
-                  </service>
+                  <service android:name=".VpnService" android:permission="android.permission.BIND_VPN_SERVICE" />
               </application>
           </manifest>
-          EOF
-      
-      - name: Create VpnService
-        run: |
-          cat > app/src/main/java/com/dimvpn/app/DimVPNService.java << 'EOF'
-          package com.dimvpn.app;
-
-          import android.net.VpnService;
-          import android.os.ParcelFileDescriptor;
-          import android.util.Log;
-          import java.io.IOException;
-
-          public class DimVPNService extends VpnService {
-              private static final String TAG = "DimVPN";
-              private ParcelFileDescriptor vpnInterface = null;
-
-              public void startVPN() {
-                  if (vpnInterface != null) return;
-
-                  Builder builder = new Builder();
-                  builder.setSession("DimVPN")
-                         .setMtu(1500)
-                         .addAddress("10.0.0.2", 32)
-                         .addRoute("0.0.0.0", 0)
-                         .addDnsServer("8.8.8.8")
-                         .addDnsServer("8.8.4.4");
-
-                  try {
-                      vpnInterface = builder.establish();
-                      Log.i(TAG, "VPN запущен");
-                  } catch (Exception e) {
-                      Log.e(TAG, "Ошибка запуска VPN: " + e.getMessage());
-                  }
-              }
-
-              public void stopVPN() {
-                  if (vpnInterface != null) {
-                      try {
-                          vpnInterface.close();
-                          vpnInterface = null;
-                          Log.i(TAG, "VPN остановлен");
-                      } catch (IOException e) {
-                          Log.e(TAG, "Ошибка остановки VPN: " + e.getMessage());
-                      }
-                  }
-              }
-          }
           EOF
       
       - name: Create MainActivity
@@ -175,100 +96,81 @@ jobs:
           import android.net.VpnService;
           import android.os.Bundle;
           import android.widget.Button;
-          import android.widget.LinearLayout;
-          import android.widget.TextView;
-          import android.widget.Toast;
-          import android.graphics.Color;
-          import android.view.Gravity;
 
           public class MainActivity extends Activity {
-              private boolean isRunning = false;
-              private Button toggleButton;
-              private TextView statusText;
-              private DimVPNService vpnService;
-              private Intent vpnIntent;
-
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   
-                  vpnService = new DimVPNService();
-                  
-                  LinearLayout layout = new LinearLayout(this);
-                  layout.setOrientation(LinearLayout.VERTICAL);
-                  layout.setGravity(Gravity.CENTER);
-                  layout.setBackgroundColor(Color.parseColor("#1a1a1a"));
-                  layout.setPadding(50, 50, 50, 50);
-                  
-                  TextView title = new TextView(this);
-                  title.setText("DimVPN");
-                  title.setTextSize(32);
-                  title.setTextColor(Color.parseColor("#4CAF50"));
-                  title.setGravity(Gravity.CENTER);
-                  layout.addView(title);
-                  
-                  statusText = new TextView(this);
-                  statusText.setText("Статус: Отключено");
-                  statusText.setTextSize(18);
-                  statusText.setTextColor(Color.WHITE);
-                  statusText.setGravity(Gravity.CENTER);
-                  statusText.setPadding(0, 50, 0, 50);
-                  layout.addView(statusText);
-                  
-                  toggleButton = new Button(this);
-                  toggleButton.setText("ЗАПУСТИТЬ VPN");
-                  toggleButton.setTextSize(16);
-                  toggleButton.setBackgroundColor(Color.parseColor("#4CAF50"));
-                  toggleButton.setTextColor(Color.WHITE);
-                  toggleButton.setPadding(50, 20, 50, 20);
-                  layout.addView(toggleButton);
-                  
-                  setContentView(layout);
-                  
-                  toggleButton.setOnClickListener(v -> {
-                      if (isRunning) {
-                          stopVPN();
+                  Button btn = new Button(this);
+                  btn.setText("Запустить VPN");
+                  btn.setOnClickListener(v -> {
+                      Intent intent = VpnService.prepare(this);
+                      if (intent != null) {
+                          startActivityForResult(intent, 0);
                       } else {
-                          startVPN();
+                          onActivityResult(0, RESULT_OK, null);
                       }
                   });
-              }
-              
-              private void startVPN() {
-                  Intent intent = VpnService.prepare(this);
-                  if (intent != null) {
-                      startActivityForResult(intent, 0);
-                  } else {
-                      onActivityResult(0, RESULT_OK, null);
-                  }
+                  
+                  setContentView(btn);
               }
               
               @Override
               protected void onActivityResult(int request, int result, Intent data) {
-                  super.onActivityResult(request, result, data);
                   if (result == RESULT_OK) {
-                      vpnIntent = new Intent(this, DimVPNService.class);
-                      startService(vpnIntent);
+                      Intent intent = new Intent(this, VpnService.class);
+                      startService(intent);
+                  }
+              }
+          }
+          EOF
+      
+      - name: Create VpnService
+        run: |
+          cat > app/src/main/java/com/dimvpn/app/VpnService.java << 'EOF'
+          package com.dimvpn.app;
+
+          import android.net.VpnService;
+          import android.os.ParcelFileDescriptor;
+          import android.util.Log;
+          import java.io.IOException;
+
+          public class VpnService extends android.net.VpnService {
+              private ParcelFileDescriptor vpnInterface;
+              
+              @Override
+              public void onCreate() {
+                  super.onCreate();
+                  startVPN();
+              }
+              
+              private void startVPN() {
+                  try {
+                      Builder builder = new Builder();
+                      builder.setSession("DimVPN")
+                             .setMtu(1500)
+                             .addAddress("10.0.0.2", 32)
+                             .addRoute("0.0.0.0", 0)
+                             .addDnsServer("8.8.8.8");
                       
-                      vpnService.startVPN();
-                      
-                      isRunning = true;
-                      statusText.setText("Статус: Подключено");
-                      toggleButton.setText("ОСТАНОВИТЬ VPN");
-                      Toast.makeText(this, "VPN запущен", Toast.LENGTH_SHORT).show();
+                      vpnInterface = builder.establish();
+                      Log.d("DimVPN", "VPN started");
+                  } catch (Exception e) {
+                      Log.e("DimVPN", "Error: " + e.getMessage());
                   }
               }
               
-              private void stopVPN() {
-                  vpnService.stopVPN();
-                  if (vpnIntent != null) {
-                      stopService(vpnIntent);
+              @Override
+              public void onDestroy() {
+                  try {
+                      if (vpnInterface != null) {
+                          vpnInterface.close();
+                      }
+                  } catch (IOException e) {
+                      e.printStackTrace();
                   }
-                  
-                  isRunning = false;
-                  statusText.setText("Статус: Отключено");
-                  toggleButton.setText("ЗАПУСТИТЬ VPN");
-                  Toast.makeText(this, "VPN остановлен", Toast.LENGTH_SHORT).show();
+                  super.onDestroy();
               }
           }
           EOF
@@ -276,27 +178,21 @@ jobs:
       - name: Create gradle-wrapper.properties
         run: |
           mkdir -p gradle/wrapper
-          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.0-bin.zip
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          EOF
-
+          echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0-bin.zip" > gradle/wrapper/gradle-wrapper.properties
+      
       - name: Download gradle-wrapper.jar
         run: |
           curl -L -o gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/master/gradle/wrapper/gradle-wrapper.jar
-
+      
       - name: Create gradlew
         run: |
           echo '#!/bin/sh' > gradlew
           echo 'exec java -Xmx64m -classpath "$(dirname "$0")/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' >> gradlew
           chmod +x gradlew
-
+      
       - name: Build APK
-        run: ./gradlew assembleDebug --stacktrace
-
+        run: ./gradlew assembleDebug
+      
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
