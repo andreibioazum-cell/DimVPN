@@ -106,26 +106,40 @@ jobs:
 
       - name: Build Project Configs
         run: |
-          # Фикс AndroidX
           cat > gradle.properties << 'EOF'
           android.useAndroidX=true
           android.enableJetifier=true
           EOF
 
-          # Корневой build.gradle
+          # Корневой build.gradle (упрощенный)
           cat > build.gradle << 'EOF'
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
           }
-          allprojects {
-              repositories { google(); mavenCentral(); maven { url 'https://jitpack.io' } }
-          }
           EOF
 
-          # build.gradle приложения
+          # Настройки репозиториев теперь должны быть здесь для Gradle 8+
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+                  maven { url 'https://jitpack.io' }
+              }
+          }
+          include ':app'
+          EOF
+
+          # build.gradle приложения с исправленной зависимостью
           cat > app/build.gradle << 'EOF'
-          apply plugin: 'com.android.application'
+          plugins {
+              id 'com.android.application'
+          }
           android {
               namespace 'com.dimvpn.app'
               compileSdk 34
@@ -145,11 +159,10 @@ jobs:
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.github.2dust:androidLibV2rayLite:v0.1.0'
+              // Используем стабильную ветку lib
+              implementation 'com.github.2dust:androidLibV2rayLite:master-SNAPSHOT'
           }
           EOF
-
-          echo "include ':app'" > settings.gradle
 
       - name: Setup Gradle Wrapper and Build
         run: |
@@ -163,7 +176,7 @@ jobs:
           distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-bin.zip
           EOF
           
-          printf '#!/bin/sh\nexec java -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
+          printf '#!/bin/sh\nexec java -Xmx64m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
           chmod +x gradlew
           
           ./gradlew assembleDebug
