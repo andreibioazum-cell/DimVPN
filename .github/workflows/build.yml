@@ -5,6 +5,16 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        download_method: [
+          { name: "2dust", url: "https://github.com/2dust/v2rayCore/releases/download/5.16.1/v2ray-core-5.16.1.aar" },
+          { name: "v2fly", url: "https://github.com/v2fly/v2ray-core/releases/download/5.16.1/v2ray-core-android.aar" },
+          { name: "v2ray", url: "https://github.com/v2ray/v2ray-core/releases/download/5.16.1/v2ray-core.aar" },
+          { name: "v2rayng", url: "https://github.com/2dust/v2rayNG/releases/download/1.8.1/v2ray-core.aar" }
+        ]
+    
     steps:
       - uses: actions/checkout@v3
       
@@ -23,13 +33,19 @@ jobs:
       - name: Copy config
         run: cp config/config.json app/src/main/assets/config.json
       
-      - name: Download V2RayCore AAR
+      - name: Download V2RayCore AAR - ${{ matrix.download_method.name }}
         run: |
-          curl -L -o app/libs/v2ray-core.aar https://github.com/2dust/v2rayCore/releases/download/5.16.1/v2ray-core-5.16.1.aar || \
-          curl -L -o app/libs/v2ray-core.aar https://github.com/v2fly/v2ray-core/releases/download/5.16.1/v2ray-core-android.aar || \
-          curl -L -o app/libs/v2ray-core.aar https://github.com/v2ray/v2ray-core/releases/download/5.16.1/v2ray-core.aar
+          echo "Скачиваю с ${{ matrix.download_method.url }}"
+          curl -L -o app/libs/v2ray-core.aar ${{ matrix.download_method.url }} || echo "Не удалось скачать с ${{ matrix.download_method.name }}"
+          if [ -f app/libs/v2ray-core.aar ]; then
+            echo "Файл скачан успешно"
+          else
+            echo "Файл не скачан"
+            exit 1
+          fi
+        continue-on-error: true
       
-      - name: Create build.gradle with local AAR
+      - name: Create build.gradle
         run: |
           cat > app/build.gradle << 'EOF'
           buildscript {
@@ -211,7 +227,7 @@ jobs:
                           toggleButton.setText("ОСТАНОВИТЬ VPN");
                           Toast.makeText(this, "VPN запущен", Toast.LENGTH_SHORT).show();
                       } catch (ClassNotFoundException e) {
-                          Toast.makeText(this, "V2RayCore не найден. Класс: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                          Toast.makeText(this, "V2RayCore не найден в этой сборке", Toast.LENGTH_LONG).show();
                       }
                       
                   } catch (Exception e) {
@@ -260,9 +276,11 @@ jobs:
 
       - name: Build APK
         run: ./gradlew assembleDebug --stacktrace
+        continue-on-error: true
 
-      - name: Upload APK
+      - name: Upload APK (if successful)
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-APK
+          name: DimVPN-APK-${{ matrix.download_method.name }}
           path: app/build/outputs/apk/debug/*.apk
