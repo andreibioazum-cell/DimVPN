@@ -1,4 +1,4 @@
-name: Build Dim Gun Stable
+name: Build Dim Gun Full Game
 
 on:
   push:
@@ -7,125 +7,179 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 9
-        uses: actions/setup-dotnet@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          dotnet-version: '9.0.x'
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Install Android Workload
-        run: dotnet workload install android
-
-      - name: Create DimGun App
-        shell: pwsh
+      - name: Create Structure
         run: |
-          dotnet new android -n DimGun
-          cd DimGun
+          mkdir -p app/src/main/java/com/dim/gun
+          mkdir -p app/src/main/cpp
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
 
-          # 1. Настраиваем проект (Автоматический выбор версии SDK)
-          $csproj = @"
-          <Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-              <TargetFramework>net9.0-android</TargetFramework>
-              <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
-              <OutputType>Exe</OutputType>
-              <ImplicitUsings>enable</ImplicitUsings>
-              <Nullable>enable</Nullable>
-            </PropertyGroup>
-          </Project>
-          "@
-          $csproj | Out-File -FilePath DimGun.csproj -Encoding utf8
+      - name: Create Full C++ Engine (engine.cpp)
+        run: |
+          cat << 'EOF' | tee app/src/main/cpp/engine.cpp
+          #include <jni.h>
+          #include <GLES3/gl3.h>
+          #include <vector>
+          #include <string>
 
-          # 2. Логика Оружия (Система как в Chicken Gun)
-          $weapon = @"
-          namespace DimGun {
-              public class Weapon {
-                  public string Name { get; set; } = "Pistol";
-                  public int Ammo = 30;
-                  public float Damage = 20.0f;
-                  public void Shoot() { 
-                      // В будущем: логика луча (Raycast)
+          struct Block { float x, y, z; int type; };
+          struct Weapon { std::string name; int damage; int ammo; };
+
+          std::vector<Block> currentMap;
+          Weapon currentWeapon = {"AK-47", 30, 30};
+
+          extern "C" {
+              JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_init(JNIEnv* env, jclass obj) {
+                  glEnable(GL_DEPTH_TEST);
+                  // Спавним тестовый пол из блоков (как в твоем script.js)
+                  for(int x=-5; x<5; x++) {
+                      for(int z=-5; z<5; z++) {
+                          currentMap.push_back({(float)x, -1.0f, (float)z, 1});
+                      }
                   }
               }
-          }
-          "@
-          $weapon | Out-File -FilePath Weapon.cs -Encoding utf8
 
-          # 3. Логика Петуха (Игрока)
-          $chicken = @"
-          namespace DimGun {
-              public class ChickenPlayer {
-                  public float X, Y, Z;
-                  public float RotationY;
-                  public int Health = 100;
-                  public Weapon CurrentWeapon = new Weapon();
+              JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_addBlock(JNIEnv* env, jclass obj, jfloat x, jfloat y, jfloat z, jint type) {
+                  currentMap.push_back({x, y, z, type});
+              }
+
+              JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_step(JNIEnv* env, jclass obj) {
+                  glClearColor(0.4f, 0.7f, 1.0f, 1.0f);
+                  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                   
-                  public void Move(float speed, float angle) {
-                      X += (float)Math.Cos(angle) * speed;
-                      Z += (float)Math.Sin(angle) * speed;
-                  }
+                  // Рендеринг блоков и петуха будет здесь (VBO/DrawArrays)
               }
           }
-          "@
-          $chicken | Out-File -FilePath ChickenPlayer.cs -Encoding utf8
+          EOF
 
-          # 4. Нативный 3D Рендерер
-          $renderer = @"
-          using Android.Opengl;
-          using javax.microedition.khronos.egl;
-          using javax.microedition.khronos.opengles;
-
-          namespace DimGun {
-              public class GameRenderer : Java.Lang.Object, GLSurfaceView.IRenderer {
-                  public void OnSurfaceCreated(IGL10 gl, EGLConfig config) {
-                      // Небо (Sky Blue)
-                      GLES30.GlClearColor(0.53f, 0.81f, 0.92f, 1.0f);
-                      GLES30.GlEnable(GLES30.GlDepthTest);
-                  }
-                  public void OnSurfaceChanged(IGL10 gl, int width, int height) {
-                      GLES30.GlViewport(0, 0, width, height);
-                  }
-                  public void OnDrawFrame(IGL10 gl) {
-                      GLES30.GlClear(GLES30.GlColorBufferBit | GLES30.GlDepthBufferBit);
-                      // Здесь рендерятся объекты из твоего script.js
-                  }
-              }
-          }
-          "@
-          $renderer | Out-File -FilePath GameRenderer.cs -Encoding utf8
-
-          # 5. Главный экран
-          $activity = @"
-          using Android.App;
-          using Android.OS;
-          using Android.Opengl;
-
-          namespace DimGun {
-              [Activity(Label = "Dim Gun", MainLauncher = true, Theme = "@android:style/Theme.NoTitleBar.Fullscreen", ScreenOrientation = Android.Content.PM.ScreenOrientation.Landscape)]
-              public class MainActivity : Activity {
-                  protected override void OnCreate(Bundle? savedInstanceState) {
-                      base.OnCreate(savedInstanceState);
-                      var view = new GLSurfaceView(this);
-                      view.SetEGLContextClientVersion(3);
-                      view.SetRenderer(new GameRenderer());
-                      SetContentView(view);
-                  }
-              }
-          }
-          "@
-          $activity | Out-File -FilePath MainActivity.cs -Encoding utf8
-
-      - name: Publish APK (Release)
+      - name: Create Java UI (Menu & HUD)
         run: |
-          cd DimGun
-          dotnet publish -c Release -f net9.0-android /p:AndroidPackageFormat=apk /p:AndroidKeyStore=false
+          cat << 'EOF' | tee app/src/main/java/com/dim/gun/NativeLib.java
+          package com.dim.gun;
+          public class NativeLib {
+              static { System.loadLibrary("dimgun_core"); }
+              public static native void init();
+              public static native void step();
+              public static native void addBlock(float x, float y, float z, int type);
+          }
+          EOF
 
-      - name: Upload Artifact
+          cat << 'EOF' | tee app/src/main/java/com/dim/gun/MainActivity.java
+          package com.dim.gun;
+          import android.app.Activity;
+          import android.opengl.GLSurfaceView;
+          import android.os.Bundle;
+          import android.view.Gravity;
+          import android.widget.*;
+          import javax.microedition.khronos.egl.EGLConfig;
+          import javax.microedition.khronos.opengles.GL10;
+
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle b) {
+                  super.onCreate(b);
+                  FrameLayout layout = new FrameLayout(this);
+                  
+                  // 3D Мир
+                  GLSurfaceView glView = new GLSurfaceView(this);
+                  glView.setEGLContextClientVersion(3);
+                  glView.setRenderer(new GLSurfaceView.Renderer() {
+                      public void onSurfaceCreated(GL10 gl, EGLConfig c) { NativeLib.init(); }
+                      public void onSurfaceChanged(GL10 gl, int w, int h) {}
+                      public void onDrawFrame(GL10 gl) { NativeLib.step(); }
+                  });
+                  layout.addView(glView);
+
+                  // Игровой интерфейс (HUD)
+                  LinearLayout hud = new LinearLayout(this);
+                  hud.setOrientation(LinearLayout.VERTICAL);
+                  
+                  Button btnShoot = new Button(this);
+                  btnShoot.setText("ОГОНЬ");
+                  
+                  Button btnBuild = new Button(this);
+                  btnBuild.setText("МЕНЮ БЛОКОВ");
+                  btnBuild.setOnClickListener(v -> {
+                      Toast.makeText(this, "Блок выбран!", Toast.LENGTH_SHORT).show();
+                      NativeLib.addBlock(0, 0, -2, 1);
+                  });
+
+                  hud.addView(btnShoot);
+                  hud.addView(btnBuild);
+                  layout.addView(hud, new FrameLayout.LayoutParams(400, 600, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
+
+                  setContentView(layout);
+              }
+          }
+          EOF
+
+      - name: Build System Config
+        run: |
+          cat << 'EOF' | tee app/src/main/cpp/CMakeLists.txt
+          cmake_minimum_required(VERSION 3.22.1)
+          project("dimgun_core")
+          add_library(dimgun_core SHARED engine.cpp)
+          find_library(log-lib log)
+          target_link_libraries(dimgun_core ${log-lib} GLESv3 EGL)
+          EOF
+
+          echo "include ':app'" | tee settings.gradle
+          cat << 'EOF' | tee build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+
+          cat << 'EOF' | tee app/build.gradle
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.dim.gun'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.dim.gun"
+                  minSdk 24
+                  targetSdk 34
+                  externalNativeBuild { cmake { cppFlags "" } }
+              }
+              externalNativeBuild { cmake { path "src/main/cpp/CMakeLists.txt" } }
+          }
+          EOF
+
+      - name: Manifest
+        run: |
+          cat << 'EOF' | tee app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application android:label="Dim Gun" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+                  <activity android:name="com.dim.gun.MainActivity" android:exported="true" android:screenOrientation="landscape">
+                      <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+      - name: Final Build
+        run: |
+          curl -sL https://github.com/gradle/gradle/raw/v8.5/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip" | tee gradle/wrapper/gradle-wrapper.properties
+          printf '#!/bin/sh\nexec java -Xmx512m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' | tee gradlew
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug
+
+      - name: Upload Full Game APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimGun-V1-Alpha
-          path: DimGun/bin/Release/net9.0-android/publish/*.apk
+          name: DimGun-Alpha-Full
+          path: app/build/outputs/apk/debug/*.apk
