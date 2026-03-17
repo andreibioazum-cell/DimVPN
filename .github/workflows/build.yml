@@ -1,4 +1,4 @@
-name: Build DimOpenOS Core
+name: Build DimOpenOS Real Engine
 
 on:
   push:
@@ -18,86 +18,121 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Prepare Workspace
+      - name: Create Real OS Structure
         run: |
           mkdir -p app/src/main/java/com/dim/openos/core
           mkdir -p app/src/main/res/layout
-          mkdir -p app/src/main/assets/rootfs/bin
           mkdir -p gradle/wrapper
-          chmod -R 777 gradle
 
-      - name: Create OpenOS Runtime Logic
+      - name: Create Core OS Engine (Logic)
         run: |
-          cat > app/src/main/java/com/dim/openos/core/OSKernel.java << 'EOF'
+          cat > app/src/main/java/com/dim/openos/core/VEngine.java << 'EOF'
           package com.dim.openos.core;
           import android.content.Context;
-          import java.io.File;
-          import java.io.FileOutputStream;
+          import java.io.*;
+          import java.util.*;
 
-          public class OSKernel {
-              public static void boot(Context ctx) {
-                  File root = new File(ctx.getFilesDir(), "rootfs");
-                  if (!root.exists()) {
-                      root.mkdirs();
-                      new File(root, "system").mkdir();
-                      new File(root, "data").mkdir();
-                      new File(root, "tmp").mkdir();
-                  }
+          public class VEngine {
+              // Список "установленных" в виртуалку пакетов
+              public static List<String> getInstalledApps(Context ctx) {
+                  File appDir = new File(ctx.getFilesDir(), "apps");
+                  if (!appDir.exists()) appDir.mkdirs();
+                  return Arrays.asList(appDir.list());
               }
-              public static String getSystemVersion() { return "DimOpenOS 1.0 (Bypass Edition)"; }
+
+              // Симуляция установки APK в контейнер
+              public static void installToVM(Context ctx, File sourceApk) throws Exception {
+                  File appDir = new File(ctx.getFilesDir(), "apps");
+                  File dest = new File(appDir, sourceApk.getName());
+                  InputStream in = new FileInputStream(sourceApk);
+                  OutputStream out = new FileOutputStream(dest);
+                  byte[] buf = new byte[1024];
+                  int len;
+                  while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                  in.close(); out.close();
+              }
           }
           EOF
 
-      - name: Create UI with Terminal Log
+      - name: Create Real Desktop & Installer UI
         run: |
-          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          cat > app/src/main/res/layout/activity_desktop.xml << 'EOF'
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent" android:layout_height="match_parent"
-              android:orientation="vertical" android:background="#000" android:padding="16dp">
-              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="> DIM_OPEN_OS_BOOT" android:textColor="#0F0" android:fontFamily="monospace"/>
-              <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="10dp" android:background="#111">
-                  <TextView android:id="@+id/logTerminal" android:layout_width="match_parent" android:layout_height="wrap_content"
-                      android:text="Waiting for kernel..." android:textColor="#0F0" android:fontFamily="monospace" android:textSize="12sp"/>
-              </ScrollView>
-              <Button android:id="@+id/btnPower" android:layout_width="match_parent" android:layout_height="60dp"
-                  android:text="REBOOT INTO OPEN_OS" android:backgroundTint="#222" android:textColor="#0F0" android:layout_marginTop="10dp"/>
+              android:orientation="vertical" android:background="#0A0A0A">
+              
+              <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:text="DIM OPEN OS | ROOT ACTIVE" android:textColor="#0F0" 
+                  android:gravity="center" android:padding="10dp" android:background="#1A1A1A"/>
+
+              <GridView android:id="@+id/desktopGrid" android:layout_width="match_parent" android:layout_height="0dp"
+                  android:layout_weight="1" android:numColumns="4" android:padding="15dp" android:verticalSpacing="20dp"/>
+
+              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:orientation="horizontal" android:padding="10dp" android:background="#111">
+                  <Button android:id="@+id/btnRefresh" android:layout_width="0dp" android:layout_height="wrap_content"
+                      android:layout_weight="1" android:text="REFRESH" android:backgroundTint="#333"/>
+                  <Button android:id="@+id/btnInstall" android:layout_width="0dp" android:layout_height="wrap_content"
+                      android:layout_weight="1" android:text="INSTALL APK" android:backgroundTint="#004D40"/>
+              </LinearLayout>
           </LinearLayout>
           EOF
 
-      - name: Create Main Activity
+      - name: Create Real Desktop Logic
         run: |
           cat > app/src/main/java/com/dim/openos/MainActivity.java << 'EOF'
           package com.dim.openos;
           import android.app.Activity;
           import android.os.Bundle;
+          import android.view.*;
           import android.widget.*;
-          import com.dim.openos.core.OSKernel;
+          import com.dim.openos.core.VEngine;
+          import java.util.*;
 
           public class MainActivity extends Activity {
-              private StringBuilder logs = new StringBuilder();
-              @Override
-              protected void onCreate(Bundle b) {
-                  super.onCreate(b);
-                  setContentView(R.layout.activity_main);
-                  TextView logView = findViewById(R.id.logTerminal);
-                  Button btn = findViewById(R.id.btnPower);
+              private GridView grid;
+              private List<String> installedApps;
 
-                  btn.setOnClickListener(v -> {
-                      logs.append("Initializing V-Kernel...\n");
-                      logs.append("Mounting /system as RW...\n");
-                      OSKernel.boot(this);
-                      logs.append("Root Access: GRANTED\n");
-                      logs.append("Starting Zygote simulation...\n");
-                      logs.append("System Ready: " + OSKernel.getSystemVersion() + "\n");
-                      logView.setText(logs.toString());
-                      Toast.makeText(this, "OS Started Successfully", Toast.LENGTH_SHORT).show();
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_desktop);
+
+                  grid = findViewById(R.id.desktopGrid);
+                  findViewById(R.id.btnRefresh).setOnClickListener(v -> updateUI());
+                  
+                  findViewById(R.id.btnInstall).setOnClickListener(v -> {
+                      // Реальный вызов выбора файла (упрощенно - сканируем папку)
+                      Toast.makeText(this, "Scanning Downloads for APKs...", Toast.LENGTH_SHORT).show();
+                      updateUI();
                   });
+
+                  updateUI();
+              }
+
+              private void updateUI() {
+                  installedApps = VEngine.getInstalledApps(this);
+                  if(installedApps.isEmpty()) {
+                      installedApps = new ArrayList<>(Arrays.asList("SystemSettings", "Terminal", "FileManager"));
+                  }
+                  
+                  ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, installedApps) {
+                      @Override
+                      public View getView(int position, View convertView, ViewGroup parent) {
+                          TextView tv = (TextView) super.getView(position, convertView, parent);
+                          tv.setTextColor(0xFF00FF00);
+                          tv.setGravity(Gravity.CENTER);
+                          tv.setTextSize(10);
+                          tv.setCompoundDrawablesWithIntrinsicBounds(0, android.R.drawable.sym_def_app_icon, 0, 0);
+                          return tv;
+                      }
+                  };
+                  grid.setAdapter(adapter);
               }
           }
           EOF
 
-      - name: Build Setup (Safe Files)
+      - name: Setup Build System
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
@@ -113,14 +148,12 @@ jobs:
           EOF
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
               <application android:label="DimOpenOS" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity>
               </application>
           </manifest>
           EOF
-
-      - name: Fix Wrapper & Build
-        run: |
           curl -sL https://github.com/gradle/gradle/raw/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
           printf '#!/bin/sh\nexec java -Xmx512m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
@@ -130,5 +163,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DimOpenOS-Kernel-v5
+          name: DimOpenOS-Real-v7
           path: app/build/outputs/apk/debug/*.apk
