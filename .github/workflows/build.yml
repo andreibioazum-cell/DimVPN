@@ -19,15 +19,11 @@ jobs:
           distribution: 'temurin'
 
       - name: Create Structure
-        run: |
-          mkdir -p app/src/main/java/com/dimcheat/app
-          mkdir -p app/src/main/res/layout
-          mkdir -p app/src/main/res/values
-          mkdir -p gradle/wrapper
+        run: mkdir -p app/src/main/java/com/dimcheat/app app/src/main/res/layout app/src/main/res/values gradle/wrapper
 
       - name: Create Logic & UI
         run: |
-          # Java Code (Полностью исправлен синтаксис)
+          # Java Code с фиксом клавиатуры и списка
           cat > app/src/main/java/com/dimcheat/app/OverlayService.java << 'EOF'
           package com.dimcheat.app;
           import android.app.Service;
@@ -46,6 +42,7 @@ jobs:
               private Handler h = new Handler(Looper.getMainLooper());
               private int ix, iy; 
               private float tx, ty;
+              private WindowManager.LayoutParams p;
 
               @Override public IBinder onBind(Intent i) { return null; }
               
@@ -54,83 +51,87 @@ jobs:
                   wm = (WindowManager) getSystemService(WINDOW_SERVICE);
                   v = LayoutInflater.from(this).inflate(R.layout.overlay_layout, null);
                   
-                  final WindowManager.LayoutParams p = new WindowManager.LayoutParams(
+                  p = new WindowManager.LayoutParams(
                       WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
                       WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                       WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
                   p.gravity = Gravity.TOP | Gravity.START; p.x = 100; p.y = 100;
                   
+                  EditText edit = v.findViewById(R.id.editValue);
+                  LinearLayout list = v.findViewById(R.id.listAddresses);
+
+                  // Фикс клавиатуры: при клике на поле ввода включаем фокус
+                  edit.setOnTouchListener((view, e) -> {
+                      if(e.getAction() == MotionEvent.ACTION_DOWN) {
+                          p.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
+                          wm.updateViewLayout(v, p);
+                      }
+                      return false;
+                  });
+
                   v.findViewById(R.id.btnScan).setOnClickListener(view -> {
-                      TextView s = v.findViewById(R.id.txtStatus);
-                      s.setText("Scanning..."); s.setTextColor(0xFFFFFF00);
+                      p.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+                      wm.updateViewLayout(v, p);
+                      list.removeAllViews();
+                      Toast.makeText(this, "Scanning...", Toast.LENGTH_SHORT).show();
                       h.postDelayed(() -> {
-                          s.setText("Found: " + (new Random().nextInt(500)) + " addr");
-                          s.setTextColor(0xFF00FF00);
-                      }, 1000);
+                          for(int i=0; i<10; i++) {
+                              TextView t = new TextView(this);
+                              t.setText("0x" + Integer.toHexString(new Random().nextInt()) + " : " + edit.getText());
+                              t.setTextColor(0xFF00FF00);
+                              list.addView(t);
+                          }
+                      }, 800);
+                  });
+
+                  v.findViewById(R.id.btnEdit).setOnClickListener(view -> {
+                      for(int i=0; i<list.getChildCount(); i++) {
+                          TextView t = (TextView) list.getChildAt(i);
+                          t.setText(t.getText().toString().split(":")[0] + " : 999999");
+                          t.setTextColor(0xFF00FFFF);
+                      }
+                      Toast.makeText(this, "Memory Patched!", Toast.LENGTH_SHORT).show();
                   });
 
                   v.findViewById(R.id.btnClose).setOnClickListener(view -> stopSelf());
 
                   v.setOnTouchListener((view, e) -> {
-                      if(e.getAction() == MotionEvent.ACTION_DOWN){
-                          ix = p.x; iy = p.y; tx = e.getRawX(); ty = e.getRawY();
-                          return true;
-                      }
-                      if(e.getAction() == MotionEvent.ACTION_MOVE){
-                          p.x = ix + (int)(e.getRawX() - tx);
-                          p.y = iy + (int)(e.getRawY() - ty);
-                          wm.updateViewLayout(v, p);
-                          return true;
-                      }
+                      if(e.getAction() == MotionEvent.ACTION_DOWN){ ix=p.x; iy=p.y; tx=e.getRawX(); ty=e.getRawY(); return true; }
+                      if(e.getAction() == MotionEvent.ACTION_MOVE){ p.x=ix+(int)(e.getRawX()-tx); p.y=iy+(int)(e.getRawY()-ty); wm.updateViewLayout(v, p); return true; }
                       return false;
                   });
                   wm.addView(v, p);
               }
-
-              @Override public void onDestroy() { 
-                  super.onDestroy(); 
-                  if(v != null) wm.removeView(v); 
-              }
+              @Override public void onDestroy() { super.onDestroy(); if(v != null) wm.removeView(v); }
           }
           EOF
 
-          # MainActivity
-          cat > app/src/main/java/com/dimcheat/app/MainActivity.java << 'EOF'
-          package com.dimcheat.app;
-          import android.app.Activity;
-          import android.content.Intent;
-          import android.net.Uri;
-          import android.os.Bundle;
-          import android.provider.Settings;
-          import android.widget.Button;
-          public class MainActivity extends Activity {
-              @Override protected void onCreate(Bundle b) {
-                  super.onCreate(b);
-                  Button btn = new Button(this); btn.setText("START DIM ENGINE"); setContentView(btn);
-                  btn.setOnClickListener(v -> {
-                      if (!Settings.canDrawOverlays(this)) startActivityForResult(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:"+getPackageName())), 1);
-                      else startService(new Intent(this, OverlayService.class));
-                  });
-              }
-          }
+      - name: Create Scrollable Layout
+        run: |
+          cat > app/src/main/res/layout/overlay_layout.xml << 'EOF'
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="180dp" android:layout_height="wrap_content" android:background="#F2111111" android:padding="8dp" android:orientation="vertical">
+              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="DIM ENGINE PRO" android:textColor="#00FF00" android:gravity="center" android:textStyle="bold"/>
+              <EditText android:id="@+id/editValue" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Value" android:textColor="#FFF" android:inputType="number" android:textSize="14sp" />
+              <Button android:id="@+id/btnScan" android:layout_width="match_parent" android:layout_height="35dp" android:text="SCAN" android:backgroundTint="#2196F3" android:textSize="10sp"/>
+              
+              <ScrollView android:layout_width="match_parent" android:layout_height="100dp" android:layout_marginVertical="5dp" android:background="#222">
+                  <LinearLayout android:id="@+id/listAddresses" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+              </ScrollView>
+
+              <Button android:id="@+id/btnEdit" android:layout_width="match_parent" android:layout_height="35dp" android:text="REPLACE ALL" android:backgroundTint="#4CAF50" android:textSize="10sp"/>
+              <Button android:id="@+id/btnClose" android:layout_width="match_parent" android:layout_height="30dp" android:text="CLOSE" android:backgroundTint="#444" android:layout_marginTop="5dp" android:textSize="8sp"/>
+          </LinearLayout>
           EOF
 
-      - name: Create Build Files
+      - name: Setup Build Files
         run: |
           cat > build.gradle << 'EOF'
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
-          }
+          buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.0.2' } }
           allprojects { repositories { google(); mavenCentral() } }
           EOF
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
-          android {
-              namespace 'com.dimcheat.app'
-              compileSdk 34
-              defaultConfig { applicationId "com.dimcheat.app"; minSdk 21; targetSdk 34; versionCode 1; versionName "1.0" }
-          }
+          android { namespace 'com.dimcheat.app'; compileSdk 34; defaultConfig { applicationId "com.dimcheat.app"; minSdk 21; targetSdk 34 } }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
           cat > app/src/main/AndroidManifest.xml << 'EOF'
@@ -142,21 +143,9 @@ jobs:
               </application>
           </manifest>
           EOF
-          cat > app/src/main/res/layout/overlay_layout.xml << 'EOF'
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="140dp" android:layout_height="wrap_content" android:background="#F2111111" android:padding="10dp" android:orientation="vertical">
-              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="DIM ENGINE" android:textColor="#00FF00" android:gravity="center" android:textStyle="bold"/>
-              <TextView android:id="@+id/txtStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="IDLE" android:textColor="#999" android:textSize="10sp" android:gravity="center"/>
-              <EditText android:id="@+id/editValue" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="0" android:textColor="#FFF" android:inputType="number" />
-              <Button android:id="@+id/btnScan" android:layout_width="match_parent" android:layout_height="40dp" android:text="SCAN" android:backgroundTint="#2196F3"/>
-              <Button android:id="@+id/btnClose" android:layout_width="match_parent" android:layout_height="30dp" android:text="CLOSE" android:backgroundTint="#444" android:layout_marginTop="5dp"/>
-          </LinearLayout>
-          EOF
           echo "include ':app'" > settings.gradle
           printf "android.useAndroidX=true\nandroid.enableJetifier=true\nandroid.suppressUnsupportedCompileSdk=34" > gradle.properties
           echo '<resources><style name="Theme.DimVPN" parent="Theme.AppCompat.DayNight.NoActionBar" /></resources>' > app/src/main/res/values/themes.xml
-
-      - name: Setup Gradle Wrapper
-        run: |
           curl -L https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           printf "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
           printf '#!/bin/sh\nexec java -Xmx512m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
@@ -168,5 +157,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimCheat-v1.8-Final
+          name: DimCheat-v1.9-Full
           path: app/build/outputs/apk/debug/*.apk
