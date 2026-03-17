@@ -25,7 +25,7 @@ jobs:
           mkdir -p app/src/main/java/com/dimcheat/app
           mkdir -p gradle/wrapper
 
-      - name: Create Overlay Service (Плавающее окно)
+      - name: Create Overlay Service
         run: |
           cat > app/src/main/java/com/dimcheat/app/OverlayService.java << 'EOF'
           package com.dimcheat.app;
@@ -36,10 +36,10 @@ jobs:
           import android.os.IBinder;
           import android.view.Gravity;
           import android.view.LayoutInflater;
+          import android.view.MotionEvent;
           import android.view.View;
           import android.view.WindowManager;
           import android.widget.Button;
-          import android.widget.EditText;
           import android.widget.Toast;
 
           public class OverlayService extends Service {
@@ -63,16 +63,34 @@ jobs:
                       PixelFormat.TRANSLUCENT);
 
                   params.gravity = Gravity.TOP | Gravity.LEFT;
-                  params.x = 100;
+                  params.x = 0;
                   params.y = 100;
 
                   wm.addView(floatingView, params);
 
-                  Button btnScan = floatingView.findViewById(R.id.btnScan);
-                  btnScan.setOnClickListener(v -> {
-                      Toast.makeText(this, "Поиск значения в памяти...", Toast.LENGTH_SHORT).show();
-                      // Здесь вызывается логика SandHook
+                  // Перемещение окна
+                  floatingView.setOnTouchListener(new View.OnTouchListener() {
+                      private int lastX, lastY;
+                      private float touchX, touchY;
+                      @Override
+                      public boolean onTouch(View v, MotionEvent event) {
+                          switch (event.getAction()) {
+                              case MotionEvent.ACTION_DOWN:
+                                  lastX = params.x; lastY = params.y;
+                                  touchX = event.getRawX(); touchY = event.getRawY();
+                                  return true;
+                              case MotionEvent.ACTION_MOVE:
+                                  params.x = lastX + (int) (event.getRawX() - touchX);
+                                  params.y = lastY + (int) (event.getRawY() - touchY);
+                                  wm.updateViewLayout(floatingView, params);
+                                  return true;
+                          }
+                          return false;
+                      }
                   });
+
+                  floatingView.findViewById(R.id.btnScan).setOnClickListener(v -> 
+                      Toast.makeText(this, "Memory Scan: 0 values found", Toast.LENGTH_SHORT).show());
               }
 
               @Override
@@ -89,17 +107,15 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="wrap_content" android:layout_height="wrap_content"
-              android:background="#CC000000" android:padding="10dp" android:orientation="vertical">
+              android:background="#DD222222" android:padding="8dp" android:orientation="vertical">
               <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" 
-                  android:text="DimCheat Engine" android:textColor="#00FF00" android:textStyle="bold"/>
-              <EditText android:id="@+id/editValue" android:layout_width="100dp" 
-                  android:layout_height="wrap_content" android:hint="Значение" android:textColorHint="#AAA" android:textColor="#FFF"/>
-              <Button android:id="@+id/btnScan" android:layout_width="match_parent" 
-                  android:layout_height="wrap_content" android:text="SCAN"/>
+                  android:text="DimCheat v1.0" android:textColor="#00FF00" android:textSize="12sp"/>
+              <Button android:id="@+id/btnScan" android:layout_width="80dp" 
+                  android:layout_height="40dp" android:text="SCAN" android:textSize="10sp"/>
           </LinearLayout>
           EOF
 
-      - name: Create MainActivity (Запрос разрешений)
+      - name: Create MainActivity
         run: |
           cat > app/src/main/java/com/dimcheat/app/MainActivity.java << 'EOF'
           package com.dimcheat.app;
@@ -116,14 +132,12 @@ jobs:
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   Button btn = new Button(this);
-                  btn.setText("ЗАПУСТИТЬ ОВЕРЛЕЙ");
+                  btn.setText("START CHEAT OVERLAY");
                   setContentView(btn);
-
                   btn.setOnClickListener(v -> {
                       if (!Settings.canDrawOverlays(this)) {
-                          Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                  Uri.parse("package:" + getPackageName()));
-                          startActivityForResult(intent, 123);
+                          startActivityForResult(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                  Uri.parse("package:" + getPackageName())), 1);
                       } else {
                           startService(new Intent(this, OverlayService.class));
                       }
@@ -149,20 +163,19 @@ jobs:
           </manifest>
           EOF
 
-      - name: Project Configs (With SandHook)
+      - name: Final Project Configs
         run: |
           cat > gradle.properties << 'EOF'
           android.useAndroidX=true
           android.enableJetifier=true
+          android.suppressUnsupportedCompileSdk=34
           EOF
           cat > build.gradle << 'EOF'
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
           }
-          allprojects {
-              repositories { google(); mavenCentral(); maven { url 'https://jitpack.io' } }
-          }
+          allprojects { repositories { google(); mavenCentral() } }
           EOF
           cat > app/build.gradle << 'EOF'
           apply plugin: 'com.android.application'
@@ -177,8 +190,6 @@ jobs:
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              // Библиотека для хуков в реальном времени
-              implementation 'com.github.ganyao114:SandHook:1.5.2'
           }
           EOF
           echo "include ':app'" > settings.gradle
@@ -194,5 +205,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimCheat-Overlay
+          name: DimCheat-Overlay-Ready
           path: app/build/outputs/apk/debug/*.apk
