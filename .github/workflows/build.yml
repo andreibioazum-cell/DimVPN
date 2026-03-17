@@ -18,16 +18,36 @@ jobs:
         run: |
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/java/com/dimvpn/app
-          mkdir -p app/src/main/xml
           
       - name: Copy config
         run: cp config/config.json app/src/main/assets/config.json || echo "no config"
+      
+      - name: Create settings.gradle
+        run: |
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "DimVPN"
+          include ':app'
+          EOF
       
       - name: Create build.gradle
         run: |
           cat > app/build.gradle << 'EOF'
           plugins {
-              id 'com.android.application'
+              id 'com.android.application' version '8.0.0' apply false
           }
 
           android {
@@ -46,25 +66,6 @@ jobs:
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
           }
-          EOF
-      
-      - name: Create settings.gradle
-        run: |
-          cat > settings.gradle << 'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          dependencyResolutionManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "DimVPN"
-          include ':app'
           EOF
       
       - name: Create AndroidManifest.xml
