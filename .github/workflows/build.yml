@@ -1,4 +1,4 @@
-name: Build Dim Gun Native
+name: Build Dim Gun Stable
 
 on:
   push:
@@ -20,43 +20,60 @@ jobs:
       - name: Install Android Workload
         run: dotnet workload install android
 
-      - name: Create DimGun Project
+      - name: Create DimGun App
         shell: pwsh
         run: |
           dotnet new android -n DimGun
           cd DimGun
 
-          # 1. Настраиваем проект (API 34 + .NET 9)
+          # 1. Настраиваем проект (Автоматический выбор версии SDK)
           $csproj = @"
           <Project Sdk="Microsoft.NET.Sdk">
             <PropertyGroup>
               <TargetFramework>net9.0-android</TargetFramework>
               <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
-              <TargetPlatformVersion>34.0</TargetPlatformVersion>
               <OutputType>Exe</OutputType>
               <ImplicitUsings>enable</ImplicitUsings>
+              <Nullable>enable</Nullable>
             </PropertyGroup>
           </Project>
           "@
           $csproj | Out-File -FilePath DimGun.csproj -Encoding utf8
 
-          # 2. Логика игрока (Петуха)
-          $player = @"
+          # 2. Логика Оружия (Система как в Chicken Gun)
+          $weapon = @"
           namespace DimGun {
-              public class ChickenPlayer {
-                  public float X, Y, Z;
-                  public float Rotation;
-                  public int Health = 100;
-                  
-                  public void Move(float dx, float dz) {
-                      X += dx; Z += dz;
+              public class Weapon {
+                  public string Name { get; set; } = "Pistol";
+                  public int Ammo = 30;
+                  public float Damage = 20.0f;
+                  public void Shoot() { 
+                      // В будущем: логика луча (Raycast)
                   }
               }
           }
           "@
-          $player | Out-File -FilePath ChickenPlayer.cs -Encoding utf8
+          $weapon | Out-File -FilePath Weapon.cs -Encoding utf8
 
-          # 3. Рендерер Dim Gun (3D Мир)
+          # 3. Логика Петуха (Игрока)
+          $chicken = @"
+          namespace DimGun {
+              public class ChickenPlayer {
+                  public float X, Y, Z;
+                  public float RotationY;
+                  public int Health = 100;
+                  public Weapon CurrentWeapon = new Weapon();
+                  
+                  public void Move(float speed, float angle) {
+                      X += (float)Math.Cos(angle) * speed;
+                      Z += (float)Math.Sin(angle) * speed;
+                  }
+              }
+          }
+          "@
+          $chicken | Out-File -FilePath ChickenPlayer.cs -Encoding utf8
+
+          # 4. Нативный 3D Рендерер
           $renderer = @"
           using Android.Opengl;
           using javax.microedition.khronos.egl;
@@ -65,7 +82,8 @@ jobs:
           namespace DimGun {
               public class GameRenderer : Java.Lang.Object, GLSurfaceView.IRenderer {
                   public void OnSurfaceCreated(IGL10 gl, EGLConfig config) {
-                      GLES30.GlClearColor(0.53f, 0.81f, 0.92f, 1.0f); // Небо (Sky Blue)
+                      // Небо (Sky Blue)
+                      GLES30.GlClearColor(0.53f, 0.81f, 0.92f, 1.0f);
                       GLES30.GlEnable(GLES30.GlDepthTest);
                   }
                   public void OnSurfaceChanged(IGL10 gl, int width, int height) {
@@ -73,20 +91,41 @@ jobs:
                   }
                   public void OnDrawFrame(IGL10 gl) {
                       GLES30.GlClear(GLES30.GlColorBufferBit | GLES30.GlDepthBufferBit);
-                      // Здесь рисуем петухов и пушки
+                      // Здесь рендерятся объекты из твоего script.js
                   }
               }
           }
           "@
           $renderer | Out-File -FilePath GameRenderer.cs -Encoding utf8
 
-      - name: Build Dim Gun APK
+          # 5. Главный экран
+          $activity = @"
+          using Android.App;
+          using Android.OS;
+          using Android.Opengl;
+
+          namespace DimGun {
+              [Activity(Label = "Dim Gun", MainLauncher = true, Theme = "@android:style/Theme.NoTitleBar.Fullscreen", ScreenOrientation = Android.Content.PM.ScreenOrientation.Landscape)]
+              public class MainActivity : Activity {
+                  protected override void OnCreate(Bundle? savedInstanceState) {
+                      base.OnCreate(savedInstanceState);
+                      var view = new GLSurfaceView(this);
+                      view.SetEGLContextClientVersion(3);
+                      view.SetRenderer(new GameRenderer());
+                      SetContentView(view);
+                  }
+              }
+          }
+          "@
+          $activity | Out-File -FilePath MainActivity.cs -Encoding utf8
+
+      - name: Publish APK (Release)
         run: |
           cd DimGun
           dotnet publish -c Release -f net9.0-android /p:AndroidPackageFormat=apk /p:AndroidKeyStore=false
 
-      - name: Upload APK
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DimGun-Alpha-v43
+          name: DimGun-V1-Alpha
           path: DimGun/bin/Release/net9.0-android/publish/*.apk
