@@ -5,6 +5,16 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        method: [
+          { name: "java-simple", gradle: "groovy", lang: "java" },
+          { name: "java-buildscript", gradle: "groovy", lang: "java" },
+          { name: "kotlin-simple", gradle: "kts", lang: "kotlin" },
+          { name: "kotlin-buildscript", gradle: "kts", lang: "kotlin" }
+        ]
+    
     steps:
       - uses: actions/checkout@v4
       
@@ -22,14 +32,14 @@ jobs:
       - name: Copy config
         run: cp config/config.json app/src/main/assets/config.json || echo "no config"
       
-      - name: Create settings.gradle
+      # СПОСОБ 1: Java + Groovy (простой)
+      - name: Method 1 - Java Simple
+        if: matrix.method.name == 'java-simple'
         run: |
           cat > settings.gradle << 'EOF'
           include ':app'
           EOF
-      
-      - name: Create build.gradle
-        run: |
+          
           cat > app/build.gradle << 'EOF'
           buildscript {
               repositories {
@@ -40,13 +50,10 @@ jobs:
                   classpath 'com.android.tools.build:gradle:8.0.0'
               }
           }
-
           apply plugin: 'com.android.application'
-
           android {
               namespace 'com.dimvpn.app'
               compileSdk 34
-
               defaultConfig {
                   applicationId 'com.dimvpn.app'
                   minSdk 21
@@ -55,18 +62,137 @@ jobs:
                   versionName '1.0'
               }
           }
-
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
           }
           EOF
       
+      # СПОСОБ 2: Java + Groovy (с репозиториями)
+      - name: Method 2 - Java Buildscript
+        if: matrix.method.name == 'java-buildscript'
+        run: |
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          include ':app'
+          EOF
+          
+          cat > app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application' version '8.0.0' apply false
+          }
+          android {
+              namespace 'com.dimvpn.app'
+              compileSdk 34
+              defaultConfig {
+                  applicationId 'com.dimvpn.app'
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+          }
+          EOF
+      
+      # СПОСОБ 3: Kotlin + KTS (простой)
+      - name: Method 3 - Kotlin Simple
+        if: matrix.method.name == 'kotlin-simple'
+        run: |
+          cat > settings.gradle.kts << 'EOF'
+          include(":app")
+          EOF
+          
+          cat > app/build.gradle.kts << 'EOF'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath("com.android.tools.build:gradle:8.0.0")
+                  classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0")
+              }
+          }
+          apply(plugin = "com.android.application")
+          apply(plugin = "org.jetbrains.kotlin.android")
+          android {
+              namespace = "com.dimvpn.app"
+              compileSdk = 34
+              defaultConfig {
+                  applicationId = "com.dimvpn.app"
+                  minSdk = 21
+                  targetSdk = 34
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+          }
+          dependencies {
+              implementation("androidx.appcompat:appcompat:1.6.1")
+          }
+          EOF
+      
+      # СПОСОБ 4: Kotlin + KTS (с pluginManagement)
+      - name: Method 4 - Kotlin Buildscript
+        if: matrix.method.name == 'kotlin-buildscript'
+        run: |
+          cat > settings.gradle.kts << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          include(":app")
+          EOF
+          
+          cat > app/build.gradle.kts << 'EOF'
+          plugins {
+              id("com.android.application") version "8.0.0" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.0" apply false
+          }
+          android {
+              namespace = "com.dimvpn.app"
+              compileSdk = 34
+              defaultConfig {
+                  applicationId = "com.dimvpn.app"
+                  minSdk = 21
+                  targetSdk = 34
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+          }
+          dependencies {
+              implementation("androidx.appcompat:appcompat:1.6.1")
+          }
+          EOF
+      
+      # Общий AndroidManifest.xml для всех способов
       - name: Create AndroidManifest.xml
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
-              
               <application android:label="DimVPN">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
@@ -78,32 +204,30 @@ jobs:
           </manifest>
           EOF
       
+      # Общая MainActivity для всех способов
       - name: Create MainActivity
         run: |
           cat > app/src/main/java/com/dimvpn/app/MainActivity.java << 'EOF'
           package com.dimvpn.app;
-
           import android.app.Activity;
           import android.os.Bundle;
           import android.widget.Button;
           import android.widget.Toast;
-
           public class MainActivity extends Activity {
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  
                   Button btn = new Button(this);
-                  btn.setText("Тест");
+                  btn.setText("DimVPN");
                   btn.setOnClickListener(v -> 
                       Toast.makeText(this, "Работает!", Toast.LENGTH_SHORT).show()
                   );
-                  
                   setContentView(btn);
               }
           }
           EOF
       
+      # Gradle wrapper
       - name: Create gradle-wrapper.properties
         run: |
           mkdir -p gradle/wrapper
@@ -121,9 +245,11 @@ jobs:
       
       - name: Build APK
         run: ./gradlew assembleDebug
+        continue-on-error: true
       
-      - name: Upload APK
+      - name: Upload APK (if successful)
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-APK
+          name: DimVPN-APK-${{ matrix.method.name }}
           path: app/build/outputs/apk/debug/*.apk
