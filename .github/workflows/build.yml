@@ -1,4 +1,4 @@
-name: Build DimOpenOS Real Engine
+name: Build DimOpenOS Runner v9
 
 on:
   push:
@@ -18,125 +18,134 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Real OS Structure
-        run: |
-          mkdir -p app/src/main/java/com/dim/openos/core
-          mkdir -p app/src/main/res/layout
-          mkdir -p gradle/wrapper
+      - name: Create Structure
+        run: mkdir -p app/src/main/java/com/dim/openos/core app/src/main/res/layout gradle/wrapper
 
-      - name: Create Core OS Engine (Logic)
+      - name: Create Proxy Engine
         run: |
-          cat > app/src/main/java/com/dim/openos/core/VEngine.java << 'EOF'
+          cat > app/src/main/java/com/dim/openos/core/ProxyActivity.java << 'EOF'
           package com.dim.openos.core;
-          import android.content.Context;
-          import java.io.*;
-          import java.util.*;
+          import android.app.Activity;
+          import android.content.res.AssetManager;
+          import android.content.res.Resources;
+          import android.os.Bundle;
+          import android.widget.Toast;
+          import dalvik.system.DexClassLoader;
+          import java.lang.reflect.Method;
 
-          public class VEngine {
-              // Список "установленных" в виртуалку пакетов
-              public static List<String> getInstalledApps(Context ctx) {
-                  File appDir = new File(ctx.getFilesDir(), "apps");
-                  if (!appDir.exists()) appDir.mkdirs();
-                  return Arrays.asList(appDir.list());
+          public class ProxyActivity extends Activity {
+              protected String apkPath;
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  apkPath = getIntent().getStringExtra("apkPath");
+                  try {
+                      // 1. Загрузка кода
+                      DexClassLoader loader = new DexClassLoader(apkPath, getCacheDir().getAbsolutePath(), null, getClassLoader());
+                      // 2. Попытка найти главный класс (упрощенно)
+                      Toast.makeText(this, "Virtual Launch: " + apkPath, Toast.LENGTH_SHORT).show();
+                      // В реальной ВМ здесь идет запуск onCreate загруженного класса
+                  } catch (Exception e) {
+                      e.printStackTrace();
+                  }
               }
-
-              // Симуляция установки APK в контейнер
-              public static void installToVM(Context ctx, File sourceApk) throws Exception {
-                  File appDir = new File(ctx.getFilesDir(), "apps");
-                  File dest = new File(appDir, sourceApk.getName());
-                  InputStream in = new FileInputStream(sourceApk);
-                  OutputStream out = new FileOutputStream(dest);
-                  byte[] buf = new byte[1024];
-                  int len;
-                  while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
-                  in.close(); out.close();
+              // Переопределение ресурсов, чтобы APK видел СВОИ картинки
+              @Override public Resources getResources() { 
+                  if (apkPath == null) return super.getResources();
+                  try {
+                      AssetManager am = AssetManager.class.newInstance();
+                      Method addAssetPath = am.getClass().getMethod("addAssetPath", String.class);
+                      addAssetPath.invoke(am, apkPath);
+                      return new Resources(am, super.getResources().getDisplayMetrics(), super.getResources().getConfiguration());
+                  } catch (Exception e) { return super.getResources(); }
               }
           }
           EOF
 
-      - name: Create Real Desktop & Installer UI
-        run: |
-          cat > app/src/main/res/layout/activity_desktop.xml << 'EOF'
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent" android:layout_height="match_parent"
-              android:orientation="vertical" android:background="#0A0A0A">
-              
-              <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                  android:text="DIM OPEN OS | ROOT ACTIVE" android:textColor="#0F0" 
-                  android:gravity="center" android:padding="10dp" android:background="#1A1A1A"/>
-
-              <GridView android:id="@+id/desktopGrid" android:layout_width="match_parent" android:layout_height="0dp"
-                  android:layout_weight="1" android:numColumns="4" android:padding="15dp" android:verticalSpacing="20dp"/>
-
-              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                  android:orientation="horizontal" android:padding="10dp" android:background="#111">
-                  <Button android:id="@+id/btnRefresh" android:layout_width="0dp" android:layout_height="wrap_content"
-                      android:layout_weight="1" android:text="REFRESH" android:backgroundTint="#333"/>
-                  <Button android:id="@+id/btnInstall" android:layout_width="0dp" android:layout_height="wrap_content"
-                      android:layout_weight="1" android:text="INSTALL APK" android:backgroundTint="#004D40"/>
-              </LinearLayout>
-          </LinearLayout>
-          EOF
-
-      - name: Create Real Desktop Logic
+      - name: Update MainActivity (Launcher)
         run: |
           cat > app/src/main/java/com/dim/openos/MainActivity.java << 'EOF'
           package com.dim.openos;
           import android.app.Activity;
+          import android.content.Intent;
+          import android.net.Uri;
           import android.os.Bundle;
-          import android.view.*;
           import android.widget.*;
-          import com.dim.openos.core.VEngine;
-          import java.util.*;
+          import com.dim.openos.core.ProxyActivity;
+          import java.io.*;
+          import java.util.ArrayList;
 
           public class MainActivity extends Activity {
-              private GridView grid;
-              private List<String> installedApps;
+              private ArrayList<File> installedFiles = new ArrayList<>();
+              private ArrayAdapter<String> adapter;
+              private ArrayList<String> names = new ArrayList<>();
 
               @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_desktop);
+              protected void onCreate(Bundle b) {
+                  super.onCreate(b);
+                  LinearLayout l = new LinearLayout(this);
+                  l.setOrientation(LinearLayout.VERTICAL);
+                  l.setBackgroundColor(0xFF000000);
 
-                  grid = findViewById(R.id.desktopGrid);
-                  findViewById(R.id.btnRefresh).setOnClickListener(v -> updateUI());
-                  
-                  findViewById(R.id.btnInstall).setOnClickListener(v -> {
-                      // Реальный вызов выбора файла (упрощенно - сканируем папку)
-                      Toast.makeText(this, "Scanning Downloads for APKs...", Toast.LENGTH_SHORT).show();
-                      updateUI();
+                  GridView g = new GridView(this);
+                  g.setNumColumns(3);
+                  adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names);
+                  g.setAdapter(adapter);
+
+                  Button btn = new Button(this);
+                  btn.setText("INSTALL APK");
+                  btn.setOnClickListener(v -> {
+                      Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+                      i.setType("application/vnd.android.package-archive");
+                      startActivityForResult(i, 7);
                   });
 
-                  updateUI();
+                  l.addView(btn); l.addView(g);
+                  setContentView(l);
+
+                  g.setOnItemClickListener((p, v, pos, id) -> {
+                      Intent intent = new Intent(this, ProxyActivity.class);
+                      intent.putExtra("apkPath", installedFiles.get(pos).getAbsolutePath());
+                      startActivity(intent);
+                  });
+                  refresh();
               }
 
-              private void updateUI() {
-                  installedApps = VEngine.getInstalledApps(this);
-                  if(installedApps.isEmpty()) {
-                      installedApps = new ArrayList<>(Arrays.asList("SystemSettings", "Terminal", "FileManager"));
+              @Override
+              protected void onActivityResult(int req, int res, Intent data) {
+                  if (req == 7 && res == RESULT_OK) {
+                      try {
+                          File dir = new File(getFilesDir(), "v_apps");
+                          if (!dir.exists()) dir.mkdirs();
+                          File dest = new File(dir, "app_" + System.currentTimeMillis() + ".apk");
+                          InputStream in = getContentResolver().openInputStream(data.getData());
+                          OutputStream out = new FileOutputStream(dest);
+                          byte[] buf = new byte[4096]; int len;
+                          while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                          in.close(); out.close();
+                          refresh();
+                      } catch (Exception e) { Toast.makeText(this, "Fail", 0).show(); }
                   }
-                  
-                  ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, installedApps) {
-                      @Override
-                      public View getView(int position, View convertView, ViewGroup parent) {
-                          TextView tv = (TextView) super.getView(position, convertView, parent);
-                          tv.setTextColor(0xFF00FF00);
-                          tv.setGravity(Gravity.CENTER);
-                          tv.setTextSize(10);
-                          tv.setCompoundDrawablesWithIntrinsicBounds(0, android.R.drawable.sym_def_app_icon, 0, 0);
-                          return tv;
+              }
+
+              private void refresh() {
+                  installedFiles.clear(); names.clear();
+                  File dir = new File(getFilesDir(), "v_apps");
+                  if (dir.exists()) {
+                      for (File f : dir.listFiles()) {
+                          installedFiles.add(f);
+                          names.add(f.getName());
                       }
-                  };
-                  grid.setAdapter(adapter);
+                  }
+                  adapter.notifyDataSetChanged();
               }
           }
           EOF
 
-      - name: Setup Build System
+      - name: Finalize Build
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
           cat > build.gradle << 'EOF'
           buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.0.2' } }
           allprojects { repositories { google(); mavenCentral() } }
@@ -148,9 +157,9 @@ jobs:
           EOF
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
               <application android:label="DimOpenOS" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity>
+                  <activity android:name=".core.ProxyActivity" />
               </application>
           </manifest>
           EOF
@@ -160,8 +169,8 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleDebug
 
-      - name: Upload Artifact
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimOpenOS-Real-v7
+          name: DimOpenOS-Runner-v9
           path: app/build/outputs/apk/debug/*.apk
