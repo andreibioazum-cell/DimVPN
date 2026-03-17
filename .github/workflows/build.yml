@@ -30,10 +30,8 @@ jobs:
           cat << 'EOF' | tee app/src/main/cpp/engine.cpp
           #include <jni.h>
           #include <GLES3/gl3.h>
-          #include <vector>
           #include <android/log.h>
 
-          #define LOG_TAG "DimGun-Native"
           extern "C" {
               JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_init(JNIEnv* env, jclass obj) {
                   glEnable(GL_DEPTH_TEST);
@@ -41,9 +39,6 @@ jobs:
               JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_step(JNIEnv* env, jclass obj) {
                   glClearColor(0.4f, 0.7f, 1.0f, 1.0f);
                   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-              }
-              JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_addBlock(JNIEnv* env, jclass obj, jfloat x, jfloat y, jfloat z, jint type) {
-                  // Логика добавления блоков
               }
           }
           EOF
@@ -59,14 +54,13 @@ jobs:
           target_link_libraries(dimgun_core ${log-lib} GLESv3 EGL)
           EOF
 
-          # Java Native Bridge
+          # Java Bridge
           cat << 'EOF' | tee app/src/main/java/com/dim/gun/NativeLib.java
           package com.dim.gun;
           public class NativeLib {
               static { System.loadLibrary("dimgun_core"); }
               public static native void init();
               public static native void step();
-              public static native void addBlock(float x, float y, float z, int type);
           }
           EOF
 
@@ -76,7 +70,6 @@ jobs:
           import android.app.Activity;
           import android.opengl.GLSurfaceView;
           import android.os.Bundle;
-          import android.widget.*;
           import javax.microedition.khronos.egl.EGLConfig;
           import javax.microedition.khronos.opengles.GL10;
 
@@ -96,7 +89,7 @@ jobs:
           }
           EOF
 
-      - name: Setup Gradle Project
+      - name: Setup Gradle Build Files
         run: |
           echo "include ':app'" | tee settings.gradle
           cat << 'EOF' | tee build.gradle
@@ -121,7 +114,6 @@ jobs:
           }
           EOF
 
-          mkdir -p app/src/main
           cat << 'EOF' | tee app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application android:label="Dim Gun">
@@ -135,9 +127,10 @@ jobs:
           </manifest>
           EOF
 
-      - name: Build with Gradle Action
-        uses: eskatos/gradle-command-action@v3
+      - name: Build with Gradle
+        uses: gradle/gradle-build-action@v3
         with:
+          gradle-version: 8.5  # <--- Ключевое исправление: заставляем скачать Gradle
           arguments: assembleDebug
 
       - name: Upload APK
