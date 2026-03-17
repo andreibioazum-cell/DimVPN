@@ -9,10 +9,10 @@ jobs:
       fail-fast: false
       matrix:
         method: [
-          { name: "java-simple", gradle: "groovy", lang: "java" },
-          { name: "java-buildscript", gradle: "groovy", lang: "java" },
-          { name: "kotlin-simple", gradle: "kts", lang: "kotlin" },
-          { name: "kotlin-buildscript", gradle: "kts", lang: "kotlin" }
+          { name: "groovy-buildscript", type: "groovy", buildscript: "yes" },
+          { name: "groovy-plugins", type: "groovy", buildscript: "no" },
+          { name: "kts-buildscript", type: "kts", buildscript: "yes" },
+          { name: "kts-plugins", type: "kts", buildscript: "no" }
         ]
     
     steps:
@@ -32,9 +32,9 @@ jobs:
       - name: Copy config
         run: cp config/config.json app/src/main/assets/config.json || echo "no config"
       
-      # СПОСОБ 1: Java + Groovy (простой)
-      - name: Method 1 - Java Simple
-        if: matrix.method.name == 'java-simple'
+      # СПОСОБ 1: Groovy + buildscript
+      - name: Method 1 - Groovy with buildscript
+        if: matrix.method.name == 'groovy-buildscript'
         run: |
           cat > settings.gradle << 'EOF'
           include ':app'
@@ -50,16 +50,21 @@ jobs:
                   classpath 'com.android.tools.build:gradle:8.0.0'
               }
           }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
           apply plugin: 'com.android.application'
           android {
-              namespace 'com.dimvpn.app'
               compileSdk 34
               defaultConfig {
-                  applicationId 'com.dimvpn.app'
+                  applicationId "com.dimvpn.app"
                   minSdk 21
                   targetSdk 34
                   versionCode 1
-                  versionName '1.0'
+                  versionName "1.0"
               }
           }
           dependencies {
@@ -67,9 +72,9 @@ jobs:
           }
           EOF
       
-      # СПОСОБ 2: Java + Groovy (с репозиториями)
-      - name: Method 2 - Java Buildscript
-        if: matrix.method.name == 'java-buildscript'
+      # СПОСОБ 2: Groovy + plugins
+      - name: Method 2 - Groovy with plugins
+        if: matrix.method.name == 'groovy-plugins'
         run: |
           cat > settings.gradle << 'EOF'
           pluginManagement {
@@ -90,7 +95,7 @@ jobs:
           
           cat > app/build.gradle << 'EOF'
           plugins {
-              id 'com.android.application' version '8.0.0' apply false
+              id 'com.android.application'
           }
           android {
               namespace 'com.dimvpn.app'
@@ -108,9 +113,9 @@ jobs:
           }
           EOF
       
-      # СПОСОБ 3: Kotlin + KTS (простой)
-      - name: Method 3 - Kotlin Simple
-        if: matrix.method.name == 'kotlin-simple'
+      # СПОСОБ 3: KTS + buildscript
+      - name: Method 3 - KTS with buildscript
+        if: matrix.method.name == 'kts-buildscript'
         run: |
           cat > settings.gradle.kts << 'EOF'
           include(":app")
@@ -124,13 +129,16 @@ jobs:
               }
               dependencies {
                   classpath("com.android.tools.build:gradle:8.0.0")
-                  classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0")
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
               }
           }
           apply(plugin = "com.android.application")
-          apply(plugin = "org.jetbrains.kotlin.android")
           android {
-              namespace = "com.dimvpn.app"
               compileSdk = 34
               defaultConfig {
                   applicationId = "com.dimvpn.app"
@@ -145,9 +153,9 @@ jobs:
           }
           EOF
       
-      # СПОСОБ 4: Kotlin + KTS (с pluginManagement)
-      - name: Method 4 - Kotlin Buildscript
-        if: matrix.method.name == 'kotlin-buildscript'
+      # СПОСОБ 4: KTS + plugins
+      - name: Method 4 - KTS with plugins
+        if: matrix.method.name == 'kts-plugins'
         run: |
           cat > settings.gradle.kts << 'EOF'
           pluginManagement {
@@ -168,8 +176,7 @@ jobs:
           
           cat > app/build.gradle.kts << 'EOF'
           plugins {
-              id("com.android.application") version "8.0.0" apply false
-              id("org.jetbrains.kotlin.android") version "1.9.0" apply false
+              id("com.android.application")
           }
           android {
               namespace = "com.dimvpn.app"
@@ -187,7 +194,7 @@ jobs:
           }
           EOF
       
-      # Общий AndroidManifest.xml для всех способов
+      # AndroidManifest.xml
       - name: Create AndroidManifest.xml
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
@@ -204,7 +211,7 @@ jobs:
           </manifest>
           EOF
       
-      # Общая MainActivity для всех способов
+      # MainActivity
       - name: Create MainActivity
         run: |
           cat > app/src/main/java/com/dimvpn/app/MainActivity.java << 'EOF'
