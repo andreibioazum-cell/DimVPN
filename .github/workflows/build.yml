@@ -1,4 +1,4 @@
-name: Build DimBlox Native Engine
+name: Build DimBlox Native Pro
 
 on:
   push:
@@ -18,20 +18,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Folders
+      - name: Create Structure
         run: |
-          rm -rf app
+          rm -rf app settings.gradle build.gradle
           mkdir -p app/src/main/java/com/dim/blox
           mkdir -p app/src/main/jni
-          mkdir -p app/src/main/res/layout
           mkdir -p gradle/wrapper
 
-      - name: Create C++ Engine (The "Roblox" Core)
+      - name: Create C++ Core (OpenGL ES 3.0)
         run: |
           cat << 'EOF' | tee app/src/main/jni/Android.mk
           LOCAL_PATH := $(call my-dir)
           include $(CLEAR_VARS)
-          LOCAL_MODULE    := dimblox_core
+          LOCAL_MODULE    := dimblox_engine
           LOCAL_SRC_FILES := engine.cpp
           LOCAL_LDLIBS    := -llog -landroid -lGLESv3 -lEGL
           include $(BUILD_SHARED_LIBRARY)
@@ -42,82 +41,85 @@ jobs:
           #include <GLES3/gl3.h>
           #include <android/log.h>
 
-          // Базовый шейдер для блоков
-          const char* vShader = "attribute vec4 vPos; uniform mat4 uMVP; void main(){gl_Position=uMVP*vPos;}";
-          const char* fShader = "precision mediump float; void main(){gl_FragColor=vec4(0.13, 0.77, 0.36, 1.0);}";
-
           extern "C" {
-              JNIEXPORT void JNICALL Java_com_dim_blox_GameView_renderFrame(JNIEnv* env, jobject obj) {
-                  glClearColor(0.1f, 0.16f, 0.29f, 1.0f); // Твой цвет из style-core.css
+              JNIEXPORT void JNICALL Java_com_dim_blox_NativeLib_init(JNIEnv* env, jclass clazz) {
+                  glEnable(GL_DEPTH_TEST);
+                  __android_log_print(ANDROID_LOG_INFO, "DimBlox", "Engine Initialized");
+              }
+
+              JNIEXPORT void JNICALL Java_com_dim_blox_NativeLib_step(JNIEnv* env, jclass clazz) {
+                  glClearColor(0.1f, 0.16f, 0.29f, 1.0f); // Твой фирменный фон
                   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                  // Здесь логика отрисовки тысяч блоков, как в твоей студии
+                  // Здесь будет идти отрисовка твоих 3D миров
               }
           }
           EOF
 
-      - name: Create Java Bridge
+      - name: Create Java Wrapper
         run: |
-          cat << 'EOF' | tee app/src/main/java/com/dim/blox/GameView.java
+          cat << 'EOF' | tee app/src/main/java/com/dim/blox/NativeLib.java
           package com.dim.blox;
-          import android.content.Context;
-          import android.opengl.GLSurfaceView;
-          import javax.microedition.khronos.egl.EGLConfig;
-          import javax.microedition.khronos.opengles.GL10;
-
-          public class GameView extends GLSurfaceView {
-              static { System.loadLibrary("dimblox_core"); }
-              public native void renderFrame();
-
-              public GameView(Context context) {
-                  super(context);
-                  setEGLContextClientVersion(3);
-                  setRenderer(new Renderer() {
-                      public void onSurfaceCreated(GL10 gl, EGLConfig c) {}
-                      public void onSurfaceChanged(GL10 gl, int w, int h) { gl.glViewport(0,0,w,h); }
-                      public void onDrawFrame(GL10 gl) { renderFrame(); }
-                  });
-              }
+          public class NativeLib {
+              static { System.loadLibrary("dimblox_engine"); }
+              public static native void init();
+              public static native void step();
           }
           EOF
 
-      - name: Create Native UI (MainActivity)
-        run: |
           cat << 'EOF' | tee app/src/main/java/com/dim/blox/MainActivity.java
           package com.dim.blox;
           import android.app.Activity;
+          import android.opengl.GLSurfaceView;
           import android.os.Bundle;
-          import android.view.ViewGroup;
-          import android.widget.FrameLayout;
+          import javax.microedition.khronos.egl.EGLConfig;
+          import javax.microedition.khronos.opengles.GL10;
 
           public class MainActivity extends Activity {
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  GameView gv = new GameView(this);
-                  setContentView(gv);
-                  // Сюда мы добавим джойстики поверх 3D мира
+                  GLSurfaceView view = new GLSurfaceView(this);
+                  view.setEGLContextClientVersion(3);
+                  view.setRenderer(new GLSurfaceView.Renderer() {
+                      public void onSurfaceCreated(GL10 gl, EGLConfig c) { NativeLib.init(); }
+                      public void onSurfaceChanged(GL10 gl, int w, int h) { }
+                      public void onDrawFrame(GL10 gl) { NativeLib.step(); }
+                  });
+                  setContentView(view);
               }
           }
           EOF
 
-      - name: Configure Build
+      - name: Root Build Configuration (Plugin Fix)
         run: |
           echo "include ':app'" | tee settings.gradle
+          cat << 'EOF' | tee build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+
+      - name: App Build Configuration
+        run: |
           cat << 'EOF' | tee app/build.gradle
-          plugins { id 'com.android.application' }
+          apply plugin: 'com.android.application'
           android {
               namespace 'com.dim.blox'
               compileSdk 34
-              defaultConfig { 
+              defaultConfig {
                   applicationId "com.dim.blox"
                   minSdk 24
+                  targetSdk 34
                   externalNativeBuild { ndkBuild { abiFilters 'arm64-v8a', 'armeabi-v7a' } }
               }
               externalNativeBuild { ndkBuild { path file('src/main/jni/Android.mk') } }
           }
           EOF
-          
-          # Манифест
+
+      - name: Manifest and Perms
+        run: |
           cat << 'EOF' | tee app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.dim.blox">
               <application android:label="DimBlox Native" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
@@ -128,7 +130,7 @@ jobs:
           </manifest>
           EOF
 
-      - name: Finalize and Build
+      - name: Build
         run: |
           curl -sL https://github.com/gradle/gradle/raw/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" | tee gradle/wrapper/gradle-wrapper.properties
@@ -136,8 +138,8 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleDebug
 
-      - name: Upload Native APK
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimBlox-Pure-Native
+          name: DimBlox-Native-Pro
           path: app/build/outputs/apk/debug/*.apk
