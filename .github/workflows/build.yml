@@ -24,6 +24,7 @@ jobs:
           mkdir -p app/src/main/cpp
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
+          mkdir -p gradle/wrapper
 
       - name: Create Full C++ Engine (engine.cpp)
         run: |
@@ -32,6 +33,10 @@ jobs:
           #include <GLES3/gl3.h>
           #include <vector>
           #include <string>
+          #include <android/log.h>
+
+          #define LOG_TAG "DimGun-Native"
+          #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
           struct Block { float x, y, z; int type; };
           struct Weapon { std::string name; int damage; int ammo; };
@@ -42,7 +47,7 @@ jobs:
           extern "C" {
               JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_init(JNIEnv* env, jclass obj) {
                   glEnable(GL_DEPTH_TEST);
-                  // Спавним тестовый пол из блоков (как в твоем script.js)
+                  LOGI("Engine Initialized");
                   for(int x=-5; x<5; x++) {
                       for(int z=-5; z<5; z++) {
                           currentMap.push_back({(float)x, -1.0f, (float)z, 1});
@@ -52,13 +57,12 @@ jobs:
 
               JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_addBlock(JNIEnv* env, jclass obj, jfloat x, jfloat y, jfloat z, jint type) {
                   currentMap.push_back({x, y, z, type});
+                  LOGI("Block added at %f, %f, %f", x, y, z);
               }
 
               JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_step(JNIEnv* env, jclass obj) {
-                  glClearColor(0.4f, 0.7f, 1.0f, 1.0f);
+                  glClearColor(0.4f, 0.7f, 1.0f, 1.0f); // Небо Chicken Gun
                   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                  
-                  // Рендеринг блоков и петуха будет здесь (VBO/DrawArrays)
               }
           }
           EOF
@@ -91,7 +95,6 @@ jobs:
                   super.onCreate(b);
                   FrameLayout layout = new FrameLayout(this);
                   
-                  // 3D Мир
                   GLSurfaceView glView = new GLSurfaceView(this);
                   glView.setEGLContextClientVersion(3);
                   glView.setRenderer(new GLSurfaceView.Renderer() {
@@ -101,9 +104,9 @@ jobs:
                   });
                   layout.addView(glView);
 
-                  // Игровой интерфейс (HUD)
                   LinearLayout hud = new LinearLayout(this);
                   hud.setOrientation(LinearLayout.VERTICAL);
+                  hud.setPadding(20, 20, 20, 20);
                   
                   Button btnShoot = new Button(this);
                   btnShoot.setText("ОГОНЬ");
@@ -111,13 +114,16 @@ jobs:
                   Button btnBuild = new Button(this);
                   btnBuild.setText("МЕНЮ БЛОКОВ");
                   btnBuild.setOnClickListener(v -> {
-                      Toast.makeText(this, "Блок выбран!", Toast.LENGTH_SHORT).show();
                       NativeLib.addBlock(0, 0, -2, 1);
+                      Toast.makeText(this, "Блок установлен!", Toast.LENGTH_SHORT).show();
                   });
 
                   hud.addView(btnShoot);
                   hud.addView(btnBuild);
-                  layout.addView(hud, new FrameLayout.LayoutParams(400, 600, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
+                  
+                  FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(500, 800);
+                  params.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL;
+                  layout.addView(hud, params);
 
                   setContentView(layout);
               }
@@ -135,6 +141,7 @@ jobs:
           EOF
 
           echo "include ':app'" | tee settings.gradle
+          
           cat << 'EOF' | tee build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -152,6 +159,8 @@ jobs:
                   applicationId "com.dim.gun"
                   minSdk 24
                   targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
                   externalNativeBuild { cmake { cppFlags "" } }
               }
               externalNativeBuild { cmake { path "src/main/cpp/CMakeLists.txt" } }
@@ -164,7 +173,10 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application android:label="Dim Gun" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
                   <activity android:name="com.dim.gun.MainActivity" android:exported="true" android:screenOrientation="landscape">
-                      <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
                   </activity>
               </application>
           </manifest>
@@ -172,10 +184,14 @@ jobs:
 
       - name: Final Build
         run: |
+          # Исправленная загрузка Gradle Wrapper
           curl -sL https://github.com/gradle/gradle/raw/v8.5/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip" | tee gradle/wrapper/gradle-wrapper.properties
+          
+          # Создаем исполняемый файл gradlew
           printf '#!/bin/sh\nexec java -Xmx512m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' | tee gradlew
           chmod +x gradlew
+          
           ./gradlew :app:assembleDebug
 
       - name: Upload Full Game APK
