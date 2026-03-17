@@ -18,115 +18,80 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create OpenOS Structure
+      - name: Create Structure
         run: |
           mkdir -p app/src/main/java/com/dim/openos/core
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/assets/sys_root/system
-          mkdir -p app/src/main/assets/sys_root/data
+          mkdir -p gradle/wrapper
+          # Даем права на запись во все созданные папки
+          chmod -R 777 gradle
 
-      - name: Create Custom System Files
+      - name: Create System Files & Assets
         run: |
-          # Создаем кастомный билд-проп для "открытой ОС"
-          cat > app/src/main/assets/sys_root/system/build.prop << 'EOF'
-          ro.build.display.id=DimOpenOS-v1.0-Alpha
-          ro.product.model=DimVirtualDevice
-          ro.secure=0
-          ro.debuggable=1
-          persist.sys.usb.config=adb
-          EOF
+          echo "ro.build.display.id=DimOpenOS-v1.1" > app/src/main/assets/sys_root/system/build.prop
+          echo "ro.secure=0" >> app/src/main/assets/sys_root/system/build.prop
+          echo "ro.debuggable=1" >> app/src/main/assets/sys_root/system/build.prop
 
-      - name: Create OS Kernel Simulator
-        run: |
-          cat > app/src/main/java/com/dim/openos/core/OSRuntime.java << 'EOF'
-          package com.dim.openos.core;
-          import android.content.Context;
-          import android.util.Log;
-          import java.io.*;
-
-          public class OSRuntime {
-              public static void deploySystem(Context ctx) {
-                  Log.d("OpenOS", "Deploying system images to /data/user/0/com.dim.openos/os_root...");
-                  // Здесь логика распаковки assets в реальную папку для запуска
-              }
-
-              public static void rebootContainer() {
-                  Log.d("OpenOS", "Restarting System Server...");
-                  // Перезапуск виртуальных сервисов
-              }
-          }
-          EOF
-
-      - name: Create Installation UI
-        run: |
-          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent" android:layout_height="match_parent"
-              android:orientation="vertical" android:background="#000" android:padding="25dp" android:gravity="center">
-              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="DimOpenOS" android:textColor="#00FF00" android:textSize="35sp" android:textStyle="bold"/>
-              <TextView android:id="@+id/statusText" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="System not installed" android:textColor="#555" android:layout_marginTop="10dp"/>
-              <ProgressBar android:id="@+id/installProgress" style="?android:attr/progressBarStyleHorizontal"
-                  android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="30dp" android:visibility="gone"/>
-              <Button android:id="@+id/btnInstall" android:layout_width="match_parent" android:layout_height="60dp"
-                  android:text="FLASH & REBOOT" android:backgroundTint="#111" android:textColor="#00FF00" android:layout_marginTop="40dp"/>
-          </LinearLayout>
-          EOF
-
-      - name: Create Installer Logic
+      - name: Create Java Logic
         run: |
           cat > app/src/main/java/com/dim/openos/MainActivity.java << 'EOF'
           package com.dim.openos;
           import android.app.Activity;
           import android.os.Bundle;
-          import android.view.View;
           import android.widget.*;
-          import com.dim.openos.core.OSRuntime;
-
           public class MainActivity extends Activity {
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-
-                  Button btn = findViewById(R.id.btnInstall);
-                  ProgressBar bar = findViewById(R.id.installProgress);
-                  TextView status = findViewById(R.id.statusText);
-
+              protected void onCreate(Bundle b) {
+                  super.onCreate(b);
+                  LinearLayout l = new LinearLayout(this);
+                  l.setOrientation(LinearLayout.VERTICAL);
+                  l.setPadding(50, 50, 50, 50);
+                  l.setBackgroundColor(0xFF000000);
+                  
+                  TextView t = new TextView(this);
+                  t.setText("DimOpenOS Kernel");
+                  t.setTextColor(0xFF00FF00);
+                  t.setTextSize(24);
+                  
+                  Button btn = new Button(this);
+                  btn.setText("FLASH & START OPEN SYSTEM");
+                  btn.setBackgroundColor(0xFF333333);
+                  btn.setTextColor(0xFF00FF00);
+                  
                   btn.setOnClickListener(v -> {
-                      btn.setVisibility(View.GONE);
-                      bar.setVisibility(View.VISIBLE);
-                      status.setText("Flashing System Image...");
-                      
-                      new android.os.Handler().postDelayed(() -> {
-                          OSRuntime.deploySystem(this);
-                          status.setText("System Updated. Rebooting...");
-                          new android.os.Handler().postDelayed(() -> {
-                              // Здесь переход на "Рабочий стол" новой ОС
-                              Toast.makeText(this, "Welcome to DimOpenOS", Toast.LENGTH_LONG).show();
-                              status.setText("OS Running");
-                          }, 1500);
-                      }, 3000);
+                      Toast.makeText(this, "Installing Custom Android Rootfs...", Toast.LENGTH_LONG).show();
                   });
+
+                  l.addView(t); l.addView(btn);
+                  setContentView(l);
               }
           }
           EOF
 
-      - name: Setup Project
+      - name: Setup Gradle Files
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
+          
           cat > build.gradle << 'EOF'
-          buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.0.2' } }
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
+          }
           allprojects { repositories { google(); mavenCentral() } }
           EOF
+
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
-          android { namespace 'com.dim.openos'; compileSdk 34; defaultConfig { applicationId "com.dim.openos"; minSdk 21; targetSdk 34 } }
+          android {
+              namespace 'com.dim.openos'
+              compileSdk 34
+              defaultConfig { applicationId "com.dim.openos"; minSdk 21; targetSdk 34 }
+          }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
+
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application android:label="DimOpenOS" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
@@ -136,16 +101,22 @@ jobs:
               </application>
           </manifest>
           EOF
-          curl -L https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
-          printf "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
+
+      - name: Download Wrapper (Fixed Path)
+        run: |
+          # Скачиваем напрямую в целевой файл
+          curl -sL https://github.com/gradle/gradle/raw/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+          # Создаем properties для wrapper
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
+          # Создаем исполняемый gradlew
           printf '#!/bin/sh\nexec java -Xmx512m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
           chmod +x gradlew
 
-      - name: Build OpenOS APK
+      - name: Build APK
         run: ./gradlew :app:assembleDebug
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimOpenOS-Installer
+          name: DimOpenOS-v4.1
           path: app/build/outputs/apk/debug/*.apk
