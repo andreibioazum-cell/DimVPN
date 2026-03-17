@@ -23,6 +23,7 @@ jobs:
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/java/com/dimvpn/app
           mkdir -p app/src/main/assets
+          mkdir -p gradle/wrapper
 
       - name: Save VPN Config
         run: |
@@ -40,39 +41,52 @@ jobs:
                   "security": "reality",
                   "realitySettings": {"serverName": "tradingview.com", "publicKey": "-tePObR3oZwGAUOb5kqTYkNWl6rtUKl0RFuzuu06wgw", "shortId": "50", "fingerprint": "qq"}
                 }
-              },
-              {"tag": "direct", "protocol": "freedom"}
+              }
             ]
           }
           EOF
 
-      - name: Create AndroidManifest with VPN Permissions
+      - name: Create MainActivity with Logic
         run: |
-          cat > app/src/main/AndroidManifest.xml << 'EOF'
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+          cat > app/src/main/java/com/dimvpn/app/MainActivity.java << 'EOF'
+          package com.dimvpn.app;
 
-              <application android:label="DimVPN" android:theme="@style/Theme.AppCompat.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-                  <service android:name=".VpnRunnerService"
-                      android:permission="android.permission.BIND_VPN_SERVICE"
-                      android:exported="false">
-                      <intent-filter>
-                          <action android:name="android.net.VpnService" />
-                      </intent-filter>
-                  </service>
-              </application>
-          </manifest>
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.net.VpnService;
+          import android.os.Bundle;
+          import android.widget.Button;
+          import android.widget.Toast;
+
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  Button btn = new Button(this);
+                  btn.setText("ЗАПУСТИТЬ DIMVPN");
+                  setContentView(btn);
+
+                  btn.setOnClickListener(v -> {
+                      Intent intent = VpnService.prepare(this);
+                      if (intent != null) {
+                          startActivityForResult(intent, 1);
+                      } else {
+                          onActivityResult(1, RESULT_OK, null);
+                      }
+                  });
+              }
+
+              @Override
+              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+                  if (resultCode == RESULT_OK) {
+                      Toast.makeText(this, "Сервис готов к запуску!", Toast.LENGTH_SHORT).show();
+                      // Здесь вызывается старт LibXray
+                  }
+              }
+          }
           EOF
 
-      - name: Update build.gradle with LibXray
+      - name: Update build.gradle
         run: |
           cat > build.gradle << 'EOF'
           buildscript {
@@ -93,28 +107,35 @@ jobs:
                   applicationId "com.dimvpn.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
               }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.9.0'
-              // Библиотека для работы с Xray ядром
               implementation 'com.github.2dust:androidLibV2rayLite:v0.1.0'
           }
           EOF
 
-      - name: Build APK
+          echo "include ':app'" > settings.gradle
+
+      - name: Setup Gradle Wrapper and Build
         run: |
-          # Автоматическая загрузка Gradle Wrapper
+          # Сначала скачиваем jar в созданную папку
           curl -L https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
-          printf "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
+          # Создаем файл настроек wrapper
+          echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties
+          echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
+          echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties
+          echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" >> gradle/wrapper/gradle-wrapper.properties
+          
+          # Создаем исполняемый файл gradlew
+          printf '#!/bin/sh\nexec java -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
           chmod +x gradlew
+          
           ./gradlew assembleDebug
 
-      - name: Upload Working Base APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-Core-Base
+          name: DimVPN-Working-Base
           path: app/build/outputs/apk/debug/*.apk
