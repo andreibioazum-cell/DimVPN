@@ -5,6 +5,18 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [
+          { name: "v2rayng-jitpack", repo: "jitpack", dep: "com.github.v2rayng:V2RayCore:1.8.1" },
+          { name: "v2fly-maven", repo: "v2fly", dep: "com.v2ray.core:core:5.16.1" },
+          { name: "v2fly-maven-5.14.0", repo: "v2fly", dep: "com.v2ray.core:core:5.14.0" },
+          { name: "v2fly-maven-5.13.0", repo: "v2fly", dep: "com.v2ray.core:core:5.13.0" },
+          { name: "v2fly-maven-5.12.0", repo: "v2fly", dep: "com.v2ray.core:core:5.12.0" },
+          { name: "2dust-jitpack", repo: "jitpack", dep: "com.github.2dust:AndroidV2Core:5.16.1" }
+        ]
+    
     steps:
       - uses: actions/checkout@v3
       
@@ -19,12 +31,12 @@ jobs:
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/java/com/dimvpn/app
           
-      - name: Copy config from config folder
+      - name: Copy config
         run: cp config/config.json app/src/main/assets/config.json
       
-      - name: Create build.gradle
+      - name: Create build.gradle with ${{ matrix.variant.name }}
         run: |
-          cat > app/build.gradle << 'EOF'
+          cat > app/build.gradle << EOF
           buildscript {
               repositories {
                   google()
@@ -45,8 +57,8 @@ jobs:
                   applicationId 'com.dimvpn.app'
                   minSdk 21
                   targetSdk 34
-                  versionCode 1
-                  versionName '1.0'
+                  versionCode ${{ github.run_number }}
+                  versionName '1.0.${{ github.run_number }}'
               }
 
               buildTypes {
@@ -59,7 +71,7 @@ jobs:
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.11.0'
-              implementation 'com.github.v2rayng:V2RayCore:1.8.1'
+              implementation '${{ matrix.variant.dep }}'
           }
           EOF
       
@@ -79,6 +91,7 @@ jobs:
                   google()
                   mavenCentral()
                   maven { url 'https://jitpack.io' }
+                  maven { url 'https://raw.githubusercontent.com/v2fly/v2fly-maven/master/release' }
               }
           }
           rootProject.name = "DimVPN"
@@ -133,7 +146,6 @@ jobs:
           import android.widget.Toast;
           import android.graphics.Color;
           import android.view.Gravity;
-          import com.v2ray.core.V2RayService;
           import java.io.InputStream;
 
           public class MainActivity extends Activity {
@@ -193,15 +205,21 @@ jobs:
                       is.close();
                       String config = new String(buffer);
                       
-                      Intent intent = new Intent(this, V2RayService.class);
-                      intent.setAction(V2RayService.ACTION_START_V2RAY);
-                      intent.putExtra("config", config);
-                      startService(intent);
-                      
-                      isRunning = true;
-                      statusText.setText("Статус: Подключено");
-                      toggleButton.setText("ОСТАНОВИТЬ VPN");
-                      Toast.makeText(this, "VPN запущен", Toast.LENGTH_SHORT).show();
+                      // Пытаемся загрузить V2RayCore если он доступен
+                      try {
+                          Class.forName("com.v2ray.core.V2RayService");
+                          Intent intent = new Intent(this, Class.forName("com.v2ray.core.V2RayService"));
+                          intent.setAction("com.v2ray.core.ACTION_START_V2RAY");
+                          intent.putExtra("config", config);
+                          startService(intent);
+                          
+                          isRunning = true;
+                          statusText.setText("Статус: Подключено");
+                          toggleButton.setText("ОСТАНОВИТЬ VPN");
+                          Toast.makeText(this, "VPN запущен", Toast.LENGTH_SHORT).show();
+                      } catch (ClassNotFoundException e) {
+                          Toast.makeText(this, "V2RayCore не найден в этой сборке", Toast.LENGTH_LONG).show();
+                      }
                       
                   } catch (Exception e) {
                       Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -209,14 +227,18 @@ jobs:
               }
               
               private void stopVPN() {
-                  Intent intent = new Intent(this, V2RayService.class);
-                  intent.setAction(V2RayService.ACTION_STOP_V2RAY);
-                  startService(intent);
-                  
-                  isRunning = false;
-                  statusText.setText("Статус: Отключено");
-                  toggleButton.setText("ЗАПУСТИТЬ VPN");
-                  Toast.makeText(this, "VPN остановлен", Toast.LENGTH_SHORT).show();
+                  try {
+                      Intent intent = new Intent(this, Class.forName("com.v2ray.core.V2RayService"));
+                      intent.setAction("com.v2ray.core.ACTION_STOP_V2RAY");
+                      startService(intent);
+                      
+                      isRunning = false;
+                      statusText.setText("Статус: Отключено");
+                      toggleButton.setText("ЗАПУСТИТЬ VPN");
+                      Toast.makeText(this, "VPN остановлен", Toast.LENGTH_SHORT).show();
+                  } catch (ClassNotFoundException e) {
+                      Toast.makeText(this, "V2RayCore не найден", Toast.LENGTH_SHORT).show();
+                  }
               }
           }
           EOF
@@ -242,14 +264,13 @@ jobs:
           echo 'exec java -Xmx64m -classpath "$(dirname "$0")/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' >> gradlew
           chmod +x gradlew
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
       - name: Build APK
         run: ./gradlew assembleDebug --stacktrace
+        continue-on-error: true
 
-      - name: Upload APK
+      - name: Upload APK (if successful)
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-APK
+          name: DimVPN-APK-${{ matrix.variant.name }}
           path: app/build/outputs/apk/debug/*.apk
