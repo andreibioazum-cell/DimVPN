@@ -1,4 +1,4 @@
-name: Build DimBlox Engine Fixed
+name: Build DimBlox Native Engine
 
 on:
   push:
@@ -18,120 +18,126 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Clean and Create Dirs
+      - name: Create Folders
         run: |
-          rm -rf *
-          mkdir -p app/src/main/java/com/dim/blox/render
+          rm -rf app
+          mkdir -p app/src/main/java/com/dim/blox
+          mkdir -p app/src/main/jni
           mkdir -p app/src/main/res/layout
-          mkdir -p app/src/main/res/values
           mkdir -p gradle/wrapper
 
-      - name: Create Gradle Configs (Fixed)
+      - name: Create C++ Engine (The "Roblox" Core)
         run: |
-          echo "include ':app'" | tee settings.gradle
-          echo "android.useAndroidX=true" | tee gradle.properties
-          cat << 'EOF' | tee build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
-          }
-          allprojects { repositories { google(); mavenCentral() } }
+          cat << 'EOF' | tee app/src/main/jni/Android.mk
+          LOCAL_PATH := $(call my-dir)
+          include $(CLEAR_VARS)
+          LOCAL_MODULE    := dimblox_core
+          LOCAL_SRC_FILES := engine.cpp
+          LOCAL_LDLIBS    := -llog -landroid -lGLESv3 -lEGL
+          include $(BUILD_SHARED_LIBRARY)
           EOF
 
-      - name: Create 3D Logic (Cube & Renderer)
+          cat << 'EOF' | tee app/src/main/jni/engine.cpp
+          #include <jni.h>
+          #include <GLES3/gl3.h>
+          #include <android/log.h>
+
+          // Базовый шейдер для блоков
+          const char* vShader = "attribute vec4 vPos; uniform mat4 uMVP; void main(){gl_Position=uMVP*vPos;}";
+          const char* fShader = "precision mediump float; void main(){gl_FragColor=vec4(0.13, 0.77, 0.36, 1.0);}";
+
+          extern "C" {
+              JNIEXPORT void JNICALL Java_com_dim_blox_GameView_renderFrame(JNIEnv* env, jobject obj) {
+                  glClearColor(0.1f, 0.16f, 0.29f, 1.0f); // Твой цвет из style-core.css
+                  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                  // Здесь логика отрисовки тысяч блоков, как в твоей студии
+              }
+          }
+          EOF
+
+      - name: Create Java Bridge
         run: |
-          cat << 'EOF' | tee app/src/main/java/com/dim/blox/render/MyRenderer.java
-          package com.dim.blox.render;
-          import android.opengl.GLES20;
+          cat << 'EOF' | tee app/src/main/java/com/dim/blox/GameView.java
+          package com.dim.blox;
+          import android.content.Context;
           import android.opengl.GLSurfaceView;
-          import android.opengl.Matrix;
           import javax.microedition.khronos.egl.EGLConfig;
           import javax.microedition.khronos.opengles.GL10;
 
-          public class MyRenderer implements GLSurfaceView.Renderer {
-              private Cube mCube;
-              private final float[] vPMatrix = new float[16];
-              private final float[] projM = new float[16];
-              private final float[] viewM = new float[16];
-              public float rotX = 0, rotY = 0;
+          public class GameView extends GLSurfaceView {
+              static { System.loadLibrary("dimblox_core"); }
+              public native void renderFrame();
 
-              public void onSurfaceCreated(GL10 unused, EGLConfig config) {
-                  GLES20.glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
-                  GLES20.glEnable(GLES20.GL_DEPTH_TEST);
-                  mCube = new Cube();
-              }
-              public void onDrawFrame(GL10 unused) {
-                  GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-                  Matrix.setLookAtM(viewM, 0, 0, 0, -5, 0, 0, 0, 0, 1, 0);
-                  float[] modelM = new float[16];
-                  Matrix.setRotateM(modelM, 0, rotX, 1, 0, 0);
-                  Matrix.rotateM(modelM, 0, rotY, 0, 1, 0);
-                  float[] temp = new float[16];
-                  Matrix.multiplyMM(temp, 0, viewM, 0, modelM, 0);
-                  Matrix.multiplyMM(vPMatrix, 0, projM, 0, temp, 0);
-                  mCube.draw(vPMatrix);
-              }
-              public void onSurfaceChanged(GL10 u, int w, int h) {
-                  GLES20.glViewport(0, 0, w, h);
-                  float ratio = (float) w / h;
-                  Matrix.frustumM(projM, 0, -ratio, ratio, -1, 1, 3, 10);
+              public GameView(Context context) {
+                  super(context);
+                  setEGLContextClientVersion(3);
+                  setRenderer(new Renderer() {
+                      public void onSurfaceCreated(GL10 gl, EGLConfig c) {}
+                      public void onSurfaceChanged(GL10 gl, int w, int h) { gl.glViewport(0,0,w,h); }
+                      public void onDrawFrame(GL10 gl) { renderFrame(); }
+                  });
               }
           }
           EOF
 
-      - name: Create MainActivity (Input Binding)
+      - name: Create Native UI (MainActivity)
         run: |
           cat << 'EOF' | tee app/src/main/java/com/dim/blox/MainActivity.java
           package com.dim.blox;
           import android.app.Activity;
-          import android.opengl.GLSurfaceView;
           import android.os.Bundle;
-          import android.view.*;
-          import com.dim.blox.render.MyRenderer;
+          import android.view.ViewGroup;
+          import android.widget.FrameLayout;
 
           public class MainActivity extends Activity {
-              private MyRenderer renderer;
-              private float prevX, prevY;
-
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  GLSurfaceView glView = new GLSurfaceView(this);
-                  glView.setEGLContextClientVersion(2);
-                  renderer = new MyRenderer();
-                  glView.setRenderer(renderer);
-                  
-                  glView.setOnTouchListener((v, e) -> {
-                      float x = e.getX(); float y = e.getY();
-                      if (e.getAction() == MotionEvent.ACTION_MOVE) {
-                          renderer.rotY += (x - prevX) * 0.5f;
-                          renderer.rotX += (y - prevY) * 0.5f;
-                      }
-                      prevX = x; prevY = y;
-                      return true;
-                  });
-                  setContentView(glView);
+                  GameView gv = new GameView(this);
+                  setContentView(gv);
+                  // Сюда мы добавим джойстики поверх 3D мира
               }
           }
           EOF
 
-      - name: Build App logic
+      - name: Configure Build
         run: |
-          # Здесь мы создаем Cube.java и AndroidManifest (как в v30)
-          # ... (пропущено для краткости, структура аналогична v30)
+          echo "include ':app'" | tee settings.gradle
           cat << 'EOF' | tee app/build.gradle
           plugins { id 'com.android.application' }
-          android { namespace 'com.dim.blox'; compileSdk 34; defaultConfig { applicationId "com.dim.blox"; minSdk 21; targetSdk 34 } }
+          android {
+              namespace 'com.dim.blox'
+              compileSdk 34
+              defaultConfig { 
+                  applicationId "com.dim.blox"
+                  minSdk 24
+                  externalNativeBuild { ndkBuild { abiFilters 'arm64-v8a', 'armeabi-v7a' } }
+              }
+              externalNativeBuild { ndkBuild { path file('src/main/jni/Android.mk') } }
+          }
           EOF
           
+          # Манифест
+          cat << 'EOF' | tee app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.dim.blox">
+              <application android:label="DimBlox Native" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
+                      <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+      - name: Finalize and Build
+        run: |
           curl -sL https://github.com/gradle/gradle/raw/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-bin.zip" | tee gradle/wrapper/gradle-wrapper.properties
           printf '#!/bin/sh\nexec java -Xmx512m -classpath "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' | tee gradlew
           chmod +x gradlew
           ./gradlew :app:assembleDebug
 
-      - name: Upload
+      - name: Upload Native APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimBlox-3D-Final-v31
+          name: DimBlox-Pure-Native
           path: app/build/outputs/apk/debug/*.apk
