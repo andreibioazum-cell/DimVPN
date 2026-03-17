@@ -1,92 +1,75 @@
-name: Build APK with C++
+name: Build APK
 
-on: [push]
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    strategy:
-      fail-fast: false
-      matrix:
-        abi: [armeabi-v7a, arm64-v8a, x86, x86_64]
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
       
-      - name: Setup Java
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
       
-      - name: Create Android project
+      - name: Create Android project structure
         run: |
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/java/com/dimvpn/app
-          mkdir -p app/src/main/cpp
           
-      - name: Copy config
-        run: cp config/config.json app/src/main/assets/config.json || echo "no config"
+      - name: Copy config file
+        run: cp config/config.json app/src/main/assets/config.json
       
-      # Create settings.gradle
       - name: Create settings.gradle
         run: |
           cat > settings.gradle << 'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "DimVPN"
           include ':app'
           EOF
       
-      # Create build.gradle
       - name: Create build.gradle
         run: |
           cat > app/build.gradle << 'EOF'
-          plugins {
-              id 'com.android.application'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.0.0'
+              }
           }
           
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          
+          apply plugin: 'com.android.application'
+          
           android {
-              namespace 'com.dimvpn.app'
               compileSdk 34
               
               defaultConfig {
-                  applicationId 'com.dimvpn.app'
+                  applicationId "com.dimvpn.app"
                   minSdk 21
                   targetSdk 34
                   versionCode 1
-                  versionName '1.0'
-                  
-                  externalNativeBuild {
-                      cmake {
-                          cppFlags ''
-                          abiFilters '${{ matrix.abi }}'
-                      }
-                  }
-              }
-              
-              externalNativeBuild {
-                  cmake {
-                      path 'src/main/cpp/CMakeLists.txt'
-                  }
+                  versionName "1.0"
               }
               
               buildTypes {
-                  debug {
+                  release {
                       minifyEnabled false
                   }
               }
@@ -97,76 +80,14 @@ jobs:
           }
           EOF
       
-      # Create gradle.properties
-      - name: Create gradle.properties
-        run: |
-          cat > gradle.properties << 'EOF'
-          org.gradle.jvmargs=-Xmx2048m
-          android.useAndroidX=true
-          EOF
-      
-      # Create CMakeLists.txt
-      - name: Create CMakeLists.txt
-        run: |
-          cat > app/src/main/cpp/CMakeLists.txt << 'EOF'
-          cmake_minimum_required(VERSION 3.18.1)
-          project("dimvpn")
-          
-          add_library(
-              native-lib
-              SHARED
-              native-lib.cpp
-          )
-          
-          find_library(
-              log-lib
-              log
-          )
-          
-          target_link_libraries(
-              native-lib
-              ${log-lib}
-          )
-          EOF
-      
-      # Create C++ code
-      - name: Create native-lib.cpp
-        run: |
-          cat > app/src/main/cpp/native-lib.cpp << 'EOF'
-          #include <jni.h>
-          #include <string>
-          #include <android/log.h>
-          
-          #define LOG_TAG "DimVPN"
-          #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-          
-          extern "C" {
-          
-          JNIEXPORT jstring JNICALL
-          Java_com_dimvpn_app_MainActivity_stringFromJNI(JNIEnv* env, jobject /* this */) {
-              LOGI("Native library loaded");
-              return env->NewStringUTF("DimVPN C++");
-          }
-          
-          }
-          EOF
-      
-      # Create AndroidManifest.xml
       - name: Create AndroidManifest.xml
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
               
-              <application
-                  android:allowBackup="true"
-                  android:label="DimVPN"
-                  android:theme="@style/Theme.AppCompat.Light">
-                  
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
+              <application android:label="DimVPN">
+                  <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -176,7 +97,6 @@ jobs:
           </manifest>
           EOF
       
-      # Create MainActivity.java
       - name: Create MainActivity
         run: |
           cat > app/src/main/java/com/dimvpn/app/MainActivity.java << 'EOF'
@@ -185,62 +105,22 @@ jobs:
           import android.app.Activity;
           import android.os.Bundle;
           import android.widget.Button;
-          import android.widget.LinearLayout;
-          import android.widget.TextView;
           import android.widget.Toast;
-          import android.graphics.Color;
-          import android.view.Gravity;
           
           public class MainActivity extends Activity {
-              
-              static {
-                  System.loadLibrary("native-lib");
-              }
-              
-              public native String stringFromJNI();
-              
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  
-                  LinearLayout layout = new LinearLayout(this);
-                  layout.setOrientation(LinearLayout.VERTICAL);
-                  layout.setGravity(Gravity.CENTER);
-                  layout.setBackgroundColor(Color.parseColor("#1a1a1a"));
-                  layout.setPadding(50, 50, 50, 50);
-                  
-                  TextView title = new TextView(this);
-                  title.setText("DimVPN");
-                  title.setTextSize(32);
-                  title.setTextColor(Color.parseColor("#4CAF50"));
-                  title.setGravity(Gravity.CENTER);
-                  layout.addView(title);
-                  
-                  TextView statusText = new TextView(this);
-                  statusText.setText(stringFromJNI());
-                  statusText.setTextSize(18);
-                  statusText.setTextColor(Color.WHITE);
-                  statusText.setGravity(Gravity.CENTER);
-                  statusText.setPadding(0, 50, 0, 50);
-                  layout.addView(statusText);
-                  
-                  Button testButton = new Button(this);
-                  testButton.setText("ТЕСТ");
-                  testButton.setTextSize(16);
-                  testButton.setBackgroundColor(Color.parseColor("#4CAF50"));
-                  testButton.setTextColor(Color.WHITE);
-                  testButton.setPadding(50, 20, 50, 20);
-                  testButton.setOnClickListener(v -> 
-                      Toast.makeText(this, "C++ код работает!", Toast.LENGTH_SHORT).show()
+                  Button btn = new Button(this);
+                  btn.setText("DimVPN");
+                  btn.setOnClickListener(v -> 
+                      Toast.makeText(this, "Работает!", Toast.LENGTH_SHORT).show()
                   );
-                  layout.addView(testButton);
-                  
-                  setContentView(layout);
+                  setContentView(btn);
               }
           }
           EOF
       
-      # Gradle wrapper
       - name: Create gradle-wrapper.properties
         run: |
           mkdir -p gradle/wrapper
@@ -257,10 +137,10 @@ jobs:
           chmod +x gradlew
       
       - name: Build APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleRelease
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-CPP-${{ matrix.abi }}
-          path: app/build/outputs/apk/debug/*.apk
+          name: DimVPN-APK
+          path: app/build/outputs/apk/release/*.apk
