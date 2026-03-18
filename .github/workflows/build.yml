@@ -1,4 +1,4 @@
-name: DimOS_Pro_V2_1
+name: DimOS_God_Mode
 on: [workflow_dispatch, push]
 
 jobs:
@@ -18,20 +18,16 @@ jobs:
         run: |
           mkdir -p app/src/main/java/com/dimos
           mkdir -p app/src/main/res/values
-          mkdir -p app/libs
-
-          # Настройки сборки
-          cat <<EOF > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
+          
+          # Настройки стиля (Безрамочный режим)
+          cat <<EOF > app/src/main/res/values/themes.xml
+          <resources>
+              <style name="Theme.DimOS" parent="android:Theme.DeviceDefault.NoActionBar.Fullscreen">
+                  <item name="android:windowFullscreen">true</item>
+                  <item name="android:windowContentOverlay">@null</item>
+              </style>
+          </resources>
           EOF
-
-          echo "include ':app'" > settings.gradle
 
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
@@ -42,19 +38,16 @@ jobs:
                   applicationId "com.dimos.launcher"
                   minSdk 26
                   targetSdk 34
-                  versionCode 6
-                  versionName "2.1-Pro-Fixed"
+                  versionCode 10
+                  versionName "3.0-GodMode"
               }
           }
           EOF
 
-          # Манифест
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET"/>
               <uses-permission android:name="android.permission.VIBRATE"/>
-              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-              <application android:label="DimOS Pro" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+              <application android:label="DimOS GodMode" android:theme="@style/Theme.DimOS">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -65,221 +58,174 @@ jobs:
           </manifest>
           EOF
 
-          # Основной код (Исправленный)
           cat <<EOF > app/src/main/java/com/dimos/MainActivity.java
           package com.dimos;
 
           import android.app.*;
           import android.graphics.Color;
-          import android.graphics.drawable.GradientDrawable;
           import android.os.*;
           import android.view.*;
           import android.widget.*;
           import org.json.JSONObject;
           import java.io.*;
+          import java.text.SimpleDateFormat;
           import java.util.*;
 
           public class MainActivity extends Activity {
-              LinearLayout root, desktopContent;
-              String internalRoot, currentDir;
-              int[] currentGradient = {0xFF0F2027, 0xFF203A43, 0xFF2C5364};
+              LinearLayout root, desktop;
+              String internalRoot;
               String sysPass = "1234";
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   internalRoot = getFilesDir().getAbsolutePath();
-                  currentDir = internalRoot;
-                  new File(internalRoot + "/system").mkdirs();
                   new File(internalRoot + "/apps").mkdirs();
+                  
+                  // Создаем игру Snake при первом запуске
+                  installBuiltInGames();
                   
                   showLockScreen();
               }
 
-              private void showLockScreen() {
-                  setupRoot(Color.BLACK);
-                  addLabel("DimOS SECURITY", 24, Color.RED);
-                  EditText passInput = new EditText(this);
-                  passInput.setHint("Введите пароль");
-                  passInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
-                  root.addView(passInput);
-                  
-                  addNavButton(root, "UNLOCK", v -> {
-                      if(passInput.getText().toString().equals(sysPass)) showDesktop();
-                      else Toast.makeText(this, "Access Denied", Toast.LENGTH_SHORT).show();
-                  });
-                  setContentView(root);
+              private void installBuiltInGames() {
+                  File game = new File(internalRoot + "/apps/snake.dim");
+                  if (!game.exists()) {
+                      try { writeFile(game, "{\"appName\":\"Змейка\",\"icon\":\"🐍\",\"script\":\"PRINT: Запуск игры...; VIBE: 50; JAVA_CODE: START_SNAKE\"}"); } catch(Exception e){}
+                  }
               }
 
-              private void applyWallpaper(View v) {
-                  GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, currentGradient);
-                  v.setBackground(gd);
+              private void showLockScreen() {
+                  setupBaseLayout();
+                  addLabel("DimOS PROSECURE", 24, Color.RED);
+                  EditText pass = new EditText(this);
+                  pass.setHint("PASSWORD");
+                  pass.setTextColor(Color.WHITE);
+                  root.addView(pass);
+                  addBtn("UNLOCK", v -> {
+                      if(pass.getText().toString().equals(sysPass)) showDesktop();
+                  });
+                  setContentView(root);
               }
 
               private void showDesktop() {
-                  setupRoot(0);
-                  applyWallpaper(root);
-                  addLabel("DimOS Pro v2.1", 28, Color.WHITE);
+                  setupBaseLayout();
+                  
+                  // Наш кастомный Status Bar
+                  LinearLayout statusBar = new LinearLayout(this);
+                  statusBar.setBackgroundColor(Color.parseColor("#050505"));
+                  statusBar.setPadding(20, 5, 20, 5);
+                  TextView time = new TextView(this);
+                  time.setText(new SimpleDateFormat("HH:mm").format(new Date()) + " | DimOS 3.0 | ⚡ 100%");
+                  time.setTextColor(Color.WHITE);
+                  statusBar.addView(time);
+                  root.addView(statusBar);
 
-                  LinearLayout nav = new LinearLayout(this);
-                  addNavButton(nav, "📂 Проводник", v -> showFileManager(internalRoot));
-                  addNavButton(nav, "⚙ Настройки", v -> showSettings());
-                  root.addView(nav);
-
-                  desktopContent = new LinearLayout(this);
-                  desktopContent.setOrientation(LinearLayout.VERTICAL);
-                  refreshAppList();
-                  root.addView(desktopContent);
-
-                  setContentView(root);
-              }
-
-              private void refreshAppList() {
-                  desktopContent.removeAllViews();
-                  File[] apps = new File(internalRoot + "/apps").listFiles();
-                  if (apps != null) {
-                      for (File f : apps) {
-                          if (f.getName().endsWith(".dim")) {
-                              try {
-                                  JSONObject json = new JSONObject(readFile(f));
-                                  TextView tv = new TextView(this);
-                                  tv.setText(json.getString("icon") + " " + json.getString("appName"));
-                                  tv.setTextSize(20);
-                                  tv.setTextColor(Color.WHITE);
-                                  tv.setPadding(20, 30, 20, 30);
-                                  final String script = json.getString("script");
-                                  tv.setOnClickListener(v -> runScript(script));
-                                  desktopContent.addView(tv);
-                              } catch(Exception e) {}
-                          }
-                      }
-                  }
-              }
-
-              private void showFileManager(String path) {
-                  currentDir = path;
-                  setupRoot(0);
-                  applyWallpaper(root);
-                  addLabel("Путь: " + path.replace(internalRoot, "~"), 14, Color.YELLOW);
+                  addLabel("DimOS Home", 30, Color.WHITE);
 
                   LinearLayout tools = new LinearLayout(this);
-                  addNavButton(tools, "➕ Папка", v -> createNew("folder"));
-                  addNavButton(tools, "📄 Файл", v -> createNew("file"));
-                  addNavButton(tools, "📥 Импорт", v -> importFile());
+                  addBtn(tools, "📂 Проводник", v -> showFiles(internalRoot));
+                  addBtn(tools, "📝 Создать", v -> openEditor("new.dim", "{\\n \"appName\":\"App\",\\n \"icon\":\"⭐\",\\n \"script\":\"PRINT: Hello;\"\\n}"));
                   root.addView(tools);
 
-                  ScrollView sv = new ScrollView(this);
-                  LinearLayout list = new LinearLayout(this);
-                  list.setOrientation(LinearLayout.VERTICAL);
+                  desktop = new LinearLayout(this);
+                  desktop.setOrientation(LinearLayout.VERTICAL);
+                  loadApps();
+                  root.addView(desktop);
+                  setContentView(root);
+              }
 
-                  File d = new File(path);
-                  if (!path.equals(internalRoot)) {
-                      addFileItem(list, "⬅ Назад", v -> showFileManager(d.getParent()));
-                  }
-
-                  File[] files = d.listFiles();
-                  if (files != null) {
-                      for (File f : files) {
-                          addFileItem(list, (f.isDirectory() ? "📁 " : "📄 ") + f.getName(), v -> {
-                              if (f.isDirectory()) showFileManager(f.getAbsolutePath());
-                              else openEditor(f);
-                          });
+              private void loadApps() {
+                  File[] apps = new File(internalRoot + "/apps").listFiles();
+                  if(apps != null) {
+                      for(File f : apps) {
+                          try {
+                              JSONObject j = new JSONObject(readFile(f));
+                              Button b = new Button(this);
+                              b.setText(j.getString("icon") + " " + j.getString("appName"));
+                              b.setBackgroundColor(Color.parseColor("#222222"));
+                              b.setTextColor(Color.WHITE);
+                              final String sc = j.getString("script");
+                              b.setOnClickListener(v -> runEngine(sc));
+                              desktop.addView(b);
+                          } catch(Exception e){}
                       }
                   }
-                  sv.addView(list);
-                  root.addView(sv);
-                  addNavButton(root, "🏠 Домой", v -> showDesktop());
-                  setContentView(root);
               }
 
-              private void showSettings() {
-                  setupRoot(0);
-                  applyWallpaper(root);
-                  addLabel("Настройки", 24, Color.WHITE);
-                  addNavButton(root, "🎨 Океан", v -> { currentGradient = new int[]{0xFF2193b0, 0xFF6dd5ed}; showSettings(); });
-                  addNavButton(root, "🎨 Закат", v -> { currentGradient = new int[]{0xFFee0979, 0xFFff6a00}; showSettings(); });
-                  addNavButton(root, "🏠 Назад", v -> showDesktop());
-                  setContentView(root);
+              private void runEngine(String script) {
+                  for(String c : script.split(";")) {
+                      String cmd = c.trim();
+                      if(cmd.startsWith("PRINT:")) Toast.makeText(this, cmd.substring(6), Toast.LENGTH_SHORT).show();
+                      if(cmd.startsWith("VIBE:")) ((Vibrator)getSystemService(VIBRATOR_SERVICE)).vibrate(100);
+                      if(cmd.startsWith("JAVA_CODE: START_SNAKE")) startSnakeGame();
+                  }
               }
 
-              private void runScript(String s) {
-                  if (s.contains("PRINT:")) Toast.makeText(this, s.split("PRINT:")[1].split(";")[0], Toast.LENGTH_SHORT).show();
-              }
-
-              private void createNew(String type) {
+              private void startSnakeGame() {
+                  // Упрощенная логика игры (всплывающее окно)
                   AlertDialog.Builder b = new AlertDialog.Builder(this);
-                  EditText in = new EditText(this);
-                  b.setTitle("Имя " + type);
-                  b.setView(in);
-                  b.setPositiveButton("Создать", (d, w) -> {
-                      File f = new File(currentDir, in.getText().toString());
-                      try { if(type.equals("folder")) f.mkdirs(); else f.createNewFile(); showFileManager(currentDir); } catch(Exception e){}
-                  });
+                  b.setTitle("Snake DimOS");
+                  b.setMessage("Тут будет логика змейки на Canvas. Пока что это прототип игры.");
+                  b.setPositiveButton("OK", null);
                   b.show();
               }
 
-              private void openEditor(File f) {
-                  setupRoot(Color.BLACK);
-                  EditText ed = new EditText(this);
-                  ed.setTextColor(Color.GREEN);
-                  try { ed.setText(readFile(f)); } catch(Exception e){}
-                  root.addView(ed);
-                  addNavButton(root, "💾 Сохранить", v -> {
-                      try { writeFile(f, ed.getText().toString()); } catch(Exception e){}
-                      showFileManager(currentDir);
-                  });
-                  addNavButton(root, "📤 Экспорт в Download", v -> exportFile(f));
-                  addNavButton(root, "❌ Закрыть", v -> showFileManager(currentDir));
+              private void showFiles(String path) {
+                  setupBaseLayout();
+                  addLabel("Путь: " + path, 14, Color.GRAY);
+                  File d = new File(path);
+                  if(!path.equals(internalRoot)) addBtn("⬅ Назад", v -> showFiles(d.getParent()));
+                  
+                  File[] ff = d.listFiles();
+                  if(ff != null) {
+                      for(File f : ff) {
+                          addBtn((f.isDirectory() ? "📁 " : "📄 ") + f.getName(), v -> {
+                              if(f.isDirectory()) showFiles(f.getAbsolutePath());
+                              else openEditor(f.getName(), ""); 
+                          });
+                      }
+                  }
+                  addBtn("🏠 Домой", v -> showDesktop());
                   setContentView(root);
               }
 
-              private void importFile() {
-                  File src = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "app.dim");
-                  if (src.exists()) {
-                      try { copy(src, new File(currentDir, "imported.dim")); showFileManager(currentDir); } catch(Exception e){}
-                  } else Toast.makeText(this, "Файл app.dim не найден в Download", Toast.LENGTH_SHORT).show();
+              private void openEditor(String name, String def) {
+                  setupBaseLayout();
+                  EditText ed = new EditText(this);
+                  ed.setTextColor(Color.GREEN);
+                  ed.setText(def);
+                  root.addView(ed);
+                  addBtn("💾 Сохранить в APPS", v -> {
+                      try { writeFile(new File(internalRoot + "/apps/" + name), ed.getText().toString()); } catch(Exception e){}
+                      showDesktop();
+                  });
+                  setContentView(root);
               }
 
-              private void exportFile(File f) {
-                  File dst = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), f.getName());
-                  try { copy(f, dst); Toast.makeText(this, "Экспортировано в Download", Toast.LENGTH_SHORT).show(); } catch(Exception e){}
-              }
-
-              private void setupRoot(int c) {
+              private void setupBaseLayout() {
                   root = new LinearLayout(this);
                   root.setOrientation(LinearLayout.VERTICAL);
-                  if(c != 0) root.setBackgroundColor(c);
-                  root.setPadding(40, 80, 40, 40);
-              }
-
-              private void addNavButton(LinearLayout l, String t, View.OnClickListener c) {
-                  Button b = new Button(this); b.setText(t); b.setOnClickListener(c); l.addView(b);
-              }
-
-              private void addFileItem(LinearLayout l, String t, View.OnClickListener c) {
-                  TextView tv = new TextView(this); tv.setText(t); tv.setTextSize(18); tv.setTextColor(Color.WHITE);
-                  tv.setPadding(0, 20, 0, 20); tv.setOnClickListener(c); l.addView(tv);
+                  root.setBackgroundColor(Color.BLACK); // Тёмная тема
+                  root.setPadding(30, 0, 30, 30);
               }
 
               private void addLabel(String t, int s, int c) {
                   TextView tv = new TextView(this); tv.setText(t); tv.setTextSize(s); tv.setTextColor(c); root.addView(tv);
               }
 
+              private void addBtn(String t, View.OnClickListener c) { addBtn(root, t, c); }
+              private void addBtn(LinearLayout l, String t, View.OnClickListener c) {
+                  Button b = new Button(this); b.setText(t); b.setOnClickListener(c); l.addView(b);
+              }
+
               private String readFile(File f) throws IOException {
                   Scanner s = new Scanner(f).useDelimiter("\\\\Z");
-                  String res = s.hasNext() ? s.next() : "";
-                  s.close(); return res;
+                  return s.hasNext() ? s.next() : "";
               }
 
               private void writeFile(File f, String d) throws IOException {
                   FileWriter fw = new FileWriter(f); fw.write(d); fw.close();
-              }
-
-              private void copy(File s, File d) throws IOException {
-                  InputStream in = new FileInputStream(s); OutputStream out = new FileOutputStream(d);
-                  byte[] b = new byte[1024]; int l;
-                  while((l=in.read(b))>0) out.write(b,0,l);
-                  in.close(); out.close();
               }
           }
           EOF
@@ -290,5 +236,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-Pro-v2-1
+          name: DimOS-GodMode-v3
           path: app/build/outputs/apk/debug/*.apk
