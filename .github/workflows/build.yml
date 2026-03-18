@@ -1,4 +1,4 @@
-name: KUSMAN_V70_FORGE_STABLE
+name: KUSMAN_V71_FORGE_FINAL_FIX
 on: [push, workflow_dispatch]
 
 jobs:
@@ -33,16 +33,13 @@ jobs:
           }
           group = 'com.kusman'
           version = '1.0.0'
-
           minecraft {
               mappings channel: 'official', version: '1.21.1'
           }
-
           repositories {
               mavenCentral()
               maven { url = 'https://maven.minecraftforge.net/' }
           }
-
           dependencies {
               minecraft 'net.minecraftforge:forge:1.21.1-52.1.2'
           }
@@ -56,6 +53,7 @@ jobs:
           import net.minecraft.world.level.block.state.BlockState;
           import net.minecraft.world.item.BlockItem;
           import net.minecraft.world.item.Item;
+          import net.minecraft.world.item.ItemStack;
           import net.minecraft.world.InteractionResult;
           import net.minecraft.world.InteractionHand;
           import net.minecraft.world.entity.EntityType;
@@ -93,17 +91,17 @@ jobs:
                   BlockBehaviour.Properties.of()
                       .mapColor(MapColor.GOLD)
                       .strength(5.0f, 6.0f)
-                      .requiresCorrectToolForDrops()
-                      .lightLevel(state -> 15) // Пусть он еще и светится!
+                      .lightLevel(state -> 15)
               ) {
+                  // Исправленный метод для 1.21.1 (Forge 52.1.2)
                   @Override
-                  public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-                      if (!level.isClientSide && hand == InteractionHand.MAIN_HAND) {
+                  public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+                      if (!level.isClientSide) {
                           AABB area = new AABB(pos).inflate(30.0);
                           List<Monster> targets = level.getEntitiesOfClass(Monster.class, area, Monster::isAlive);
 
                           if (targets.isEmpty()) {
-                              player.displayClientMessage(Component.literal("§cБлок Бога не видит целей..."), true);
+                              player.displayClientMessage(Component.literal("§cЦелей нет!"), true);
                               return InteractionResult.SUCCESS;
                           }
 
@@ -116,17 +114,23 @@ jobs:
                               level.addFreshEntity(lightning);
                               level.playSound(null, pos, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.BLOCKS, 1.0f, 1.0f);
                               player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 1));
-                              player.displayClientMessage(Component.literal("§6Кара Господня обрушилась на " + target.getName().getString()), true);
                           }
                       }
                       return InteractionResult.SUCCESS;
+                  }
+                  
+                  // Для совместимости, если используется предмет в руке
+                  @Override
+                  public InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+                      return useWithoutItem(state, level, pos, player, hit);
                   }
               });
 
               public static final RegistryObject<Item> GOD_BLOCK_ITEM = ITEMS.register("god_block", () -> new BlockItem(GOD_BLOCK.get(), new Item.Properties()));
 
               public KusmanMod() {
-                  IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+                  // Исправленный способ получения шины событий
+                  IEventBus modEventBus = FMLJavaModLoadingContext.getModEventBus();
                   BLOCKS.register(modEventBus);
                   ITEMS.register(modEventBus);
                   MinecraftForge.EVENT_BUS.register(this);
@@ -143,7 +147,7 @@ jobs:
           version="1.0.0"
           displayName="Kusman God Block"
           authors="Kusman"
-          description="Fix for Forge 52.1.2"
+          description="Final fix for Forge 1.21.1"
           EOF
 
       - name: Build
@@ -152,5 +156,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Kusman-V70-StableForge
+          name: Kusman-V71-FinalForge
           path: build/libs/*.jar
