@@ -1,4 +1,4 @@
-name: DimOS_VPN_Final_Fix_V8
+name: DimOS_VPN_Final_Fix_V9
 on: [workflow_dispatch, push]
 
 jobs:
@@ -14,14 +14,14 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Initialize Project
+      - name: Initialize Project Structure
         run: |
           mkdir -p app/src/main/java/com/dimos/vpn
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/assets
           mkdir -p gradle/wrapper
 
-          # 1. Настройки сборки
+          # 1. Настройки проекта
           echo "include ':app'" > settings.gradle
           cat <<EOF > build.gradle
           buildscript {
@@ -40,20 +40,19 @@ jobs:
                   applicationId "com.dimos.vpn.godmode"
                   minSdk 26
                   targetSdk 34
-                  versionCode 8
-                  versionName "8.0-Internet-Fixed"
+                  versionCode 9
+                  versionName "9.0-Process-Fixed"
               }
           }
           EOF
 
-          # 2. Манифест (Все нужные права)
+          # 2. Манифест
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-              <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-              <application android:label="DimVPN Fixed" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+              <application android:label="DimVPN GodMode" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -70,18 +69,17 @@ jobs:
           </manifest>
           EOF
 
-          # 3. Скачиваем ядро Xray
+          # 3. Движок Xray
           wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-android-arm64-v8a.zip
           unzip -o Xray-android-arm64-v8a.zip xray -d app/src/main/assets/
           mv app/src/main/assets/xray app/src/main/assets/xray.so
 
-          # 4. Генерируем правильный конфиг (TUN + Твой сервер)
+          # 4. Конфиг (TUN + Твой сервер)
           cat <<'EOF' > app/src/main/assets/config.json
           {
             "log": { "loglevel": "warning" },
             "inbounds": [{
-              "tag": "tun",
-              "protocol": "tun",
+              "tag": "tun", "protocol": "tun",
               "settings": { "address": ["10.0.0.2"], "mtu": 1500 },
               "sniffing": { "enabled": true, "destOverride": ["http", "tls", "quic"] }
             }],
@@ -98,7 +96,7 @@ jobs:
           cat <<EOF > app/src/main/java/com/dimos/vpn/MainActivity.java
           package com.dimos.vpn;
           import android.app.*;
-          import android.content.*;
+          import android.content.Intent;
           import android.graphics.Color;
           import android.net.VpnService;
           import android.os.Bundle;
@@ -114,20 +112,22 @@ jobs:
                   root.setBackgroundColor(Color.BLACK);
                   root.setGravity(Gravity.CENTER);
 
-                  Button b1 = new Button(this); b1.setText("ВКЛЮЧИТЬ ИНТЕРНЕТ");
-                  b1.setOnClickListener(v -> {
+                  Button bStart = new Button(this);
+                  bStart.setText("START VPN");
+                  bStart.setOnClickListener(v -> {
                       Intent i = VpnService.prepare(this);
                       if (i != null) startActivityForResult(i, 0);
                       else onActivityResult(0, RESULT_OK, null);
                   });
-                  root.addView(b1);
+                  root.addView(bStart);
 
-                  Button b2 = new Button(this); b2.setText("ВЫКЛЮЧИТЬ (ВЕРНУТЬ СЕТЬ)");
-                  b2.setOnClickListener(v -> {
+                  Button bStop = new Button(this);
+                  bStop.setText("STOP");
+                  bStop.setOnClickListener(v -> {
                       Intent i = new Intent(this, VpnXrayService.class);
                       i.setAction("STOP"); startService(i);
                   });
-                  root.addView(b2);
+                  root.addView(bStop);
                   setContentView(root);
               }
               @Override
@@ -140,7 +140,7 @@ jobs:
           }
           EOF
 
-          # 6. VpnXrayService.java (Исправленный запуск)
+          # 6. VpnXrayService.java (ФИКС ОШИБКИ AMBIGUOUS PROCESS)
           cat <<EOF > app/src/main/java/com/dimos/vpn/VpnXrayService.java
           package com.dimos.vpn;
           import android.app.*;
@@ -150,7 +150,7 @@ jobs:
           import java.io.*;
 
           public class VpnXrayService extends VpnService {
-              private Process xrayProc;
+              private java.lang.Process xrayProc; // Четко указываем java.lang
               private ParcelFileDescriptor vpnInterface;
 
               @Override
@@ -159,11 +159,10 @@ jobs:
                       stopVpn(); return START_NOT_STICKY;
                   }
 
-                  // Уведомление для фона
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                      NotificationChannel c = new NotificationChannel("vpn", "DimVPN", NotificationManager.IMPORTANCE_LOW);
+                      NotificationChannel c = new NotificationChannel("v", "VPN", NotificationManager.IMPORTANCE_LOW);
                       getSystemService(NotificationManager.class).createNotificationChannel(c);
-                      startForeground(1, new Notification.Builder(this, "vpn").setContentTitle("VPN Активен").setSmallIcon(android.R.drawable.ic_menu_share).build());
+                      startForeground(1, new Notification.Builder(this, "v").setContentTitle("DimVPN Active").setSmallIcon(android.R.drawable.ic_dialog_info).build());
                   }
 
                   new Thread(() -> {
@@ -175,7 +174,6 @@ jobs:
                           vpnInterface = new Builder().setSession("DimVPN")
                               .addAddress("10.0.0.2", 32).addRoute("0.0.0.0", 0).addDnsServer("8.8.8.8").establish();
 
-                          // Запуск с переменной среды, чтобы Xray понимал, что он на Android
                           ProcessBuilder pb = new ProcessBuilder(bin.getAbsolutePath(), "run", "-c", cfg.getAbsolutePath());
                           pb.directory(getFilesDir());
                           xrayProc = pb.start();
@@ -192,14 +190,16 @@ jobs:
 
               private File extractAsset(String n, String o) throws IOException {
                   File f = new File(getFilesDir(), o);
-                  InputStream is = getAssets().open(n); FileOutputStream os = new FileOutputStream(f);
-                  byte[] b = new byte[1024]; int l; while ((l = is.read(b)) > 0) os.write(b, 0, l);
+                  InputStream is = getAssets().open(n); 
+                  FileOutputStream os = new FileOutputStream(f);
+                  byte[] b = new byte[1024]; int l; 
+                  while ((l = is.read(b)) > 0) os.write(b, 0, l);
                   os.close(); is.close(); return f;
               }
           }
           EOF
 
-          # 7. Генерация Gradle Wrapper
+          # 7. Генерация Gradle
           gradle wrapper --gradle-version 8.2
 
       - name: Build APK
@@ -208,5 +208,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-Stable-V8
+          name: DimVPN-V9-Final
           path: app/build/outputs/apk/debug/*.apk
