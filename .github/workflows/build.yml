@@ -1,4 +1,4 @@
-name: KUSMAN_V61_SKELMORPH_CORE
+name: KUSMAN_V62_SERVER_VISIBILITY
 on: [push, workflow_dispatch]
 
 jobs:
@@ -30,13 +30,13 @@ jobs:
 
           cat <<'EOF' > src/main/resources/fabric.mod.json
           {
-            "schemaVersion": 1, "id": "kusman", "version": "1.0.0", "name": "KusmanV61",
+            "schemaVersion": 1, "id": "kusman", "version": "1.0.0", "name": "KusmanV62",
             "entrypoints": { "client": [ "com.kusman.KusmanClient" ] },
             "mixins": [ "kusman.mixins.json" ]
           }
           EOF
 
-          echo '{"required":true,"package":"com.kusman.mixin","mixins":["PlayerRendererMixin"]}' > src/main/resources/kusman.mixins.json
+          echo '{"required":true,"package":"com.kusman.mixin","mixins":["PlayerRendererMixin","InvisibilityMixin"]}' > src/main/resources/kusman.mixins.json
 
           cat <<'EOF' > src/main/java/com/kusman/KusmanClient.java
           package com.kusman;
@@ -46,7 +46,7 @@ jobs:
           import net.minecraft.entity.EntityType;
           import net.minecraft.entity.LivingEntity;
           import net.minecraft.item.Items;
-          import net.minecraft.text.Text;
+          import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 
           public class KusmanClient implements ClientModInitializer {
               public static LivingEntity morphEntity = null;
@@ -67,13 +67,39 @@ jobs:
                           currentType = newType;
                           if (currentType != null) {
                               morphEntity = (LivingEntity) currentType.create(client.world);
-                              client.player.sendMessage(Text.literal("Morphed into " + currentType.getName().getString()), true);
+                              // Команда серверу: сделать игрока невидимым (визуально для других)
+                              client.player.setInvisible(true);
                           } else {
                               morphEntity = null;
-                              client.player.sendMessage(Text.literal("Returned to Human"), true);
+                              client.player.setInvisible(false);
                           }
                       }
+                      
+                      if (morphEntity != null) {
+                          morphEntity.copyPositionAndRotation(client.player);
+                      }
                   });
+              }
+          }
+          EOF
+
+          cat <<'EOF' > src/main/java/com/kusman/mixin/InvisibilityMixin.java
+          package com.kusman.mixin;
+          import com.kusman.KusmanClient;
+          import net.minecraft.entity.player.PlayerEntity;
+          import org.spongepowered.asm.mixin.Mixin;
+          import org.spongepowered.asm.mixin.injection.At;
+          import org.spongepowered.asm.mixin.injection.Inject;
+          import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+          @Mixin(PlayerEntity.class)
+          public abstract class InvisibilityMixin {
+              @Inject(method = "isInvisible", at = @At("HEAD"), cancellable = true)
+              private void forceInvisibility(CallbackInfoReturnable<Boolean> cir) {
+                  // Если морф активен, говорим серверу, что мы "невидимы"
+                  if (KusmanClient.morphEntity != null) {
+                      cir.setReturnValue(true);
+                  }
               }
           }
           EOF
@@ -85,9 +111,7 @@ jobs:
           import net.minecraft.client.network.AbstractClientPlayerEntity;
           import net.minecraft.client.render.VertexConsumerProvider;
           import net.minecraft.client.render.entity.PlayerEntityRenderer;
-          import net.minecraft.client.render.entity.model.EntityModel;
           import net.minecraft.client.util.math.MatrixStack;
-          import net.minecraft.entity.EntityPose;
           import org.spongepowered.asm.mixin.Mixin;
           import org.spongepowered.asm.mixin.injection.At;
           import org.spongepowered.asm.mixin.injection.Inject;
@@ -97,34 +121,10 @@ jobs:
           public abstract class PlayerRendererMixin {
               @Inject(method = "render", at = @At("HEAD"), cancellable = true)
               private void onRender(AbstractClientPlayerEntity player, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, CallbackInfo ci) {
-                  // Если это наш игрок и морф активен
                   if (player == MinecraftClient.getInstance().player && KusmanClient.morphEntity != null) {
-                      ci.cancel(); // ПОЛНАЯ отмена отрисовки Стива
-
+                      ci.cancel(); 
                       matrices.push();
-                      // Синхронизируем положение
                       KusmanClient.morphEntity.copyPositionAndRotation(player);
-                      KusmanClient.morphEntity.setYaw(player.getYaw());
-                      KusmanClient.morphEntity.setPitch(player.getPitch());
-                      KusmanClient.morphEntity.handSwingProgress = player.handSwingProgress;
-                      KusmanClient.morphEntity.limbAnimator.setSpeed(player.limbAnimator.getSpeed());
-
-                      // Синхронизация позы
-                      if (player.isSneaking()) {
-                          KusmanClient.morphEntity.setPose(EntityPose.CROUCHING);
-                      } else {
-                          KusmanClient.morphEntity.setPose(EntityPose.STANDING);
-                      }
-
-                      // Масштабирование моделей
-                      if (KusmanClient.currentType == net.minecraft.entity.EntityType.IRON_GOLEM) {
-                          matrices.scale(1.0f, 1.0f, 1.0f); // Стандартный Голем
-                      } else if (KusmanClient.currentType == net.minecraft.entity.EntityType.CAT) {
-                          matrices.scale(0.6f, 0.6f, 0.6f); // Уменьшенный кот
-                          matrices.translate(0, 0, 0); // Корректировка высоты
-                      }
-
-                      // ПРИНУДИТЕЛЬНЫЙ рендер модели моба и анимаций
                       MinecraftClient.getInstance().getEntityRenderDispatcher().render(
                           KusmanClient.morphEntity, 0.0, 0.0, 0.0, yaw, tickDelta, matrices, vertexConsumers, light
                       );
@@ -139,5 +139,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Kusman-V61-SkelMorph
+          name: Kusman-V62-FriendSync
           path: build/libs/*.jar
