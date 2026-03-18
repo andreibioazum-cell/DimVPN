@@ -1,4 +1,4 @@
-name: KUSMAN_V58_NEW_MOBS
+name: KUSMAN_V61_SKELMORPH_CORE
 on: [push, workflow_dispatch]
 
 jobs:
@@ -30,32 +30,27 @@ jobs:
 
           cat <<'EOF' > src/main/resources/fabric.mod.json
           {
-            "schemaVersion": 1, "id": "kusman", "version": "1.0.0", "name": "KusmanV58",
+            "schemaVersion": 1, "id": "kusman", "version": "1.0.0", "name": "KusmanV61",
             "entrypoints": { "client": [ "com.kusman.KusmanClient" ] },
             "mixins": [ "kusman.mixins.json" ]
           }
           EOF
 
-          echo '{"required":true,"package":"com.kusman.mixin","mixins":["PlayerEntityMixin","PlayerRendererMixin","MobVisibilityMixin"]}' > src/main/resources/kusman.mixins.json
+          echo '{"required":true,"package":"com.kusman.mixin","mixins":["PlayerRendererMixin"]}' > src/main/resources/kusman.mixins.json
 
           cat <<'EOF' > src/main/java/com/kusman/KusmanClient.java
           package com.kusman;
           import net.fabricmc.api.ClientModInitializer;
           import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+          import net.minecraft.client.MinecraftClient;
           import net.minecraft.entity.EntityType;
           import net.minecraft.entity.LivingEntity;
-          import net.minecraft.entity.projectile.ArrowEntity;
           import net.minecraft.item.Items;
-          import net.minecraft.sound.SoundEvents;
-          import net.minecraft.util.math.Vec3d;
-          import net.minecraft.entity.effect.StatusEffectInstance;
-          import net.minecraft.entity.effect.StatusEffects;
+          import net.minecraft.text.Text;
 
           public class KusmanClient implements ClientModInitializer {
               public static LivingEntity morphEntity = null;
               public static EntityType<?> currentType = null;
-              private int shiftTicks = 0;
-              private int cooldown = 0;
 
               @Override public void onInitializeClient() {
                   ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -64,137 +59,85 @@ jobs:
                       var handItem = client.player.getMainHandStack().getItem();
                       EntityType<?> newType = null;
 
-                      if (handItem == Items.WHITE_WOOL) newType = EntityType.SHEEP;
-                      else if (handItem == Items.ARROW) newType = EntityType.SKELETON;
-                      else if (handItem == Items.CACTUS) newType = EntityType.CAMEL;
-                      else if (handItem == Items.ROTTEN_FLESH) newType = EntityType.ZOMBIE;
-                      else if (handItem == Items.EMERALD) newType = EntityType.VILLAGER;
+                      if (handItem == Items.IRON_BLOCK) newType = EntityType.IRON_GOLEM;
                       else if (handItem == Items.STRING) newType = EntityType.CAT;
-                      // Старые мобы из прошлых версий
                       else if (handItem == Items.GUNPOWDER) newType = EntityType.CREEPER;
-                      else if (handItem == Items.BLAZE_ROD) newType = EntityType.BLAZE;
 
                       if (newType != currentType) {
                           currentType = newType;
-                          morphEntity = (currentType != null) ? (LivingEntity) currentType.create(client.world) : null;
-                          shiftTicks = 0; cooldown = 0;
-                      }
-
-                      if (cooldown > 0) cooldown--;
-
-                      if (morphEntity != null) {
-                          morphEntity.copyPositionAndRotation(client.player);
-                          
-                          if (client.player.isSneaking()) {
-                              shiftTicks++;
-                              
-                              // Скелет - Стрельба
-                              if (currentType == EntityType.SKELETON && cooldown == 0) {
-                                  ArrowEntity arrow = new ArrowEntity(client.world, client.player, Items.ARROW.getDefaultStack(), null);
-                                  arrow.setVelocity(client.player, client.player.getPitch(), client.player.getYaw(), 0.0F, 2.5F, 1.0F);
-                                  client.world.spawnEntity(arrow);
-                                  client.player.playSound(SoundEvents.ENTITY_SKELETON_SHOOT, 1.0f, 1.0f);
-                                  cooldown = 20;
-                              }
-                              
-                              // Верблюд - Рывок
-                              if (currentType == EntityType.CAMEL && cooldown == 0) {
-                                  Vec3d dash = client.player.getRotationVecClient().multiply(2.0, 0, 2.0);
-                                  client.player.addVelocity(dash.x, 0.2, dash.z);
-                                  client.player.playSound(SoundEvents.ENTITY_CAMEL_DASH, 1.0f, 1.0f);
-                                  cooldown = 40;
-                              }
-
-                              // Овца - Реген
-                              if (currentType == EntityType.SHEEP && shiftTicks % 40 == 0) {
-                                  client.player.getHungerManager().add(1, 0.5f);
-                                  client.player.playSound(SoundEvents.ENTITY_SHEEP_AMBIENT, 1.0f, 1.0f);
-                              }
-                          } else { shiftTicks = 0; }
+                          if (currentType != null) {
+                              morphEntity = (LivingEntity) currentType.create(client.world);
+                              client.player.sendMessage(Text.literal("Morphed into " + currentType.getName().getString()), true);
+                          } else {
+                              morphEntity = null;
+                              client.player.sendMessage(Text.literal("Returned to Human"), true);
+                          }
                       }
                   });
               }
           }
           EOF
 
-          cat <<'EOF' > src/main/java/com/kusman/mixin/MobVisibilityMixin.java
-          package com.kusman.mixin;
-          import com.kusman.KusmanClient;
-          import net.minecraft.entity.EntityType;
-          import net.minecraft.entity.LivingEntity;
-          import net.minecraft.entity.mob.MobEntity;
-          import net.minecraft.entity.player.PlayerEntity;
-          import org.spongepowered.asm.mixin.Mixin;
-          import org.spongepowered.asm.mixin.injection.At;
-          import org.spongepowered.asm.mixin.injection.Inject;
-          import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
-          @Mixin(MobEntity.class)
-          public class MobVisibilityMixin {
-              @Inject(method = "canTarget(Lnet/minecraft/entity/LivingEntity;)Z", at = @At("HEAD"), cancellable = true)
-              private void onCanTarget(LivingEntity target, CallbackInfoReturnable<Boolean> cir) {
-                  if (target instanceof PlayerEntity && KusmanClient.currentType == EntityType.CAT) {
-                      // Если игрок - кот и никого не бил недавно, мобы его игнорируют
-                      if (target.getLastAttacker() == null || target.age - target.getLastAttackedTime() > 100) {
-                          cir.setReturnValue(false);
-                      }
-                  }
-              }
-          }
-          EOF
-
-          # Renderer и Health Mixins остаются без изменений (поддерживают новые типы)
           cat <<'EOF' > src/main/java/com/kusman/mixin/PlayerRendererMixin.java
           package com.kusman.mixin;
           import com.kusman.KusmanClient;
+          import net.minecraft.client.MinecraftClient;
+          import net.minecraft.client.network.AbstractClientPlayerEntity;
           import net.minecraft.client.render.VertexConsumerProvider;
           import net.minecraft.client.render.entity.PlayerEntityRenderer;
+          import net.minecraft.client.render.entity.model.EntityModel;
           import net.minecraft.client.util.math.MatrixStack;
-          import net.minecraft.client.network.AbstractClientPlayerEntity;
-          import net.minecraft.client.MinecraftClient;
+          import net.minecraft.entity.EntityPose;
           import org.spongepowered.asm.mixin.Mixin;
           import org.spongepowered.asm.mixin.injection.At;
           import org.spongepowered.asm.mixin.injection.Inject;
           import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
           @Mixin(PlayerEntityRenderer.class)
-          public class PlayerRendererMixin {
+          public abstract class PlayerRendererMixin {
               @Inject(method = "render", at = @At("HEAD"), cancellable = true)
               private void onRender(AbstractClientPlayerEntity player, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, CallbackInfo ci) {
+                  // Если это наш игрок и морф активен
                   if (player == MinecraftClient.getInstance().player && KusmanClient.morphEntity != null) {
-                      MinecraftClient.getInstance().getEntityRenderDispatcher().render(KusmanClient.morphEntity, 0, 0, 0, yaw, tickDelta, matrices, vertexConsumers, light);
-                      ci.cancel();
+                      ci.cancel(); // ПОЛНАЯ отмена отрисовки Стива
+
+                      matrices.push();
+                      // Синхронизируем положение
+                      KusmanClient.morphEntity.copyPositionAndRotation(player);
+                      KusmanClient.morphEntity.setYaw(player.getYaw());
+                      KusmanClient.morphEntity.setPitch(player.getPitch());
+                      KusmanClient.morphEntity.handSwingProgress = player.handSwingProgress;
+                      KusmanClient.morphEntity.limbAnimator.setSpeed(player.limbAnimator.getSpeed());
+
+                      // Синхронизация позы
+                      if (player.isSneaking()) {
+                          KusmanClient.morphEntity.setPose(EntityPose.CROUCHING);
+                      } else {
+                          KusmanClient.morphEntity.setPose(EntityPose.STANDING);
+                      }
+
+                      // Масштабирование моделей
+                      if (KusmanClient.currentType == net.minecraft.entity.EntityType.IRON_GOLEM) {
+                          matrices.scale(1.0f, 1.0f, 1.0f); // Стандартный Голем
+                      } else if (KusmanClient.currentType == net.minecraft.entity.EntityType.CAT) {
+                          matrices.scale(0.6f, 0.6f, 0.6f); // Уменьшенный кот
+                          matrices.translate(0, 0, 0); // Корректировка высоты
+                      }
+
+                      // ПРИНУДИТЕЛЬНЫЙ рендер модели моба и анимаций
+                      MinecraftClient.getInstance().getEntityRenderDispatcher().render(
+                          KusmanClient.morphEntity, 0.0, 0.0, 0.0, yaw, tickDelta, matrices, vertexConsumers, light
+                      );
+                      matrices.pop();
                   }
               }
           }
           EOF
-
-          cat <<'EOF' > src/main/java/com/kusman/mixin/PlayerEntityMixin.java
-          package com.kusman.mixin;
-          import com.kusman.KusmanClient;
-          import net.minecraft.entity.EntityType;
-          import net.minecraft.entity.player.PlayerEntity;
-          import org.spongepowered.asm.mixin.Mixin;
-          import org.spongepowered.asm.mixin.injection.At;
-          import org.spongepowered.asm.mixin.injection.Inject;
-          import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
-          @Mixin(PlayerEntity.class)
-          public class PlayerEntityMixin {
-              @Inject(method = "getMaxHealth", at = @At("HEAD"), cancellable = true)
-              private void onGetMaxHealth(CallbackInfoReturnable<Float> cir) {
-                  if (KusmanClient.currentType == EntityType.CAT) cir.setReturnValue(10f);
-                  else if (KusmanClient.currentType == EntityType.VILLAGER) cir.setReturnValue(20f);
-                  else if (KusmanClient.currentType == EntityType.ZOMBIE) cir.setReturnValue(20f);
-              }
-          }
-          EOF
-
       - name: Build
         run: gradle build --no-daemon
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Kusman-V58-FarmAnimals
+          name: Kusman-V61-SkelMorph
           path: build/libs/*.jar
