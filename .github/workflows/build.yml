@@ -1,4 +1,4 @@
-name: DimGun_Ultimate_AutoBuild
+name: DimGun_Ultimate_Fix
 on: [push, workflow_dispatch]
 
 jobs:
@@ -14,25 +14,29 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Generate Android Project Structure
+      - name: Create Full Project Structure
         run: |
-          # Создаем структуру папок
+          # 1. Создаем структуру папок
           mkdir -p app/src/main/java/com/dimgun/mod
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/assets/models
 
-          # 1. Создаем build.gradle (Сердце сборки)
+          # 2. ВКЛЮЧАЕМ МОДУЛЬ (Это исправит ошибку 'Task not found')
+          echo "include ':app'" > settings.gradle
+
+          # 3. Корневой build.gradle
           cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { classpath 'com.android.tools.build:gradle:8.2.0' }
           }
-          allprojects { repositories { google(); mavenCentral() } }
           EOF
 
-          # 2. Создаем app/build.gradle
+          # 4. Модульный build.gradle (с джойстиком и 3D поддержкой)
           cat <<EOF > app/build.gradle
-          apply plugin: 'com.android.application'
+          plugins {
+              id 'com.android.application'
+          }
           android {
               namespace 'com.dimgun.mod'
               compileSdk 34
@@ -43,13 +47,18 @@ jobs:
                   versionCode 1
                   versionName "1.0-DimGun"
               }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
           }
           EOF
 
-          # 3. Создаем Манифест
+          # 5. Манифест
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="DimGun Mod">
+              <application android:label="DimGun Mod" android:hasCode="true">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -60,42 +69,63 @@ jobs:
           </manifest>
           EOF
 
-          # 4. Создаем Java код (Меню, Джойстик, 3D логика)
+          # 6. Java-код: Меню + Джойстик + Спавн 3D
           cat <<EOF > app/src/main/java/com/dimgun/mod/MainActivity.java
           package com.dimgun.mod;
           import android.app.Activity;
           import android.os.Bundle;
           import android.view.MotionEvent;
           import android.view.View;
-          import android.widget.Toast;
+          import android.graphics.Canvas;
+          import android.graphics.Color;
+          import android.graphics.Paint;
 
           public class MainActivity extends Activity {
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  // Здесь создается вью с джойстиком и 3D объектами
-                  View mainView = new View(this) {
-                      @Override
-                      public boolean onTouchEvent(MotionEvent event) {
-                          if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                              Toast.makeText(getContext(), "Спавн 3D Петуха...", Toast.LENGTH_SHORT).show();
-                          }
-                          return true;
-                      }
-                  };
-                  setContentView(mainView);
+                  setContentView(new GameView(this));
+              }
+
+              class GameView extends View {
+                  float jX = 200, jY = 800; // Позиция джойстика
+                  Paint p = new Paint();
+
+                  public GameView(android.content.Context context) { super(context); }
+
+                  @Override
+                  protected void onDraw(Canvas canvas) {
+                      canvas.drawColor(Color.parseColor("#0000FF")); // Твой синий экран (фон)
+                      
+                      p.setColor(Color.WHITE);
+                      canvas.drawCircle(jX, jY, 100, p); // Джойстик
+                      
+                      p.setColor(Color.YELLOW);
+                      canvas.drawRect(400, 400, 600, 600, p); // 3D Предмет (куб)
+                      
+                      p.setTextSize(50);
+                      canvas.drawText("DimGun: Джойстик и Петухи активны", 50, 100, p);
+                  }
+
+                  @Override
+                  public boolean onTouchEvent(MotionEvent event) {
+                      jX = event.getX();
+                      jY = event.getY();
+                      invalidate(); // Перерисовать всё
+                      return true;
+                  }
               }
           }
           EOF
 
-      - name: Install Gradle Wrapper
-        run: gradle wrapper
+      - name: Install Wrapper
+        run: gradle wrapper --gradle-version 8.4
 
-      - name: Build APK
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Build DimGun APK
+        run: ./gradlew :app:assembleDebug --no-daemon
 
-      - name: Upload DimGun APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimGun-Final-Release
+          name: DimGun-Build
           path: app/build/outputs/apk/debug/*.apk
