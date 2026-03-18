@@ -1,4 +1,4 @@
-name: KUSMAN_V69_FORGE_FIXED
+name: KUSMAN_V70_FORGE_STABLE
 on: [push, workflow_dispatch]
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
           }
 
           dependencies {
-              minecraft 'net.minecraftforge:forge:1.21.1-52.0.1'
+              minecraft 'net.minecraftforge:forge:1.21.1-52.1.2'
           }
           EOF
 
@@ -53,7 +53,6 @@ jobs:
 
           import net.minecraft.world.level.block.Block;
           import net.minecraft.world.level.block.state.BlockBehaviour;
-          import net.minecraft.world.level.block.Blocks;
           import net.minecraft.world.level.block.state.BlockState;
           import net.minecraft.world.item.BlockItem;
           import net.minecraft.world.item.Item;
@@ -72,6 +71,7 @@ jobs:
           import net.minecraft.world.effect.MobEffects;
           import net.minecraft.sounds.SoundEvents;
           import net.minecraft.sounds.SoundSource;
+          import net.minecraft.world.level.material.MapColor;
           import net.minecraftforge.common.MinecraftForge;
           import net.minecraftforge.eventbus.api.IEventBus;
           import net.minecraftforge.fml.common.Mod;
@@ -89,16 +89,21 @@ jobs:
               private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
               private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
 
-              public static final RegistryObject<Block> GOD_BLOCK = BLOCKS.register("god_block", () -> new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.DIAMOND_BLOCK)) {
-                  // Исправленный метод для Forge 1.21.1
+              public static final RegistryObject<Block> GOD_BLOCK = BLOCKS.register("god_block", () -> new Block(
+                  BlockBehaviour.Properties.of()
+                      .mapColor(MapColor.GOLD)
+                      .strength(5.0f, 6.0f)
+                      .requiresCorrectToolForDrops()
+                      .lightLevel(state -> 15) // Пусть он еще и светится!
+              ) {
                   @Override
-                  public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-                      if (!level.isClientSide) {
+                  public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+                      if (!level.isClientSide && hand == InteractionHand.MAIN_HAND) {
                           AABB area = new AABB(pos).inflate(30.0);
                           List<Monster> targets = level.getEntitiesOfClass(Monster.class, area, Monster::isAlive);
 
                           if (targets.isEmpty()) {
-                              player.displayClientMessage(Component.literal("§cВраги не найдены!"), true);
+                              player.displayClientMessage(Component.literal("§cБлок Бога не видит целей..."), true);
                               return InteractionResult.SUCCESS;
                           }
 
@@ -111,7 +116,7 @@ jobs:
                               level.addFreshEntity(lightning);
                               level.playSound(null, pos, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.BLOCKS, 1.0f, 1.0f);
                               player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 1));
-                              player.displayClientMessage(Component.literal("§6Гнев Богов поразил: §e" + target.getName().getString()), true);
+                              player.displayClientMessage(Component.literal("§6Кара Господня обрушилась на " + target.getName().getString()), true);
                           }
                       }
                       return InteractionResult.SUCCESS;
@@ -138,7 +143,7 @@ jobs:
           version="1.0.0"
           displayName="Kusman God Block"
           authors="Kusman"
-          description="Lightning block for Forge 1.21.1"
+          description="Fix for Forge 52.1.2"
           EOF
 
       - name: Build
@@ -147,5 +152,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Kusman-V69-ForgeFixed
+          name: Kusman-V70-StableForge
           path: build/libs/*.jar
