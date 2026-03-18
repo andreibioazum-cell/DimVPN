@@ -1,4 +1,4 @@
-name: KUSMAN_V66_FORGE_GOD_BLOCK
+name: KUSMAN_V67_FORGE_FIX
 on: [push, workflow_dispatch]
 
 jobs:
@@ -8,12 +8,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { java-version: '21', distribution: 'temurin' }
+      
+      # Устанавливаем Gradle напрямую, чтобы не зависеть от gradlew
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.10' }
 
       - name: Generate Forge Project
         run: |
           mkdir -p src/main/java/com/kusman src/main/resources/META-INF
           
-          # Настройка build.gradle для классического Forge 1.21.1
+          # Build.gradle для Forge 1.21.1
           cat <<'EOF' > build.gradle
           plugins {
               id 'net.minecraftforge.gradle' version '6.0.24'
@@ -23,13 +27,11 @@ jobs:
 
           minecraft {
               mappings channel: 'official', version: '1.21.1'
-              runs {
-                  client {
-                      workingDirectory project.file('run')
-                      property 'forge.logging.markers', 'REGISTRIES'
-                      property 'forge.logging.console.level', 'debug'
-                  }
-              }
+          }
+
+          repositories {
+              mavenCentral()
+              maven { url = 'https://maven.minecraftforge.net/' }
           }
 
           dependencies {
@@ -37,16 +39,18 @@ jobs:
           }
           EOF
 
-          # Главный класс мода на Forge
+          # Исправленный код мода
           cat <<'EOF' > src/main/java/com/kusman/KusmanMod.java
           package com.kusman;
 
           import net.minecraft.world.level.block.Block;
           import net.minecraft.world.level.block.state.BlockBehaviour;
           import net.minecraft.world.level.block.Blocks;
+          import net.minecraft.world.level.block.state.BlockState;
           import net.minecraft.world.item.BlockItem;
           import net.minecraft.world.item.Item;
           import net.minecraft.world.InteractionResult;
+          import net.minecraft.world.InteractionHand;
           import net.minecraft.world.entity.EntityType;
           import net.minecraft.world.entity.LightningBolt;
           import net.minecraft.world.entity.monster.Monster;
@@ -74,11 +78,9 @@ jobs:
           @Mod("kusman")
           public class KusmanMod {
               public static final String MODID = "kusman";
-              
               private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
               private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
 
-              // Блок Бога
               public static final RegistryObject<Block> GOD_BLOCK = BLOCKS.register("god_block", () -> new Block(BlockBehaviour.Properties.copy(Blocks.DIAMOND_BLOCK)) {
                   @Override
                   public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
@@ -98,8 +100,6 @@ jobs:
                           if (lightning != null) {
                               lightning.moveTo(target.position());
                               level.addFreshEntity(lightning);
-                              
-                              // Звук и Эффекты
                               level.playSound(null, pos, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.BLOCKS, 1.0f, 1.0f);
                               player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 1));
                               player.displayClientMessage(Component.literal("§6Гнев Богов поразил: §e" + target.getName().getString()), true);
@@ -120,32 +120,24 @@ jobs:
           }
           EOF
 
-          # Манифест мода (mods.toml)
+          # Mods.toml
           cat <<'EOF' > src/main/resources/META-INF/mods.toml
           modLoader="javafml"
           loaderVersion="[52,)"
           license="MIT"
-
           [[mods]]
           modId="kusman"
           version="1.0.0"
-          displayName="Kusman Forge God Block"
+          displayName="Kusman God Block"
           authors="Kusman"
-          description="A block that summons lightning on enemies."
-
-          [[dependencies.kusman]]
-          modId="forge"
-          type="required"
-          versionRange="[52,)"
-          ordering="NONE"
-          side="BOTH"
+          description="Lightning block for Forge 1.21.1"
           EOF
 
       - name: Build with Gradle
-        run: ./gradlew build --no-daemon
+        run: gradle build --no-daemon
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Kusman-V66-Forge1.21.1
+          name: Kusman-V67-ForgeFixed
           path: build/libs/*.jar
