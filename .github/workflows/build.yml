@@ -54,7 +54,6 @@ jobs:
           import net.minecraft.world.item.BlockItem;
           import net.minecraft.world.item.Item;
           import net.minecraft.world.item.ItemStack;
-          import net.minecraft.world.InteractionResult;
           import net.minecraft.world.ItemInteractionResult;
           import net.minecraft.world.InteractionHand;
           import net.minecraft.world.entity.EntityType;
@@ -94,7 +93,6 @@ jobs:
                       .strength(5.0f, 6.0f)
                       .lightLevel(state -> 15)
               ) {
-                  // Исправленный метод взаимодействия для 52.1.2
                   @Override
                   protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
                       if (!level.isClientSide && hand == InteractionHand.MAIN_HAND) {
@@ -125,7 +123,6 @@ jobs:
               public static final RegistryObject<Item> GOD_BLOCK_ITEM = ITEMS.register("god_block", () -> new BlockItem(GOD_BLOCK.get(), new Item.Properties()));
 
               public KusmanMod() {
-                  // Возвращаем корректное обращение к шине событий
                   IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
                   BLOCKS.register(modEventBus);
                   ITEMS.register(modEventBus);
@@ -143,7 +140,7 @@ jobs:
           version="1.0.0"
           displayName="Kusman God Block"
           authors="Kusman"
-          description="Compatibility fix for Forge 52.1.2"
+          description="Fix for ItemInteractionResult"
           EOF
 
       - name: Build
