@@ -1,4 +1,4 @@
-name: DimGun_Final_Clean_Build
+name: DimGun_OS_Archive_Edition
 on: [push, workflow_dispatch]
 
 jobs:
@@ -12,14 +12,13 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
+          distribution: 'microsoft'
 
-      - name: Create Game Project
+      - name: Generate Project
         run: |
-          mkdir -p app/src/main/java/com/dimgun/mod
+          mkdir -p app/src/main/java/com/dimgun/os
           mkdir -p app/src/main/res/layout
-          mkdir -p app/src/main/res/values
-
+          
           echo "include ':app'" > settings.gradle
 
           cat <<EOF > build.gradle
@@ -27,53 +26,63 @@ jobs:
               repositories { google(); mavenCentral() }
               dependencies { classpath 'com.android.tools.build:gradle:8.2.0' }
           }
+          allprojects {
+              repositories { google(); mavenCentral() }
+          }
           EOF
 
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
-              namespace 'com.dimgun.mod'
+              namespace 'com.dimgun.os'
               compileSdk 34
               defaultConfig { 
-                  applicationId "com.dimgun.mod"
-                  minSdk 24 
+                  applicationId "com.dimgun.os"
+                  minSdk 26 
                   targetSdk 34
-                  versionCode 1 
-                  versionName "1.0" 
+                  versionCode 1
+                  versionName "1.0-Archive"
               }
           }
-          repositories { mavenCentral(); maven { url 'https://jitpack.io' } }
-          dependencies {
-              implementation 'org.rajawali3d:rajawali:1.1.970'
-              implementation 'com.github.controlwear:virtual-joystick-android:1.10.2'
-          }
           EOF
 
+          # UI: Список приложений и кнопка импорта
           cat <<EOF > app/src/main/res/layout/activity_main.xml
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:app="http://schemas.android.com/apk/res-auto"
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
-              android:layout_height="match_parent">
-              <org.rajawali3d.view.SurfaceView
-                  android:id="@+id/rajwali_surface"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:background="#050505"
+              android:padding="15dp">
+              
+              <TextView 
+                  android:layout_width="wrap_content" 
+                  android:layout_height="wrap_content"
+                  android:text="DIM-GUN OS: ARCHIVE MANAGER" 
+                  android:textColor="#00FF00" 
+                  android:textStyle="bold"
+                  android:layout_marginBottom="15dp"/>
+
+              <ListView
+                  android:id="@+id/app_list"
                   android:layout_width="match_parent"
-                  android:layout_height="match_parent" />
-              <io.github.controlwear.virtual.joystick.android.JoystickView
-                  android:id="@+id/joystick"
-                  android:layout_width="150dp"
-                  android:layout_height="150dp"
-                  android:layout_alignParentBottom="true"
-                  android:layout_alignParentLeft="true"
-                  android:layout_margin="30dp"
-                  app:JV_buttonColor="#FF0000"
-                  app:JV_borderColor="#FFFFFF"
-                  app:JV_fixedCenter="true" />
-          </RelativeLayout>
+                  android:layout_height="0dp"
+                  android:layout_weight="1" />
+
+              <Button 
+                  android:id="@+id/btn_import"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:text="ИМПОРТИРОВАТЬ .DIM"
+                  android:backgroundTint="#2E7D32"
+                  android:layout_marginTop="10dp"/>
+          </LinearLayout>
           EOF
 
+          # Манифест
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="DimGun 3D" android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+              <application android:label="DimGun OS" android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -84,55 +93,78 @@ jobs:
           </manifest>
           EOF
 
-          cat <<EOF > app/src/main/java/com/dimgun/mod/MainActivity.java
-          package com.dimgun.mod;
+          # Java Код: Импорт и работа с изолированными архивами
+          cat <<EOF > app/src/main/java/com/dimgun/os/MainActivity.java
+          package com.dimgun.os;
           import android.app.Activity;
+          import android.content.Intent;
+          import android.net.Uri;
           import android.os.Bundle;
-          import org.rajawali3d.view.SurfaceView;
-          import org.rajawali3d.renderer.Renderer;
-          import org.rajawali3d.lights.DirectionalLight;
-          import org.rajawali3d.materials.Material;
-          import org.rajawali3d.materials.methods.DiffuseMethod;
-          import org.rajawali3d.primitives.Sphere;
-          import io.github.controlwear.virtual.joystick.android.JoystickView;
+          import android.widget.*;
+          import java.io.*;
+          import java.util.ArrayList;
 
           public class MainActivity extends Activity {
-              private Sphere playerModel;
+              private File internalAppsDir;
+              private ArrayList<String> installedApps = new ArrayList<>();
+              private ArrayAdapter<String> adapter;
+              private static final int PICK_FILE = 1;
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   setContentView(R.layout.activity_main);
-                  final SurfaceView surface = findViewById(R.id.rajwali_surface);
-                  surface.setFrameRate(60.0);
-                  Renderer renderer = new Renderer(this) {
-                      @Override
-                      protected void initScene() {
-                          DirectionalLight light = new DirectionalLight(1f, -0.5f, -1.0f);
-                          light.setPower(1.5f);
-                          getCurrentScene().addLight(light);
-                          Material mat = new Material();
-                          mat.enableLighting(true);
-                          mat.setDiffuseMethod(new DiffuseMethod.Lambert());
-                          mat.setColor(0xFFFF0000);
-                          playerModel = new Sphere(1, 20, 20);
-                          playerModel.setMaterial(mat);
-                          getCurrentScene().addChild(playerModel);
-                          getCurrentCamera().setZ(7);
-                          getCurrentScene().setBackgroundColor(0xFF87CEEB);
-                      }
-                      @Override public void onOffsetsChanged(float x, float y, float z, float w, int i, int j) {}
-                      @Override public void onTouchEvent(android.view.MotionEvent e) {}
-                  };
-                  surface.setSurfaceRenderer(renderer);
-                  JoystickView joystick = findViewById(R.id.joystick);
-                  joystick.setOnMoveListener((angle, strength) -> {
-                      if (playerModel != null) {
-                          float rad = (float) Math.toRadians(angle);
-                          float s = strength / 1000f;
-                          playerModel.setX(playerModel.getX() + (float) Math.cos(rad) * s);
-                          playerModel.setZ(playerModel.getZ() - (float) Math.sin(rad) * s);
-                      }
+
+                  internalAppsDir = new File(getFilesDir(), "installed_apps");
+                  if (!internalAppsDir.exists()) internalAppsDir.mkdirs();
+
+                  ListView listView = findViewById(R.id.app_list);
+                  adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, installedApps);
+                  listView.setAdapter(adapter);
+
+                  refreshAppList();
+
+                  findViewById(R.id.btn_import).setOnClickListener(v -> {
+                      Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                      intent.setType("*/*"); 
+                      startActivityForResult(intent, PICK_FILE);
                   });
+              }
+
+              @Override
+              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+                  if (requestCode == PICK_FILE && resultCode == RESULT_OK && data != null) {
+                      importFile(data.getData());
+                  }
+              }
+
+              private void importFile(Uri uri) {
+                  try {
+                      String fileName = "app_" + System.currentTimeMillis() + ".dim";
+                      File destination = new File(internalAppsDir, fileName);
+                      
+                      InputStream is = getContentResolver().openInputStream(uri);
+                      FileOutputStream fos = new FileOutputStream(destination);
+                      byte[] buffer = new byte[1024];
+                      int read;
+                      while ((read = is.read(buffer)) != -1) fos.write(buffer, 0, read);
+                      is.close();
+                      fos.close();
+                      
+                      Toast.makeText(this, "Импорт завершен!", Toast.LENGTH_SHORT).show();
+                      refreshAppList();
+                  } catch (Exception e) {
+                      Toast.makeText(this, "Ошибка импорта", Toast.LENGTH_SHORT).show();
+                  }
+              }
+
+              private void refreshAppList() {
+                  installedApps.clear();
+                  File[] files = internalAppsDir.listFiles();
+                  if (files != null) {
+                      for (File f : files) installedApps.add("📦 App: " + f.getName());
+                  }
+                  adapter.notifyDataSetChanged();
               }
           }
           EOF
@@ -145,5 +177,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimGun-Alpha
+          name: DimGun-Archive-OS
           path: app/build/outputs/apk/debug/*.apk
