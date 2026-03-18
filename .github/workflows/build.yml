@@ -1,4 +1,4 @@
-name: KUSMAN_V72_FORGE_SUCCESS
+name: KUSMAN_V73_FORGE_FINAL
 on: [push, workflow_dispatch]
 
 jobs:
@@ -77,7 +77,6 @@ jobs:
           import net.minecraftforge.registries.DeferredRegister;
           import net.minecraftforge.registries.ForgeRegistries;
           import net.minecraftforge.registries.RegistryObject;
-
           import java.util.Comparator;
           import java.util.List;
 
@@ -87,10 +86,12 @@ jobs:
               private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
               private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
 
+              // МЫ НЕ ИСПОЛЬЗУЕМ copy(Blocks.DIAMOND_BLOCK), чтобы избежать NoSuchFieldError
               public static final RegistryObject<Block> GOD_BLOCK = BLOCKS.register("god_block", () -> new Block(
                   BlockBehaviour.Properties.of()
                       .mapColor(MapColor.GOLD)
                       .strength(5.0f, 6.0f)
+                      .requiresCorrectToolForDrops()
                       .lightLevel(state -> 15)
               ) {
                   @Override
@@ -100,11 +101,11 @@ jobs:
                           List<Monster> targets = level.getEntitiesOfClass(Monster.class, area, Monster::isAlive);
 
                           if (targets.isEmpty()) {
-                              player.displayClientMessage(Component.literal("§cЦелей нет!"), true);
+                              player.displayClientMessage(Component.literal("§c[Блок Бога] Целей в радиусе 30 блоков не найдено!"), true);
                               return ItemInteractionResult.SUCCESS;
                           }
 
-                          targets.sort(Comparator.comparingDouble(e -> e.distanceToSqr(player.getX(), player.getY(), player.getZ())));
+                          targets.sort(Comparator.comparingDouble(e -> e.distanceToSqr(pos.getX(), pos.getY(), pos.getZ())));
                           Monster target = targets.get(0);
 
                           LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(level);
@@ -113,6 +114,7 @@ jobs:
                               level.addFreshEntity(lightning);
                               level.playSound(null, pos, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.BLOCKS, 1.0f, 1.0f);
                               player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 1));
+                              player.displayClientMessage(Component.literal("§6[Блок Бога] Испепеляю: " + target.getType().getDescriptionId()), true);
                           }
                           return ItemInteractionResult.SUCCESS;
                       }
@@ -140,7 +142,7 @@ jobs:
           version="1.0.0"
           displayName="Kusman God Block"
           authors="Kusman"
-          description="Fix for ItemInteractionResult"
+          description="Fixed NoSuchFieldError by avoiding block property copying"
           EOF
 
       - name: Build
@@ -149,5 +151,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Kusman-V72-ForgeSuccess
+          name: Kusman-V73-SafeBuild
           path: build/libs/*.jar
