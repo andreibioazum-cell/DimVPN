@@ -1,15 +1,16 @@
-name: Build Dim Gun Full Game
+name: DimGun Full Auto Build
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ "main" ]
+  workflow_dispatch: # Чтобы ты мог нажать кнопку "Run" в любое время
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -17,288 +18,37 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: gradle
 
-      - name: Create Structure
+      # Проверка: есть ли папка с 3D моделями и джойстиком
+      - name: Validate Assets
         run: |
-          mkdir -p app/src/main/java/com/dim/gun
-          mkdir -p app/src/main/cpp
+          if [ ! -d "app/src/main/assets" ]; then
+            echo "ПРЕДУПРЕЖДЕНИЕ: Папка assets не найдена, создаю пустую..."
+            mkdir -p app/src/main/assets
+          fi
 
-      - name: Create C++ Engine
-        run: |
-          cat << 'EOF' | tee app/src/main/cpp/engine.cpp
-          #include <jni.h>
-          #include <GLES3/gl3.h>
-          #include <android/log.h>
+      - name: Grant Execute Permissions
+        run: chmod +x gradlew
 
-          #define LOG_TAG "DimGun-Native"
-          #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+      # Сама сборка (тут соберутся и 3D модели, и код управления)
+      - name: Build DimGun APK
+        run: ./gradlew assembleDebug --stacktrace
 
-          // Координаты нашего "Петуха"
-          float playerX = 0.0f;
-          float playerZ = 0.0f;
-
-          extern "C" {
-              JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_init(JNIEnv* env, jclass obj) {
-                  glEnable(GL_DEPTH_TEST);
-              }
-              JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_step(JNIEnv* env, jclass obj) {
-                  glClearColor(0.4f, 0.7f, 1.0f, 1.0f);
-                  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                  // В будущем здесь будет смещение камеры на playerX и playerZ
-              }
-              JNIEXPORT void JNICALL Java_com_dim_gun_NativeLib_movePlayer(JNIEnv* env, jclass obj, jfloat dx, jfloat dz) {
-                  playerX += dx;
-                  playerZ += dz;
-                  // Выводим в логи Android, чтобы убедиться, что джойстик работает!
-                  LOGI("Player moved! X: %f, Z: %f", playerX, playerZ);
-              }
-          }
-          EOF
-
-      - name: Create NativeLib
-        run: |
-          cat << 'EOF' | tee app/src/main/cpp/CMakeLists.txt
-          cmake_minimum_required(VERSION 3.22.1)
-          project("dimgun_core")
-          add_library(dimgun_core SHARED engine.cpp)
-          find_library(log-lib log)
-          target_link_libraries(dimgun_core ${log-lib} GLESv3 EGL)
-          EOF
-
-          cat << 'EOF' | tee app/src/main/java/com/dim/gun/NativeLib.java
-          package com.dim.gun;
-          public class NativeLib {
-              static { System.loadLibrary("dimgun_core"); }
-              public static native void init();
-              public static native void step();
-              public static native void movePlayer(float dx, float dz);
-          }
-          EOF
-
-      - name: Create JoystickView (НОВЫЙ КОД УПРАВЛЕНИЯ)
-        run: |
-          cat << 'EOF' | tee app/src/main/java/com/dim/gun/JoystickView.java
-          package com.dim.gun;
-          import android.content.Context;
-          import android.graphics.Canvas;
-          import android.graphics.Color;
-          import android.graphics.Paint;
-          import android.view.MotionEvent;
-          import android.view.View;
-
-          public class JoystickView extends View {
-              private Paint basePaint, stickPaint;
-              private float centerX, centerY, baseRadius, stickRadius;
-              private float touchX, touchY;
-              private boolean isTouching = false;
-
-              public JoystickView(Context context) {
-                  super(context);
-                  basePaint = new Paint();
-                  basePaint.setColor(Color.parseColor("#88000000")); // Полупрозрачный черный
-                  basePaint.setStyle(Paint.Style.FILL);
-
-                  stickPaint = new Paint();
-                  stickPaint.setColor(Color.parseColor("#DDFFFFFF")); // Белый стик
-                  stickPaint.setStyle(Paint.Style.FILL);
-              }
-
-              @Override
-              protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-                  super.onSizeChanged(w, h, oldw, oldh);
-                  centerX = w / 2f;
-                  centerY = h / 2f;
-                  baseRadius = Math.min(w, h) / 3f;
-                  stickRadius = Math.min(w, h) / 6f;
-                  touchX = centerX;
-                  touchY = centerY;
-              }
-
-              @Override
-              protected void onDraw(Canvas canvas) {
-                  super.onDraw(canvas);
-                  canvas.drawCircle(centerX, centerY, baseRadius, basePaint);
-                  if (isTouching) {
-                      canvas.drawCircle(touchX, touchY, stickRadius, stickPaint);
-                  } else {
-                      canvas.drawCircle(centerX, centerY, stickRadius, stickPaint);
-                  }
-              }
-
-              @Override
-              public boolean onTouchEvent(MotionEvent event) {
-                  switch (event.getAction()) {
-                      case MotionEvent.ACTION_DOWN:
-                      case MotionEvent.ACTION_MOVE:
-                          isTouching = true;
-                          float dx = event.getX() - centerX;
-                          float dy = event.getY() - centerY;
-                          float distance = (float) Math.sqrt(dx * dx + dy * dy);
-                          
-                          // Ограничиваем стик рамками круга
-                          if (distance > baseRadius) {
-                              touchX = centerX + dx * baseRadius / distance;
-                              touchY = centerY + dy * baseRadius / distance;
-                          } else {
-                              touchX = event.getX();
-                              touchY = event.getY();
-                          }
-                          
-                          // Передаем нормализованные данные (от -1 до 1) в C++ движок
-                          float normX = (touchX - centerX) / baseRadius;
-                          float normY = (touchY - centerY) / baseRadius;
-                          NativeLib.movePlayer(normX * 0.1f, normY * 0.1f);
-                          break;
-                      case MotionEvent.ACTION_UP:
-                      case MotionEvent.ACTION_CANCEL:
-                          isTouching = false;
-                          touchX = centerX;
-                          touchY = centerY;
-                          break;
-                  }
-                  invalidate();
-                  return true;
-              }
-          }
-          EOF
-
-      - name: Create UI (Menu & HUD with Joystick)
-        run: |
-          cat << 'EOF' | tee app/src/main/java/com/dim/gun/MainActivity.java
-          package com.dim.gun;
-          import android.app.Activity;
-          import android.graphics.Color;
-          import android.opengl.GLSurfaceView;
-          import android.os.Bundle;
-          import android.view.Gravity;
-          import android.view.View;
-          import android.widget.*;
-          import javax.microedition.khronos.egl.EGLConfig;
-          import javax.microedition.khronos.opengles.GL10;
-
-          public class MainActivity extends Activity {
-              private LinearLayout mainMenu;
-              private RelativeLayout gameHud;
-
-              @Override
-              protected void onCreate(Bundle b) {
-                  super.onCreate(b);
-                  FrameLayout rootLayout = new FrameLayout(this);
-
-                  // 1. C++ 3D Движок
-                  GLSurfaceView glView = new GLSurfaceView(this);
-                  glView.setEGLContextClientVersion(3);
-                  glView.setRenderer(new GLSurfaceView.Renderer() {
-                      public void onSurfaceCreated(GL10 gl, EGLConfig c) { NativeLib.init(); }
-                      public void onSurfaceChanged(GL10 gl, int w, int h) {}
-                      public void onDrawFrame(GL10 gl) { NativeLib.step(); }
-                  });
-                  rootLayout.addView(glView);
-
-                  // 2. Игровой HUD
-                  gameHud = new RelativeLayout(this);
-                  gameHud.setVisibility(View.GONE);
-                  
-                  // ДОБАВЛЯЕМ ДЖОЙСТИК СЛЕВА ВНИЗУ
-                  JoystickView joystick = new JoystickView(this);
-                  RelativeLayout.LayoutParams joyParams = new RelativeLayout.LayoutParams(400, 400);
-                  joyParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-                  joyParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-                  joyParams.setMargins(100, 0, 0, 100);
-                  gameHud.addView(joystick, joyParams);
-
-                  // Кнопка стрельбы
-                  Button btnShoot = new Button(this);
-                  btnShoot.setText("💥 ОГОНЬ");
-                  btnShoot.setBackgroundColor(Color.parseColor("#ff4444"));
-                  btnShoot.setTextColor(Color.WHITE);
-                  RelativeLayout.LayoutParams shootParams = new RelativeLayout.LayoutParams(300, 300);
-                  shootParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-                  shootParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-                  shootParams.setMargins(0, 0, 50, 100);
-                  gameHud.addView(btnShoot, shootParams);
-
-                  rootLayout.addView(gameHud, new FrameLayout.LayoutParams(
-                          FrameLayout.LayoutParams.MATCH_PARENT, 
-                          FrameLayout.LayoutParams.MATCH_PARENT));
-
-                  // 3. Главное Меню
-                  mainMenu = new LinearLayout(this);
-                  mainMenu.setOrientation(LinearLayout.VERTICAL);
-                  mainMenu.setGravity(Gravity.CENTER);
-                  mainMenu.setBackgroundColor(Color.parseColor("#BB000000"));
-
-                  TextView title = new TextView(this);
-                  title.setText("DIM GUN");
-                  title.setTextSize(50);
-                  title.setTextColor(Color.WHITE);
-                  title.setGravity(Gravity.CENTER);
-                  mainMenu.addView(title);
-
-                  Button btnPlay = new Button(this);
-                  btnPlay.setText("ИГРАТЬ");
-                  btnPlay.setTextSize(24);
-                  btnPlay.setOnClickListener(v -> {
-                      mainMenu.setVisibility(View.GONE);
-                      gameHud.setVisibility(View.VISIBLE);
-                  });
-                  mainMenu.addView(btnPlay);
-
-                  rootLayout.addView(mainMenu, new FrameLayout.LayoutParams(
-                          FrameLayout.LayoutParams.MATCH_PARENT, 
-                          FrameLayout.LayoutParams.MATCH_PARENT));
-
-                  setContentView(rootLayout);
-              }
-          }
-          EOF
-
-      - name: Setup Gradle Build Files
-        run: |
-          echo "include ':app'" | tee settings.gradle
-          cat << 'EOF' | tee build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
-          }
-          allprojects { repositories { google(); mavenCentral() } }
-          EOF
-
-          cat << 'EOF' | tee app/build.gradle
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.dim.gun'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.dim.gun"
-                  minSdk 24
-                  targetSdk 34
-              }
-              externalNativeBuild { cmake { path "src/main/cpp/CMakeLists.txt" } }
-          }
-          EOF
-
-          cat << 'EOF' | tee app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="Dim Gun" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
-                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-      - name: Build with Gradle
-        uses: gradle/gradle-build-action@v3
+      # Подпись APK (чтобы телефон не ругался при установке)
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
         with:
-          gradle-version: 8.5
-          arguments: assembleDebug
+          releaseDirectory: app/build/outputs/apk/debug
+          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        continue-on-error: true # Если секретов нет, он просто пропустит этот шаг
 
-      - name: Upload APK
+      - name: Upload Finished Mod
         uses: actions/upload-artifact@v4
         with:
-          name: DimGun-Alpha-Joystick
+          name: DimGun_v1_Build
           path: app/build/outputs/apk/debug/*.apk
