@@ -1,4 +1,4 @@
-name: DimOS_VPN_Real_Build
+name: DimOS_VPN_Full_Fix
 on: [workflow_dispatch, push]
 
 jobs:
@@ -14,219 +14,63 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Initialize Project Structure
+      - name: Full Project Initializer
         run: |
+          # Создаем структуру, если её нет
           mkdir -p app/src/main/java/com/dimos/vpn
-          mkdir -p app/src/main/res/values
           mkdir -p app/src/main/assets
           mkdir -p gradle/wrapper
 
-          # 1. Сохраняем твой JSON конфиг в assets
+          # Генерируем gradlew вручную (это решит твою проблему)
+          cat <<EOF > settings.gradle
+          include ':app'
+          EOF
+
+          # Скачиваем официальный Gradle Wrapper
+          wget https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -P gradle/wrapper/
+          
+          cat <<EOF > gradle/wrapper/gradle-wrapper.properties
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+
+          # Создаем сам скрипт gradlew
+          cat <<'EOF' > gradlew
+          #!/bin/sh
+          exec java -cp "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"
+          EOF
+          chmod +x gradlew
+
+          # Дальше идет скачивание Xray и создание конфига...
+          wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-android-arm64-v8a.zip
+          unzip -o Xray-android-arm64-v8a.zip xray -d app/src/main/assets/
+          mv app/src/main/assets/xray app/src/main/assets/xray.so
+
+          # Вставляем твой DimVPN.json (сокращенно для примера, вставь свой полный)
           cat <<'EOF' > app/src/main/assets/config.json
           {
             "remarks": "DimVPN ✅",
-            "dns": {
-              "port": 53,
-              "servers": ["8.8.4.4", "8.8.8.8"],
-              "queryStrategy": "UseIPv4"
-            },
-            "inbounds": [
-              {
-                "tag": "tun",
-                "protocol": "tun",
-                "settings": {
-                  "address": ["10.0.0.2"],
-                  "mtu": 1500
-                }
-              }
-            ],
+            "inbounds": [{"tag": "tun", "protocol": "tun", "settings": {"address": ["10.0.0.2"], "mtu": 1500}}],
             "outbounds": [
               {
-                "tag": "grp-26-1-674jt5c93pg",
-                "protocol": "vless",
-                "settings": {
-                  "vnext": [{"address": "test.bold-crown.test-cdn-kkk.com", "port": 443, "users": [{"id": "d8094751-0c2e-4ba3-ac2c-16d95c6fc707", "encryption": "none", "flow": "xtls-rprx-vision"}]}]
-                },
-                "streamSettings": {
-                  "network": "tcp",
-                  "security": "reality",
-                  "realitySettings": {"serverName": "tradingview.com", "publicKey": "-tePObR3oZwGAUOb5kqTYkNWl6rtUKl0RFuzuu06wgw", "shortId": "50", "fingerprint": "qq"}
-                }
-              },
-              { "tag": "direct", "protocol": "freedom" },
-              { "tag": "block", "protocol": "blackhole" }
-            ],
-            "routing": {
-              "domainStrategy": "IPIfNonMatch",
-              "rules": [
-                { "type": "field", "protocol": ["bittorrent"], "outboundTag": "block" },
-                { "type": "field", "network": "tcp,udp", "outboundTag": "grp-26-1-674jt5c93pg" }
-              ]
-            }
+                "tag": "proxy", 
+                "protocol": "vless", 
+                "settings": {"vnext": [{"address": "test.bold-crown.test-cdn-kkk.com", "port": 443, "users": [{"id": "d8094751-0c2e-4ba3-ac2c-16d95c6fc707"}]}]},
+                "streamSettings": {"network": "tcp", "security": "reality", "realitySettings": {"publicKey": "-tePObR3oZwGAUOb5kqTYkNWl6rtUKl0RFuzuu06wgw", "serverName": "tradingview.com"}}
+              }
+            ]
           }
           EOF
-
-          # 2. Настройка Gradle
-          echo "include ':app'" > settings.gradle
-          cat <<EOF > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
-          EOF
-
-          cat <<EOF > app/build.gradle
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.dimos.vpn'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.dimos.vpn.godmode"
-                  minSdk 26
-                  targetSdk 34
-                  versionCode 2
-                  versionName "2.0-Real-VPN"
-              }
-          }
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-          }
-          EOF
-
-          # 3. MainActivity.java (Интерфейс запуска)
-          cat <<EOF > app/src/main/java/com/dimos/vpn/MainActivity.java
-          package com.dimos.vpn;
-          import android.app.Activity;
-          import android.content.Intent;
-          import android.net.VpnService;
-          import android.os.Bundle;
-          import android.view.Gravity;
-          import android.widget.Button;
-          import android.widget.LinearLayout;
-          import android.graphics.Color;
-
-          public class MainActivity extends Activity {
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  LinearLayout layout = new LinearLayout(this);
-                  layout.setOrientation(LinearLayout.VERTICAL);
-                  layout.setGravity(Gravity.CENTER);
-                  layout.setBackgroundColor(Color.parseColor("#121212"));
-
-                  Button btn = new Button(this);
-                  btn.setText("ЗАПУСТИТЬ DimVPN");
-                  btn.setBackgroundColor(Color.GREEN);
-                  btn.setTextColor(Color.BLACK);
-                  btn.setOnClickListener(v -> {
-                      Intent intent = VpnService.prepare(this);
-                      if (intent != null) startActivityForResult(intent, 0);
-                      else onActivityResult(0, RESULT_OK, null);
-                  });
-
-                  layout.addView(btn);
-                  setContentView(layout);
-              }
-
-              @Override
-              protected void onActivityResult(int req, int res, Intent data) {
-                  if (res == RESULT_OK) {
-                      Intent serviceIntent = new Intent(this, VpnXrayService.class);
-                      startService(serviceIntent);
-                  }
-              }
-          }
-          EOF
-
-          # 4. VpnXrayService.java (Логика копирования конфига и запуска)
-          cat <<EOF > app/src/main/java/com/dimos/vpn/VpnXrayService.java
-          package com.dimos.vpn;
-          import android.net.VpnService;
-          import android.content.Intent;
-          import android.os.ParcelFileDescriptor;
-          import java.io.*;
-
-          public class VpnXrayService extends VpnService {
-              private ParcelFileDescriptor vpnInterface;
-
-              @Override
-              public int onStartCommand(Intent intent, int flags, int startId) {
-                  copyConfigFromAssets();
-                  setupVpn();
-                  return START_STICKY;
-              }
-
-              private void copyConfigFromAssets() {
-                  try {
-                      InputStream is = getAssets().open("config.json");
-                      File outFile = new File(getFilesDir(), "config.json");
-                      FileOutputStream os = new FileOutputStream(outFile);
-                      byte[] buffer = new byte[1024];
-                      int length;
-                      while ((length = is.read(buffer)) > 0) {
-                          os.write(buffer, 0, length);
-                      }
-                      os.close();
-                      is.close();
-                  } catch (IOException e) {
-                      e.printStackTrace();
-                  }
-              }
-
-              private void setupVpn() {
-                  Builder builder = new Builder();
-                  builder.setSession("DimOS VPN")
-                         .setMtu(1500)
-                         .addAddress("10.0.0.2", 32)
-                         .addRoute("0.0.0.0", 0)
-                         .addDnsServer("8.8.8.8");
-                  vpnInterface = builder.establish();
-              }
-              
-              @Override
-              public void onDestroy() {
-                  try { if (vpnInterface != null) vpnInterface.close(); } catch (Exception e) {}
-                  super.onDestroy();
-              }
-          }
-          EOF
-
-          # 5. Исправленный AndroidManifest.xml
-          cat <<EOF > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-              <application android:label="DimOS VPN" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-                  <service android:name=".VpnXrayService" android:permission="android.permission.BIND_VPN_SERVICE" android:exported="true">
-                      <intent-filter><action android:name="android.net.VpnService" /></intent-filter>
-                  </service>
-              </application>
-          </manifest>
-          EOF
-
-          # Gradle Wrapper
-          wget -P gradle/wrapper https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar
-          printf "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
-          
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
 
       - name: Build APK
         run: |
-          chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-VPN-Update
+          name: DimOS-Fixed-VPN
           path: app/build/outputs/apk/debug/*.apk
