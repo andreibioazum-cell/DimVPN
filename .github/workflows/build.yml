@@ -1,4 +1,4 @@
-name: DimOS_VPN_GodMode_V5_Background
+name: DimOS_VPN_GodMode_V6_Fixed
 on: [workflow_dispatch, push]
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
           mkdir -p app/src/main/assets
           mkdir -p gradle/wrapper
 
-          # 1. Сборка (Settings & Build Gradle)
+          # 1. Настройки проекта
           echo "include ':app'" > settings.gradle
           cat <<EOF > build.gradle
           buildscript {
@@ -40,13 +40,13 @@ jobs:
                   applicationId "com.dimos.vpn.godmode"
                   minSdk 26
                   targetSdk 34
-                  versionCode 5
-                  versionName "5.0-AntiKill"
+                  versionCode 6
+                  versionName "6.0-Background-Fixed"
               }
           }
           EOF
 
-          # 2. Манифест (Добавлены права на батарею и уведомления)
+          # 2. Манифест (Разрешения для фона и уведомлений)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -77,7 +77,7 @@ jobs:
           unzip -o Xray-android-arm64-v8a.zip xray -d app/src/main/assets/
           mv app/src/main/assets/xray app/src/main/assets/xray.so
 
-          # 4. Конфиг (с TUN)
+          # 4. Конфиг Xray (с поддержкой TUN)
           cat <<'EOF' > app/src/main/assets/config.json
           {
             "remarks": "DimVPN ✅",
@@ -95,7 +95,7 @@ jobs:
           }
           EOF
 
-          # 5. MainActivity (Запрос на игнор батареи)
+          # 5. MainActivity.java (Интерфейс + запрос на работу в фоне)
           cat <<EOF > app/src/main/java/com/dimos/vpn/MainActivity.java
           package com.dimos.vpn;
           import android.app.*;
@@ -113,7 +113,7 @@ jobs:
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   
-                  // Запрос на работу в фоне (игнор батареи)
+                  // Запрос на отключение экономии батареи
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                       PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
                       if (!pm.isIgnoringBatteryOptimizations(getPackageName())) {
@@ -128,7 +128,7 @@ jobs:
                   root.setBackgroundColor(Color.BLACK);
                   root.setGravity(Gravity.CENTER);
 
-                  Button bStart = new Button(this); bStart.setText("START DimVPN");
+                  Button bStart = new Button(this); bStart.setText("START VPN");
                   bStart.setOnClickListener(v -> {
                       Intent i = VpnService.prepare(this);
                       if (i != null) startActivityForResult(i, 0);
@@ -155,7 +155,7 @@ jobs:
           }
           EOF
 
-          # 6. VpnXrayService (Foreground Service + Notification)
+          # 6. VpnXrayService.java (Уведомление и фоновый процесс)
           cat <<EOF > app/src/main/java/com/dimos/vpn/VpnXrayService.java
           package com.dimos.vpn;
           import android.app.*;
@@ -168,15 +168,14 @@ jobs:
           public class VpnXrayService extends VpnService {
               private Process xrayProc;
               private ParcelFileDescriptor vpnInterface;
-              private static final String CHANNEL_ID = "DimVPN_Service";
+              private static final String CHANNEL_ID = "DimVPN_Chan";
 
               @Override
               public void onCreate() {
                   super.onCreate();
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                       NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "VPN Active", NotificationManager.IMPORTANCE_LOW);
-                      NotificationManager nm = getSystemService(NotificationManager.class);
-                      nm.createNotificationChannel(channel);
+                      getSystemService(NotificationManager.class).createNotificationChannel(channel);
                   }
               }
 
@@ -186,26 +185,22 @@ jobs:
                       stopVpn(); return START_NOT_STICKY;
                   }
 
-                  // Делаем сервис приоритетным (Foreground)
-                  Notification n = null;
-                  if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                      n = new Notification.Builder(this, CHANNEL_ID)
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      Notification n = new Notification.Builder(this, CHANNEL_ID)
                           .setContentTitle("DimVPN")
-                          .setContentText("Xray Core Running...")
-                          .setSmallIcon(android.R.drawable.ic_dialog_info)
+                          .setContentText("Сервис активен в фоне")
+                          .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
                           .build();
+                      startForeground(1, n);
                   }
-                  startForeground(1, n);
 
                   new Thread(() -> {
                       try {
                           File bin = extractAsset("xray.so", "xray");
                           File cfg = extractAsset("config.json", "config.json");
                           bin.setExecutable(true);
-
                           vpnInterface = new Builder().setSession("DimVPN")
                               .addAddress("10.0.0.2", 32).addRoute("0.0.0.0", 0).addDnsServer("8.8.8.8").establish();
-
                           xrayProc = Runtime.getRuntime().exec(new String[]{bin.getAbsolutePath(), "run", "-c", cfg.getAbsolutePath()});
                       } catch (Exception e) {}
                   }).start();
@@ -227,7 +222,7 @@ jobs:
           }
           EOF
 
-          # 7. Gradle Wrapper
+          # 7. Фикс Gradle Wrapper (Экранирование символа $)
           wget https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -P gradle/wrapper/
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
           cat <<'EOF' > gradlew
@@ -242,5 +237,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimVPN-AntiKill-Final
+          name: DimVPN-GodMode-Final
           path: app/build/outputs/apk/debug/*.apk
