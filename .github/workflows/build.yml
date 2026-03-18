@@ -1,4 +1,4 @@
-name: KUSMAN_V67_FORGE_FIX
+name: KUSMAN_V68_FORGE_FINAL
 on: [push, workflow_dispatch]
 
 jobs:
@@ -9,7 +9,6 @@ jobs:
       - uses: actions/setup-java@v4
         with: { java-version: '21', distribution: 'temurin' }
       
-      # Устанавливаем Gradle напрямую, чтобы не зависеть от gradlew
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.10' }
 
@@ -17,7 +16,19 @@ jobs:
         run: |
           mkdir -p src/main/java/com/kusman src/main/resources/META-INF
           
-          # Build.gradle для Forge 1.21.1
+          # 1. Настройка репозиториев плагинов (ВАЖНО для фикса ошибки)
+          cat <<'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  maven { url = 'https://maven.minecraftforge.net/' }
+                  gradlePluginPortal()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = 'kusman_mod'
+          EOF
+
+          # 2. Build.gradle
           cat <<'EOF' > build.gradle
           plugins {
               id 'net.minecraftforge.gradle' version '6.0.24'
@@ -39,7 +50,7 @@ jobs:
           }
           EOF
 
-          # Исправленный код мода
+          # 3. Исправленный код мода (соответствие маппингам 1.21.1)
           cat <<'EOF' > src/main/java/com/kusman/KusmanMod.java
           package com.kusman;
 
@@ -82,6 +93,7 @@ jobs:
               private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
 
               public static final RegistryObject<Block> GOD_BLOCK = BLOCKS.register("god_block", () -> new Block(BlockBehaviour.Properties.copy(Blocks.DIAMOND_BLOCK)) {
+                  // В Forge 1.21.1 метод называется так:
                   @Override
                   public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
                       if (!level.isClientSide) {
@@ -120,7 +132,7 @@ jobs:
           }
           EOF
 
-          # Mods.toml
+          # 4. Mods.toml
           cat <<'EOF' > src/main/resources/META-INF/mods.toml
           modLoader="javafml"
           loaderVersion="[52,)"
@@ -133,11 +145,11 @@ jobs:
           description="Lightning block for Forge 1.21.1"
           EOF
 
-      - name: Build with Gradle
+      - name: Build
         run: gradle build --no-daemon
 
-      - name: Upload Artifact
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Kusman-V67-ForgeFixed
+          name: Kusman-V68-ForgeSuccess
           path: build/libs/*.jar
