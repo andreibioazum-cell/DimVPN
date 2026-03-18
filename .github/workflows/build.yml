@@ -1,155 +1,282 @@
-name: KUSMAN_V73_FORGE_FINAL
-on: [push, workflow_dispatch]
+name: DimOS_Ultimate_Build
+on: [workflow_dispatch, push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { java-version: '21', distribution: 'temurin' }
-      
-      - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: '8.10' }
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Generate Forge Project
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Initialize DimOS Project Structure
         run: |
-          mkdir -p src/main/java/com/kusman src/main/resources/META-INF
-          
-          cat <<'EOF' > settings.gradle
-          pluginManagement {
-              repositories {
-                  maven { url = 'https://maven.minecraftforge.net/' }
-                  gradlePluginPortal()
-                  mavenCentral()
+          # Создаем структуру папок Android-проекта
+          mkdir -p app/src/main/java/com/dimos
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+
+          # 1. Корневой build.gradle
+          cat <<EOF > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects {
+              repositories { google(); mavenCentral() }
+          }
+          EOF
+
+          # 2. settings.gradle
+          echo "include ':app'" > settings.gradle
+
+          # 3. build.gradle для модуля приложения
+          cat <<EOF > app/build.gradle
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.dimos'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.dimos.launcher"
+                  minSdk 26
+                  targetSdk 34
+                  versionCode 3
+                  versionName "1.2-Ultimate"
               }
           }
-          rootProject.name = 'kusman_mod'
           EOF
 
-          cat <<'EOF' > build.gradle
-          plugins {
-              id 'net.minecraftforge.gradle' version '6.0.24'
-          }
-          group = 'com.kusman'
-          version = '1.0.0'
-          minecraft {
-              mappings channel: 'official', version: '1.21.1'
-          }
-          repositories {
-              mavenCentral()
-              maven { url = 'https://maven.minecraftforge.net/' }
-          }
-          dependencies {
-              minecraft 'net.minecraftforge:forge:1.21.1-52.1.2'
-          }
+          # 4. AndroidManifest.xml (с разрешениями на Интернет и Вибрацию)
+          cat <<EOF > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <uses-permission android:name="android.permission.VIBRATE"/>
+              <application android:label="DimOS Ultimate" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
           EOF
 
-          cat <<'EOF' > src/main/java/com/kusman/KusmanMod.java
-          package com.kusman;
+          # 5. Основное ядро DimOS (MainActivity.java)
+          cat <<EOF > app/src/main/java/com/dimos/MainActivity.java
+          package com.dimos;
 
-          import net.minecraft.world.level.block.Block;
-          import net.minecraft.world.level.block.state.BlockBehaviour;
-          import net.minecraft.world.level.block.state.BlockState;
-          import net.minecraft.world.item.BlockItem;
-          import net.minecraft.world.item.Item;
-          import net.minecraft.world.item.ItemStack;
-          import net.minecraft.world.ItemInteractionResult;
-          import net.minecraft.world.InteractionHand;
-          import net.minecraft.world.entity.EntityType;
-          import net.minecraft.world.entity.LightningBolt;
-          import net.minecraft.world.entity.monster.Monster;
-          import net.minecraft.world.entity.player.Player;
-          import net.minecraft.world.phys.BlockHitResult;
-          import net.minecraft.world.phys.AABB;
-          import net.minecraft.core.BlockPos;
-          import net.minecraft.world.level.Level;
-          import net.minecraft.network.chat.Component;
-          import net.minecraft.world.effect.MobEffectInstance;
-          import net.minecraft.world.effect.MobEffects;
-          import net.minecraft.sounds.SoundEvents;
-          import net.minecraft.sounds.SoundSource;
-          import net.minecraft.world.level.material.MapColor;
-          import net.minecraftforge.common.MinecraftForge;
-          import net.minecraftforge.eventbus.api.IEventBus;
-          import net.minecraftforge.fml.common.Mod;
-          import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-          import net.minecraftforge.registries.DeferredRegister;
-          import net.minecraftforge.registries.ForgeRegistries;
-          import net.minecraftforge.registries.RegistryObject;
-          import java.util.Comparator;
-          import java.util.List;
+          import android.app.Activity;
+          import android.app.AlertDialog;
+          import android.graphics.Color;
+          import android.os.*;
+          import android.view.Gravity;
+          import android.view.View;
+          import android.widget.*;
+          import org.json.JSONObject;
+          import java.io.*;
+          import java.net.URL;
+          import java.util.Scanner;
 
-          @Mod("kusman")
-          public class KusmanMod {
-              public static final String MODID = "kusman";
-              private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
-              private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
+          public class MainActivity extends Activity {
+              LinearLayout root;
+              String internalRoot;
+              int systemBgColor = Color.parseColor("#121212");
 
-              // МЫ НЕ ИСПОЛЬЗУЕМ copy(Blocks.DIAMOND_BLOCK), чтобы избежать NoSuchFieldError
-              public static final RegistryObject<Block> GOD_BLOCK = BLOCKS.register("god_block", () -> new Block(
-                  BlockBehaviour.Properties.of()
-                      .mapColor(MapColor.GOLD)
-                      .strength(5.0f, 6.0f)
-                      .requiresCorrectToolForDrops()
-                      .lightLevel(state -> 15)
-              ) {
-                  @Override
-                  protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-                      if (!level.isClientSide && hand == InteractionHand.MAIN_HAND) {
-                          AABB area = new AABB(pos).inflate(30.0);
-                          List<Monster> targets = level.getEntitiesOfClass(Monster.class, area, Monster::isAlive);
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  internalRoot = getFilesDir().getAbsolutePath();
+                  
+                  // Инициализация файловой системы
+                  new File(internalRoot + "/apps").mkdirs();
+                  new File(internalRoot + "/system").mkdirs();
+                  
+                  showDesktop();
+              }
 
-                          if (targets.isEmpty()) {
-                              player.displayClientMessage(Component.literal("§c[Блок Бога] Целей в радиусе 30 блоков не найдено!"), true);
-                              return ItemInteractionResult.SUCCESS;
+              // --- ЭКРАН: РАБОЧИЙ СТОЛ ---
+              private void showDesktop() {
+                  prepareLayout(systemBgColor);
+                  addLabel("DimOS Ultimate v1.2", 28, Color.CYAN);
+                  addLabel("User: Kusman | Kernel: Java_v822", 12, Color.LTGRAY);
+
+                  // Панель инструментов
+                  LinearLayout toolbar = new LinearLayout(this);
+                  toolbar.setOrientation(LinearLayout.HORIZONTAL);
+                  toolbar.setGravity(Gravity.CENTER);
+                  
+                  addToolButton(toolbar, "📂 Файлы", v -> showFileManager(internalRoot));
+                  addToolButton(toolbar, "🌐 Маркет", v -> showAppInstaller());
+                  addToolButton(toolbar, "📝 Создать", v -> showEditor("new_app.dim", "{\n \"appName\": \"SuperApp\",\n \"icon\": \"🔥\",\n \"script\": \"PRINT: Привет!; VIBE: 100\"\n}"));
+                  addToolButton(toolbar, "⚙ Инфо", v -> showSystemInfo());
+                  root.addView(toolbar);
+
+                  addLabel("\nВаши приложения:", 16, Color.WHITE);
+                  
+                  // Сканирование и запуск .dim приложений
+                  File appsDir = new File(internalRoot + "/apps");
+                  File[] apps = appsDir.listFiles();
+                  if (apps != null) {
+                      for (File app : apps) {
+                          if (app.getName().endsWith(".dim")) {
+                              addAppButton(app);
                           }
-
-                          targets.sort(Comparator.comparingDouble(e -> e.distanceToSqr(pos.getX(), pos.getY(), pos.getZ())));
-                          Monster target = targets.get(0);
-
-                          LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(level);
-                          if (lightning != null) {
-                              lightning.moveTo(target.getX(), target.getY(), target.getZ());
-                              level.addFreshEntity(lightning);
-                              level.playSound(null, pos, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.BLOCKS, 1.0f, 1.0f);
-                              player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 1));
-                              player.displayClientMessage(Component.literal("§6[Блок Бога] Испепеляю: " + target.getType().getDescriptionId()), true);
-                          }
-                          return ItemInteractionResult.SUCCESS;
                       }
-                      return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
                   }
-              });
+                  setContentView(root);
+              }
 
-              public static final RegistryObject<Item> GOD_BLOCK_ITEM = ITEMS.register("god_block", () -> new BlockItem(GOD_BLOCK.get(), new Item.Properties()));
+              // --- ДВИЖЕК ВЫПОЛНЕНИЯ (RUNTIME) ---
+              private void runDimEngine(File file) {
+                  try {
+                      String content = new Scanner(file).useDelimiter("\\\\Z").next();
+                      JSONObject json = new JSONObject(content);
+                      String script = json.getString("script");
+                      String name = json.getString("appName");
 
-              public KusmanMod() {
-                  IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-                  BLOCKS.register(modEventBus);
-                  ITEMS.register(modEventBus);
-                  MinecraftForge.EVENT_BUS.register(this);
+                      String[] commands = script.split(";");
+                      for (String cmd : commands) {
+                          String c = cmd.trim();
+                          if (c.startsWith("PRINT:")) {
+                              Toast.makeText(this, "[" + name + "]: " + c.substring(6), Toast.LENGTH_SHORT).show();
+                          } else if (c.startsWith("SET_BG:")) {
+                              systemBgColor = Color.parseColor(c.substring(7).trim());
+                              showDesktop();
+                          } else if (c.startsWith("VIBE:")) {
+                              Vibrator v = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+                              if (v != null) v.vibrate(Integer.parseInt(c.substring(5).trim()));
+                          }
+                      }
+                  } catch (Exception e) {
+                      Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                  }
+              }
+
+              // --- СИСТЕМНЫЕ ОКНА ---
+              private void showSystemInfo() {
+                  prepareLayout(Color.BLACK);
+                  addLabel("ХАРАКТЕРИСТИКИ DimOS", 22, Color.GREEN);
+                  addLabel("Build: DimOS_Java_AutoBuild\nType: Virtual OS Shell\nRoot: " + internalRoot + "\nMemory: " + (Runtime.getRuntime().freeMemory()/1024) + " KB", 14, Color.WHITE);
+                  addActionButton("⬅ В меню", v -> showDesktop());
+                  setContentView(root);
+              }
+
+              private void showAppInstaller() {
+                  AlertDialog.Builder b = new AlertDialog.Builder(this);
+                  b.setTitle("DimOS App Store");
+                  final EditText input = new EditText(this);
+                  input.setHint("Вставьте ссылку на .dim файл");
+                  b.setView(input);
+                  b.setPositiveButton("Скачать", (d, w) -> {
+                      new Thread(() -> {
+                          try {
+                              URL url = new URL(input.getText().toString());
+                              Scanner s = new Scanner(url.openStream());
+                              String data = s.useDelimiter("\\\\Z").next();
+                              saveFile(internalRoot + "/apps/web_" + System.currentTimeMillis() + ".dim", data);
+                              runOnUiThread(this::showDesktop);
+                          } catch (Exception e) {
+                              runOnUiThread(() -> Toast.makeText(this, "Ошибка загрузки", Toast.LENGTH_SHORT).show());
+                          }
+                      }).start();
+                  });
+                  b.show();
+              }
+
+              private void showEditor(String name, String content) {
+                  prepareLayout(Color.parseColor("#1C1C1C"));
+                  addLabel("Редактор: " + name, 16, Color.YELLOW);
+                  EditText ed = new EditText(this);
+                  ed.setText(content);
+                  ed.setTextColor(Color.GREEN);
+                  ed.setBackgroundColor(Color.BLACK);
+                  root.addView(ed);
+                  addActionButton("💾 Сохранить", v -> {
+                      try { saveFile(internalRoot + "/apps/" + name, ed.getText().toString()); } catch(Exception e){}
+                      showDesktop();
+                  });
+                  addActionButton("❌ Отмена", v -> showDesktop());
+                  setContentView(root);
+              }
+
+              private void showFileManager(String path) {
+                  prepareLayout(Color.DKGRAY);
+                  addLabel("Файлы: " + path.replace(internalRoot, "~"), 14, Color.WHITE);
+                  File dir = new File(path);
+                  File[] files = dir.listFiles();
+                  if (files != null) {
+                      for (File f : files) {
+                          addActionButton((f.isDirectory() ? "📁 " : "📄 ") + f.getName(), v -> {
+                              if (f.isDirectory()) showFileManager(f.getAbsolutePath());
+                          });
+                      }
+                  }
+                  addActionButton("⬅ Назад", v -> showDesktop());
+                  setContentView(root);
+              }
+
+              // --- УТИЛИТЫ UI ---
+              private void prepareLayout(int color) {
+                  root = new LinearLayout(this);
+                  root.setOrientation(LinearLayout.VERTICAL);
+                  root.setBackgroundColor(color);
+                  root.setPadding(40, 80, 40, 40);
+              }
+
+              private void addLabel(String text, int size, int color) {
+                  TextView tv = new TextView(this);
+                  tv.setText(text);
+                  tv.setTextSize(size);
+                  tv.setTextColor(color);
+                  root.addView(tv);
+              }
+
+              private void addActionButton(String text, View.OnClickListener cl) {
+                  Button b = new Button(this);
+                  b.setText(text);
+                  b.setOnClickListener(cl);
+                  root.addView(b);
+              }
+
+              private void addToolButton(LinearLayout lay, String text, View.OnClickListener cl) {
+                  Button b = new Button(this);
+                  b.setText(text);
+                  b.setTextSize(10);
+                  b.setOnClickListener(cl);
+                  lay.addView(b);
+              }
+
+              private void addAppButton(File f) {
+                  Button b = new Button(this);
+                  b.setText("🚀 " + f.getName().replace(".dim", ""));
+                  b.setBackgroundColor(Color.parseColor("#333333"));
+                  b.setTextColor(Color.WHITE);
+                  b.setOnClickListener(v -> runDimEngine(f));
+                  root.addView(b);
+              }
+
+              private void saveFile(String p, String d) throws IOException {
+                  FileWriter fw = new FileWriter(p);
+                  fw.write(d);
+                  fw.close();
               }
           }
           EOF
 
-          cat <<'EOF' > src/main/resources/META-INF/mods.toml
-          modLoader="javafml"
-          loaderVersion="[52,)"
-          license="MIT"
-          [[mods]]
-          modId="kusman"
-          version="1.0.0"
-          displayName="Kusman God Block"
-          authors="Kusman"
-          description="Fixed NoSuchFieldError by avoiding block property copying"
-          EOF
+      - name: Grant Execute Rights
+        run: chmod +x gradlew || true
 
-      - name: Build
-        run: gradle build --no-daemon
+      - name: Build DimOS APK
+        run: bash -c "./gradlew assembleDebug"
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Kusman-V73-SafeBuild
-          path: build/libs/*.jar
+          name: DimOS-v1-2-Kusman Edition
+          path: app/build/outputs/apk/debug/*.apk
