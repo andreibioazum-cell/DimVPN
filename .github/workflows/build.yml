@@ -1,4 +1,4 @@
-name: DimOS_GodMode_v3_Fixed
+name: DimOS_VPN_Real_Build
 on: [workflow_dispatch, push]
 
 jobs:
@@ -16,16 +16,58 @@ jobs:
 
       - name: Initialize Project Structure
         run: |
-          mkdir -p app/src/main/java/com/dimos
+          mkdir -p app/src/main/java/com/dimos/vpn
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/layout
-          mkdir -p app/libs
+          mkdir -p app/src/main/assets
+          mkdir -p gradle/wrapper
 
-          # 1. СТРОГО: Создаем файлы сборки в КОРНЕ
-          cat <<EOF > settings.gradle
-          include ':app'
+          # 1. Сохраняем твой JSON конфиг в assets
+          cat <<'EOF' > app/src/main/assets/config.json
+          {
+            "remarks": "DimVPN ✅",
+            "dns": {
+              "port": 53,
+              "servers": ["8.8.4.4", "8.8.8.8"],
+              "queryStrategy": "UseIPv4"
+            },
+            "inbounds": [
+              {
+                "tag": "tun",
+                "protocol": "tun",
+                "settings": {
+                  "address": ["10.0.0.2"],
+                  "mtu": 1500
+                }
+              }
+            ],
+            "outbounds": [
+              {
+                "tag": "grp-26-1-674jt5c93pg",
+                "protocol": "vless",
+                "settings": {
+                  "vnext": [{"address": "test.bold-crown.test-cdn-kkk.com", "port": 443, "users": [{"id": "d8094751-0c2e-4ba3-ac2c-16d95c6fc707", "encryption": "none", "flow": "xtls-rprx-vision"}]}]
+                },
+                "streamSettings": {
+                  "network": "tcp",
+                  "security": "reality",
+                  "realitySettings": {"serverName": "tradingview.com", "publicKey": "-tePObR3oZwGAUOb5kqTYkNWl6rtUKl0RFuzuu06wgw", "shortId": "50", "fingerprint": "qq"}
+                }
+              },
+              { "tag": "direct", "protocol": "freedom" },
+              { "tag": "block", "protocol": "blackhole" }
+            ],
+            "routing": {
+              "domainStrategy": "IPIfNonMatch",
+              "rules": [
+                { "type": "field", "protocol": ["bittorrent"], "outboundTag": "block" },
+                { "type": "field", "network": "tcp,udp", "outboundTag": "grp-26-1-674jt5c93pg" }
+              ]
+            }
+          }
           EOF
 
+          # 2. Настройка Gradle
+          echo "include ':app'" > settings.gradle
           cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -36,234 +78,155 @@ jobs:
           }
           EOF
 
-          # 2. Настройка модуля app
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
-              namespace 'com.dimos'
+              namespace 'com.dimos.vpn'
               compileSdk 34
               defaultConfig {
-                  applicationId "com.dimos.launcher"
+                  applicationId "com.dimos.vpn.godmode"
                   minSdk 26
                   targetSdk 34
-                  versionCode 12
-                  versionName "3.0-GodMode"
+                  versionCode 2
+                  versionName "2.0-Real-VPN"
+              }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+          }
+          EOF
+
+          # 3. MainActivity.java (Интерфейс запуска)
+          cat <<EOF > app/src/main/java/com/dimos/vpn/MainActivity.java
+          package com.dimos.vpn;
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.net.VpnService;
+          import android.os.Bundle;
+          import android.view.Gravity;
+          import android.widget.Button;
+          import android.widget.LinearLayout;
+          import android.graphics.Color;
+
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setGravity(Gravity.CENTER);
+                  layout.setBackgroundColor(Color.parseColor("#121212"));
+
+                  Button btn = new Button(this);
+                  btn.setText("ЗАПУСТИТЬ DimVPN");
+                  btn.setBackgroundColor(Color.GREEN);
+                  btn.setTextColor(Color.BLACK);
+                  btn.setOnClickListener(v -> {
+                      Intent intent = VpnService.prepare(this);
+                      if (intent != null) startActivityForResult(intent, 0);
+                      else onActivityResult(0, RESULT_OK, null);
+                  });
+
+                  layout.addView(btn);
+                  setContentView(layout);
+              }
+
+              @Override
+              protected void onActivityResult(int req, int res, Intent data) {
+                  if (res == RESULT_OK) {
+                      Intent serviceIntent = new Intent(this, VpnXrayService.class);
+                      startService(serviceIntent);
+                  }
               }
           }
           EOF
 
-          # 3. Полный Fullscreen режим в темах
-          cat <<EOF > app/src/main/res/values/themes.xml
-          <resources>
-              <style name="Theme.DimOS" parent="android:Theme.DeviceDefault.NoActionBar.Fullscreen">
-                  <item name="android:windowFullscreen">true</item>
-                  <item name="android:windowNoTitle">true</item>
-                  <item name="android:windowContentOverlay">@null</item>
-              </style>
-          </resources>
+          # 4. VpnXrayService.java (Логика копирования конфига и запуска)
+          cat <<EOF > app/src/main/java/com/dimos/vpn/VpnXrayService.java
+          package com.dimos.vpn;
+          import android.net.VpnService;
+          import android.content.Intent;
+          import android.os.ParcelFileDescriptor;
+          import java.io.*;
+
+          public class VpnXrayService extends VpnService {
+              private ParcelFileDescriptor vpnInterface;
+
+              @Override
+              public int onStartCommand(Intent intent, int flags, int startId) {
+                  copyConfigFromAssets();
+                  setupVpn();
+                  return START_STICKY;
+              }
+
+              private void copyConfigFromAssets() {
+                  try {
+                      InputStream is = getAssets().open("config.json");
+                      File outFile = new File(getFilesDir(), "config.json");
+                      FileOutputStream os = new FileOutputStream(outFile);
+                      byte[] buffer = new byte[1024];
+                      int length;
+                      while ((length = is.read(buffer)) > 0) {
+                          os.write(buffer, 0, length);
+                      }
+                      os.close();
+                      is.close();
+                  } catch (IOException e) {
+                      e.printStackTrace();
+                  }
+              }
+
+              private void setupVpn() {
+                  Builder builder = new Builder();
+                  builder.setSession("DimOS VPN")
+                         .setMtu(1500)
+                         .addAddress("10.0.0.2", 32)
+                         .addRoute("0.0.0.0", 0)
+                         .addDnsServer("8.8.8.8");
+                  vpnInterface = builder.establish();
+              }
+              
+              @Override
+              public void onDestroy() {
+                  try { if (vpnInterface != null) vpnInterface.close(); } catch (Exception e) {}
+                  super.onDestroy();
+              }
+          }
           EOF
 
-          # 4. Манифест
+          # 5. Исправленный AndroidManifest.xml
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.VIBRATE"/>
-              <application android:label="DimOS GodMode" android:theme="@style/Theme.DimOS">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <application android:label="DimOS VPN" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
+                  <service android:name=".VpnXrayService" android:permission="android.permission.BIND_VPN_SERVICE" android:exported="true">
+                      <intent-filter><action android:name="android.net.VpnService" /></intent-filter>
+                  </service>
               </application>
           </manifest>
           EOF
 
-          # 5. Ядро системы (MainActivity.java)
-          cat <<EOF > app/src/main/java/com/dimos/MainActivity.java
-          package com.dimos;
+          # Gradle Wrapper
+          wget -P gradle/wrapper https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar
+          printf "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
+          
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-          import android.app.*;
-          import android.graphics.Color;
-          import android.os.*;
-          import android.view.*;
-          import android.widget.*;
-          import org.json.JSONObject;
-          import java.io.*;
-          import java.text.SimpleDateFormat;
-          import java.util.*;
-
-          public class MainActivity extends Activity {
-              LinearLayout root, desktop;
-              String internalRoot;
-              String sysPass = "1234";
-
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  internalRoot = getFilesDir().getAbsolutePath();
-                  new File(internalRoot + "/apps").mkdirs();
-                  
-                  // Установка встроенных игр
-                  initSystemApps();
-                  showLockScreen();
-              }
-
-              private void initSystemApps() {
-                  File game = new File(internalRoot + "/apps/snake.dim");
-                  try {
-                      if (!game.exists()) {
-                          FileWriter fw = new FileWriter(game);
-                          fw.write("{\"appName\":\"Змейка OS\",\"icon\":\"🐍\",\"script\":\"PRINT: Запуск игры...; JAVA_CODE: START_SNAKE\"}");
-                          fw.close();
-                      }
-                  } catch(Exception e) {}
-              }
-
-              private void showLockScreen() {
-                  setupBase();
-                  TextView t = new TextView(this);
-                  t.setText("DimOS\nLOCKED");
-                  t.setTextSize(40);
-                  t.setTextColor(Color.RED);
-                  t.setGravity(Gravity.CENTER);
-                  root.addView(t);
-
-                  EditText p = new EditText(this);
-                  p.setHint("PASSWORD");
-                  p.setHintTextColor(Color.GRAY);
-                  p.setTextColor(Color.WHITE);
-                  p.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
-                  root.addView(p);
-
-                  Button b = new Button(this);
-                  b.setText("UNLOCK");
-                  b.setOnClickListener(v -> {
-                      if(p.getText().toString().equals(sysPass)) showDesktop();
-                  });
-                  root.addView(b);
-                  setContentView(root);
-              }
-
-              private void showDesktop() {
-                  setupBase();
-                  
-                  // CUSTOM STATUS BAR
-                  LinearLayout sb = new LinearLayout(this);
-                  sb.setBackgroundColor(Color.parseColor("#0A0A0A"));
-                  sb.setPadding(20, 10, 20, 10);
-                  TextView info = new TextView(this);
-                  String time = new SimpleDateFormat("HH:mm").format(new Date());
-                  info.setText(time + "  |  DimOS GodMode  |  System: OK");
-                  info.setTextColor(Color.GREEN);
-                  sb.addView(info);
-                  root.addView(sb);
-
-                  addLabel("Рабочий стол", 24);
-
-                  LinearLayout menu = new LinearLayout(this);
-                  addBtn(menu, "➕ Создать", v -> openEditor());
-                  addBtn(menu, "📂 Файлы", v -> showFiles(internalRoot));
-                  root.addView(menu);
-
-                  desktop = new LinearLayout(this);
-                  desktop.setOrientation(LinearLayout.VERTICAL);
-                  loadApps();
-                  root.addView(desktop);
-
-                  setContentView(root);
-              }
-
-              private void loadApps() {
-                  File[] files = new File(internalRoot + "/apps").listFiles();
-                  if(files != null) {
-                      for(File f : files) {
-                          try {
-                              JSONObject j = new JSONObject(read(f));
-                              Button b = new Button(this);
-                              b.setText(j.getString("icon") + " " + j.getString("appName"));
-                              final String scr = j.getString("script");
-                              b.setOnClickListener(v -> runEngine(scr));
-                              desktop.addView(b);
-                          } catch(Exception e) {}
-                      }
-                  }
-              }
-
-              private void runEngine(String scr) {
-                  for(String c : scr.split(";")) {
-                      String cmd = c.trim();
-                      if(cmd.startsWith("PRINT:")) Toast.makeText(this, cmd.substring(6), Toast.LENGTH_SHORT).show();
-                      if(cmd.startsWith("JAVA_CODE: START_SNAKE")) {
-                          AlertDialog.Builder ad = new AlertDialog.Builder(this);
-                          ad.setTitle("Snake Engine").setMessage("Игра Змейка запущена через Java-модуль DimOS!").show();
-                      }
-                  }
-              }
-
-              private void openEditor() {
-                  setupBase();
-                  EditText ed = new EditText(this);
-                  ed.setHint("Код приложения (JSON)");
-                  ed.setTextColor(Color.GREEN);
-                  ed.setText("{\\n \"appName\":\"App\",\\n \"icon\":\"📦\",\\n \"script\":\"PRINT: Hello World!\"\\n}");
-                  root.addView(ed);
-                  addBtn(root, "💾 Сохранить", v -> {
-                      try {
-                          String name = "app_" + System.currentTimeMillis() + ".dim";
-                          FileWriter fw = new FileWriter(new File(internalRoot + "/apps/" + name));
-                          fw.write(ed.getText().toString());
-                          fw.close();
-                      } catch(Exception e) {}
-                      showDesktop();
-                  });
-                  setContentView(root);
-              }
-
-              private void showFiles(String p) {
-                  setupBase();
-                  addLabel("Путь: " + p.replace(internalRoot, "~"), 14);
-                  File dir = new File(p);
-                  if(!p.equals(internalRoot)) addBtn(root, "⬅ Назад", v -> showFiles(dir.getParent()));
-                  
-                  File[] list = dir.listFiles();
-                  if(list != null) {
-                      for(File f : list) {
-                          addBtn(root, (f.isDirectory() ? "📁 " : "📄 ") + f.getName(), v -> {
-                              if(f.isDirectory()) showFiles(f.getAbsolutePath());
-                          });
-                      }
-                  }
-                  addBtn(root, "🏠 Домой", v -> showDesktop());
-                  setContentView(root);
-              }
-
-              private void setupBase() {
-                  root = new LinearLayout(this);
-                  root.setOrientation(LinearLayout.VERTICAL);
-                  root.setBackgroundColor(Color.BLACK);
-                  root.setPadding(30, 0, 30, 30);
-              }
-
-              private void addLabel(String t, int s) {
-                  TextView tv = new TextView(this); tv.setText(t); tv.setTextSize(s); tv.setTextColor(Color.WHITE); root.addView(tv);
-              }
-
-              private void addBtn(LinearLayout l, String t, View.OnClickListener c) {
-                  Button b = new Button(this); b.setText(t); b.setOnClickListener(c); l.addView(b);
-              }
-
-              private String read(File f) throws IOException {
-                  Scanner s = new Scanner(f).useDelimiter("\\\\Z");
-                  return s.hasNext() ? s.next() : "";
-              }
-          }
-          EOF
-
-      - name: Build DimOS APK
-        run: gradle assembleDebug
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-GodMode-v3
+          name: DimOS-VPN-Update
           path: app/build/outputs/apk/debug/*.apk
