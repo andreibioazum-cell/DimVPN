@@ -1,4 +1,4 @@
-name: DimOS_VPN_GodMode_V6_Fixed
+name: DimOS_VPN_GodMode_V7_FinalFix
 on: [workflow_dispatch, push]
 
 jobs:
@@ -40,13 +40,13 @@ jobs:
                   applicationId "com.dimos.vpn.godmode"
                   minSdk 26
                   targetSdk 34
-                  versionCode 6
-                  versionName "6.0-Background-Fixed"
+                  versionCode 7
+                  versionName "7.0-Stable"
               }
           }
           EOF
 
-          # 2. Манифест (Разрешения для фона и уведомлений)
+          # 2. Манифест (Разрешения для работы в фоне)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -72,12 +72,12 @@ jobs:
           </manifest>
           EOF
 
-          # 3. Движок Xray
+          # 3. Скачивание Xray Core
           wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-android-arm64-v8a.zip
           unzip -o Xray-android-arm64-v8a.zip xray -d app/src/main/assets/
           mv app/src/main/assets/xray app/src/main/assets/xray.so
 
-          # 4. Конфиг Xray (с поддержкой TUN)
+          # 4. Твой конфиг (с добавленным TUN)
           cat <<'EOF' > app/src/main/assets/config.json
           {
             "remarks": "DimVPN ✅",
@@ -95,7 +95,7 @@ jobs:
           }
           EOF
 
-          # 5. MainActivity.java (Интерфейс + запрос на работу в фоне)
+          # 5. MainActivity (Запрос на фон + Интерфейс)
           cat <<EOF > app/src/main/java/com/dimos/vpn/MainActivity.java
           package com.dimos.vpn;
           import android.app.*;
@@ -113,13 +113,12 @@ jobs:
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   
-                  // Запрос на отключение экономии батареи
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                       PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
                       if (!pm.isIgnoringBatteryOptimizations(getPackageName())) {
-                          Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                          intent.setData(Uri.parse("package:" + getPackageName()));
-                          startActivity(intent);
+                          Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                          i.setData(Uri.parse("package:" + getPackageName()));
+                          startActivity(i);
                       }
                   }
 
@@ -155,7 +154,7 @@ jobs:
           }
           EOF
 
-          # 6. VpnXrayService.java (Уведомление и фоновый процесс)
+          # 6. VpnXrayService (Фоновое уведомление и Xray)
           cat <<EOF > app/src/main/java/com/dimos/vpn/VpnXrayService.java
           package com.dimos.vpn;
           import android.app.*;
@@ -188,8 +187,8 @@ jobs:
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                       Notification n = new Notification.Builder(this, CHANNEL_ID)
                           .setContentTitle("DimVPN")
-                          .setContentText("Сервис активен в фоне")
-                          .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
+                          .setContentText("VPN работает в фоне")
+                          .setSmallIcon(android.R.drawable.star_on)
                           .build();
                       startForeground(1, n);
                   }
@@ -222,17 +221,15 @@ jobs:
           }
           EOF
 
-          # 7. Фикс Gradle Wrapper (Экранирование символа $)
+          # 7. Надежный метод установки Gradle (БЕЗ использования символа $)
           wget https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -P gradle/wrapper/
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
-          cat <<'EOF' > gradlew
-          #!/bin/sh
-          exec java -cp "gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "\$@"
-          EOF
-          chmod +x gradlew
+          
+          # Вместо создания gradlew вручную, используем установленный в системе gradle для генерации обертки
+          gradle wrapper --gradle-version 8.2
 
       - name: Build DimVPN
-        run: ./gradlew :app:assembleDebug
+        run: chmod +x gradlew && ./gradlew :app:assembleDebug
 
       - name: Upload
         uses: actions/upload-artifact@v4
