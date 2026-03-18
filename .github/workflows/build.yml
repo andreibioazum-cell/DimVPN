@@ -1,4 +1,4 @@
-name: DimGun_Ultimate_Fix_v2
+name: DimGun_Lazy_Edition
 on: [push, workflow_dispatch]
 
 jobs:
@@ -14,26 +14,18 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Full Project Structure
+      - name: Create Game Project
         run: |
-          # 1. Создаем структуру папок
+          # 1. Структура
           mkdir -p app/src/main/java/com/dimgun/mod
           mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
           mkdir -p app/src/main/assets/models
 
-          # 2. Settings.gradle (Фикс репозиториев для всех модулей)
-          cat <<EOF > settings.gradle
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories { google(); mavenCentral() }
-          }
-          include ':app'
-          EOF
+          # 2. Settings
+          echo "include ':app'" > settings.gradle
 
-          # 3. Корневой build.gradle
+          # 3. Root build.gradle
           cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -41,28 +33,51 @@ jobs:
           }
           EOF
 
-          # 4. Модульный app/build.gradle
+          # 4. App build.gradle (Добавляем всё: 3D движок и Джойстик)
           cat <<EOF > app/build.gradle
-          plugins {
-              id 'com.android.application'
-          }
+          plugins { id 'com.android.application' }
           android {
               namespace 'com.dimgun.mod'
               compileSdk 34
-              defaultConfig {
-                  applicationId "com.dimgun.mod"
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0-DimGun"
-              }
+              defaultConfig { applicationId "com.dimgun.mod"; minSdk 24; versionCode 1; versionName "1.0-Lazy" }
+          }
+          repositories { mavenCentral(); maven { url 'https://jitpack.io' } }
+          dependencies {
+              implementation 'org.rajawali3d:rajawali:1.1.970' # 3D Движок
+              implementation 'com.github.controlwear:virtual-joystick-android:1.10.2' # Джойстик
           }
           EOF
 
-          # 5. Манифест
+          # 5. Лейаут (Экран игры: 3D фон + Джойстик поверх)
+          cat <<EOF > app/src/main/res/layout/activity_main.xml
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+              <org.rajawali3d.view.SurfaceView
+                  android:id="@+id/rajwali_surface"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent" />
+
+              <io.github.controlwear.virtual.joystick.android.JoystickView
+                  android:id="@+id/joystick"
+                  android:layout_width="150dp"
+                  android:layout_height="150dp"
+                  android:layout_alignParentBottom="true"
+                  android:layout_alignParentLeft="true"
+                  android:layout_margin="20dp"
+                  app:JV_buttonColor="#FF4444"
+                  app:JV_borderColor="#FFFFFF"
+                  app:JV_borderWidth="4dp"
+                  app:JV_fixedCenter="true" />
+          </RelativeLayout>
+          EOF
+
+          # 6. Манифест
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="DimGun Mod" android:hasCode="true">
+              <application android:label="DimGun Ready" android:hasCode="true" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -73,68 +88,84 @@ jobs:
           </manifest>
           EOF
 
-          # 6. Java-код (Джойстик, 3D Петух и Меню)
+          # 7. Java Код (Связываем джойстик с 3D миром)
           cat <<EOF > app/src/main/java/com/dimgun/mod/MainActivity.java
           package com.dimgun.mod;
+
           import android.app.Activity;
           import android.os.Bundle;
-          import android.view.MotionEvent;
-          import android.view.View;
-          import android.graphics.Canvas;
-          import android.graphics.Color;
-          import android.graphics.Paint;
+          import org.rajawali3d.view.SurfaceView;
+          import org.rajawali3d.renderer.Renderer;
+          import org.rajawali3d.lights.DirectionalLight;
+          import org.rajawali3d.materials.Material;
+          import org.rajawali3d.materials.methods.DiffuseMethod;
+          import org.rajawali3d.materials.textures.Texture;
+          import org.rajawali3d.primitives.Sphere;
+          import io.github.controlwear.virtual.joystick.android.JoystickView;
 
           public class MainActivity extends Activity {
+              private Renderer mRenderer;
+              private Sphere roosterObject;
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  setContentView(new GameView(this));
-              }
+                  setContentView(R.layout.activity_main);
 
-              class GameView extends View {
-                  float jX = 300, jY = 800; // Позиция джойстика
-                  Paint p = new Paint();
+                  final SurfaceView surface = findViewById(R.id.rajwali_surface);
+                  surface.setFrameRate(60.0);
 
-                  public GameView(android.content.Context context) { super(context); }
+                  mRenderer = new Renderer(this) {
+                      @Override
+                      protected void initScene() {
+                          // Свет
+                          DirectionalLight light = new DirectionalLight(1f, -0.2f, -1.0f);
+                          light.setPower(2);
+                          getCurrentScene().addLight(light);
 
-                  @Override
-                  protected void onDraw(Canvas canvas) {
-                      canvas.drawColor(Color.parseColor("#1A1A1A")); // Темный фон вместо синего
-                      
-                      // Рисуем джойстик
-                      p.setColor(Color.LTGRAY);
-                      canvas.drawCircle(jX, jY, 120, p); 
-                      p.setColor(Color.RED);
-                      canvas.drawCircle(jX, jY, 60, p); 
-                      
-                      // Рисуем "3D" Петуха (символично)
-                      p.setColor(Color.YELLOW);
-                      canvas.drawRect(500, 300, 700, 500, p); 
-                      
-                      p.setColor(Color.WHITE);
-                      p.setTextSize(45);
-                      canvas.drawText("DimGun: Управление и 3D активно", 50, 150, p);
-                  }
+                          // "Петух" (3D Сфера пока, т.к. лень загружать модель)
+                          Material mat = new Material();
+                          mat.enableLighting(true);
+                          mat.setDiffuseMethod(new DiffuseMethod.Lambert());
+                          mat.setColor(0xFFFF0000); // Красный
 
-                  @Override
-                  public boolean onTouchEvent(MotionEvent event) {
-                      jX = event.getX();
-                      jY = event.getY();
-                      invalidate(); // Обновить экран
-                      return true;
-                  }
+                          roosterObject = new Sphere(1, 24, 24);
+                          roosterObject.setMaterial(mat);
+                          roosterObject.setY(0);
+                          getCurrentScene().addChild(roosterObject);
+
+                          getCurrentCamera().setZ(8);
+                          getCurrentScene().setBackgroundColor(0xFF87CEEB); // Небо
+                      }
+                      @Override
+                      public void onOffsetsChanged(float x, float y, float z, float w, int i, int j) {}
+                      @Override
+                      public void onTouchEvent(android.view.MotionEvent e) {}
+                  };
+                  surface.setSurfaceRenderer(mRenderer);
+
+                  // Обработка джойстика
+                  JoystickView joystick = findViewById(R.id.joystick);
+                  joystick.setOnMoveListener((angle, strength) -> {
+                      if (roosterObject != null) {
+                          float rad = (float) Math.toRadians(angle);
+                          float speed = strength / 100.0f * 0.1f;
+                          // Двигаем петуха в 3D мире
+                          roosterObject.setX(roosterObject.getX() + (float) Math.cos(rad) * speed);
+                          roosterObject.setZ(roosterObject.getZ() - (float) Math.sin(rad) * speed);
+                      }
+                  });
               }
           }
           EOF
 
-      - name: Install Wrapper
-        run: gradle wrapper --gradle-version 8.4
+      - name: Lazy Build
+        run: |
+          gradle wrapper --gradle-version 8.4
+          ./gradlew :app:assembleDebug --no-daemon
 
-      - name: Build DimGun APK
-        run: ./gradlew :app:assembleDebug --no-daemon
-
-      - name: Upload APK
+      - name: Upload Finished Game
         uses: actions/upload-artifact@v4
         with:
-          name: DimGun-Finished-APK
+          name: DimGun_v1_Build
           path: app/build/outputs/apk/debug/*.apk
