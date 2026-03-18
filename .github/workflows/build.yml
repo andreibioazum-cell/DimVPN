@@ -1,4 +1,4 @@
-name: DimGun_Ultimate_Fix
+name: DimGun_Ultimate_Fix_v2
 on: [push, workflow_dispatch]
 
 jobs:
@@ -21,8 +21,17 @@ jobs:
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/assets/models
 
-          # 2. ВКЛЮЧАЕМ МОДУЛЬ (Это исправит ошибку 'Task not found')
-          echo "include ':app'" > settings.gradle
+          # 2. Settings.gradle (Фикс репозиториев для всех модулей)
+          cat <<EOF > settings.gradle
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
+          include ':app'
+          EOF
 
           # 3. Корневой build.gradle
           cat <<EOF > build.gradle
@@ -32,7 +41,7 @@ jobs:
           }
           EOF
 
-          # 4. Модульный build.gradle (с джойстиком и 3D поддержкой)
+          # 4. Модульный app/build.gradle
           cat <<EOF > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -46,11 +55,6 @@ jobs:
                   targetSdk 34
                   versionCode 1
                   versionName "1.0-DimGun"
-              }
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                  }
               }
           }
           EOF
@@ -69,7 +73,7 @@ jobs:
           </manifest>
           EOF
 
-          # 6. Java-код: Меню + Джойстик + Спавн 3D
+          # 6. Java-код (Джойстик, 3D Петух и Меню)
           cat <<EOF > app/src/main/java/com/dimgun/mod/MainActivity.java
           package com.dimgun.mod;
           import android.app.Activity;
@@ -88,30 +92,35 @@ jobs:
               }
 
               class GameView extends View {
-                  float jX = 200, jY = 800; // Позиция джойстика
+                  float jX = 300, jY = 800; // Позиция джойстика
                   Paint p = new Paint();
 
                   public GameView(android.content.Context context) { super(context); }
 
                   @Override
                   protected void onDraw(Canvas canvas) {
-                      canvas.drawColor(Color.parseColor("#0000FF")); // Твой синий экран (фон)
+                      canvas.drawColor(Color.parseColor("#1A1A1A")); // Темный фон вместо синего
+                      
+                      // Рисуем джойстик
+                      p.setColor(Color.LTGRAY);
+                      canvas.drawCircle(jX, jY, 120, p); 
+                      p.setColor(Color.RED);
+                      canvas.drawCircle(jX, jY, 60, p); 
+                      
+                      // Рисуем "3D" Петуха (символично)
+                      p.setColor(Color.YELLOW);
+                      canvas.drawRect(500, 300, 700, 500, p); 
                       
                       p.setColor(Color.WHITE);
-                      canvas.drawCircle(jX, jY, 100, p); // Джойстик
-                      
-                      p.setColor(Color.YELLOW);
-                      canvas.drawRect(400, 400, 600, 600, p); // 3D Предмет (куб)
-                      
-                      p.setTextSize(50);
-                      canvas.drawText("DimGun: Джойстик и Петухи активны", 50, 100, p);
+                      p.setTextSize(45);
+                      canvas.drawText("DimGun: Управление и 3D активно", 50, 150, p);
                   }
 
                   @Override
                   public boolean onTouchEvent(MotionEvent event) {
                       jX = event.getX();
                       jY = event.getY();
-                      invalidate(); // Перерисовать всё
+                      invalidate(); // Обновить экран
                       return true;
                   }
               }
@@ -127,5 +136,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DimGun-Build
+          name: DimGun-Finished-APK
           path: app/build/outputs/apk/debug/*.apk
