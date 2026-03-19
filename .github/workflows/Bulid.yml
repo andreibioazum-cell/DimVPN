@@ -1,4 +1,4 @@
-name: Fabric_Mod_EuEu_V6
+name: Fabric_Mod_Emeraldball_RootTexture_V10
 on: [workflow_dispatch, push]
 
 jobs:
@@ -19,102 +19,100 @@ jobs:
         with:
           gradle-version: '8.10'
 
-      - name: Initialize Project
+      - name: Initialize Project Structure
         run: |
           mkdir -p src/main/java/com/dimos/mod/mixin
           mkdir -p src/main/java/com/dimos/mod/item
           mkdir -p src/main/resources/assets/dimos/lang
           mkdir -p src/main/resources/assets/dimos/models/item
+          mkdir -p src/main/resources/assets/dimos/textures/item # Папка для текстур
+          mkdir -p src/main/resources/data/dimos/recipe
 
-          # 1. Settings (Добавлены стабильные репозитории)
-          cat <<EOF > settings.gradle
-          pluginManagement {
-              repositories {
-                  maven { url = "https://maven.fabricmc.net/" }
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          rootProject.name = 'dimos-mod'
-          EOF
+          # --- 1. КОПИРОВАНИЕ ТВОЕЙ ТЕКСТУРЫ ---
+          # Мы берем файл fireballhh.png из корня репозитория (куда ты его загрузил)
+          # и копируем его по правильному пути для мода.
+          # Если файла fireballhh.png в корне нет, сборка упадет на этом шаге.
+          if [ -f "fireballhh.png" ]; then
+              cp fireballhh.png src/main/resources/assets/dimos/textures/item/emeraldball.png
+          else
+              echo "Ошибка: Файл fireballhh.png не найден в корне репозитория!"
+              exit 1
+          fi
 
-          # 2. Build.gradle (Обновлены версии на более стабильные)
+          # 2. Settings & Build.gradle (как в прошлый раз)
+          echo "pluginManagement { repositories { maven { url = 'https://maven.fabricmc.net/' }; mavenCentral(); gradlePluginPortal() } }; rootProject.name = 'dimos-mod'" > settings.gradle
           cat <<EOF > build.gradle
-          plugins {
-              id 'fabric-loom' version '1.7-SNAPSHOT'
-          }
+          plugins { id 'fabric-loom' version '1.7-SNAPSHOT' }
           version = '1.0.0'
           group = 'com.dimos.mod'
-
-          repositories { 
-              mavenCentral()
-              maven { url = "https://maven.fabricmc.net/" }
-              maven { url = "https://maven.terraformersmc.com/releases/" }
-          }
-
+          repositories { mavenCentral(); maven { url = "https://maven.fabricmc.net/" } }
           dependencies {
               minecraft "com.mojang:minecraft:1.21.1"
               mappings "net.fabricmc:yarn:1.21.1+build.3:v2"
               modImplementation "net.fabricmc:fabric-loader:0.16.5"
-              // Заменил версию API на стабильную сборку для 1.21.1
               modImplementation "net.fabricmc.fabric-api:fabric-api:0.102.1+1.21.1"
           }
           EOF
 
           # 3. Fabric.mod.json
           cat <<EOF > src/main/resources/fabric.mod.json
-          {
-            "schemaVersion": 1,
-            "id": "dimos",
-            "version": "1.0.0",
-            "name": "DimOS Mod",
-            "entrypoints": { "main": ["com.dimos.mod.DimMod"] },
-            "mixins": ["dimos.mixins.json"],
-            "depends": { "fabricloader": ">=0.16.5", "minecraft": "~1.21.1" }
-          }
+          { "schemaVersion": 1, "id": "dimos", "version": "1.0.0", "name": "DimOS Mod", "entrypoints": { "main": ["com.dimos.mod.DimMod"] }, "mixins": ["dimos.mixins.json"], "depends": { "fabricloader": ">=0.16.5", "minecraft": "~1.21.1" } }
           EOF
 
-          # 4. Mixins Config
-          cat <<EOF > src/main/resources/dimos.mixins.json
-          {
-            "required": true,
-            "package": "com.dimos.mod.mixin",
-            "compatibilityLevel": "JAVA_21",
-            "mixins": ["ExampleMixin"],
-            "injectors": { "defaultRequire": 1 }
-          }
-          EOF
-
-          # 5. EuEuItem.java
-          cat <<EOF > src/main/java/com/dimos/mod/item/EuEuItem.java
+          # 4. EmeraldballItem.java (Логика зарядки)
+          cat <<EOF > src/main/java/com/dimos/mod/item/EmeraldballItem.java
           package com.dimos.mod.item;
-          import net.minecraft.entity.EntityType;
-          import net.minecraft.entity.LightningEntity;
+          import net.minecraft.entity.LivingEntity;
           import net.minecraft.entity.player.PlayerEntity;
           import net.minecraft.item.Item;
           import net.minecraft.item.ItemStack;
           import net.minecraft.util.Hand;
           import net.minecraft.util.TypedActionResult;
+          import net.minecraft.util.UseAction;
           import net.minecraft.world.World;
+          import net.minecraft.world.World.ExplosionSourceType;
+          import net.minecraft.text.Text;
 
-          public class EuEuItem extends Item {
-              public EuEuItem(Settings settings) { super(settings); }
+          public class EmeraldballItem extends Item {
+              public EmeraldballItem(Settings settings) { super(settings); }
+
+              @Override
+              public UseAction getUseAction(ItemStack stack) { return UseAction.BOW; }
+
+              @Override
+              public int getMaxUseTime(ItemStack stack, LivingEntity user) { return 72000; }
+
               @Override
               public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-                  if (!world.isClient) {
-                      LightningEntity bolt = new LightningEntity(EntityType.LIGHTNING_BOLT, world);
-                      bolt.refreshPositionAfterTeleport(user.getX(), user.getY(), user.getZ());
-                      world.spawnEntity(bolt);
+                  user.setCurrentHand(hand);
+                  return TypedActionResult.consume(user.getStackInHand(hand));
+              }
+
+              @Override
+              public void onStoppedUsing(ItemStack stack, World world, LivingEntity user, int remainingUseTicks) {
+                  if (!world.isClient && user instanceof PlayerEntity player) {
+                      int duration = this.getMaxUseTime(stack, user) - remainingUseTicks;
+                      float seconds = duration / 20.0f;
+                      float power = 2.0f;
+                      
+                      if (seconds >= 7.0f) {
+                          power = 50.0f; // Шот любого моба
+                          player.sendMessage(Text.literal("§a§lULTRA BLAST!"), true);
+                      } else if (seconds >= 3.0f) {
+                          power = 8.0f; // Сильный взрыв
+                      }
+
+                      world.createExplosion(player, player.getX(), player.getY(), player.getZ(), power, ExplosionSourceType.NONE);
+                      player.getItemCooldownManager().set(this, 40); // Кулдаун 2 сек
                   }
-                  return TypedActionResult.success(user.getStackInHand(hand));
               }
           }
           EOF
 
-          # 6. DimMod.java
+          # 5. DimMod.java
           cat <<EOF > src/main/java/com/dimos/mod/DimMod.java
           package com.dimos.mod;
-          import com.dimos.mod.item.EuEuItem;
+          import com.dimos.mod.item.EmeraldballItem;
           import net.fabricmc.api.ModInitializer;
           import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
           import net.minecraft.item.Item;
@@ -124,36 +122,36 @@ jobs:
           import net.minecraft.util.Identifier;
 
           public class DimMod implements ModInitializer {
-              public static final Item EU_EU = new EuEuItem(new Item.Settings().maxCount(1));
+              public static final Item EMERALD_BALL = new EmeraldballItem(new Item.Settings().maxCount(16));
               @Override
               public void onInitialize() {
-                  Registry.register(Registries.ITEM, Identifier.of("dimos", "eu_eu"), EU_EU);
-                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(content -> content.add(EU_EU));
+                  Registry.register(Registries.ITEM, Identifier.of("dimos", "emeraldball"), EMERALD_BALL);
+                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(content -> content.add(EMERALD_BALL));
               }
           }
           EOF
 
-          # 7. Mixin
-          cat <<EOF > src/main/java/com/dimos/mod/mixin/ExampleMixin.java
-          package com.dimos.mod.mixin;
-          import net.minecraft.client.gui.screen.TitleScreen;
-          import org.spongepowered.asm.mixin.Mixin;
-          import org.spongepowered.asm.mixin.injection.At;
-          import org.spongepowered.asm.mixin.injection.Inject;
-          import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+          # 6. Рецепт крафта
+          cat <<EOF > src/main/resources/data/dimos/recipe/emeraldball.json
+          { "type": "minecraft:crafting_shapeless", "ingredients": [ { "item": "minecraft:fire_charge" }, { "item": "minecraft:emerald" } ], "result": { "id": "dimos:emeraldball", "count": 1 } }
+          EOF
 
-          @Mixin(TitleScreen.class)
-          public class ExampleMixin {
-              @Inject(at = @At("HEAD"), method = "init")
-              private void init(CallbackInfo info) {
-                  System.out.println("DimOS Mod: Mixin Active!");
-              }
+          # 7. ОБНОВЛЕННАЯ МОДЕЛЬ (Указывает на нашу текстуру)
+          cat <<EOF > src/main/resources/assets/dimos/models/item/emeraldball.json
+          {
+            "parent": "minecraft:item/generated",
+            "textures": {
+              "layer0": "dimos:item/emeraldball" # Берем assets/dimos/textures/item/emeraldball.png
+            }
           }
           EOF
 
-          # 8. Lang & Models
-          echo '{"item.dimos.eu_eu": "Эу Эу"}' > src/main/resources/assets/dimos/lang/ru_ru.json
-          echo '{"parent": "minecraft:item/generated", "textures": {"layer0": "minecraft:item/blaze_rod"}}' > src/main/resources/assets/dimos/models/item/eu_eu.json
+          # 8. Локализация и Mixins
+          echo '{"item.dimos.emeraldball": "Emeraldball"}' > src/main/resources/assets/dimos/lang/en_us.json
+          echo '{"item.dimos.emeraldball": "Изумрудный шар"}' > src/main/resources/assets/dimos/lang/ru_ru.json
+          echo '{"required": true, "package": "com.dimos.mod.mixin", "compatibilityLevel": "JAVA_21", "mixins": ["ExampleMixin"]}' > src/main/resources/dimos.mixins.json
+          # Пустой миксин для галочки
+          echo 'package com.dimos.mod.mixin; import net.minecraft.client.gui.screen.TitleScreen; import org.spongepowered.asm.mixin.Mixin; @Mixin(TitleScreen.class) public class ExampleMixin {}' > src/main/java/com/dimos/mod/mixin/ExampleMixin.java
 
       - name: Build Mod
         run: gradle build --no-daemon
@@ -161,5 +159,5 @@ jobs:
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-EuEu-V6-Stable
+          name: DimOS-Emeraldball-RootTexture-V10
           path: build/libs/*.jar
