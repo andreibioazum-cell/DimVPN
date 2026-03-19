@@ -1,4 +1,4 @@
-name: Fabric_Mod_EuEu_V5
+name: Fabric_Mod_EuEu_V6
 on: [workflow_dispatch, push]
 
 jobs:
@@ -14,7 +14,6 @@ jobs:
           java-version: '21'
           distribution: 'microsoft'
 
-      # Устанавливаем конкретно 8.10, так как она поддерживает Java 21
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
@@ -27,7 +26,7 @@ jobs:
           mkdir -p src/main/resources/assets/dimos/lang
           mkdir -p src/main/resources/assets/dimos/models/item
 
-          # 1. Settings
+          # 1. Settings (Добавлены стабильные репозитории)
           cat <<EOF > settings.gradle
           pluginManagement {
               repositories {
@@ -39,19 +38,26 @@ jobs:
           rootProject.name = 'dimos-mod'
           EOF
 
-          # 2. Build.gradle (Обновлен под Gradle 8.10)
+          # 2. Build.gradle (Обновлены версии на более стабильные)
           cat <<EOF > build.gradle
           plugins {
               id 'fabric-loom' version '1.7-SNAPSHOT'
           }
           version = '1.0.0'
           group = 'com.dimos.mod'
-          repositories { mavenCentral() }
+
+          repositories { 
+              mavenCentral()
+              maven { url = "https://maven.fabricmc.net/" }
+              maven { url = "https://maven.terraformersmc.com/releases/" }
+          }
+
           dependencies {
               minecraft "com.mojang:minecraft:1.21.1"
               mappings "net.fabricmc:yarn:1.21.1+build.3:v2"
-              modImplementation "net.fabricmc:fabric-loader:0.15.11"
-              modImplementation "net.fabricmc.fabric-api:fabric-api:0.100.7+1.21.1"
+              modImplementation "net.fabricmc:fabric-loader:0.16.5"
+              // Заменил версию API на стабильную сборку для 1.21.1
+              modImplementation "net.fabricmc.fabric-api:fabric-api:0.102.1+1.21.1"
           }
           EOF
 
@@ -64,7 +70,7 @@ jobs:
             "name": "DimOS Mod",
             "entrypoints": { "main": ["com.dimos.mod.DimMod"] },
             "mixins": ["dimos.mixins.json"],
-            "depends": { "fabricloader": ">=0.15.11", "minecraft": "~1.21.1" }
+            "depends": { "fabricloader": ">=0.16.5", "minecraft": "~1.21.1" }
           }
           EOF
 
@@ -127,7 +133,7 @@ jobs:
           }
           EOF
 
-          # 7. Mixin (TitleScreen)
+          # 7. Mixin
           cat <<EOF > src/main/java/com/dimos/mod/mixin/ExampleMixin.java
           package com.dimos.mod.mixin;
           import net.minecraft.client.gui.screen.TitleScreen;
@@ -140,21 +146,20 @@ jobs:
           public class ExampleMixin {
               @Inject(at = @At("HEAD"), method = "init")
               private void init(CallbackInfo info) {
-                  System.out.println("DimOS GodMode Active!");
+                  System.out.println("DimOS Mod: Mixin Active!");
               }
           }
           EOF
 
-          # 8. Lang & Model
+          # 8. Lang & Models
           echo '{"item.dimos.eu_eu": "Эу Эу"}' > src/main/resources/assets/dimos/lang/ru_ru.json
           echo '{"parent": "minecraft:item/generated", "textures": {"layer0": "minecraft:item/blaze_rod"}}' > src/main/resources/assets/dimos/models/item/eu_eu.json
 
       - name: Build Mod
-        # Явно запускаем через установленную версию
         run: gradle build --no-daemon
 
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-EuEu-V5
+          name: DimOS-EuEu-V6-Stable
           path: build/libs/*.jar
