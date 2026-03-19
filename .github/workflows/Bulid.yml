@@ -1,4 +1,4 @@
-name: Fabric_Mod_EuEu_V4
+name: Fabric_Mod_EuEu_V5
 on: [workflow_dispatch, push]
 
 jobs:
@@ -14,11 +14,11 @@ jobs:
           java-version: '21'
           distribution: 'microsoft'
 
-      # Явный выбор версии Gradle, чтобы избежать 9.4
+      # Устанавливаем конкретно 8.10, так как она поддерживает Java 21
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.10
+          gradle-version: '8.10'
 
       - name: Initialize Project
         run: |
@@ -39,7 +39,7 @@ jobs:
           rootProject.name = 'dimos-mod'
           EOF
 
-          # 2. Build.gradle
+          # 2. Build.gradle (Обновлен под Gradle 8.10)
           cat <<EOF > build.gradle
           plugins {
               id 'fabric-loom' version '1.7-SNAPSHOT'
@@ -127,7 +127,7 @@ jobs:
           }
           EOF
 
-          # 7. Mixin
+          # 7. Mixin (TitleScreen)
           cat <<EOF > src/main/java/com/dimos/mod/mixin/ExampleMixin.java
           package com.dimos.mod.mixin;
           import net.minecraft.client.gui.screen.TitleScreen;
@@ -140,7 +140,7 @@ jobs:
           public class ExampleMixin {
               @Inject(at = @At("HEAD"), method = "init")
               private void init(CallbackInfo info) {
-                  System.out.println("DimOS Mod: Mixin Active!");
+                  System.out.println("DimOS GodMode Active!");
               }
           }
           EOF
@@ -150,11 +150,11 @@ jobs:
           echo '{"parent": "minecraft:item/generated", "textures": {"layer0": "minecraft:item/blaze_rod"}}' > src/main/resources/assets/dimos/models/item/eu_eu.json
 
       - name: Build Mod
-        # Используем системный gradle 8.10, который мы установили в шаге Setup Gradle
+        # Явно запускаем через установленную версию
         run: gradle build --no-daemon
 
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-EuEu-Final
+          name: DimOS-EuEu-V5
           path: build/libs/*.jar
