@@ -1,4 +1,4 @@
-name: Fabric_Mod_EuEu_V3
+name: Fabric_Mod_EuEu_V4
 on: [workflow_dispatch, push]
 
 jobs:
@@ -14,15 +14,20 @@ jobs:
           java-version: '21'
           distribution: 'microsoft'
 
+      # Явный выбор версии Gradle, чтобы избежать 9.4
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.10
+
       - name: Initialize Project
         run: |
           mkdir -p src/main/java/com/dimos/mod/mixin
           mkdir -p src/main/java/com/dimos/mod/item
           mkdir -p src/main/resources/assets/dimos/lang
           mkdir -p src/main/resources/assets/dimos/models/item
-          mkdir -p gradle/wrapper
 
-          # 1. Settings (с правильными репозиториями)
+          # 1. Settings
           cat <<EOF > settings.gradle
           pluginManagement {
               repositories {
@@ -74,7 +79,7 @@ jobs:
           }
           EOF
 
-          # 5. EuEuItem.java (Логика молнии)
+          # 5. EuEuItem.java
           cat <<EOF > src/main/java/com/dimos/mod/item/EuEuItem.java
           package com.dimos.mod.item;
           import net.minecraft.entity.EntityType;
@@ -122,7 +127,7 @@ jobs:
           }
           EOF
 
-          # 7. ExampleMixin.java
+          # 7. Mixin
           cat <<EOF > src/main/java/com/dimos/mod/mixin/ExampleMixin.java
           package com.dimos.mod.mixin;
           import net.minecraft.client.gui.screen.TitleScreen;
@@ -135,25 +140,21 @@ jobs:
           public class ExampleMixin {
               @Inject(at = @At("HEAD"), method = "init")
               private void init(CallbackInfo info) {
-                  System.out.println("DimOS GodMode Active!");
+                  System.out.println("DimOS Mod: Mixin Active!");
               }
           }
           EOF
 
-          # 8. Lang & Models
+          # 8. Lang & Model
           echo '{"item.dimos.eu_eu": "Эу Эу"}' > src/main/resources/assets/dimos/lang/ru_ru.json
           echo '{"parent": "minecraft:item/generated", "textures": {"layer0": "minecraft:item/blaze_rod"}}' > src/main/resources/assets/dimos/models/item/eu_eu.json
 
-          # 9. СТРОГИЙ ФИКС GRADLE (Установка 8.10)
-          gradle wrapper --gradle-version 8.10
-
       - name: Build Mod
-        run: |
-          chmod +x gradlew
-          ./gradlew build --no-daemon
+        # Используем системный gradle 8.10, который мы установили в шаге Setup Gradle
+        run: gradle build --no-daemon
 
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-EuEu-Mod
+          name: DimOS-EuEu-Final
           path: build/libs/*.jar
