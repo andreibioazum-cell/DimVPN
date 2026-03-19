@@ -1,4 +1,4 @@
-name: Native_Roblox_Build_v4
+name: Native_Roblox_Final_Fix
 on: [workflow_dispatch, push]
 
 jobs:
@@ -14,13 +14,12 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Native Project
+      - name: Create Native Engine
         run: |
           mkdir -p app/src/main/java/com/dimos/game
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/layout
-
-          # 1. Root Build Files
+          
+          # 1. Файлы сборки (Минималистичные для стабильности)
           echo "include ':app'" > settings.gradle
           
           cat <<EOF > build.gradle
@@ -33,7 +32,6 @@ jobs:
           }
           EOF
 
-          # 2. App Module Build (Fixing MultiDex)
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -41,21 +39,18 @@ jobs:
               compileSdk 34
               defaultConfig {
                   applicationId "com.dimos.roblox.native"
-                  minSdk 21
+                  minSdk 24
                   targetSdk 34
-                  versionCode 4
-                  versionName "4.0-Native"
-                  multiDexEnabled true
+                  versionCode 5
+                  versionName "5.0-Native-Fix"
               }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
-              implementation 'androidx.multidex:multidex:2.0.1'
           }
           EOF
 
-          # 3. Android Manifest (Fullscreen + Landscape)
+          # 2. Манифест (Ландшафт и Полный экран)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application android:label="Roblox Native" android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
@@ -69,39 +64,34 @@ jobs:
           </manifest>
           EOF
 
-          # 4. Native 3D Engine Core (Java)
+          # 3. 3D Рендерер (Замена Three.js)
           cat <<EOF > app/src/main/java/com/dimos/game/GameRenderer.java
           package com.dimos.game;
           import android.opengl.GLES20;
           import android.opengl.GLSurfaceView;
-          import android.opengl.Matrix;
           import javax.microedition.khronos.egl.EGLConfig;
           import javax.microedition.khronos.opengles.GL10;
 
           public class GameRenderer implements GLSurfaceView.Renderer {
-              private final float[] vPMatrix = new float[16];
-              private final float[] projMatrix = new float[16];
-              private final float[] vMatrix = new float[16];
-
-              public void onSurfaceCreated(GL10 unused, EGLConfig config) {
-                  GLES20.glClearColor(0.1f, 0.2f, 0.4f, 1.0f); // Твой цвет неба
+              @Override
+              public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+                  // Цвет фона из твоего CSS (темно-синий градиент)
+                  GLES20.glClearColor(0.05f, 0.08f, 0.15f, 1.0f);
               }
 
-              public void onDrawFrame(GL10 unused) {
-                  GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-                  Matrix.setLookAtM(vMatrix, 0, 0, 0, -5, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
-                  Matrix.multiplyMM(vPMatrix, 0, projMatrix, 0, vMatrix, 0);
-              }
-
-              public void onSurfaceChanged(GL10 unused, int width, int height) {
+              @Override
+              public void onSurfaceChanged(GL10 gl, int width, int height) {
                   GLES20.glViewport(0, 0, width, height);
-                  float ratio = (float) width / height;
-                  Matrix.frustumM(projMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
+              }
+
+              @Override
+              public void onDrawFrame(GL10 gl) {
+                  GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
               }
           }
           EOF
 
-          # 5. Main Activity & Roblox UI (Java)
+          # 4. Главный экран и UI (Замена HTML/CSS/JS)
           cat <<EOF > app/src/main/java/com/dimos/game/MainActivity.java
           package com.dimos.game;
           import android.app.Activity;
@@ -110,81 +100,73 @@ jobs:
           import android.view.*;
           import android.widget.*;
           import android.graphics.Color;
-          import android.graphics.Typeface;
+          import android.graphics.drawable.GradientDrawable;
 
           public class MainActivity extends Activity {
-              private GLSurfaceView gLView;
-
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   
-                  gLView = new GLSurfaceView(this);
-                  gLView.setEGLContextClientVersion(2);
-                  gLView.setRenderer(new GameRenderer());
+                  // 3D Слой
+                  GLSurfaceView glView = new GLSurfaceView(this);
+                  glView.setEGLContextClientVersion(2);
+                  glView.setRenderer(new GameRenderer());
 
-                  FrameLayout root = new FrameLayout(this);
-                  root.addView(gLView);
+                  // UI Слой
+                  FrameLayout uiRoot = new FrameLayout(this);
+                  uiRoot.addView(glView);
 
-                  // ----- ВЕРХНЯЯ ПАНЕЛЬ (Roblox Style) -----
-                  RelativeLayout header = new RelativeLayout(this);
-                  header.setBackgroundColor(Color.parseColor("#80000000"));
-                  header.setPadding(30, 15, 30, 15);
-                  
+                  // Робуксы (Верхняя панель)
                   TextView robux = new TextView(this);
                   robux.setText("💎 15,847");
                   robux.setTextColor(Color.parseColor("#22C55E"));
-                  robux.setTypeface(null, Typeface.BOLD);
-                  robux.setTextSize(18);
-                  
-                  header.addView(robux);
-                  root.addView(header, new FrameLayout.LayoutParams(-1, 120));
+                  robux.setTextSize(20);
+                  robux.setPadding(40, 20, 0, 0);
+                  uiRoot.addView(robux);
 
-                  // ----- ДЖОЙСТИК (Нативный) -----
-                  View joyBase = new View(this);
-                  joyBase.setBackgroundResource(android.R.drawable.presence_invisible); // Заглушка
-                  GradientDrawable shape = new GradientDrawable();
-                  shape.setShape(GradientDrawable.OVAL);
-                  shape.setColor(Color.parseColor("#66FFFFFF"));
-                  joyBase.setBackground(shape);
-                  
-                  FrameLayout.LayoutParams jp = new FrameLayout.LayoutParams(250, 250);
-                  jp.gravity = Gravity.BOTTOM | Gravity.LEFT;
-                  jp.setMargins(80, 0, 0, 80);
-                  root.addView(joyBase, jp);
+                  // Кнопка Чат (Справа вверху)
+                  Button chat = new Button(this);
+                  chat.setText("💬");
+                  chat.setBackgroundColor(Color.TRANSPARENT);
+                  FrameLayout.LayoutParams chatParams = new FrameLayout.LayoutParams(150, 150);
+                  chatParams.gravity = Gravity.TOP | Gravity.RIGHT;
+                  uiRoot.addView(chat, chatParams);
 
-                  // ----- КНОПКА ПРЫЖКА -----
+                  // Джойстик (Замена твоего JS джойстика)
+                  View joystick = new View(this);
+                  GradientDrawable circle = new GradientDrawable();
+                  circle.setShape(GradientDrawable.OVAL);
+                  circle.setColor(Color.argb(100, 255, 255, 255));
+                  joystick.setBackground(circle);
+                  FrameLayout.LayoutParams joyParams = new FrameLayout.LayoutParams(250, 250);
+                  joyParams.gravity = Gravity.BOTTOM | Gravity.LEFT;
+                  joyParams.setMargins(100, 0, 0, 100);
+                  uiRoot.addView(joystick, joyParams);
+
+                  // Кнопка прыжка (Справа внизу)
                   Button jump = new Button(this);
                   jump.setText("⬆");
                   jump.setTextSize(30);
                   jump.setTextColor(Color.WHITE);
-                  jump.setBackgroundResource(android.R.drawable.btn_default);
-                  
-                  FrameLayout.LayoutParams jlp = new FrameLayout.LayoutParams(180, 180);
-                  jlp.gravity = Gravity.BOTTOM | Gravity.RIGHT;
-                  jlp.setMargins(0, 0, 80, 80);
-                  root.addView(jump, jlp);
+                  GradientDrawable btnShape = new GradientDrawable();
+                  btnShape.setShape(GradientDrawable.OVAL);
+                  btnShape.setColor(Color.argb(120, 0, 0, 0));
+                  jump.setBackground(btnShape);
+                  FrameLayout.LayoutParams jumpParams = new FrameLayout.LayoutParams(200, 200);
+                  jumpParams.gravity = Gravity.BOTTOM | Gravity.RIGHT;
+                  jumpParams.setMargins(0, 0, 100, 100);
+                  uiRoot.addView(jump, jumpParams);
 
-                  // ----- ЧАТ КНОПКА -----
-                  TextView chatBtn = new TextView(this);
-                  chatBtn.setText("💬");
-                  chatBtn.setTextSize(25);
-                  chatBtn.setPadding(20,20,20,20);
-                  FrameLayout.LayoutParams clp = new FrameLayout.LayoutParams(-2, -2);
-                  clp.gravity = Gravity.TOP | Gravity.RIGHT;
-                  clp.setMargins(0, 20, 30, 0);
-                  root.addView(chatBtn, clp);
-
-                  setContentView(root);
+                  setContentView(uiRoot);
               }
           }
           EOF
 
-      - name: Build Global APK
+      - name: Build APK
         run: gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Roblox-Native-Alpha
+          name: Roblox-Native-Fixed
           path: app/build/outputs/apk/debug/*.apk
