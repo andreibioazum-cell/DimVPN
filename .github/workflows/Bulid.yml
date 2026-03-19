@@ -1,4 +1,4 @@
-name: Native_Roblox_Final_Fix
+name: Fabric_Mod_EuEu_Build
 on: [workflow_dispatch, push]
 
 jobs:
@@ -8,165 +8,149 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: '21'
+          distribution: 'microsoft'
 
-      - name: Create Native Engine
+      - name: Initialize Project
         run: |
-          mkdir -p app/src/main/java/com/dimos/game
-          mkdir -p app/src/main/res/values
-          
-          # 1. Файлы сборки (Минималистичные для стабильности)
-          echo "include ':app'" > settings.gradle
-          
+          mkdir -p src/main/java/com/dimos/mod/mixin
+          mkdir -p src/main/java/com/dimos/mod/item
+          mkdir -p src/main/resources/assets/dimos/lang
+          mkdir -p src/main/resources/assets/dimos/models/item
+
+          # 1. build.gradle (Актуальные зависимости для 1.21.1)
           cat <<EOF > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          plugins {
+              id 'fabric-loom' version '1.7-SNAPSHOT'
           }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
-          EOF
-
-          cat <<EOF > app/build.gradle
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.dimos.game'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.dimos.roblox.native"
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 5
-                  versionName "5.0-Native-Fix"
-              }
-          }
+          version = '1.0.0'
+          group = 'com.dimos.mod'
+          repositories { mavenCentral() }
           dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
+              minecraft "com.mojang:minecraft:1.21.1"
+              mappings "net.fabricmc:yarn:1.21.1+build.3:v2"
+              modImplementation "net.fabricmc:fabric-loader:0.15.11"
+              modImplementation "net.fabricmc.fabric-api:fabric-api:0.100.7+1.21.1"
           }
           EOF
 
-          # 2. Манифест (Ландшафт и Полный экран)
-          cat <<EOF > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="Roblox Native" android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
-                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          # 3. 3D Рендерер (Замена Three.js)
-          cat <<EOF > app/src/main/java/com/dimos/game/GameRenderer.java
-          package com.dimos.game;
-          import android.opengl.GLES20;
-          import android.opengl.GLSurfaceView;
-          import javax.microedition.khronos.egl.EGLConfig;
-          import javax.microedition.khronos.opengles.GL10;
-
-          public class GameRenderer implements GLSurfaceView.Renderer {
-              @Override
-              public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-                  // Цвет фона из твоего CSS (темно-синий градиент)
-                  GLES20.glClearColor(0.05f, 0.08f, 0.15f, 1.0f);
-              }
-
-              @Override
-              public void onSurfaceChanged(GL10 gl, int width, int height) {
-                  GLES20.glViewport(0, 0, width, height);
-              }
-
-              @Override
-              public void onDrawFrame(GL10 gl) {
-                  GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-              }
+          # 2. fabric.mod.json (Добавлен миксин)
+          cat <<EOF > src/main/resources/fabric.mod.json
+          {
+            "schemaVersion": 1,
+            "id": "dimos",
+            "version": "1.0.0",
+            "name": "DimOS Mod",
+            "entrypoints": { "main": ["com.dimos.mod.DimMod"] },
+            "mixins": ["dimos.mixins.json"],
+            "depends": { "fabricloader": ">=0.15.11", "minecraft": "~1.21.1" }
           }
           EOF
 
-          # 4. Главный экран и UI (Замена HTML/CSS/JS)
-          cat <<EOF > app/src/main/java/com/dimos/game/MainActivity.java
-          package com.dimos.game;
-          import android.app.Activity;
-          import android.opengl.GLSurfaceView;
-          import android.os.Bundle;
-          import android.view.*;
-          import android.widget.*;
-          import android.graphics.Color;
-          import android.graphics.drawable.GradientDrawable;
+          # 3. dimos.mixins.json
+          cat <<EOF > src/main/resources/dimos.mixins.json
+          {
+            "required": true,
+            "package": "com.dimos.mod.mixin",
+            "compatibilityLevel": "JAVA_21",
+            "mixins": ["ExampleMixin"],
+            "injectors": { "defaultRequire": 1 }
+          }
+          EOF
 
-          public class MainActivity extends Activity {
+          # 4. Код предмета "Эу Эу" (EuEuItem.java)
+          cat <<EOF > src/main/java/com/dimos/mod/item/EuEuItem.java
+          package com.dimos.mod.item;
+
+          import net.minecraft.entity.EntityType;
+          import net.minecraft.entity.LightningEntity;
+          import net.minecraft.entity.player.PlayerEntity;
+          import net.minecraft.item.Item;
+          import net.minecraft.item.ItemStack;
+          import net.minecraft.util.Hand;
+          import net.minecraft.util.TypedActionResult;
+          import net.minecraft.world.World;
+
+          public class EuEuItem extends Item {
+              public EuEuItem(Settings settings) { super(settings); }
+
               @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  
-                  // 3D Слой
-                  GLSurfaceView glView = new GLSurfaceView(this);
-                  glView.setEGLContextClientVersion(2);
-                  glView.setRenderer(new GameRenderer());
-
-                  // UI Слой
-                  FrameLayout uiRoot = new FrameLayout(this);
-                  uiRoot.addView(glView);
-
-                  // Робуксы (Верхняя панель)
-                  TextView robux = new TextView(this);
-                  robux.setText("💎 15,847");
-                  robux.setTextColor(Color.parseColor("#22C55E"));
-                  robux.setTextSize(20);
-                  robux.setPadding(40, 20, 0, 0);
-                  uiRoot.addView(robux);
-
-                  // Кнопка Чат (Справа вверху)
-                  Button chat = new Button(this);
-                  chat.setText("💬");
-                  chat.setBackgroundColor(Color.TRANSPARENT);
-                  FrameLayout.LayoutParams chatParams = new FrameLayout.LayoutParams(150, 150);
-                  chatParams.gravity = Gravity.TOP | Gravity.RIGHT;
-                  uiRoot.addView(chat, chatParams);
-
-                  // Джойстик (Замена твоего JS джойстика)
-                  View joystick = new View(this);
-                  GradientDrawable circle = new GradientDrawable();
-                  circle.setShape(GradientDrawable.OVAL);
-                  circle.setColor(Color.argb(100, 255, 255, 255));
-                  joystick.setBackground(circle);
-                  FrameLayout.LayoutParams joyParams = new FrameLayout.LayoutParams(250, 250);
-                  joyParams.gravity = Gravity.BOTTOM | Gravity.LEFT;
-                  joyParams.setMargins(100, 0, 0, 100);
-                  uiRoot.addView(joystick, joyParams);
-
-                  // Кнопка прыжка (Справа внизу)
-                  Button jump = new Button(this);
-                  jump.setText("⬆");
-                  jump.setTextSize(30);
-                  jump.setTextColor(Color.WHITE);
-                  GradientDrawable btnShape = new GradientDrawable();
-                  btnShape.setShape(GradientDrawable.OVAL);
-                  btnShape.setColor(Color.argb(120, 0, 0, 0));
-                  jump.setBackground(btnShape);
-                  FrameLayout.LayoutParams jumpParams = new FrameLayout.LayoutParams(200, 200);
-                  jumpParams.gravity = Gravity.BOTTOM | Gravity.RIGHT;
-                  jumpParams.setMargins(0, 0, 100, 100);
-                  uiRoot.addView(jump, jumpParams);
-
-                  setContentView(uiRoot);
+              public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
+                  if (!world.isClient) {
+                      // Создаем молнию на позиции игрока
+                      LightningEntity lightning = new LightningEntity(EntityType.LIGHTNING_BOLT, world);
+                      lightning.refreshPositionAfterTeleport(user.getX(), user.getY(), user.getZ());
+                      world.spawnEntity(lightning);
+                  }
+                  return TypedActionResult.success(user.getStackInHand(hand));
               }
           }
           EOF
 
-      - name: Build APK
-        run: gradle assembleDebug
+          # 5. Главный класс мода (DimMod.java)
+          cat <<EOF > src/main/java/com/dimos/mod/DimMod.java
+          package com.dimos.mod;
 
-      - name: Upload APK
+          import com.dimos.mod.item.EuEuItem;
+          import net.fabricmc.api.ModInitializer;
+          import net.minecraft.item.Item;
+          import net.minecraft.registry.Registries;
+          import net.minecraft.registry.Registry;
+          import net.minecraft.util.Identifier;
+
+          public class DimMod implements ModInitializer {
+              public static final Item EU_EU = new EuEuItem(new Item.Settings().maxCount(1));
+
+              @Override
+              public void onInitialize() {
+                  Registry.register(Registries.ITEM, Identifier.of("dimos", "eu_eu"), EU_EU);
+              }
+          }
+          EOF
+
+          # 6. Миксин для примера (ExampleMixin.java)
+          cat <<EOF > src/main/java/com/dimos/mod/mixin/ExampleMixin.java
+          package com.dimos.mod.mixin;
+
+          import net.minecraft.client.gui.screen.TitleScreen;
+          import org.spongepowered.asm.mixin.Mixin;
+          import org.spongepowered.asm.mixin.injection.At;
+          import org.spongepowered.asm.mixin.injection.Inject;
+          import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+          @Mixin(TitleScreen.class)
+          public class ExampleMixin {
+              @Inject(at = @At("HEAD"), method = "init")
+              private void init(CallbackInfo info) {
+                  System.out.println("DimOS GodMode: Загрузка меню Майнкрафта через Mixin!");
+              }
+          }
+          EOF
+
+          # 7. Локализация (Имя предмета)
+          cat <<EOF > src/main/resources/assets/dimos/lang/ru_ru.json
+          { "item.dimos.eu_eu": "Эу Эу" }
+          EOF
+
+          # 8. Модель предмета (чтобы не был черно-розовым кубом)
+          cat <<EOF > src/main/resources/assets/dimos/models/item/eu_eu.json
+          {
+            "parent": "minecraft:item/generated",
+            "textures": { "layer0": "minecraft:item/blaze_rod" }
+          }
+          EOF
+
+          # 9. Настройка Gradle Wrapper
+          gradle wrapper --gradle-version 8.2
+
+      - name: Build Mod
+        run: chmod +x gradlew && ./gradlew build
+
+      - name: Upload Mod Jar
         uses: actions/upload-artifact@v4
         with:
-          name: Roblox-Native-Fixed
-          path: app/build/outputs/apk/debug/*.apk
+          name: DimOS-EuEu-Mod-1.21.1
+          path: build/libs/*.jar
