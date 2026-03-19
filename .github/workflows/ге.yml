@@ -1,0 +1,947 @@
+name: Roblox Studio Style Game to Android
+on: [workflow_dispatch, push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create Native Android Game Project
+        run: |
+          # Создаем структуру проекта
+          mkdir -p app/src/main/java/com/roblox/studio
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
+          mkdir -p app/src/main/res/mipmap-hdpi
+          mkdir -p app/src/main/res/mipmap-mdpi
+          mkdir -p app/src/main/res/mipmap-xhdpi
+          mkdir -p app/src/main/res/mipmap-xxhdpi
+          mkdir -p app/src/main/res/mipmap-xxxhdpi
+          mkdir -p app/src/main/assets
+
+          # Создаем settings.gradle
+          cat <<EOF > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "RobloxStudio"
+          include ':app'
+          EOF
+
+          # Создаем build.gradle (проект)
+          cat <<EOF > build.gradle
+          plugins {
+              id 'com.android.application' version '8.2.2' apply false
+          }
+          EOF
+
+          # Создаем build.gradle (модуль)
+          cat <<EOF > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.roblox.studio'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId 'com.roblox.studio.game'
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName '1.0'
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled true
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+                  }
+              }
+              
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+          }
+
+          dependencies {
+              implementation 'org.jmonkeyengine:jme3-core:3.6.1-stable'
+              implementation 'org.jmonkeyengine:jme3-desktop:3.6.1-stable'
+              implementation 'org.jmonkeyengine:jme3-android:3.6.1-stable'
+              implementation 'org.jmonkeyengine:jme3-plugins:3.6.1-stable'
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+          }
+          EOF
+
+          # Создаем AndroidManifest.xml
+          cat <<EOF > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.VIBRATE" />
+              
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="Roblox Studio"
+                  android:theme="@style/GameTheme"
+                  android:hasCode="true">
+                  
+                  <activity
+                      android:name=".MainActivity"
+                      android:label="Roblox Studio"
+                      android:screenOrientation="sensorLandscape"
+                      android:configChanges="orientation|screenSize|keyboardHidden"
+                      android:exported="true">
+                      
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+                  
+                  <activity
+                      android:name=".StudioActivity"
+                      android:label="Studio"
+                      android:screenOrientation="sensorLandscape"
+                      android:configChanges="orientation|screenSize|keyboardHidden" />
+                      
+                  <activity
+                      android:name=".GameActivity"
+                      android:label="Game"
+                      android:screenOrientation="sensorLandscape"
+                      android:configChanges="orientation|screenSize|keyboardHidden" />
+              </application>
+          </manifest>
+          EOF
+
+          # Создаем strings.xml
+          mkdir -p app/src/main/res/values
+          cat <<EOF > app/src/main/res/values/strings.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">Roblox Studio</string>
+              <string name="start_game">Начать игру</string>
+              <string name="open_studio">Открыть студию</string>
+              <string name="avatar">Аватар</string>
+              <string name="settings">Настройки</string>
+          </resources>
+          EOF
+
+          # Создаем темы
+          cat <<EOF > app/src/main/res/values/themes.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="GameTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+                  <item name="android:windowFullscreen">true</item>
+                  <item name="android:windowContentOverlay">@null</item>
+                  <item name="android:windowBackground">@android:color/black</item>
+                  <item name="colorPrimary">#22c55e</item>
+                  <item name="colorPrimaryVariant">#16a34a</item>
+                  <item name="colorOnPrimary">#000000</item>
+              </style>
+          </resources>
+          EOF
+
+          # Создаем главный экран (MainActivity.java)
+          cat <<'EOF' > app/src/main/java/com/roblox/studio/MainActivity.java
+          package com.roblox.studio;
+
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.view.Gravity;
+          import android.view.View;
+          import android.view.ViewGroup;
+          import android.widget.*;
+          import androidx.core.content.ContextCompat;
+
+          public class MainActivity extends Activity {
+              
+              private String playerName = "ProGamer2024";
+              private int robux = 15847;
+              
+              // Цвета аватара
+              private String skinColor = "#ffdbac";
+              private String shirtColor = "#ff6b6b";
+              private String pantsColor = "#0066ff";
+              private String accessory = "none";
+              
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  
+                  LinearLayout mainLayout = new LinearLayout(this);
+                  mainLayout.setOrientation(LinearLayout.VERTICAL);
+                  mainLayout.setBackgroundColor(Color.parseColor("#1a2a4a"));
+                  
+                  // Верхняя панель
+                  LinearLayout header = createHeader();
+                  mainLayout.addView(header);
+                  
+                  // Вкладки
+                  TabHost tabHost = createTabHost();
+                  mainLayout.addView(tabHost);
+                  
+                  setContentView(mainLayout);
+              }
+              
+              private LinearLayout createHeader() {
+                  LinearLayout header = new LinearLayout(this);
+                  header.setLayoutParams(new LinearLayout.LayoutParams(
+                      ViewGroup.LayoutParams.MATCH_PARENT,
+                      dpToPx(60)
+                  ));
+                  header.setPadding(dpToPx(20), 0, dpToPx(20), 0);
+                  header.setBackgroundColor(Color.parseColor("#80000000"));
+                  header.setGravity(Gravity.CENTER_VERTICAL);
+                  
+                  TextView title = new TextView(this);
+                  title.setText("Roblox Studio");
+                  title.setTextColor(Color.parseColor("#22c55e"));
+                  title.setTextSize(20);
+                  title.setLayoutParams(new LinearLayout.LayoutParams(
+                      0, ViewGroup.LayoutParams.WRAP_CONTENT, 1
+                  ));
+                  
+                  LinearLayout robuxLayout = new LinearLayout(this);
+                  robuxLayout.setBackgroundResource(android.R.drawable.edit_text);
+                  robuxLayout.setPadding(dpToPx(15), dpToPx(8), dpToPx(15), dpToPx(8));
+                  
+                  TextView robuxIcon = new TextView(this);
+                  robuxIcon.setText("💎");
+                  robuxIcon.setTextSize(18);
+                  
+                  TextView robuxAmount = new TextView(this);
+                  robuxAmount.setText(String.valueOf(robux));
+                  robuxAmount.setTextColor(Color.parseColor("#22c55e"));
+                  robuxAmount.setTextSize(16);
+                  robuxAmount.setPadding(dpToPx(8), 0, 0, 0);
+                  
+                  robuxLayout.addView(robuxIcon);
+                  robuxLayout.addView(robuxAmount);
+                  
+                  header.addView(title);
+                  header.addView(robuxLayout);
+                  
+                  return header;
+              }
+              
+              private TabHost createTabHost() {
+                  TabHost tabHost = new TabHost(this);
+                  tabHost.setLayoutParams(new LinearLayout.LayoutParams(
+                      ViewGroup.LayoutParams.MATCH_PARENT,
+                      ViewGroup.LayoutParams.MATCH_PARENT
+                  ));
+                  
+                  tabHost.setup();
+                  
+                  // Вкладка Игры
+                  TabHost.TabSpec gamesSpec = tabHost.newTabSpec("games");
+                  gamesSpec.setIndicator(createTabIndicator("🎮 Игры"));
+                  gamesSpec.setContent(new TabHost.TabContentFactory() {
+                      @Override
+                      public View createTabContent(String tag) {
+                          return createGamesPage();
+                      }
+                  });
+                  tabHost.addTab(gamesSpec);
+                  
+                  // Вкладка Аватар
+                  TabHost.TabSpec avatarSpec = tabHost.newTabSpec("avatar");
+                  avatarSpec.setIndicator(createTabIndicator("👤 Аватар"));
+                  avatarSpec.setContent(new TabHost.TabContentFactory() {
+                      @Override
+                      public View createTabContent(String tag) {
+                          return createAvatarPage();
+                      }
+                  });
+                  tabHost.addTab(avatarSpec);
+                  
+                  return tabHost;
+              }
+              
+              private View createTabIndicator(String text) {
+                  TextView tv = new TextView(this);
+                  tv.setText(text);
+                  tv.setTextColor(Color.WHITE);
+                  tv.setTextSize(14);
+                  tv.setPadding(dpToPx(20), dpToPx(12), dpToPx(20), dpToPx(12));
+                  tv.setGravity(Gravity.CENTER);
+                  return tv;
+              }
+              
+              private View createGamesPage() {
+                  ScrollView scrollView = new ScrollView(this);
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setPadding(dpToPx(15), dpToPx(70), dpToPx(15), dpToPx(20));
+                  
+                  // Заголовок
+                  TextView title = new TextView(this);
+                  title.setText("Рекомендуемые");
+                  title.setTextColor(Color.parseColor("#22c55e"));
+                  title.setTextSize(18);
+                  title.setPadding(0, 0, 0, dpToPx(15));
+                  layout.addView(title);
+                  
+                  // Сетка игр
+                  GridLayout gamesGrid = new GridLayout(this);
+                  gamesGrid.setColumnCount(2);
+                  gamesGrid.setRowCount(2);
+                  
+                  // Карточка Green Valley
+                  LinearLayout game1 = createGameCard(
+                      "🌲 Green Valley",
+                      new int[]{0x2d5a27, 0x7ec8e0}
+                  );
+                  game1.setOnClickListener(v -> startGame(1));
+                  
+                  // Карточка Neon City
+                  LinearLayout game2 = createGameCard(
+                      "🏙️ Neon City",
+                      new int[]{0x1a1a2e, 0x0f0f23}
+                  );
+                  game2.setOnClickListener(v -> startGame(2));
+                  
+                  GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+                  params.width = 0;
+                  params.height = GridLayout.LayoutParams.WRAP_CONTENT;
+                  params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+                  params.setMargins(dpToPx(5), dpToPx(5), dpToPx(5), dpToPx(5));
+                  
+                  game1.setLayoutParams(params);
+                  game2.setLayoutParams(params);
+                  
+                  gamesGrid.addView(game1);
+                  gamesGrid.addView(game2);
+                  layout.addView(gamesGrid);
+                  
+                  // Кнопка студии
+                  layout.addView(createStudioButton());
+                  
+                  scrollView.addView(layout);
+                  return scrollView;
+              }
+              
+              private LinearLayout createGameCard(String name, int[] colors) {
+                  LinearLayout card = new LinearLayout(this);
+                  card.setOrientation(LinearLayout.VERTICAL);
+                  card.setBackgroundResource(android.R.drawable.edit_text);
+                  
+                  LinearLayout preview = new LinearLayout(this);
+                  preview.setLayoutParams(new LinearLayout.LayoutParams(
+                      ViewGroup.LayoutParams.MATCH_PARENT,
+                      dpToPx(160)
+                  ));
+                  preview.setGravity(Gravity.CENTER);
+                  preview.setBackgroundColor(colors[0]);
+                  
+                  TextView icon = new TextView(this);
+                  icon.setTextSize(70);
+                  icon.setText(name.contains("Green") ? "🌲" : "🏙️");
+                  
+                  preview.addView(icon);
+                  
+                  LinearLayout info = new LinearLayout(this);
+                  info.setPadding(dpToPx(15), dpToPx(15), dpToPx(15), dpToPx(15));
+                  
+                  TextView title = new TextView(this);
+                  title.setText(name);
+                  title.setTextColor(Color.WHITE);
+                  title.setTextSize(16);
+                  
+                  info.addView(title);
+                  
+                  card.addView(preview);
+                  card.addView(info);
+                  
+                  return card;
+              }
+              
+              private View createStudioButton() {
+                  LinearLayout studioSection = new LinearLayout(this);
+                  studioSection.setOrientation(LinearLayout.VERTICAL);
+                  studioSection.setGravity(Gravity.CENTER);
+                  studioSection.setPadding(0, dpToPx(40), 0, 0);
+                  
+                  Button studioBtn = new Button(this);
+                  studioBtn.setText("🎨 Открыть студию");
+                  studioBtn.setTextSize(20);
+                  studioBtn.setTextColor(Color.BLACK);
+                  studioBtn.setBackgroundColor(Color.parseColor("#22c55e"));
+                  studioBtn.setPadding(dpToPx(40), dpToPx(18), dpToPx(40), dpToPx(18));
+                  studioBtn.setOnClickListener(v -> openStudio());
+                  
+                  TextView desc = new TextView(this);
+                  desc.setText("Создавайте свои миры с помощью редактора");
+                  desc.setTextColor(Color.parseColor("#888888"));
+                  desc.setTextSize(12);
+                  desc.setPadding(0, dpToPx(15), 0, 0);
+                  
+                  studioSection.addView(studioBtn);
+                  studioSection.addView(desc);
+                  
+                  return studioSection;
+              }
+              
+              private View createAvatarPage() {
+                  ScrollView scrollView = new ScrollView(this);
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setPadding(dpToPx(15), dpToPx(70), dpToPx(15), dpToPx(20));
+                  
+                  // Превью аватара
+                  LinearLayout avatarPreview = createAvatarPreview();
+                  layout.addView(avatarPreview);
+                  
+                  // Кастомизация
+                  layout.addView(createAvatarCustomization());
+                  
+                  scrollView.addView(layout);
+                  return scrollView;
+              }
+              
+              private LinearLayout createAvatarPreview() {
+                  LinearLayout preview = new LinearLayout(this);
+                  preview.setOrientation(LinearLayout.VERTICAL);
+                  preview.setGravity(Gravity.CENTER);
+                  preview.setBackgroundResource(android.R.drawable.edit_text);
+                  preview.setPadding(dpToPx(25), dpToPx(25), dpToPx(25), dpToPx(25));
+                  
+                  // 2D аватар
+                  FrameLayout avatar2d = new FrameLayout(this);
+                  avatar2d.setLayoutParams(new FrameLayout.LayoutParams(
+                      dpToPx(140), dpToPx(200)
+                  ));
+                  
+                  // Голова
+                  View head = new View(this);
+                  FrameLayout.LayoutParams headParams = new FrameLayout.LayoutParams(
+                      dpToPx(60), dpToPx(60)
+                  );
+                  headParams.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+                  headParams.topMargin = 0;
+                  head.setLayoutParams(headParams);
+                  head.setBackgroundColor(Color.parseColor(skinColor));
+                  
+                  // Тело
+                  View body = new View(this);
+                  FrameLayout.LayoutParams bodyParams = new FrameLayout.LayoutParams(
+                      dpToPx(65), dpToPx(70)
+                  );
+                  bodyParams.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+                  bodyParams.topMargin = dpToPx(65);
+                  body.setLayoutParams(bodyParams);
+                  body.setBackgroundColor(Color.parseColor(shirtColor));
+                  
+                  // Руки
+                  View leftArm = new View(this);
+                  FrameLayout.LayoutParams leftArmParams = new FrameLayout.LayoutParams(
+                      dpToPx(20), dpToPx(55)
+                  );
+                  leftArmParams.gravity = Gravity.TOP | Gravity.LEFT;
+                  leftArmParams.leftMargin = dpToPx(30);
+                  leftArmParams.topMargin = dpToPx(68);
+                  leftArm.setLayoutParams(leftArmParams);
+                  leftArm.setBackgroundColor(Color.parseColor(skinColor));
+                  
+                  View rightArm = new View(this);
+                  FrameLayout.LayoutParams rightArmParams = new FrameLayout.LayoutParams(
+                      dpToPx(20), dpToPx(55)
+                  );
+                  rightArmParams.gravity = Gravity.TOP | Gravity.RIGHT;
+                  rightArmParams.rightMargin = dpToPx(30);
+                  rightArmParams.topMargin = dpToPx(68);
+                  rightArm.setLayoutParams(rightArmParams);
+                  rightArm.setBackgroundColor(Color.parseColor(skinColor));
+                  
+                  // Ноги
+                  View leftLeg = new View(this);
+                  FrameLayout.LayoutParams leftLegParams = new FrameLayout.LayoutParams(
+                      dpToPx(24), dpToPx(60)
+                  );
+                  leftLegParams.gravity = Gravity.TOP | Gravity.LEFT;
+                  leftLegParams.leftMargin = dpToPx(45);
+                  leftLegParams.topMargin = dpToPx(140);
+                  leftLeg.setLayoutParams(leftLegParams);
+                  leftLeg.setBackgroundColor(Color.parseColor(pantsColor));
+                  
+                  View rightLeg = new View(this);
+                  FrameLayout.LayoutParams rightLegParams = new FrameLayout.LayoutParams(
+                      dpToPx(24), dpToPx(60)
+                  );
+                  rightLegParams.gravity = Gravity.TOP | Gravity.RIGHT;
+                  rightLegParams.rightMargin = dpToPx(45);
+                  rightLegParams.topMargin = dpToPx(140);
+                  rightLeg.setLayoutParams(rightLegParams);
+                  rightLeg.setBackgroundColor(Color.parseColor(pantsColor));
+                  
+                  avatar2d.addView(head);
+                  avatar2d.addView(body);
+                  avatar2d.addView(leftArm);
+                  avatar2d.addView(rightArm);
+                  avatar2d.addView(leftLeg);
+                  avatar2d.addView(rightLeg);
+                  
+                  preview.addView(avatar2d);
+                  
+                  // Имя
+                  TextView name = new TextView(this);
+                  name.setText(playerName);
+                  name.setTextColor(Color.parseColor("#22c55e"));
+                  name.setTextSize(24);
+                  name.setPadding(0, dpToPx(15), 0, dpToPx(5));
+                  name.setOnClickListener(v -> changePlayerName());
+                  preview.addView(name);
+                  
+                  TextView hint = new TextView(this);
+                  hint.setText("Нажмите чтобы изменить ник");
+                  hint.setTextColor(Color.parseColor("#888888"));
+                  hint.setTextSize(12);
+                  hint.setOnClickListener(v -> changePlayerName());
+                  preview.addView(hint);
+                  
+                  return preview;
+              }
+              
+              private LinearLayout createAvatarCustomization() {
+                  LinearLayout customization = new LinearLayout(this);
+                  customization.setOrientation(LinearLayout.VERTICAL);
+                  customization.setPadding(0, dpToPx(20), 0, 0);
+                  
+                  TextView title = new TextView(this);
+                  title.setText("Настройка аватара");
+                  title.setTextColor(Color.parseColor("#22c55e"));
+                  title.setTextSize(16);
+                  title.setPadding(0, 0, 0, dpToPx(15));
+                  customization.addView(title);
+                  
+                  // Кнопки частей
+                  LinearLayout partButtons = new LinearLayout(this);
+                  partButtons.setOrientation(LinearLayout.HORIZONTAL);
+                  
+                  String[] parts = {"Тело", "Футболка", "Штаны"};
+                  String[] colors = {skinColor, shirtColor, pantsColor};
+                  
+                  for (int i = 0; i < parts.length; i++) {
+                      final int index = i;
+                      Button btn = new Button(this);
+                      btn.setText(parts[i]);
+                      btn.setLayoutParams(new LinearLayout.LayoutParams(
+                          0, ViewGroup.LayoutParams.WRAP_CONTENT, 1
+                      ));
+                      btn.setBackgroundColor(Color.parseColor("#22c55e"));
+                      btn.setTextColor(Color.BLACK);
+                      btn.setOnClickListener(v -> {
+                          // Здесь будет выбор цвета
+                      });
+                      partButtons.addView(btn);
+                  }
+                  
+                  customization.addView(partButtons);
+                  
+                  return customization;
+              }
+              
+              private void changePlayerName() {
+                  // Диалог смены ника
+                  AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                  builder.setTitle("Изменить ник");
+                  
+                  final EditText input = new EditText(this);
+                  input.setText(playerName);
+                  builder.setView(input);
+                  
+                  builder.setPositiveButton("OK", (dialog, which) -> {
+                      playerName = input.getText().toString();
+                      recreate(); // Пересоздаем активность для обновления
+                  });
+                  builder.setNegativeButton("Отмена", null);
+                  builder.show();
+              }
+              
+              private void startGame(int gameId) {
+                  Intent intent = new Intent(this, GameActivity.class);
+                  intent.putExtra("gameId", gameId);
+                  intent.putExtra("skinColor", skinColor);
+                  intent.putExtra("shirtColor", shirtColor);
+                  intent.putExtra("pantsColor", pantsColor);
+                  intent.putExtra("accessory", accessory);
+                  startActivity(intent);
+              }
+              
+              private void openStudio() {
+                  Intent intent = new Intent(this, StudioActivity.class);
+                  startActivity(intent);
+              }
+              
+              private int dpToPx(int dp) {
+                  return (int) (dp * getResources().getDisplayMetrics().density);
+              }
+          }
+          EOF
+
+          # Создаем GameActivity.java (игровой движок)
+          cat <<'EOF' > app/src/main/java/com/roblox/studio/GameActivity.java
+          package com.roblox.studio;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.widget.FrameLayout;
+          
+          public class GameActivity extends Activity {
+              
+              private GameSurface gameSurface;
+              
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  
+                  FrameLayout layout = new FrameLayout(this);
+                  
+                  gameSurface = new GameSurface(this);
+                  gameSurface.setGameId(getIntent().getIntExtra("gameId", 1));
+                  gameSurface.setAvatarColors(
+                      getIntent().getStringExtra("skinColor"),
+                      getIntent().getStringExtra("shirtColor"),
+                      getIntent().getStringExtra("pantsColor"),
+                      getIntent().getStringExtra("accessory")
+                  );
+                  
+                  layout.addView(gameSurface);
+                  
+                  setContentView(layout);
+              }
+              
+              @Override
+              protected void onPause() {
+                  super.onPause();
+                  gameSurface.onPause();
+              }
+              
+              @Override
+              protected void onResume() {
+                  super.onResume();
+                  gameSurface.onResume();
+              }
+          }
+          EOF
+
+          # Создаем GameSurface.java (рендеринг игры)
+          cat <<'EOF' > app/src/main/java/com/roblox/studio/GameSurface.java
+          package com.roblox.studio;
+
+          import android.content.Context;
+          import android.opengl.GLSurfaceView;
+          import android.view.MotionEvent;
+          import javax.microedition.khronos.egl.EGLConfig;
+          import javax.microedition.khronos.opengles.GL10;
+          
+          public class GameSurface extends GLSurfaceView {
+              
+              private GameRenderer renderer;
+              private int gameId;
+              private String skinColor, shirtColor, pantsColor, accessory;
+              
+              public GameSurface(Context context) {
+                  super(context);
+                  setEGLContextClientVersion(2);
+                  renderer = new GameRenderer();
+                  setRenderer(renderer);
+              }
+              
+              public void setGameId(int id) {
+                  this.gameId = id;
+              }
+              
+              public void setAvatarColors(String skin, String shirt, String pants, String acc) {
+                  this.skinColor = skin;
+                  this.shirtColor = shirt;
+                  this.pantsColor = pants;
+                  this.accessory = acc;
+              }
+              
+              @Override
+              public boolean onTouchEvent(MotionEvent e) {
+                  // Обработка касаний для управления
+                  return true;
+              }
+              
+              private class GameRenderer implements GLSurfaceView.Renderer {
+                  
+                  @Override
+                  public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+                      // Инициализация OpenGL
+                      gl.glClearColor(0.2f, 0.4f, 0.6f, 1.0f);
+                      gl.glEnable(GL10.GL_DEPTH_TEST);
+                  }
+                  
+                  @Override
+                  public void onSurfaceChanged(GL10 gl, int width, int height) {
+                      gl.glViewport(0, 0, width, height);
+                      float ratio = (float) width / height;
+                      gl.glMatrixMode(GL10.GL_PROJECTION);
+                      gl.glLoadIdentity();
+                      gl.glFrustumf(-ratio, ratio, -1, 1, 3, 7);
+                  }
+                  
+                  @Override
+                  public void onDrawFrame(GL10 gl) {
+                      gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
+                      
+                      gl.glMatrixMode(GL10.GL_MODELVIEW);
+                      gl.glLoadIdentity();
+                      
+                      // Здесь будет рендеринг 3D сцены
+                  }
+              }
+          }
+          EOF
+
+          # Создаем StudioActivity.java (редактор уровней)
+          cat <<'EOF' > app/src/main/java/com/roblox/studio/StudioActivity.java
+          package com.roblox.studio;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.widget.*;
+          import android.graphics.Color;
+          import android.view.Gravity;
+          
+          public class StudioActivity extends Activity {
+              
+              private LinearLayout mainLayout;
+              private FrameLayout studioContainer;
+              private LinearLayout propertiesPanel;
+              private boolean studioMode = true;
+              
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  
+                  mainLayout = new LinearLayout(this);
+                  mainLayout.setOrientation(LinearLayout.VERTICAL);
+                  mainLayout.setBackgroundColor(Color.BLACK);
+                  
+                  // Панель инструментов
+                  LinearLayout toolbar = createToolbar();
+                  mainLayout.addView(toolbar);
+                  
+                  // Контейнер для студии
+                  studioContainer = new FrameLayout(this);
+                  studioContainer.setLayoutParams(new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.MATCH_PARENT,
+                      0, 1
+                  ));
+                  
+                  // Заглушка для 3D (в реальном проекте здесь будет GLSurfaceView)
+                  TextView studioPlaceholder = new TextView(this);
+                  studioPlaceholder.setText("3D Studio Editor\n\nWASD - движение\nQ/E - вверх/вниз\nЛКМ + мышь - вращение");
+                  studioPlaceholder.setTextColor(Color.WHITE);
+                  studioPlaceholder.setGravity(Gravity.CENTER);
+                  studioPlaceholder.setTextSize(16);
+                  studioPlaceholder.setBackgroundColor(Color.parseColor("#1a1a2a"));
+                  
+                  studioContainer.addView(studioPlaceholder);
+                  mainLayout.addView(studioContainer);
+                  
+                  // Панель свойств
+                  propertiesPanel = createPropertiesPanel();
+                  mainLayout.addView(propertiesPanel);
+                  
+                  setContentView(mainLayout);
+              }
+              
+              private LinearLayout createToolbar() {
+                  LinearLayout toolbar = new LinearLayout(this);
+                  toolbar.setLayoutParams(new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.MATCH_PARENT,
+                      dpToPx(70)
+                  ));
+                  toolbar.setGravity(Gravity.CENTER);
+                  toolbar.setBackgroundColor(Color.parseColor("#1a1a2a"));
+                  
+                  String[] tools = {"←", "🧊", "⚪", "🥫", "💡", "💾", "🗑️"};
+                  String[] tooltips = {"Выйти", "Куб", "Сфера", "Цилиндр", "Свет", "Сохранить", "Удалить"};
+                  
+                  for (int i = 0; i < tools.length; i++) {
+                      final int index = i;
+                      Button btn = new Button(this);
+                      btn.setText(tools[i]);
+                      btn.setTextSize(20);
+                      btn.setLayoutParams(new LinearLayout.LayoutParams(
+                          dpToPx(45), dpToPx(45)
+                      ));
+                      btn.setBackgroundColor(Color.TRANSPARENT);
+                      btn.setTextColor(Color.WHITE);
+                      
+                      if (i == 0) {
+                          btn.setOnClickListener(v -> finish());
+                      } else if (i == tools.length - 1) {
+                          btn.setOnClickListener(v -> deleteSelectedObject());
+                      } else {
+                          btn.setOnClickListener(v -> createObject(index));
+                      }
+                      
+                      toolbar.addView(btn);
+                      
+                      if (i == 0 || i == 4) {
+                          View divider = new View(this);
+                          divider.setLayoutParams(new LinearLayout.LayoutParams(
+                              dpToPx(1), dpToPx(30)
+                          ));
+                          divider.setBackgroundColor(Color.parseColor("#333333"));
+                          toolbar.addView(divider);
+                      }
+                  }
+                  
+                  return toolbar;
+              }
+              
+              private LinearLayout createPropertiesPanel() {
+                  LinearLayout panel = new LinearLayout(this);
+                  panel.setOrientation(LinearLayout.VERTICAL);
+                  panel.setLayoutParams(new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.MATCH_PARENT,
+                      dpToPx(200)
+                  ));
+                  panel.setBackgroundColor(Color.parseColor("#1e1e2e"));
+                  panel.setPadding(dpToPx(15), dpToPx(15), dpToPx(15), dpToPx(15));
+                  
+                  TextView title = new TextView(this);
+                  title.setText("Свойства объекта");
+                  title.setTextColor(Color.parseColor("#22c55e"));
+                  title.setTextSize(16);
+                  panel.addView(title);
+                  
+                  // Поля для позиции
+                  LinearLayout positionLayout = new LinearLayout(this);
+                  positionLayout.setOrientation(LinearLayout.HORIZONTAL);
+                  
+                  addPositionField(positionLayout, "X:", 0);
+                  addPositionField(positionLayout, "Y:", 1);
+                  addPositionField(positionLayout, "Z:", 2);
+                  
+                  panel.addView(positionLayout);
+                  
+                  // Цвет
+                  LinearLayout colorLayout = new LinearLayout(this);
+                  colorLayout.setOrientation(LinearLayout.HORIZONTAL);
+                  colorLayout.setPadding(0, dpToPx(10), 0, 0);
+                  
+                  TextView colorLabel = new TextView(this);
+                  colorLabel.setText("Цвет:");
+                  colorLabel.setTextColor(Color.WHITE);
+                  colorLabel.setLayoutParams(new LinearLayout.LayoutParams(
+                      dpToPx(50), ViewGroup.LayoutParams.WRAP_CONTENT
+                  ));
+                  
+                  Button colorBtn = new Button(this);
+                  colorBtn.setText("Выбрать");
+                  colorBtn.setBackgroundColor(Color.parseColor("#22c55e"));
+                  colorBtn.setTextColor(Color.BLACK);
+                  
+                  colorLayout.addView(colorLabel);
+                  colorLayout.addView(colorBtn);
+                  
+                  panel.addView(colorLayout);
+                  
+                  return panel;
+              }
+              
+              private void addPositionField(LinearLayout layout, String label, int axis) {
+                  LinearLayout field = new LinearLayout(this);
+                  field.setOrientation(LinearLayout.VERTICAL);
+                  field.setLayoutParams(new LinearLayout.LayoutParams(
+                      0, ViewGroup.LayoutParams.WRAP_CONTENT, 1
+                  ));
+                  field.setPadding(dpToPx(5), 0, dpToPx(5), 0);
+                  
+                  TextView labelView = new TextView(this);
+                  labelView.setText(label);
+                  labelView.setTextColor(Color.parseColor("#22c55e"));
+                  
+                  EditText value = new EditText(this);
+                  value.setText("0");
+                  value.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | 
+                                     android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                  value.setTextColor(Color.WHITE);
+                  value.setBackgroundColor(Color.parseColor("#333333"));
+                  
+                  field.addView(labelView);
+                  field.addView(value);
+                  
+                  layout.addView(field);
+              }
+              
+              private void createObject(int type) {
+                  Toast.makeText(this, "Создан объект типа " + type, Toast.LENGTH_SHORT).show();
+              }
+              
+              private void deleteSelectedObject() {
+                  Toast.makeText(this, "Объект удален", Toast.LENGTH_SHORT).show();
+              }
+              
+              private int dpToPx(int dp) {
+                  return (int) (dp * getResources().getDisplayMetrics().density);
+              }
+          }
+          EOF
+
+      - name: Generate launcher icons
+        run: |
+          # Создаем простые иконки
+          for size in hdpi mdpi xhdpi xxhdpi xxxhdpi; do
+            mkdir -p app/src/main/res/mipmap-$size
+            echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
+          <shape xmlns:android=\"http://schemas.android.com/apk/res/android\">
+              <solid android:color=\"#22c55e\"/>
+              <corners android:radius=\"12dp\"/>
+          </shape>" > app/src/main/res/mipmap-$size/ic_launcher.xml
+          done
+
+      - name: Generate Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.2
+
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Roblox-Studio-Android
+          path: app/build/outputs/apk/debug/*.apk
