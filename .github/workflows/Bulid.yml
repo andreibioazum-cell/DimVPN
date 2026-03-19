@@ -1,4 +1,4 @@
-name: Fabric_Mod_EuEu_Fixed
+name: Fabric_Mod_EuEu_V3
 on: [workflow_dispatch, push]
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
           mkdir -p src/main/resources/assets/dimos/models/item
           mkdir -p gradle/wrapper
 
-          # 1. СТРОГО ОБЯЗАТЕЛЬНО: settings.gradle с репозиториями плагинов
+          # 1. Settings (с правильными репозиториями)
           cat <<EOF > settings.gradle
           pluginManagement {
               repositories {
@@ -34,18 +34,14 @@ jobs:
           rootProject.name = 'dimos-mod'
           EOF
 
-          # 2. build.gradle (Исправленный)
+          # 2. Build.gradle
           cat <<EOF > build.gradle
           plugins {
               id 'fabric-loom' version '1.7-SNAPSHOT'
           }
           version = '1.0.0'
           group = 'com.dimos.mod'
-          
-          repositories { 
-              mavenCentral() 
-          }
-          
+          repositories { mavenCentral() }
           dependencies {
               minecraft "com.mojang:minecraft:1.21.1"
               mappings "net.fabricmc:yarn:1.21.1+build.3:v2"
@@ -54,7 +50,7 @@ jobs:
           }
           EOF
 
-          # 3. fabric.mod.json
+          # 3. Fabric.mod.json
           cat <<EOF > src/main/resources/fabric.mod.json
           {
             "schemaVersion": 1,
@@ -67,7 +63,7 @@ jobs:
           }
           EOF
 
-          # 4. dimos.mixins.json
+          # 4. Mixins Config
           cat <<EOF > src/main/resources/dimos.mixins.json
           {
             "required": true,
@@ -78,7 +74,7 @@ jobs:
           }
           EOF
 
-          # 5. EuEuItem.java (Предмет Эу Эу)
+          # 5. EuEuItem.java (Логика молнии)
           cat <<EOF > src/main/java/com/dimos/mod/item/EuEuItem.java
           package com.dimos.mod.item;
           import net.minecraft.entity.EntityType;
@@ -104,7 +100,7 @@ jobs:
           }
           EOF
 
-          # 6. DimMod.java (Регистрация + Креативная вкладка)
+          # 6. DimMod.java
           cat <<EOF > src/main/java/com/dimos/mod/DimMod.java
           package com.dimos.mod;
           import com.dimos.mod.item.EuEuItem;
@@ -121,9 +117,7 @@ jobs:
               @Override
               public void onInitialize() {
                   Registry.register(Registries.ITEM, Identifier.of("dimos", "eu_eu"), EU_EU);
-                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(content -> {
-                      content.add(EU_EU);
-                  });
+                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(content -> content.add(EU_EU));
               }
           }
           EOF
@@ -141,25 +135,25 @@ jobs:
           public class ExampleMixin {
               @Inject(at = @At("HEAD"), method = "init")
               private void init(CallbackInfo info) {
-                  System.out.println("DimOS: Mixin loaded!");
+                  System.out.println("DimOS GodMode Active!");
               }
           }
           EOF
 
-          # 8. Ресурсы (Язык и Модель)
+          # 8. Lang & Models
           echo '{"item.dimos.eu_eu": "Эу Эу"}' > src/main/resources/assets/dimos/lang/ru_ru.json
-          cat <<EOF > src/main/resources/assets/dimos/models/item/eu_eu.json
-          { "parent": "minecraft:item/generated", "textures": { "layer0": "minecraft:item/blaze_rod" } }
-          EOF
+          echo '{"parent": "minecraft:item/generated", "textures": {"layer0": "minecraft:item/blaze_rod"}}' > src/main/resources/assets/dimos/models/item/eu_eu.json
 
-          # 9. Генерация Wrapper
+          # 9. СТРОГИЙ ФИКС GRADLE (Установка 8.10)
           gradle wrapper --gradle-version 8.10
 
       - name: Build Mod
-        run: chmod +x gradlew && ./gradlew build
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon
 
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-EuEu-Fixed
+          name: DimOS-EuEu-Mod
           path: build/libs/*.jar
