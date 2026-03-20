@@ -1,4 +1,4 @@
-name: Fabric_Mod_Emeraldball_V11_Projectile
+name: Fabric_Mod_Emeraldball_V12_Fixed
 on: [workflow_dispatch, push]
 
 jobs:
@@ -28,17 +28,19 @@ jobs:
           mkdir -p src/main/resources/assets/dimos/textures/item
           mkdir -p src/main/resources/data/dimos/recipe
 
-          # Копируем твою текстуру (строго в лоуеркейс!)
+          # Фикс текстуры: Копируем из корня
           if [ -f "fireballhh.png" ]; then
               cp fireballhh.png src/main/resources/assets/dimos/textures/item/emeraldball.png
+              # Создаем mcmeta на всякий случай
+              echo '{"animation":{}}' > src/main/resources/assets/dimos/textures/item/emeraldball.png.mcmeta
           else
-              echo "Файл fireballhh.png не найден!" && exit 1
+              echo "Файл fireballhh.png не найден в корне!" && exit 1
           fi
 
           # 1. Build.gradle
           cat <<EOF > build.gradle
           plugins { id 'fabric-loom' version '1.7-SNAPSHOT' }
-          version = '1.1.0'
+          version = '1.2.0'
           group = 'com.dimos.mod'
           repositories { mavenCentral(); maven { url = "https://maven.fabricmc.net/" } }
           dependencies {
@@ -49,7 +51,7 @@ jobs:
           }
           EOF
 
-          # 2. НОВАЯ ЛОГИКА: EmeraldballItem.java
+          # 2. EmeraldballItem.java (Бросок)
           cat <<EOF > src/main/java/com/dimos/mod/item/EmeraldballItem.java
           package com.dimos.mod.item;
           import net.minecraft.entity.player.PlayerEntity;
@@ -58,43 +60,29 @@ jobs:
           import net.minecraft.item.ItemStack;
           import net.minecraft.sound.SoundCategory;
           import net.minecraft.sound.SoundEvents;
-          import net.minecraft.stat.Stats;
           import net.minecraft.util.Hand;
           import net.minecraft.util.TypedActionResult;
           import net.minecraft.world.World;
-          import net.minecraft.world.World.ExplosionSourceType;
 
           public class EmeraldballItem extends Item {
               public EmeraldballItem(Settings settings) { super(settings); }
-
               @Override
               public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
                   ItemStack itemStack = user.getStackInHand(hand);
-                  world.playSound(null, user.getX(), user.getY(), user.getZ(), 
-                      SoundEvents.ENTITY_SNOWBALL_THROW, SoundCategory.NEUTRAL, 0.5F, 0.4F / (world.getRandom().nextFloat() * 0.4F + 0.8F));
-                  
+                  world.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.ENTITY_SNOWBALL_THROW, SoundCategory.NEUTRAL, 0.5F, 0.4F);
                   if (!world.isClient) {
-                      // Создаем снежок, но даем ему внешний вид нашего предмета
                       SnowballEntity projectile = new SnowballEntity(world, user);
                       projectile.setItem(itemStack);
                       projectile.setVelocity(user, user.getPitch(), user.getYaw(), 0.0F, 1.5F, 1.0F);
-                      
-                      // Хак: добавляем логику взрыва при ударе через лямбду (в 1.21.1 это проще сделать через Mixin или кастомную сущность, 
-                      // но для краткости мы заставим его взорваться сразу, если нужно "бросить и взорвать")
-                      // Однако для полноценного взрыва ПРИ УДАРЕ нам нужен Mixin на SnowballEntity.
                       world.spawnEntity(projectile);
                   }
-
-                  user.incrementStat(Stats.USED.getOrCreateStat(this));
-                  if (!user.getAbilities().creativeMode) {
-                      itemStack.decrement(1);
-                  }
+                  if (!user.getAbilities().creativeMode) itemStack.decrement(1);
                   return TypedActionResult.success(itemStack, world.isClient());
               }
           }
           EOF
 
-          # 3. МИКСИН ДЛЯ ВЗРЫВА ПРИ УДАРЕ:
+          # 3. ProjectileExplosionMixin.java (ИСПРАВЛЕННЫЙ МЕТОД getStack)
           cat <<EOF > src/main/java/com/dimos/mod/mixin/ProjectileExplosionMixin.java
           package com.dimos.mod.mixin;
           import com.dimos.mod.DimMod;
@@ -111,18 +99,19 @@ jobs:
               @Inject(at = @At("TAIL"), method = "onCollision")
               private void onHit(HitResult hitResult, CallbackInfo ci) {
                   SnowballEntity self = (SnowballEntity) (Object) this;
-                  if (self.getItem().isOf(DimMod.EMERALD_BALL) && !self.getWorld().isClient) {
-                      self.getWorld().createExplosion(self, self.getX(), self.getY(), self.getZ(), 3.0f, ExplosionSourceType.NONE);
-                      self.discard(); // Убираем снежок после взрыва
+                  // В 1.21.1 используем getStack() вместо getItem()
+                  if (self.getStack().isOf(DimMod.EMERALD_BALL) && !self.getWorld().isClient) {
+                      self.getWorld().createExplosion(self, self.getX(), self.getY(), self.getZ(), 4.0f, ExplosionSourceType.NONE);
+                      self.discard();
                   }
               }
           }
           EOF
 
-          # 4. Настройки проекта
+          # 4. Config & Mod JSON
           echo "pluginManagement { repositories { maven { url = 'https://maven.fabricmc.net/' }; mavenCentral(); gradlePluginPortal() } }; rootProject.name = 'dimos-mod'" > settings.gradle
           cat <<EOF > src/main/resources/fabric.mod.json
-          { "schemaVersion": 1, "id": "dimos", "version": "1.1.0", "name": "DimOS", "entrypoints": { "main": ["com.dimos.mod.DimMod"] }, "mixins": ["dimos.mixins.json"], "depends": { "fabricloader": ">=0.16.5", "minecraft": "~1.21.1" } }
+          { "schemaVersion": 1, "id": "dimos", "version": "1.2.0", "name": "DimOS", "entrypoints": { "main": ["com.dimos.mod.DimMod"] }, "mixins": ["dimos.mixins.json"], "depends": { "fabricloader": ">=0.16.5", "minecraft": "~1.21.1" } }
           EOF
           cat <<EOF > src/main/resources/dimos.mixins.json
           { "required": true, "package": "com.dimos.mod.mixin", "compatibilityLevel": "JAVA_21", "mixins": ["ProjectileExplosionMixin"], "injectors": { "defaultRequire": 1 } }
@@ -137,23 +126,21 @@ jobs:
           import net.minecraft.registry.Registries;
           import net.minecraft.registry.Registry;
           import net.minecraft.util.Identifier;
+          import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+          import net.minecraft.item.ItemGroups;
+
           public class DimMod implements ModInitializer {
               public static final Item EMERALD_BALL = new EmeraldballItem(new Item.Settings().maxCount(16));
               @Override
               public void onInitialize() {
                   Registry.register(Registries.ITEM, Identifier.of("dimos", "emeraldball"), EMERALD_BALL);
+                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(content -> content.add(EMERALD_BALL));
               }
           }
           EOF
 
-          # 6. МОДЕЛЬ (Исправляем текстуру)
-          cat <<EOF > src/main/resources/assets/dimos/models/item/emeraldball.json
-          {
-            "parent": "minecraft:item/generated",
-            "textures": { "layer0": "dimos:item/emeraldball" }
-          }
-          EOF
-          
+          # 6. Model & Lang
+          echo '{"parent": "minecraft:item/generated", "textures": { "layer0": "dimos:item/emeraldball" }}' > src/main/resources/assets/dimos/models/item/emeraldball.json
           echo '{"item.dimos.emeraldball": "Emeraldball"}' > src/main/resources/assets/dimos/lang/en_us.json
           echo '{"item.dimos.emeraldball": "Изумрудный шар"}' > src/main/resources/assets/dimos/lang/ru_ru.json
 
@@ -163,5 +150,5 @@ jobs:
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-Emeraldball-V11
+          name: DimOS-Emeraldball-V12
           path: build/libs/*.jar
