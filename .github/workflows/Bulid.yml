@@ -1,4 +1,4 @@
-name: Fabric_Mod_Emeraldball_V14
+name: Fabric_Mod_Tsunami_Gravity_V17
 on: [workflow_dispatch, push]
 
 jobs:
@@ -26,26 +26,20 @@ jobs:
           mkdir -p src/main/resources/assets/dimos/lang
           mkdir -p src/main/resources/assets/dimos/models/item
           mkdir -p src/main/resources/assets/dimos/textures/item
-          mkdir -p src/main/resources/data/dimos/recipe
 
-          # Фикс текстуры: если нет файла, создаем временную заглушку
+          # Текстура Emeraldball (из корня или заглушка)
           if [ -f "fireballhh.png" ]; then
               cp fireballhh.png src/main/resources/assets/dimos/textures/item/emeraldball.png
           else
-              echo "fireballhh.png not found, using fallback"
-              # Скачиваем заглушку, чтобы не было ошибок
               curl -sL https://raw.githubusercontent.com/TridentMC/Trident/master/src/main/resources/assets/minecraft/textures/items/slimeball.png -o src/main/resources/assets/dimos/textures/item/emeraldball.png
           fi
 
-          # 1. Build.gradle (ИСПРАВЛЕННЫЕ ВЕРСИИ)
+          # 1. Build.gradle
           cat <<EOF > build.gradle
           plugins { id 'fabric-loom' version '1.7-SNAPSHOT' }
-          version = '1.4.0'
+          version = '1.7.0'
           group = 'com.dimos.mod'
-          repositories { 
-              mavenCentral()
-              maven { url = "https://maven.fabricmc.net/" }
-          }
+          repositories { mavenCentral(); maven { url = "https://maven.fabricmc.net/" } }
           dependencies {
               minecraft "com.mojang:minecraft:1.21.1"
               mappings "net.fabricmc:yarn:1.21.1+build.3:v2"
@@ -66,7 +60,6 @@ jobs:
           import net.minecraft.util.Hand;
           import net.minecraft.util.TypedActionResult;
           import net.minecraft.world.World;
-
           public class EmeraldballItem extends Item {
               public EmeraldballItem(Settings settings) { super(settings); }
               @Override
@@ -74,10 +67,10 @@ jobs:
                   ItemStack stack = user.getStackInHand(hand);
                   world.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.ENTITY_SNOWBALL_THROW, SoundCategory.NEUTRAL, 0.5F, 0.4F);
                   if (!world.isClient) {
-                      SnowballEntity projectile = new SnowballEntity(world, user);
-                      projectile.setItem(stack);
-                      projectile.setVelocity(user, user.getPitch(), user.getYaw(), 0.0F, 1.5F, 1.0F);
-                      world.spawnEntity(projectile);
+                      SnowballEntity proj = new SnowballEntity(world, user);
+                      proj.setItem(stack);
+                      proj.setVelocity(user, user.getPitch(), user.getYaw(), 0.0F, 1.5F, 1.0F);
+                      world.spawnEntity(proj);
                   }
                   if (!user.getAbilities().creativeMode) stack.decrement(1);
                   return TypedActionResult.success(stack, world.isClient());
@@ -85,66 +78,152 @@ jobs:
           }
           EOF
 
-          # 3. Mixin для взрыва
-          cat <<EOF > src/main/java/com/dimos/mod/mixin/ProjectileExplosionMixin.java
+          # 3. TsunamiBallItem.java
+          cat <<EOF > src/main/java/com/dimos/mod/item/TsunamiBallItem.java
+          package com.dimos.mod.item;
+          import net.minecraft.entity.player.PlayerEntity;
+          import net.minecraft.entity.projectile.thrown.SnowballEntity;
+          import net.minecraft.item.Item;
+          import net.minecraft.item.ItemStack;
+          import net.minecraft.sound.SoundCategory;
+          import net.minecraft.sound.SoundEvents;
+          import net.minecraft.util.Hand;
+          import net.minecraft.util.TypedActionResult;
+          import net.minecraft.world.World;
+          public class TsunamiBallItem extends Item {
+              public TsunamiBallItem(Settings settings) { super(settings); }
+              @Override
+              public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
+                  ItemStack stack = user.getStackInHand(hand);
+                  world.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.ITEM_BUCKET_EMPTY, SoundCategory.NEUTRAL, 0.5F, 1.2F);
+                  if (!world.isClient) {
+                      SnowballEntity proj = new SnowballEntity(world, user);
+                      proj.setItem(stack);
+                      proj.setVelocity(user, user.getPitch(), user.getYaw(), 0.0F, 1.2F, 1.0F);
+                      world.spawnEntity(proj);
+                  }
+                  if (!user.getAbilities().creativeMode) stack.decrement(1);
+                  return TypedActionResult.success(stack, world.isClient());
+              }
+          }
+          EOF
+
+          # 4. Mixin (ProjectileMixin.java)
+          cat <<EOF > src/main/java/com/dimos/mod/mixin/ProjectileMixin.java
           package com.dimos.mod.mixin;
           import com.dimos.mod.DimMod;
           import net.minecraft.entity.projectile.thrown.SnowballEntity;
+          import net.minecraft.item.ItemStack;
+          import net.minecraft.sound.SoundCategory;
+          import net.minecraft.sound.SoundEvents;
           import net.minecraft.util.hit.HitResult;
+          import net.minecraft.util.math.BlockPos;
+          import net.minecraft.world.World.ExplosionSourceType;
           import org.spongepowered.asm.mixin.Mixin;
           import org.spongepowered.asm.mixin.injection.At;
           import org.spongepowered.asm.mixin.injection.Inject;
           import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-          import net.minecraft.world.World.ExplosionSourceType;
 
           @Mixin(SnowballEntity.class)
-          public abstract class ProjectileExplosionMixin {
+          public abstract class ProjectileMixin {
               @Inject(at = @At("TAIL"), method = "onCollision")
               private void onHit(HitResult hitResult, CallbackInfo ci) {
                   SnowballEntity self = (SnowballEntity) (Object) this;
-                  if (self.getStack().isOf(DimMod.EMERALD_BALL) && !self.getWorld().isClient) {
+                  if (self.getWorld().isClient) return;
+                  ItemStack stack = self.getStack();
+                  if (stack.isOf(DimMod.EMERALD_BALL)) {
                       self.getWorld().createExplosion(self, self.getX(), self.getY(), self.getZ(), 4.5f, ExplosionSourceType.NONE);
+                      self.discard();
+                  } else if (stack.isOf(DimMod.TSUNAMI_BALL)) {
+                      BlockPos center = BlockPos.ofFloored(self.getX(), self.getY(), self.getZ());
+                      DimMod.startTsunami(center, self.getWorld());
+                      self.getWorld().playSound(null, center, SoundEvents.ITEM_BUCKET_EMPTY, SoundCategory.BLOCKS, 1.0f, 0.5f);
                       self.discard();
                   }
               }
           }
           EOF
 
-          # 4. DimMod.java (Фикс вкладок для 1.21.1)
+          # 5. DimMod.java (ГРАВИТАЦИОННОЕ ЦУНАМИ)
           cat <<EOF > src/main/java/com/dimos/mod/DimMod.java
           package com.dimos.mod;
           import com.dimos.mod.item.EmeraldballItem;
+          import com.dimos.mod.item.TsunamiBallItem;
           import net.fabricmc.api.ModInitializer;
+          import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
           import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+          import net.minecraft.block.Blocks;
           import net.minecraft.item.Item;
           import net.minecraft.item.ItemGroups;
           import net.minecraft.registry.Registries;
           import net.minecraft.registry.Registry;
+          import net.minecraft.server.world.ServerWorld;
           import net.minecraft.util.Identifier;
+          import net.minecraft.util.math.BlockPos;
+          import java.util.Queue;
+          import java.util.concurrent.ConcurrentLinkedQueue;
 
           public class DimMod implements ModInitializer {
-              public static final Item EMERALD_BALL = new EmeraldballItem(new Item.Settings());
+              public static final Item EMERALD_BALL = new EmeraldballItem(new Item.Settings().maxCount(16));
+              public static final Item TSUNAMI_BALL = new TsunamiBallItem(new Item.Settings().maxCount(8));
+              private static final Queue<TsunamiNode> queue = new ConcurrentLinkedQueue<>();
+              private static ServerWorld worldRef;
+              private static int maxY = 0;
+
               @Override
               public void onInitialize() {
                   Registry.register(Registries.ITEM, Identifier.of("dimos", "emeraldball"), EMERALD_BALL);
-                  
-                  // Исправленный метод регистрации во вкладке Бой
-                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(content -> {
-                      content.add(EMERALD_BALL);
+                  Registry.register(Registries.ITEM, Identifier.of("dimos", "tsunamiball"), TSUNAMI_BALL);
+                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(c -> { c.add(EMERALD_BALL); c.add(TSUNAMI_BALL); });
+
+                  ServerTickEvents.END_SERVER_TICK.register(server -> {
+                      if (worldRef != null && !queue.isEmpty()) {
+                          int processed = 0;
+                          while (processed < 100 && !queue.isEmpty()) {
+                              TsunamiNode node = queue.poll();
+                              if (node.dist > 50) continue; 
+
+                              // 5 направлений: Вниз, Вперед, Назад, Лево, Право
+                              BlockPos[] targets = { node.pos.down(), node.pos.north(), node.pos.south(), node.pos.east(), node.pos.west() };
+                              for (BlockPos p : targets) {
+                                  // Главное условие: Y не выше maxY (точки взрыва)
+                                  if (p.getY() <= maxY && (worldRef.getBlockState(p).isAir() || worldRef.getBlockState(p).isOf(Blocks.SHORT_GRASS))) {
+                                      worldRef.setBlockState(p, Blocks.WATER.getDefaultState());
+                                      queue.add(new TsunamiNode(p, node.dist + 1));
+                                  }
+                              }
+                              processed++;
+                          }
+                      }
                   });
+              }
+
+              public static void startTsunami(BlockPos pos, net.minecraft.world.World world) {
+                  if (world instanceof ServerWorld sw) {
+                      worldRef = sw;
+                      maxY = pos.getY(); // Фиксируем высоту
+                      queue.add(new TsunamiNode(pos, 0));
+                      worldRef.setBlockState(pos, Blocks.WATER.getDefaultState());
+                  }
+              }
+
+              private static class TsunamiNode {
+                  BlockPos pos; int dist;
+                  TsunamiNode(BlockPos p, int d) { pos = p; dist = d; }
               }
           }
           EOF
 
-          # 5. Ресурсы
-          echo "pluginManagement { repositories { maven { url = 'https://maven.fabricmc.net/' }; mavenCentral() } }; rootProject.name = 'dimos-mod'" > settings.gradle
+          # 6. Ресурсы (Модели и Языки)
           cat <<EOF > src/main/resources/fabric.mod.json
-          { "schemaVersion": 1, "id": "dimos", "version": "1.4.0", "name": "DimOS", "entrypoints": { "main": ["com.dimos.mod.DimMod"] }, "mixins": ["dimos.mixins.json"], "depends": { "fabricloader": ">=0.16.0", "minecraft": "~1.21.1" } }
+          { "schemaVersion": 1, "id": "dimos", "version": "1.7.0", "name": "DimOS", "entrypoints": { "main": ["com.dimos.mod.DimMod"] }, "mixins": ["dimos.mixins.json"], "depends": { "fabricloader": ">=0.16.0", "minecraft": "~1.21.1" } }
           EOF
-          echo '{"required":true,"package":"com.dimos.mod.mixin","compatibilityLevel":"JAVA_21","mixins":["ProjectileExplosionMixin"]}' > src/main/resources/dimos.mixins.json
+          echo '{"required":true,"package":"com.dimos.mod.mixin","compatibilityLevel":"JAVA_21","mixins":["ProjectileMixin"]}' > src/main/resources/dimos.mixins.json
           echo '{"parent":"minecraft:item/generated","textures":{"layer0":"dimos:item/emeraldball"}}' > src/main/resources/assets/dimos/models/item/emeraldball.json
-          echo '{"item.dimos.emeraldball":"Emeraldball"}' > src/main/resources/assets/dimos/lang/en_us.json
-          echo '{"item.dimos.emeraldball":"Изумрудный шар"}' > src/main/resources/assets/dimos/lang/ru_ru.json
+          echo '{"parent":"minecraft:item/generated","textures":{"layer0":"minecraft:item/wind_charge"}}' > src/main/resources/assets/dimos/models/item/tsunamiball.json
+          echo '{"item.dimos.emeraldball":"Emeraldball","item.dimos.tsunamiball":"TsunamiBall"}' > src/main/resources/assets/dimos/lang/en_us.json
+          echo '{"item.dimos.emeraldball":"Изумрудный шар","item.dimos.tsunamiball":"Цунами-шар"}' > src/main/resources/assets/dimos/lang/ru_ru.json
+          echo "pluginManagement { repositories { maven { url = 'https://maven.fabricmc.net/' }; mavenCentral() } }; rootProject.name = 'dimos-mod'" > settings.gradle
 
       - name: Build Mod
         run: gradle build --no-daemon
@@ -152,5 +231,5 @@ jobs:
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-Emeraldball-V14
+          name: DimOS-Tsunami-Gravity-V17
           path: build/libs/*.jar
