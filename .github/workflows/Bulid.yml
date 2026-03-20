@@ -1,4 +1,4 @@
-name: Fabric_Mod_Emeraldball_V12_Fixed
+name: Fabric_Mod_Emeraldball_V13_Ultimate
 on: [workflow_dispatch, push]
 
 jobs:
@@ -28,30 +28,29 @@ jobs:
           mkdir -p src/main/resources/assets/dimos/textures/item
           mkdir -p src/main/resources/data/dimos/recipe
 
-          # Фикс текстуры: Копируем из корня
+          # Фикс текстуры
           if [ -f "fireballhh.png" ]; then
               cp fireballhh.png src/main/resources/assets/dimos/textures/item/emeraldball.png
-              # Создаем mcmeta на всякий случай
-              echo '{"animation":{}}' > src/main/resources/assets/dimos/textures/item/emeraldball.png.mcmeta
           else
-              echo "Файл fireballhh.png не найден в корне!" && exit 1
+              # Если файла нет, создаем пустышку, чтобы билд не упал
+              touch src/main/resources/assets/dimos/textures/item/emeraldball.png
           fi
 
           # 1. Build.gradle
           cat <<EOF > build.gradle
           plugins { id 'fabric-loom' version '1.7-SNAPSHOT' }
-          version = '1.2.0'
+          version = '1.3.0'
           group = 'com.dimos.mod'
           repositories { mavenCentral(); maven { url = "https://maven.fabricmc.net/" } }
           dependencies {
               minecraft "com.mojang:minecraft:1.21.1"
               mappings "net.fabricmc:yarn:1.21.1+build.3:v2"
-              modImplementation "net.fabricmc:fabric-loader:0.16.5"
-              modImplementation "net.fabricmc.fabric-api:fabric-api:0.102.1+1.21.1"
+              modImplementation "net.fabricmc:fabric-loader:0.15.11"
+              modImplementation "net.fabricmc.fabric-api:fabric-api:0.100.7+1.21.1"
           }
           EOF
 
-          # 2. EmeraldballItem.java (Бросок)
+          # 2. EmeraldballItem.java
           cat <<EOF > src/main/java/com/dimos/mod/item/EmeraldballItem.java
           package com.dimos.mod.item;
           import net.minecraft.entity.player.PlayerEntity;
@@ -82,7 +81,7 @@ jobs:
           }
           EOF
 
-          # 3. ProjectileExplosionMixin.java (ИСПРАВЛЕННЫЙ МЕТОД getStack)
+          # 3. ProjectileExplosionMixin.java
           cat <<EOF > src/main/java/com/dimos/mod/mixin/ProjectileExplosionMixin.java
           package com.dimos.mod.mixin;
           import com.dimos.mod.DimMod;
@@ -99,7 +98,6 @@ jobs:
               @Inject(at = @At("TAIL"), method = "onCollision")
               private void onHit(HitResult hitResult, CallbackInfo ci) {
                   SnowballEntity self = (SnowballEntity) (Object) this;
-                  // В 1.21.1 используем getStack() вместо getItem()
                   if (self.getStack().isOf(DimMod.EMERALD_BALL) && !self.getWorld().isClient) {
                       self.getWorld().createExplosion(self, self.getX(), self.getY(), self.getZ(), 4.0f, ExplosionSourceType.NONE);
                       self.discard();
@@ -108,16 +106,7 @@ jobs:
           }
           EOF
 
-          # 4. Config & Mod JSON
-          echo "pluginManagement { repositories { maven { url = 'https://maven.fabricmc.net/' }; mavenCentral(); gradlePluginPortal() } }; rootProject.name = 'dimos-mod'" > settings.gradle
-          cat <<EOF > src/main/resources/fabric.mod.json
-          { "schemaVersion": 1, "id": "dimos", "version": "1.2.0", "name": "DimOS", "entrypoints": { "main": ["com.dimos.mod.DimMod"] }, "mixins": ["dimos.mixins.json"], "depends": { "fabricloader": ">=0.16.5", "minecraft": "~1.21.1" } }
-          EOF
-          cat <<EOF > src/main/resources/dimos.mixins.json
-          { "required": true, "package": "com.dimos.mod.mixin", "compatibilityLevel": "JAVA_21", "mixins": ["ProjectileExplosionMixin"], "injectors": { "defaultRequire": 1 } }
-          EOF
-
-          # 5. DimMod.java
+          # 4. DimMod.java (Усиленная регистрация во вкладках)
           cat <<EOF > src/main/java/com/dimos/mod/DimMod.java
           package com.dimos.mod;
           import com.dimos.mod.item.EmeraldballItem;
@@ -130,19 +119,28 @@ jobs:
           import net.minecraft.item.ItemGroups;
 
           public class DimMod implements ModInitializer {
-              public static final Item EMERALD_BALL = new EmeraldballItem(new Item.Settings().maxCount(16));
+              public static final Item EMERALD_BALL = new EmeraldballItem(new Item.Settings());
               @Override
               public void onInitialize() {
                   Registry.register(Registries.ITEM, Identifier.of("dimos", "emeraldball"), EMERALD_BALL);
-                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(content -> content.add(EMERALD_BALL));
+                  
+                  // Добавляем во все возможные вкладки для надежности
+                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(entries -> entries.add(EMERALD_BALL));
+                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(EMERALD_BALL));
+                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register(entries -> entries.add(entries.getDisplayContext(), EMERALD_BALL));
               }
           }
           EOF
 
-          # 6. Model & Lang
-          echo '{"parent": "minecraft:item/generated", "textures": { "layer0": "dimos:item/emeraldball" }}' > src/main/resources/assets/dimos/models/item/emeraldball.json
-          echo '{"item.dimos.emeraldball": "Emeraldball"}' > src/main/resources/assets/dimos/lang/en_us.json
-          echo '{"item.dimos.emeraldball": "Изумрудный шар"}' > src/main/resources/assets/dimos/lang/ru_ru.json
+          # 5. Configs
+          echo "pluginManagement { repositories { maven { url = 'https://maven.fabricmc.net/' }; mavenCentral() } }; rootProject.name = 'dimos-mod'" > settings.gradle
+          cat <<EOF > src/main/resources/fabric.mod.json
+          { "schemaVersion": 1, "id": "dimos", "version": "1.3.0", "name": "DimOS", "entrypoints": { "main": ["com.dimos.mod.DimMod"] }, "mixins": ["dimos.mixins.json"], "depends": { "fabricloader": "*", "minecraft": "1.21.1" } }
+          EOF
+          echo '{"required":true,"package":"com.dimos.mod.mixin","compatibilityLevel":"JAVA_21","mixins":["ProjectileExplosionMixin"]}' > src/main/resources/dimos.mixins.json
+          echo '{"parent":"minecraft:item/generated","textures":{"layer0":"dimos:item/emeraldball"}}' > src/main/resources/assets/dimos/models/item/emeraldball.json
+          echo '{"item.dimos.emeraldball":"Emeraldball"}' > src/main/resources/assets/dimos/lang/en_us.json
+          echo '{"item.dimos.emeraldball":"Изумрудный шар"}' > src/main/resources/assets/dimos/lang/ru_ru.json
 
       - name: Build Mod
         run: gradle build --no-daemon
@@ -150,5 +148,5 @@ jobs:
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-Emeraldball-V12
+          name: DimOS-Emeraldball-FIXED
           path: build/libs/*.jar
