@@ -387,6 +387,7 @@ jobs:
 
               @Override public void onSurfaceChanged(GL10 gl,int w,int h){GLES30.glViewport(0,0,w,h);Matrix.perspectiveM(proj,0,55,(float)w/h,.1f,500f);screenW=w;screenH=h;}
 
+              private void updateUI() { runOnUiThread(() -> { int vis = (ren.selectedIndex >= 0) ? View.VISIBLE : View.GONE; axisPanel.setVisibility(vis); btnDelete.setVisibility(vis); }); }
               @Override public void onDrawFrame(GL10 gl) {
                   update();
                   GLES30.glClearColor(.005f,.01f,.025f,1f);
