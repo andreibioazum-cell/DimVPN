@@ -1,4 +1,4 @@
-name: HORROR GAME BUILDER
+name: HORROR GAME V7 - 3D LOBBY & BOTS
 on: [push, workflow_dispatch]
 
 jobs:
@@ -8,7 +8,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Clean Repository
+      - name: Purge
         run: find . -maxdepth 1 ! -name '.git' ! -name 'README.md' ! -name '.' -exec rm -rf {} +
 
       - name: Create Folders
@@ -18,62 +18,82 @@ jobs:
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-      - name: Generate Game Engine
+      - name: Generate Source
         run: |
-          # 1. ГЛАВНЫЙ КОД ИГРЫ
+          # 1. СТРУКТУРА ПЕРСОНАЖА
+          cat <<'EOF' > app/src/main/java/com/enjoer/game/Actor.java
+          package com.enjoer.game;
+          public class Actor {
+              public float x, z, rY;
+              public float r, g, b;
+              public boolean isKiller;
+              public String name;
+              public Actor(String n, float x, float z, float r, float g, float b, boolean k) {
+                  this.name=n; this.x=x; this.z=z; this.r=r; this.g=g; this.b=b; this.isKiller=k;
+              }
+          }
+          EOF
+
+          # 2. УЛУЧШЕННЫЙ ДВИЖОК
           cat <<'EOF' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
           import android.opengl.*;
           import java.nio.*;
+          import java.util.ArrayList;
           import javax.microedition.khronos.egl.EGLConfig;
           import javax.microedition.khronos.opengles.GL10;
 
           public class GameRenderer implements GLSurfaceView.Renderer {
-              private int prg; private FloatBuffer b;
+              private int prg; private FloatBuffer vB;
               private float[] proj=new float[16], view=new float[16], model=new float[16];
-              public float pX=0, pY=4.2f, pZ=10, rY=0, jX=0, jY=0;
-              public boolean isKiller = false;
-              public float enemyX=10, enemyZ=-10; // Позиция цели/врага
+              public float pX=0, pZ=10, rY=0, jX=0, jY=0;
+              public ArrayList<Actor> actors = new ArrayList<>();
+              public boolean inGame = false;
 
               @Override public void onSurfaceCreated(GL10 gl, EGLConfig cfg) {
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
                   String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uM;out vec3 vN,vP;void main(){vP=aP.xyz;vN=aN;gl_Position=uM*aP;}";
-                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec4 uC;uniform vec3 sun;out vec4 fC;void main(){" +
-                            "if(length(vP)>150.0){float h=normalize(vP).y*0.5+0.5;fC=vec4(mix(vec3(0.05,0.05,0.1),vec3(0.1,0.2,0.4),h),1.0);return;}" +
-                            "float d=max(dot(normalize(vN),normalize(sun)),0.2);fC=vec4(uC.rgb*d,1.0);}";
+                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec4 uC;out vec4 fC;void main(){" +
+                            "if(length(vP)>180.0){fC=vec4(0.05,0.1,0.2,1.0);return;}" +
+                            "float d=max(dot(normalize(vN),vec3(0.5,1.0,0.5)),0.2);fC=vec4(uC.rgb*d,1.0);}";
                   int vsh=GLES30.glCreateShader(35633); GLES30.glShaderSource(vsh,vs); GLES30.glCompileShader(vsh);
                   int fsh=GLES30.glCreateShader(35632); GLES30.glShaderSource(fsh,fs); GLES30.glCompileShader(fsh);
                   prg=GLES30.glCreateProgram(); GLES30.glAttachShader(prg,vsh); GLES30.glAttachShader(prg,fsh); GLES30.glLinkProgram(prg);
                   float[] v={-.5f,.5f,.5f,0,0,1,-.5f,-.5f,.5f,0,0,1,.5f,.5f,.5f,0,0,1,.5f,-.5f,.5f,0,0,1,
                              -.5f,.5f,-.5f,0,0,-1,-.5f,-.5f,-.5f,0,0,-1,.5f,.5f,-.5f,0,0,-1,.5f,-.5f,-.5f,0,0,-1,
                              -.5f,0.5f,-0.5f,0,1,0,-0.5f,0.5f,0.5f,0,1,0,0.5f,0.5f,-0.5f,0,1,0,0.5f,0.5f,0.5f,0,1,0};
-                  b=ByteBuffer.allocateDirect(v.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(v); b.position(0);
+                  vB=ByteBuffer.allocateDirect(v.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(v); vB.position(0);
+                  
+                  // Создаем ботов для 3D лобби
+                  actors.add(new Actor("Bot1", 5, -5, 0, 0.8f, 1, false));
+                  actors.add(new Actor("Bot2", -5, -8, 0, 0.5f, 0.5f, false));
+                  actors.add(new Actor("KillerBot", 0, -15, 1, 0, 0, true));
               }
 
-              @Override public void onSurfaceChanged(GL10 gl,int w,int h){ GLES30.glViewport(0,0,w,h); Matrix.perspectiveM(proj,0,60,(float)w/h,0.1f,400f); }
-              
+              @Override public void onSurfaceChanged(GL10 gl,int w,int h){ GLES30.glViewport(0,0,w,h); Matrix.perspectiveM(proj,0,65,(float)w/h,0.1f,400f); }
               @Override public void onDrawFrame(GL10 gl) {
                   update();
                   GLES30.glClear(16640);
                   float rad=(float)Math.toRadians(rY);
-                  // Камера от 3-го лица (чуть сзади и выше игрока)
-                  Matrix.setLookAtM(view,0, pX-(float)Math.sin(rad)*8, pY+5, pZ+(float)Math.cos(rad)*8, pX,pY+1,pZ, 0,1,0);
-                  
+                  Matrix.setLookAtM(view,0, pX-(float)Math.sin(rad)*7, 5, pZ+(float)Math.cos(rad)*7, pX, 1, pZ, 0,1,0);
                   GLES30.glUseProgram(prg);
                   int uM=GLES30.glGetUniformLocation(prg,"uM"), uC=GLES30.glGetUniformLocation(prg,"uC");
-                  GLES30.glUniform3f(GLES30.glGetUniformLocation(prg,"sun"), 10, 20, 10);
-                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,24,b); GLES30.glEnableVertexAttribArray(0);
-                  b.position(3); GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,24,b); GLES30.glEnableVertexAttribArray(1); b.position(0);
+                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,24,vB); GLES30.glEnableVertexAttribArray(0);
+                  vB.position(3); GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,24,vB); GLES30.glEnableVertexAttribArray(1); vB.position(0);
                   
-                  draw(uM,uC,0,0,0,500,0.1f,500,0.1f,0.2f,0.1f); // Пол (темная трава)
-                  draw(uM,uC,pX,pY,pZ,250,250,250,0,0,0);        // Небо
+                  draw(uM,uC,0,0,0,100,0.1f,100,0.1f,0.15f,0.1f); // Земля
+                  draw(uM,uC,pX,0,pZ,300,300,300,0,0,0); // Небо
                   
-                  // Игрок
-                  if(isKiller) draw(uM,uC,pX,pY+1,pZ,1,2,1,0.8f,0,0); // Убийца красный
-                  else draw(uM,uC,pX,pY+1,pZ,1,2,1,0,0.5f,1);        // Выживший синий
-                  
-                  // Враг (бот для теста)
-                  draw(uM,uC,enemyX,pY+1,enemyZ,1,2,1,0.5f,0.5f,0.5f);
+                  // Отрисовка себя (если мы в игре)
+                  draw(uM,uC,pX,1,pZ,1,2,1, 1,1,1); 
+
+                  // Отрисовка ботов
+                  for(Actor a : actors) {
+                      draw(uM,uC, a.x, 1, a.z, 1, 2, 1, a.r, a.g, a.b);
+                      if(inGame) { // Простая логика движения ботов в игре
+                         a.z += 0.05f; if(a.z > 20) a.z = -20;
+                      }
+                  }
               }
 
               private void draw(int mLoc,int cLoc,float x,float y,float z,float sx,float sy,float sz,float r,float g,float bl){
@@ -84,14 +104,14 @@ jobs:
               }
 
               private void update(){
-                  float s=0.22f, rad=(float)Math.toRadians(rY);
+                  float s=0.2f, rad=(float)Math.toRadians(rY);
                   pX+=((float)Math.sin(rad)*-jY+(float)Math.cos(rad)*jX)*s;
                   pZ+=((float)-Math.cos(rad)*-jY+(float)Math.sin(rad)*jX)*s;
               }
           }
           EOF
 
-          # 2. ЛОГИКА MainActivity (Лобби + Таймер)
+          # 3. ГЛАВНЫЙ ЭКРАН (Фикс вылета через View.Visibility)
           cat <<'EOF' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
           import android.os.*;
@@ -101,42 +121,27 @@ jobs:
 
           public class MainActivity extends AppCompatActivity {
               private GameRenderer ren; private float lx;
-              private int timeLeft = 180;
+              private int timer = 180;
               private Handler h = new Handler();
 
               @Override protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  showLobby();
-              }
-
-              void showLobby() {
-                  setContentView(R.layout.lobby);
-                  findViewById(R.id.btn_surv).setOnClickListener(v -> startGame(false));
-                  findViewById(R.id.btn_kill).setOnClickListener(v -> startGame(true));
-              }
-
-              void startGame(boolean killer) {
                   setContentView(R.layout.activity_main);
-                  android.opengl.GLSurfaceView gv = findViewById(R.id.gl_view);
-                  gv.setEGLContextClientVersion(3); ren = new GameRenderer(); 
-                  ren.isKiller = killer; gv.setRenderer(ren);
+                  
+                  GLSurfaceView gv = findViewById(R.id.gl_view);
+                  gv.setEGLContextClientVersion(3);
+                  ren = new GameRenderer();
+                  gv.setRenderer(ren);
 
-                  // Скрываем/показываем способности
-                  findViewById(R.id.surv_skills).setVisibility(killer ? View.GONE : View.VISIBLE);
-                  findViewById(R.id.kill_skills).setVisibility(killer ? View.VISIBLE : View.GONE);
+                  // Кнопки выбора в лобби
+                  findViewById(R.id.btn_select_surv).setOnClickListener(v -> startWithRole("Athlete", false));
+                  findViewById(R.id.btn_select_kill).setOnClickListener(v -> startWithRole("Hunter", true));
+                  findViewById(R.id.btn_random).setOnClickListener(v -> {
+                      boolean isK = Math.random() > 0.5;
+                      startWithRole(isK ? "Ghost" : "Engineer", isK);
+                  });
 
-                  // Таймер
-                  timeLeft = 180;
-                  h.postDelayed(new Runnable() {
-                      @Override public void run() {
-                          timeLeft--;
-                          ((TextView)findViewById(R.id.timer)).setText("Time: " + timeLeft);
-                          if(timeLeft <= 0) { Toast.makeText(MainActivity.this, "TIME OVER!", Toast.LENGTH_LONG).show(); showLobby(); }
-                          else h.postDelayed(this, 1000);
-                      }
-                  }, 1000);
-
-                  // Управление
+                  // Управление камерой и джойстик
                   findViewById(R.id.joy).setOnTouchListener((v,e)->{
                       if(e.getAction()==MotionEvent.ACTION_MOVE){ren.jX=(e.getX()-v.getWidth()/2)/60f; ren.jY=(e.getY()-v.getHeight()/2)/60f;}
                       else {ren.jX=0; ren.jY=0;} return true;
@@ -147,54 +152,61 @@ jobs:
                       return true;
                   });
               }
+
+              void startWithRole(String name, boolean isKiller) {
+                  findViewById(R.id.lobby_ui).setVisibility(View.GONE);
+                  findViewById(R.id.game_ui).setVisibility(View.VISIBLE);
+                  ren.inGame = true;
+                  Toast.makeText(this, "Playing as " + name, Toast.LENGTH_SHORT).show();
+                  
+                  // Запуск таймера
+                  timer = 180;
+                  h.postDelayed(new Runnable() {
+                      @Override public void run() {
+                          timer--;
+                          ((TextView)findViewById(R.id.txt_timer)).setText("Time: " + timer);
+                          if(timer <= 0) backToLobby();
+                          else h.postDelayed(this, 1000);
+                      }
+                  }, 1000);
+              }
+
+              void backToLobby() {
+                  ren.inGame = false;
+                  findViewById(R.id.lobby_ui).setVisibility(View.VISIBLE);
+                  findViewById(R.id.game_ui).setVisibility(View.GONE);
+                  h.removeCallbacksAndMessages(null);
+              }
           }
           EOF
 
-      - name: Generate Layouts
+      - name: Generate Layout
         run: |
-          # ЛОББИ
-          cat <<'EOF' > app/src/main/res/layout/lobby.xml
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#111">
-              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CHOOSE YOUR ROLE" android:textColor="#FFF" android:textSize="30sp" android:layout_marginBottom="50dp"/>
-              <Button android:id="@+id/btn_surv" android:layout_width="200dp" android:layout_height="60dp" android:text="SURVIVOR" android:backgroundTint="#00BFFF" android:layout_margin="10dp"/>
-              <Button android:id="@+id/btn_kill" android:layout_width="200dp" android:layout_height="60dp" android:text="KILLER" android:backgroundTint="#FF4500" android:layout_margin="10dp"/>
-          </LinearLayout>
-          EOF
-
-          # ИГРОВОЙ ЭКРАН
           cat <<'EOF' > app/src/main/res/layout/activity_main.xml
-          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
+          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
               <android.opengl.GLSurfaceView android:id="@+id/gl_view" android:layout_width="match_parent" android:layout_height="match_parent"/>
-              <TextView android:id="@+id/timer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Time: 180" android:textColor="#FFF" android:textSize="24sp" android:layout_gravity="top|center" android:layout_marginTop="20dp"/>
-              <View android:id="@+id/joy" android:layout_width="140dp" android:layout_height="140dp" android:layout_gravity="bottom|left" android:layout_margin="30dp" android:background="@drawable/joy_bg"/>
               
-              <LinearLayout android:id="@+id/surv_skills" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|right" android:orientation="horizontal" android:layout_margin="20dp">
-                  <LinearLayout android:orientation="vertical" android:gravity="center" android:layout_margin="5dp">
-                      <Button android:layout_width="60dp" android:layout_height="60dp" android:background="@drawable/btn_skill" android:text="⚡"/>
-                      <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="DASH" android:textColor="#FFF" android:textSize="10sp"/>
-                  </LinearLayout>
-                  <LinearLayout android:orientation="vertical" android:gravity="center" android:layout_margin="5dp">
-                      <Button android:layout_width="60dp" android:layout_height="60dp" android:background="@drawable/btn_skill" android:text="👁"/>
-                      <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SENSE" android:textColor="#FFF" android:textSize="10sp"/>
-                  </LinearLayout>
-                  <LinearLayout android:orientation="vertical" android:gravity="center" android:layout_margin="5dp">
-                      <Button android:layout_width="60dp" android:layout_height="60dp" android:background="@drawable/btn_skill" android:text="🛡"/>
-                      <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="HEAL" android:textColor="#FFF" android:textSize="10sp"/>
-                  </LinearLayout>
+              <LinearLayout android:id="@+id/lobby_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#66000000">
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3D LOBBY: SELECT HERO" android:textColor="#FFF" android:textSize="24sp" android:layout_marginBottom="20dp"/>
+                  <Button android:id="@+id/btn_select_surv" android:layout_width="200dp" android:layout_height="50dp" android:text="SURVIVOR (ATHLETE)" android:layout_margin="5dp"/>
+                  <Button android:id="@+id/btn_select_kill" android:layout_width="200dp" android:layout_height="50dp" android:text="KILLER (HUNTER)" android:layout_margin="5dp" android:backgroundTint="#AA0000"/>
+                  <Button android:id="@+id/btn_random" android:layout_width="200dp" android:layout_height="50dp" android:text="RANDOM ROLE" android:layout_margin="5dp" android:backgroundTint="#555"/>
               </LinearLayout>
 
-              <LinearLayout android:id="@+id/kill_skills" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|right" android:layout_margin="20dp">
-                  <Button android:layout_width="100dp" android:layout_height="100dp" android:background="@drawable/btn_kill_style" android:text="HIT" android:textColor="#FFF" android:textSize="20sp"/>
-              </LinearLayout>
+              <FrameLayout android:id="@+id/game_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
+                  <TextView android:id="@+id/txt_timer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Time: 180" android:textColor="#FFF" android:layout_gravity="top|center" android:textSize="20sp" android:layout_marginTop="10dp"/>
+                  <View android:id="@+id/joy" android:layout_width="130dp" android:layout_height="130dp" android:layout_gravity="bottom|left" android:layout_margin="30dp" android:background="@drawable/joy_bg"/>
+                  <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|right" android:orientation="horizontal" android:layout_margin="20dp">
+                      <Button android:layout_width="60dp" android:layout_height="60dp" android:text="S1" android:backgroundTint="#44FFFFFF"/>
+                      <Button android:layout_width="60dp" android:layout_height="60dp" android:text="S2" android:backgroundTint="#44FFFFFF" android:layout_marginLeft="10dp"/>
+                      <Button android:layout_width="60dp" android:layout_height="60dp" android:text="S3" android:backgroundTint="#44FFFFFF" android:layout_marginLeft="10dp"/>
+                  </LinearLayout>
+              </FrameLayout>
           </FrameLayout>
           EOF
 
-      - name: Create Styles
-        run: |
           echo "<resources><style name='AppTheme' parent='Theme.AppCompat.Light.NoActionBar'><item name='android:windowFullscreen'>true</item></style></resources>" > app/src/main/res/values/styles.xml
           echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#44000000'/><stroke android:width='2dp' android:color='#00BFFF'/></shape>" > app/src/main/res/drawable/joy_bg.xml
-          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android'><corners android:radius='30dp'/><solid android:color='#CC00BFFF'/></shape>" > app/src/main/res/drawable/btn_skill.xml
-          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android'><corners android:radius='50dp'/><solid android:color='#CCFF4500'/><stroke android:width='3dp' android:color='#FFF'/></shape>" > app/src/main/res/drawable/btn_kill_style.xml
           
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:theme="@style/AppTheme">
@@ -203,7 +215,7 @@ jobs:
           </activity></application></manifest>
           EOF
 
-      - name: Build APK
+      - name: Build and Upload
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
@@ -216,8 +228,8 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: Upload APK
+      - name: Save APK
         uses: actions/upload-artifact@v4
         with:
-          name: HorrorGame_V1
+          name: Horror_3D_Lobby_V7
           path: app/build/outputs/apk/debug/app-debug.apk
