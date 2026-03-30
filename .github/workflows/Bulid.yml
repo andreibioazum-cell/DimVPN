@@ -1,4 +1,4 @@
-name: FLOWERS HORROR V8 - ROBLOX STYLE
+name: FLOWERS HORROR V9 - ULTIMATE FIX
 on: [push, workflow_dispatch]
 
 jobs:
@@ -16,9 +16,9 @@ jobs:
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-      - name: Generate Code
+      - name: Generate Core Code
         run: |
-          # 1. РЕНДЕРЕР (Исправлена скорость и камера)
+          # 1. РЕНДЕРЕР (Исправлена камера и скорость)
           cat <<'EOF' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
           import android.opengl.*;
@@ -35,27 +35,27 @@ jobs:
               @Override public void onSurfaceCreated(GL10 gl, EGLConfig cfg) {
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
                   String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uM;out vec3 vP,vN;void main(){vP=aP.xyz;vN=aN;gl_Position=uM*aP;}";
-                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec4 uC;out vec4 fC;void main(){float d=max(dot(normalize(vN),vec3(0.3,1.0,0.3)),0.15);float fog=1.0-exp(-length(vP-vec3(0.0,2.0,0.0))*0.04);fC=mix(vec4(uC.rgb*d,1.0), vec4(0.02,0.02,0.05,1.0), clamp(fog,0.0,1.0));}";
+                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec4 uC;out vec4 fC;void main(){float d=max(dot(normalize(vN),vec3(0.3,1.0,0.3)),0.2);float fog=1.0-exp(-length(vP-vec3(0.0,2.0,0.0))*0.035);fC=mix(vec4(uC.rgb*d,1.0), vec4(0.01,0.01,0.03,1.0), clamp(fog,0.0,1.0));}";
                   int vsh=GLES30.glCreateShader(35633); GLES30.glShaderSource(vsh,vs); GLES30.glCompileShader(vsh);
                   int fsh=GLES30.glCreateShader(35632); GLES30.glShaderSource(fsh,fs); GLES30.glCompileShader(fsh);
                   prg=GLES30.glCreateProgram(); GLES30.glAttachShader(prg,vsh); GLES30.glAttachShader(prg,fsh); GLES30.glLinkProgram(prg);
                   float[] v={-.5f,.5f,.5f,0,0,1, -.5f,-.5f,.5f,0,0,1, .5f,.5f,.5f,0,0,1, .5f,-.5f,.5f,0,0,1,
-                             -.5f,0.5f,-0.5f,0,1,0, -0.5f,0.5f,0.5f,0,1,0, 0.5f,0.5f,-0.5f,0,1,0, 0.5f,0.5f,0.5f,0,1,0};
+                             -0.5f,0.5f,-0.5f,0,1,0, -0.5f,0.5f,0.5f,0,1,0, 0.5f,0.5f,-0.5f,0,1,0, 0.5f,0.5f,0.5f,0,1,0};
                   vB=ByteBuffer.allocateDirect(v.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(v); vB.position(0);
               }
 
-              @Override public void onSurfaceChanged(GL10 gl,int w,int h){ GLES30.glViewport(0,0,w,h); Matrix.perspectiveM(proj,0,60,(float)w/h,0.1f,500f); }
+              @Override public void onSurfaceChanged(GL10 gl,int w,int h){ GLES30.glViewport(0,0,w,h); Matrix.perspectiveM(proj,0,65,(float)w/h,0.1f,400f); }
               @Override public void onDrawFrame(GL10 gl) {
-                  update(); GLES30.glClearColor(0.02f, 0.02f, 0.05f, 1.0f); GLES30.glClear(16640);
-                  Matrix.setIdentityM(view,0); Matrix.rotateM(view,0, rX, 1,0,0); Matrix.rotateM(view,0, rY, 0,1,0); Matrix.translateM(view,0, -pX, -2.5f, -pZ);
+                  update(); GLES30.glClearColor(0.01f, 0.01f, 0.03f, 1.0f); GLES30.glClear(16640);
+                  Matrix.setIdentityM(view,0); 
+                  Matrix.rotateM(view,0, rX, 1,0,0); Matrix.rotateM(view,0, rY, 0,1,0); 
+                  Matrix.translateM(view,0, -pX, -2.8f, -pZ);
                   GLES30.glUseProgram(prg);
                   int uM=GLES30.glGetUniformLocation(prg,"uM"), uC=GLES30.glGetUniformLocation(prg,"uC");
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,24,vB); GLES30.glEnableVertexAttribArray(0);
                   vB.position(3); GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,24,vB); GLES30.glEnableVertexAttribArray(1); vB.position(0);
-                  // Пол (земля)
-                  draw(uM,uC, 0,-0.1f,0, 500,0.1f,500, 0.1f,0.15f,0.1f);
-                  // Объекты (деревья/блоки как в Roblox)
-                  for(int i=-5; i<5; i++) for(int j=-5; j<5; j++) draw(uM,uC, i*15, 2, j*15, 2,4,2, 0.3f, 0.2f, 0.1f);
+                  draw(uM,uC, 0,-0.1f,0, 1000,0.1f,1000, 0.05f,0.08f,0.05f); // Земля
+                  for(int i=-10; i<10; i++) for(int j=-10; j<10; j++) if((i+j)%3==0) draw(uM,uC, i*12, 3, j*12, 1.5f,6,1.5f, 0.2f, 0.15f, 0.1f); // "Деревья"
               }
               private void draw(int mLoc,int cLoc,float x,float y,float z,float sx,float sy,float sz,float r,float g,float bl){
                   Matrix.setIdentityM(model,0); Matrix.translateM(model,0,x,y,z); Matrix.scaleM(model,0,sx,sy,sz);
@@ -65,14 +65,15 @@ jobs:
               }
               private void update(){
                   if(!inGame) return;
-                  float s=0.18f; float rad=(float)Math.toRadians(rY);
+                  float s=0.15f; float rad=(float)Math.toRadians(rY);
+                  // Правильная математика движения (не инвертировано)
                   pX += (float)(Math.cos(rad)*jX + Math.sin(rad)*jY) * s;
                   pZ += (float)(Math.sin(rad)*jX - Math.cos(rad)*jY) * s;
               }
           }
           EOF
 
-          # 2. MAIN ACTIVITY (Логика выбора и джойстик)
+          # 2. ACTIVITY (Исправлен джойстик и UI)
           cat <<'EOF' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
           import android.os.*;
@@ -90,84 +91,82 @@ jobs:
                   gv.setEGLContextClientVersion(3);
                   ren = new GameRenderer(); gv.setRenderer(ren);
 
-                  // Кнопка персонажа
-                  findViewById(R.id.btn_open_char).setOnClickListener(v -> {
-                      findViewById(R.id.char_grid).setVisibility(
-                          findViewById(R.id.char_grid).getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
-                      );
+                  findViewById(R.id.btn_select).setOnClickListener(v -> {
+                      findViewById(R.id.lobby_ui).setVisibility(View.VISIBLE);
                   });
 
-                  // Выбор (пример для сетки)
-                  findViewById(R.id.char_noob).setOnClickListener(v -> startGame("Noob"));
-                  findViewById(R.id.char_guest).setOnClickListener(v -> startGame("Guest"));
+                  findViewById(R.id.char_1).setOnClickListener(v -> startGame());
 
-                  // Джойстик со стиком
+                  // Правильный джойстик со стиком
                   View base = findViewById(R.id.joy_base);
                   View stick = findViewById(R.id.joy_stick);
                   base.setOnTouchListener((v,e) -> {
                       if(e.getAction() == MotionEvent.ACTION_UP) {
-                          stick.setTranslationX(0); stick.setTranslationY(0);
+                          stick.animate().translationX(0).translationY(0).setDuration(100).start();
                           ren.jX=0; ren.jY=0; return true;
                       }
                       float dx = e.getX() - v.getWidth()/2;
                       float dy = e.getY() - v.getHeight()/2;
                       float dist = (float)Math.sqrt(dx*dx + dy*dy);
-                      float max = v.getWidth()/2;
+                      float max = v.getWidth()/2 - stick.getWidth()/2;
                       if(dist > max) { dx *= max/dist; dy *= max/dist; }
                       stick.setTranslationX(dx); stick.setTranslationY(dy);
                       ren.jX = dx/max; ren.jY = dy/max;
                       return true;
                   });
 
-                  // Камера
                   gv.setOnTouchListener((v,e) -> {
                       if(e.getAction() == MotionEvent.ACTION_DOWN) { lx=e.getX(); ly=e.getY(); }
                       if(e.getAction() == MotionEvent.ACTION_MOVE) {
-                          ren.rY += (e.getX() - lx) * 0.3f;
-                          ren.rX = Math.max(-60, Math.min(80, ren.rX + (e.getY() - ly) * 0.3f));
+                          ren.rY += (e.getX() - lx) * 0.25f;
+                          ren.rX = Math.max(-89, Math.min(89, ren.rX + (e.getY() - ly) * 0.25f));
                           lx=e.getX(); ly=e.getY();
                       }
                       return true;
                   });
               }
-              void startGame(String name) {
+              void startGame() {
                   ren.inGame = true;
-                  findViewById(R.id.char_grid).setVisibility(View.GONE);
-                  findViewById(R.id.btn_open_char).setVisibility(View.GONE);
+                  findViewById(R.id.lobby_ui).setVisibility(View.GONE);
+                  findViewById(R.id.btn_select).setVisibility(View.GONE);
                   findViewById(R.id.game_hud).setVisibility(View.VISIBLE);
-                  Toast.makeText(this, "Playing as " + name, Toast.LENGTH_SHORT).show();
               }
           }
           EOF
 
-      - name: Generate Layout
+      - name: Generate Layouts
         run: |
           cat <<'EOF' > app/src/main/res/layout/activity_main.xml
-          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#050505">
+          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
               <android.opengl.GLSurfaceView android:id="@+id/gl_view" android:layout_width="match_parent" android:layout_height="match_parent"/>
               
-              <Button android:id="@+id/btn_open_char" android:layout_width="120dp" android:layout_height="40dp" android:text="SURVIVORS" android:background="#CC000000" android:textColor="#FFF" android:layout_gravity="top|center_horizontal" android:layout_marginTop="10dp"/>
+              <Button android:id="@+id/btn_select" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CHARACTER" android:layout_gravity="bottom|center_horizontal" android:layout_marginBottom="20dp" android:backgroundTint="#AA000000" android:textColor="#FFF"/>
 
-              <GridLayout android:id="@+id/char_grid" android:layout_width="260dp" android:layout_height="wrap_content" android:columnCount="2" android:background="#EE111111" android:padding="10dp" android:layout_gravity="center_vertical|left" android:visibility="gone" android:layout_marginLeft="20dp">
-                  <Button android:id="@+id/char_noob" android:layout_width="110dp" android:layout_height="110dp" android:text="NOOB" android:layout_margin="5dp" android:background="#333" android:textColor="#FFF"/>
-                  <Button android:id="@+id/char_guest" android:layout_width="110dp" android:layout_height="110dp" android:text="GUEST" android:layout_margin="5dp" android:background="#333" android:textColor="#FFF"/>
-              </GridLayout>
+              <LinearLayout android:id="@+id/lobby_ui" android:layout_width="320dp" android:layout_height="wrap_content" android:orientation="vertical" android:background="#DD111111" android:layout_gravity="center" android:padding="15dp" android:visibility="gone">
+                  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Select Survivor" android:textColor="#FFF" android:gravity="center" android:textSize="18sp" android:paddingBottom="10dp"/>
+                  <GridLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:columnCount="3">
+                      <ImageButton android:id="@+id/char_1" android:layout_width="80dp" android:layout_height="80dp" android:scaleType="centerInside" android:background="#444" android:layout_margin="5dp"/>
+                      <View android:layout_width="80dp" android:layout_height="80dp" android:background="#222" android:layout_margin="5dp"/>
+                      <View android:layout_width="80dp" android:layout_height="80dp" android:background="#222" android:layout_margin="5dp"/>
+                  </GridLayout>
+              </LinearLayout>
 
               <RelativeLayout android:id="@+id/game_hud" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
-                  <FrameLayout android:id="@+id/joy_base" android:layout_width="150dp" android:layout_height="150dp" android:layout_alignParentBottom="true" android:layout_margin="40dp" android:background="@drawable/joy_bg">
-                      <View android:id="@+id/joy_stick" android:layout_width="60dp" android:layout_height="60dp" android:layout_gravity="center" android:background="@drawable/stick_bg"/>
+                  <FrameLayout android:id="@+id/joy_base" android:layout_width="160dp" android:layout_height="160dp" android:layout_alignParentBottom="true" android:layout_margin="30dp" android:background="@drawable/circle_outline">
+                      <View android:id="@+id/joy_stick" android:layout_width="70dp" android:layout_height="70dp" android:layout_gravity="center" android:background="@drawable/circle_fill"/>
                   </FrameLayout>
-                  <ProgressBar style="?android:attr/progressBarStyleHorizontal" android:layout_width="200dp" android:layout_height="20dp" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="20dp" android:progress="100" android:progressTint="#F00"/>
+                  <LinearLayout android:layout_width="220dp" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:orientation="vertical" android:layout_marginBottom="15dp">
+                      <ProgressBar style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="12dp" android:progress="100" android:progressTint="#FF2222"/>
+                      <ProgressBar style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="12dp" android:progress="80" android:progressTint="#22FF22" android:layout_marginTop="5dp"/>
+                  </LinearLayout>
               </RelativeLayout>
           </FrameLayout>
           EOF
 
           echo "<resources><style name='AppTheme' parent='Theme.AppCompat.Light.NoActionBar'><item name='android:windowFullscreen'>true</item></style></resources>" > app/src/main/res/values/styles.xml
-          echo "<resources><string name='app_name'>Flowers</string></resources>" > app/src/main/res/values/strings.xml
-          
-          # Отрисовка джойстика
-          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#44FFFFFF'/><stroke android:width='2dp' android:color='#FFF'/></shape>" > app/src/main/res/drawable/joy_bg.xml
-          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#AAFFFFFF'/></shape>" > app/src/main/res/drawable/stick_bg.xml
+          echo "<resources><string name='app_name'>Flowers Horror</string></resources>" > app/src/main/res/values/strings.xml
+          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#33FFFFFF'/><stroke android:width='3dp' android:color='#FFF'/></shape>" > app/src/main/res/drawable/circle_outline.xml
+          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#AAFFFFFF'/></shape>" > app/src/main/res/drawable/circle_fill.xml
 
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.enjoer.game">
@@ -177,7 +176,7 @@ jobs:
           </activity></application></manifest>
           EOF
 
-      - name: Build
+      - name: Final Build
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
@@ -192,5 +191,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Flowers_Roblox_V8
+          name: Flowers_Horror_V9_Fixed
           path: app/build/outputs/apk/debug/app-debug.apk
