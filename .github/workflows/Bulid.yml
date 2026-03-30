@@ -1,4 +1,4 @@
-name: FLOWERS HORROR V9 - ULTIMATE FIX
+name: FLOWERS HORROR V10 - MULTITOUCH & BOTS
 on: [push, workflow_dispatch]
 
 jobs:
@@ -8,7 +8,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Clean and Setup
+      - name: Setup
         run: |
           find . -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
           mkdir -p app/src/main/java/com/enjoer/game
@@ -16,13 +16,25 @@ jobs:
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-      - name: Generate Core Code
+      - name: Source Code
         run: |
-          # 1. РЕНДЕРЕР (Исправлена камера и скорость)
+          # 1. СТРУКТУРА БОТА
+          cat <<'EOF' > app/src/main/java/com/enjoer/game/Bot.java
+          package com.enjoer.game;
+          public class Bot {
+              public float x, z;
+              public float r, g, b;
+              public Bot(float x, float z) { this.x=x; this.z=z; this.r=0.5f; this.g=0.5f; this.b=0.8f; }
+              public void update() { x += (Math.random()-0.5)*0.1; z += (Math.random()-0.5)*0.1; }
+          }
+          EOF
+
+          # 2. РЕНДЕРЕР (Светлее + Исправлено движение)
           cat <<'EOF' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
           import android.opengl.*;
           import java.nio.*;
+          import java.util.ArrayList;
           import javax.microedition.khronos.egl.EGLConfig;
           import javax.microedition.khronos.opengles.GL10;
 
@@ -31,31 +43,31 @@ jobs:
               private float[] proj=new float[16], view=new float[16], model=new float[16];
               public float pX=0, pZ=10, rY=0, rX=0, jX=0, jY=0;
               public boolean inGame = false;
+              public ArrayList<Bot> bots = new ArrayList<>();
 
               @Override public void onSurfaceCreated(GL10 gl, EGLConfig cfg) {
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
                   String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uM;out vec3 vP,vN;void main(){vP=aP.xyz;vN=aN;gl_Position=uM*aP;}";
-                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec4 uC;out vec4 fC;void main(){float d=max(dot(normalize(vN),vec3(0.3,1.0,0.3)),0.2);float fog=1.0-exp(-length(vP-vec3(0.0,2.0,0.0))*0.035);fC=mix(vec4(uC.rgb*d,1.0), vec4(0.01,0.01,0.03,1.0), clamp(fog,0.0,1.0));}";
+                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec4 uC;out vec4 fC;void main(){float d=max(dot(normalize(vN),vec3(0.5,1.0,0.5)),0.3);float fog=1.0-exp(-length(vP-vec3(0.0,2.0,0.0))*0.02);fC=mix(vec4(uC.rgb*d,1.0), vec4(0.1,0.1,0.15,1.0), clamp(fog,0.0,1.0));}";
                   int vsh=GLES30.glCreateShader(35633); GLES30.glShaderSource(vsh,vs); GLES30.glCompileShader(vsh);
                   int fsh=GLES30.glCreateShader(35632); GLES30.glShaderSource(fsh,fs); GLES30.glCompileShader(fsh);
                   prg=GLES30.glCreateProgram(); GLES30.glAttachShader(prg,vsh); GLES30.glAttachShader(prg,fsh); GLES30.glLinkProgram(prg);
                   float[] v={-.5f,.5f,.5f,0,0,1, -.5f,-.5f,.5f,0,0,1, .5f,.5f,.5f,0,0,1, .5f,-.5f,.5f,0,0,1,
                              -0.5f,0.5f,-0.5f,0,1,0, -0.5f,0.5f,0.5f,0,1,0, 0.5f,0.5f,-0.5f,0,1,0, 0.5f,0.5f,0.5f,0,1,0};
                   vB=ByteBuffer.allocateDirect(v.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(v); vB.position(0);
+                  for(int i=0; i<5; i++) bots.add(new Bot((float)Math.random()*20-10, (float)Math.random()*20-10));
               }
 
-              @Override public void onSurfaceChanged(GL10 gl,int w,int h){ GLES30.glViewport(0,0,w,h); Matrix.perspectiveM(proj,0,65,(float)w/h,0.1f,400f); }
+              @Override public void onSurfaceChanged(GL10 gl,int w,int h){ GLES30.glViewport(0,0,w,h); Matrix.perspectiveM(proj,0,65,(float)w/h,0.1f,500f); }
               @Override public void onDrawFrame(GL10 gl) {
-                  update(); GLES30.glClearColor(0.01f, 0.01f, 0.03f, 1.0f); GLES30.glClear(16640);
-                  Matrix.setIdentityM(view,0); 
-                  Matrix.rotateM(view,0, rX, 1,0,0); Matrix.rotateM(view,0, rY, 0,1,0); 
-                  Matrix.translateM(view,0, -pX, -2.8f, -pZ);
+                  update(); GLES30.glClearColor(0.1f, 0.1f, 0.15f, 1.0f); GLES30.glClear(16640);
+                  Matrix.setIdentityM(view,0); Matrix.rotateM(view,0, rX, 1,0,0); Matrix.rotateM(view,0, rY, 0,1,0); Matrix.translateM(view,0, -pX, -2.5f, -pZ);
                   GLES30.glUseProgram(prg);
                   int uM=GLES30.glGetUniformLocation(prg,"uM"), uC=GLES30.glGetUniformLocation(prg,"uC");
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,24,vB); GLES30.glEnableVertexAttribArray(0);
                   vB.position(3); GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,24,vB); GLES30.glEnableVertexAttribArray(1); vB.position(0);
-                  draw(uM,uC, 0,-0.1f,0, 1000,0.1f,1000, 0.05f,0.08f,0.05f); // Земля
-                  for(int i=-10; i<10; i++) for(int j=-10; j<10; j++) if((i+j)%3==0) draw(uM,uC, i*12, 3, j*12, 1.5f,6,1.5f, 0.2f, 0.15f, 0.1f); // "Деревья"
+                  draw(uM,uC, 0,-0.1f,0, 1000,0.1f,1000, 0.1f,0.2f,0.1f); // Трава
+                  for(Bot b : bots) { b.update(); draw(uM,uC, b.x, 1, b.z, 1, 2, 1, b.r, b.g, b.b); }
               }
               private void draw(int mLoc,int cLoc,float x,float y,float z,float sx,float sy,float sz,float r,float g,float bl){
                   Matrix.setIdentityM(model,0); Matrix.translateM(model,0,x,y,z); Matrix.scaleM(model,0,sx,sy,sz);
@@ -65,15 +77,15 @@ jobs:
               }
               private void update(){
                   if(!inGame) return;
-                  float s=0.15f; float rad=(float)Math.toRadians(rY);
-                  // Правильная математика движения (не инвертировано)
-                  pX += (float)(Math.cos(rad)*jX + Math.sin(rad)*jY) * s;
-                  pZ += (float)(Math.sin(rad)*jX - Math.cos(rad)*jY) * s;
+                  float s=0.18f; float rad=(float)Math.toRadians(rY);
+                  // ФИКС ИНВЕРСИИ: jY идет по направлению взгляда
+                  pX += (float)(Math.sin(rad)*jY + Math.cos(rad)*jX) * s;
+                  pZ += (float)(-Math.cos(rad)*jY + Math.sin(rad)*jX) * s;
               }
           }
           EOF
 
-          # 2. ACTIVITY (Исправлен джойстик и UI)
+          # 3. ACTIVITY (Мультитач + Улучшенный джойстик)
           cat <<'EOF' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
           import android.os.*;
@@ -84,6 +96,8 @@ jobs:
 
           public class MainActivity extends AppCompatActivity {
               private GameRenderer ren; private float lx, ly;
+              private int movePointerId = -1;
+
               @Override protected void onCreate(Bundle b) {
                   super.onCreate(b);
                   setContentView(R.layout.activity_main);
@@ -91,92 +105,107 @@ jobs:
                   gv.setEGLContextClientVersion(3);
                   ren = new GameRenderer(); gv.setRenderer(ren);
 
-                  findViewById(R.id.btn_select).setOnClickListener(v -> {
-                      findViewById(R.id.lobby_ui).setVisibility(View.VISIBLE);
-                  });
+                  findViewById(R.id.char_noob).setOnClickListener(v -> startGame("Noob", "Speed Boost"));
+                  findViewById(R.id.char_guest).setOnClickListener(v -> startGame("Guest", "Heal Aura"));
 
-                  findViewById(R.id.char_1).setOnClickListener(v -> startGame());
-
-                  // Правильный джойстик со стиком
                   View base = findViewById(R.id.joy_base);
                   View stick = findViewById(R.id.joy_stick);
-                  base.setOnTouchListener((v,e) -> {
-                      if(e.getAction() == MotionEvent.ACTION_UP) {
-                          stick.animate().translationX(0).translationY(0).setDuration(100).start();
-                          ren.jX=0; ren.jY=0; return true;
-                      }
-                      float dx = e.getX() - v.getWidth()/2;
-                      float dy = e.getY() - v.getHeight()/2;
-                      float dist = (float)Math.sqrt(dx*dx + dy*dy);
-                      float max = v.getWidth()/2 - stick.getWidth()/2;
-                      if(dist > max) { dx *= max/dist; dy *= max/dist; }
-                      stick.setTranslationX(dx); stick.setTranslationY(dy);
-                      ren.jX = dx/max; ren.jY = dy/max;
-                      return true;
-                  });
 
                   gv.setOnTouchListener((v,e) -> {
-                      if(e.getAction() == MotionEvent.ACTION_DOWN) { lx=e.getX(); ly=e.getY(); }
-                      if(e.getAction() == MotionEvent.ACTION_MOVE) {
-                          ren.rY += (e.getX() - lx) * 0.25f;
-                          ren.rX = Math.max(-89, Math.min(89, ren.rX + (e.getY() - ly) * 0.25f));
-                          lx=e.getX(); ly=e.getY();
+                      int action = e.getActionMasked();
+                      int index = e.getActionIndex();
+                      int id = e.getPointerId(index);
+
+                      switch(action) {
+                          case MotionEvent.ACTION_DOWN:
+                          case MotionEvent.ACTION_POINTER_DOWN:
+                              if(e.getX(index) < v.getWidth()/2) { // Левая часть экрана - джойстик
+                                  movePointerId = id;
+                              } else { // Правая - камера
+                                  lx = e.getX(index); ly = e.getY(index);
+                              }
+                              break;
+                          case MotionEvent.ACTION_MOVE:
+                              for(int i=0; i<e.getPointerCount(); i++) {
+                                  int currId = e.getPointerId(i);
+                                  if(currId == movePointerId) {
+                                      float dx = e.getX(i) - base.getX() - base.getWidth()/2;
+                                      float dy = e.getY(i) - base.getY() - base.getHeight()/2;
+                                      float dist = (float)Math.sqrt(dx*dx + dy*dy);
+                                      float max = base.getWidth()/2;
+                                      if(dist > max) { dx *= max/dist; dy *= max/dist; }
+                                      stick.setTranslationX(dx); stick.setTranslationY(dy);
+                                      ren.jX = dx/max; ren.jY = -dy/max;
+                                  } else {
+                                      ren.rY += (e.getX(i) - lx) * 0.2f;
+                                      ren.rX = Math.max(-80, Math.min(80, ren.rX + (e.getY(i) - ly) * 0.2f));
+                                      lx = e.getX(i); ly = e.getY(i);
+                                  }
+                              }
+                              break;
+                          case MotionEvent.ACTION_UP:
+                          case MotionEvent.ACTION_POINTER_UP:
+                              if(id == movePointerId) {
+                                  movePointerId = -1; ren.jX = 0; ren.jY = 0;
+                                  stick.setTranslationX(0); stick.setTranslationY(0);
+                              }
+                              break;
                       }
                       return true;
                   });
               }
-              void startGame() {
+              void startGame(String n, String skill) {
                   ren.inGame = true;
                   findViewById(R.id.lobby_ui).setVisibility(View.GONE);
-                  findViewById(R.id.btn_select).setVisibility(View.GONE);
                   findViewById(R.id.game_hud).setVisibility(View.VISIBLE);
+                  ((TextView)findViewById(R.id.txt_skill)).setText("Skill: " + skill);
+                  Toast.makeText(this, "Playing as " + n, Toast.LENGTH_SHORT).show();
               }
           }
           EOF
 
-      - name: Generate Layouts
+      - name: Layouts
         run: |
           cat <<'EOF' > app/src/main/res/layout/activity_main.xml
-          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
+          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
               <android.opengl.GLSurfaceView android:id="@+id/gl_view" android:layout_width="match_parent" android:layout_height="match_parent"/>
               
-              <Button android:id="@+id/btn_select" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CHARACTER" android:layout_gravity="bottom|center_horizontal" android:layout_marginBottom="20dp" android:backgroundTint="#AA000000" android:textColor="#FFF"/>
-
-              <LinearLayout android:id="@+id/lobby_ui" android:layout_width="320dp" android:layout_height="wrap_content" android:orientation="vertical" android:background="#DD111111" android:layout_gravity="center" android:padding="15dp" android:visibility="gone">
-                  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Select Survivor" android:textColor="#FFF" android:gravity="center" android:textSize="18sp" android:paddingBottom="10dp"/>
-                  <GridLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:columnCount="3">
-                      <ImageButton android:id="@+id/char_1" android:layout_width="80dp" android:layout_height="80dp" android:scaleType="centerInside" android:background="#444" android:layout_margin="5dp"/>
-                      <View android:layout_width="80dp" android:layout_height="80dp" android:background="#222" android:layout_margin="5dp"/>
-                      <View android:layout_width="80dp" android:layout_height="80dp" android:background="#222" android:layout_margin="5dp"/>
-                  </GridLayout>
+              <LinearLayout android:id="@+id/lobby_ui" android:layout_width="350dp" android:layout_height="wrap_content" android:orientation="vertical" android:background="#CC000000" android:layout_gravity="center" android:padding="10dp">
+                  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SELECT SURVIVOR" android:textColor="#FFF" android:gravity="center" android:layout_marginBottom="10dp"/>
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center">
+                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_margin="10dp">
+                          <Button android:id="@+id/char_noob" android:layout_width="100dp" android:layout_height="100dp" android:text="NOOB" android:backgroundTint="#444"/>
+                          <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ability: Speed" android:textColor="#0FF" android:textSize="12sp"/>
+                      </LinearLayout>
+                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_margin="10dp">
+                          <Button android:id="@+id/char_guest" android:layout_width="100dp" android:layout_height="100dp" android:text="GUEST" android:backgroundTint="#444"/>
+                          <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ability: Heal" android:textColor="#0F0" android:textSize="12sp"/>
+                      </LinearLayout>
+                  </LinearLayout>
               </LinearLayout>
 
               <RelativeLayout android:id="@+id/game_hud" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
-                  <FrameLayout android:id="@+id/joy_base" android:layout_width="160dp" android:layout_height="160dp" android:layout_alignParentBottom="true" android:layout_margin="30dp" android:background="@drawable/circle_outline">
-                      <View android:id="@+id/joy_stick" android:layout_width="70dp" android:layout_height="70dp" android:layout_gravity="center" android:background="@drawable/circle_fill"/>
+                  <FrameLayout android:id="@+id/joy_base" android:layout_width="120dp" android:layout_height="120dp" android:layout_alignParentBottom="true" android:layout_margin="30dp" android:background="@drawable/joy_bg">
+                      <View android:id="@+id/joy_stick" android:layout_width="50dp" android:layout_height="50dp" android:layout_gravity="center" android:background="@drawable/stick_bg"/>
                   </FrameLayout>
-                  <LinearLayout android:layout_width="220dp" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:orientation="vertical" android:layout_marginBottom="15dp">
-                      <ProgressBar style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="12dp" android:progress="100" android:progressTint="#FF2222"/>
-                      <ProgressBar style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="12dp" android:progress="80" android:progressTint="#22FF22" android:layout_marginTop="5dp"/>
-                  </LinearLayout>
+                  <TextView android:id="@+id/txt_skill" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_margin="30dp" android:textColor="#FFF" android:background="#88000000" android:padding="10dp"/>
               </RelativeLayout>
           </FrameLayout>
           EOF
 
           echo "<resources><style name='AppTheme' parent='Theme.AppCompat.Light.NoActionBar'><item name='android:windowFullscreen'>true</item></style></resources>" > app/src/main/res/values/styles.xml
-          echo "<resources><string name='app_name'>Flowers Horror</string></resources>" > app/src/main/res/values/strings.xml
-          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#33FFFFFF'/><stroke android:width='3dp' android:color='#FFF'/></shape>" > app/src/main/res/drawable/circle_outline.xml
-          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#AAFFFFFF'/></shape>" > app/src/main/res/drawable/circle_fill.xml
+          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#22FFFFFF'/><stroke android:width='2dp' android:color='#FFF'/></shape>" > app/src/main/res/drawable/joy_bg.xml
+          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#88FFFFFF'/></shape>" > app/src/main/res/drawable/stick_bg.xml
 
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.enjoer.game">
-          <application android:label="@string/app_name" android:theme="@style/AppTheme">
+          <application android:label="Flowers" android:theme="@style/AppTheme">
           <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape" android:configChanges="orientation|screenSize">
           <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
           </activity></application></manifest>
           EOF
 
-      - name: Final Build
+      - name: Build
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
@@ -191,5 +220,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Flowers_Horror_V9_Fixed
+          name: Flowers_V10_Fixed
           path: app/build/outputs/apk/debug/app-debug.apk
