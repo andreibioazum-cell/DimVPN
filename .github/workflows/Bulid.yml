@@ -1,4 +1,4 @@
-name: FLOWERS HORROR GAME V7.1
+name: FLOWERS HORROR V8 - ROBLOX STYLE
 on: [push, workflow_dispatch]
 
 jobs:
@@ -8,96 +8,71 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Purge
-        run: find . -maxdepth 1 ! -name '.git' ! -name 'README.md' ! -name '.' -exec rm -rf {} +
-
-      - name: Create Folders
+      - name: Clean and Setup
         run: |
+          find . -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
           mkdir -p app/src/main/java/com/enjoer/game
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-      - name: Generate Source
+      - name: Generate Code
         run: |
-          # 1. СТРУКТУРА ПЕРСОНАЖА
-          cat <<'EOF' > app/src/main/java/com/enjoer/game/Actor.java
-          package com.enjoer.game;
-          public class Actor {
-              public float x, z, rY;
-              public float r, g, b;
-              public boolean isKiller;
-              public String name;
-              public Actor(String n, float x, float z, float r, float g, float b, boolean k) {
-                  this.name=n; this.x=x; this.z=z; this.r=r; this.g=g; this.b=b; this.isKiller=k;
-              }
-          }
-          EOF
-
-          # 2. ДВИЖОК
+          # 1. РЕНДЕРЕР (Исправлена скорость и камера)
           cat <<'EOF' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
           import android.opengl.*;
           import java.nio.*;
-          import java.util.ArrayList;
           import javax.microedition.khronos.egl.EGLConfig;
           import javax.microedition.khronos.opengles.GL10;
 
           public class GameRenderer implements GLSurfaceView.Renderer {
               private int prg; private FloatBuffer vB;
               private float[] proj=new float[16], view=new float[16], model=new float[16];
-              public float pX=0, pZ=10, rY=0, jX=0, jY=0;
-              public ArrayList<Actor> actors = new ArrayList<>();
+              public float pX=0, pZ=10, rY=0, rX=0, jX=0, jY=0;
               public boolean inGame = false;
 
               @Override public void onSurfaceCreated(GL10 gl, EGLConfig cfg) {
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
-                  String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uM;out vec3 vN,vP;void main(){vP=aP.xyz;vN=aN;gl_Position=uM*aP;}";
-                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec4 uC;out vec4 fC;void main(){if(length(vP)>180.0){fC=vec4(0.05,0.08,0.15,1.0);return;}float d=max(dot(normalize(vN),vec3(0.5,1.0,0.5)),0.2);fC=vec4(uC.rgb*d,1.0);}";
+                  String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uM;out vec3 vP,vN;void main(){vP=aP.xyz;vN=aN;gl_Position=uM*aP;}";
+                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec4 uC;out vec4 fC;void main(){float d=max(dot(normalize(vN),vec3(0.3,1.0,0.3)),0.15);float fog=1.0-exp(-length(vP-vec3(0.0,2.0,0.0))*0.04);fC=mix(vec4(uC.rgb*d,1.0), vec4(0.02,0.02,0.05,1.0), clamp(fog,0.0,1.0));}";
                   int vsh=GLES30.glCreateShader(35633); GLES30.glShaderSource(vsh,vs); GLES30.glCompileShader(vsh);
                   int fsh=GLES30.glCreateShader(35632); GLES30.glShaderSource(fsh,fs); GLES30.glCompileShader(fsh);
                   prg=GLES30.glCreateProgram(); GLES30.glAttachShader(prg,vsh); GLES30.glAttachShader(prg,fsh); GLES30.glLinkProgram(prg);
-                  float[] v={-.5f,.5f,.5f,0,0,1,-.5f,-.5f,.5f,0,0,1,.5f,.5f,.5f,0,0,1,.5f,-.5f,.5f,0,0,1,
-                             -.5f,.5f,-.5f,0,0,-1,-.5f,-.5f,-.5f,0,0,-1,.5f,.5f,-.5f,0,0,-1,.5f,-.5f,-.5f,0,0,-1,
-                             -.5f,0.5f,-0.5f,0,1,0,-0.5f,0.5f,0.5f,0,1,0,0.5f,0.5f,-0.5f,0,1,0,0.5f,0.5f,0.5f,0,1,0};
+                  float[] v={-.5f,.5f,.5f,0,0,1, -.5f,-.5f,.5f,0,0,1, .5f,.5f,.5f,0,0,1, .5f,-.5f,.5f,0,0,1,
+                             -.5f,0.5f,-0.5f,0,1,0, -0.5f,0.5f,0.5f,0,1,0, 0.5f,0.5f,-0.5f,0,1,0, 0.5f,0.5f,0.5f,0,1,0};
                   vB=ByteBuffer.allocateDirect(v.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(v); vB.position(0);
-                  actors.add(new Actor("Survivor1", 6, -5, 0, 0.7f, 1, false));
-                  actors.add(new Actor("Survivor2", -6, -8, 0, 0.4f, 0.4f, false));
-                  actors.add(new Actor("KillerBot", 0, -15, 1, 0, 0, true));
               }
 
-              @Override public void onSurfaceChanged(GL10 gl,int w,int h){ GLES30.glViewport(0,0,w,h); Matrix.perspectiveM(proj,0,65,(float)w/h,0.1f,400f); }
+              @Override public void onSurfaceChanged(GL10 gl,int w,int h){ GLES30.glViewport(0,0,w,h); Matrix.perspectiveM(proj,0,60,(float)w/h,0.1f,500f); }
               @Override public void onDrawFrame(GL10 gl) {
-                  update(); GLES30.glClear(16640);
-                  float rad=(float)Math.toRadians(rY);
-                  Matrix.setLookAtM(view,0, pX-(float)Math.sin(rad)*8, 6, pZ+(float)Math.cos(rad)*8, pX, 1, pZ, 0,1,0);
+                  update(); GLES30.glClearColor(0.02f, 0.02f, 0.05f, 1.0f); GLES30.glClear(16640);
+                  Matrix.setIdentityM(view,0); Matrix.rotateM(view,0, rX, 1,0,0); Matrix.rotateM(view,0, rY, 0,1,0); Matrix.translateM(view,0, -pX, -2.5f, -pZ);
                   GLES30.glUseProgram(prg);
                   int uM=GLES30.glGetUniformLocation(prg,"uM"), uC=GLES30.glGetUniformLocation(prg,"uC");
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,24,vB); GLES30.glEnableVertexAttribArray(0);
                   vB.position(3); GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,24,vB); GLES30.glEnableVertexAttribArray(1); vB.position(0);
-                  draw(uM,uC,0,0,0,150,0.1f,150,0.1f,0.12f,0.1f); // Трава
-                  draw(uM,uC,pX,0,pZ,350,350,350,0,0,0); // Небо
-                  draw(uM,uC,pX,1,pZ,1,2,1, 1,1,1); // Игрок
-                  for(Actor a : actors) {
-                      draw(uM,uC, a.x, 1, a.z, 1, 2, 1, a.r, a.g, a.b);
-                      if(inGame) { a.z += 0.04f; if(a.z > 25) a.z = -25; }
-                  }
+                  // Пол (земля)
+                  draw(uM,uC, 0,-0.1f,0, 500,0.1f,500, 0.1f,0.15f,0.1f);
+                  // Объекты (деревья/блоки как в Roblox)
+                  for(int i=-5; i<5; i++) for(int j=-5; j<5; j++) draw(uM,uC, i*15, 2, j*15, 2,4,2, 0.3f, 0.2f, 0.1f);
               }
               private void draw(int mLoc,int cLoc,float x,float y,float z,float sx,float sy,float sz,float r,float g,float bl){
                   Matrix.setIdentityM(model,0); Matrix.translateM(model,0,x,y,z); Matrix.scaleM(model,0,sx,sy,sz);
                   float[] mvp=new float[16]; Matrix.multiplyMM(mvp,0,proj,0,view,0); Matrix.multiplyMM(mvp,0,mvp,0,model,0);
                   GLES30.glUniformMatrix4fv(mLoc,1,false,mvp,0); GLES30.glUniform4f(cLoc,r,g,bl,1);
-                  for(int i=0;i<3;i++) GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
+                  for(int i=0;i<2;i++) GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
               }
               private void update(){
-                  float s=0.22f, rad=(float)Math.toRadians(rY);
-                  pX+=((float)Math.sin(rad)*-jY+(float)Math.cos(rad)*jX)*s;
-                  pZ+=((float)-Math.cos(rad)*-jY+(float)Math.sin(rad)*jX)*s;
+                  if(!inGame) return;
+                  float s=0.18f; float rad=(float)Math.toRadians(rY);
+                  pX += (float)(Math.cos(rad)*jX + Math.sin(rad)*jY) * s;
+                  pZ += (float)(Math.sin(rad)*jX - Math.cos(rad)*jY) * s;
               }
           }
           EOF
 
-          # 3. ФИКС MainActivity (ИМПОРТЫ И ЛОГИКА)
+          # 2. MAIN ACTIVITY (Логика выбора и джойстик)
           cat <<'EOF' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
           import android.os.*;
@@ -107,96 +82,102 @@ jobs:
           import androidx.appcompat.app.AppCompatActivity;
 
           public class MainActivity extends AppCompatActivity {
-              private GameRenderer ren; private float lx;
-              private int timer = 180;
-              private Handler h = new Handler(Looper.getMainLooper());
-
+              private GameRenderer ren; private float lx, ly;
               @Override protected void onCreate(Bundle b) {
                   super.onCreate(b);
                   setContentView(R.layout.activity_main);
                   GLSurfaceView gv = findViewById(R.id.gl_view);
                   gv.setEGLContextClientVersion(3);
-                  ren = new GameRenderer();
-                  gv.setRenderer(ren);
-                  findViewById(R.id.btn_select_surv).setOnClickListener(v -> startWithRole("Survivor", false));
-                  findViewById(R.id.btn_select_kill).setOnClickListener(v -> startWithRole("Killer", true));
-                  findViewById(R.id.btn_random).setOnClickListener(v -> {
-                      boolean isK = Math.random() > 0.5;
-                      startWithRole(isK ? "Shadow" : "Medic", isK);
+                  ren = new GameRenderer(); gv.setRenderer(ren);
+
+                  // Кнопка персонажа
+                  findViewById(R.id.btn_open_char).setOnClickListener(v -> {
+                      findViewById(R.id.char_grid).setVisibility(
+                          findViewById(R.id.char_grid).getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
+                      );
                   });
-                  findViewById(R.id.joy).setOnTouchListener((v,e)->{
-                      if(e.getAction()==MotionEvent.ACTION_MOVE){ren.jX=(e.getX()-v.getWidth()/2)/60f; ren.jY=(e.getY()-v.getHeight()/2)/60f;}
-                      else {ren.jX=0; ren.jY=0;} return true;
+
+                  // Выбор (пример для сетки)
+                  findViewById(R.id.char_noob).setOnClickListener(v -> startGame("Noob"));
+                  findViewById(R.id.char_guest).setOnClickListener(v -> startGame("Guest"));
+
+                  // Джойстик со стиком
+                  View base = findViewById(R.id.joy_base);
+                  View stick = findViewById(R.id.joy_stick);
+                  base.setOnTouchListener((v,e) -> {
+                      if(e.getAction() == MotionEvent.ACTION_UP) {
+                          stick.setTranslationX(0); stick.setTranslationY(0);
+                          ren.jX=0; ren.jY=0; return true;
+                      }
+                      float dx = e.getX() - v.getWidth()/2;
+                      float dy = e.getY() - v.getHeight()/2;
+                      float dist = (float)Math.sqrt(dx*dx + dy*dy);
+                      float max = v.getWidth()/2;
+                      if(dist > max) { dx *= max/dist; dy *= max/dist; }
+                      stick.setTranslationX(dx); stick.setTranslationY(dy);
+                      ren.jX = dx/max; ren.jY = dy/max;
+                      return true;
                   });
-                  gv.setOnTouchListener((v,e)->{
-                      if(e.getAction()==MotionEvent.ACTION_DOWN) lx=e.getX();
-                      if(e.getAction()==MotionEvent.ACTION_MOVE){ren.rY+=(e.getX()-lx)*0.4f; lx=e.getX();}
+
+                  // Камера
+                  gv.setOnTouchListener((v,e) -> {
+                      if(e.getAction() == MotionEvent.ACTION_DOWN) { lx=e.getX(); ly=e.getY(); }
+                      if(e.getAction() == MotionEvent.ACTION_MOVE) {
+                          ren.rY += (e.getX() - lx) * 0.3f;
+                          ren.rX = Math.max(-60, Math.min(80, ren.rX + (e.getY() - ly) * 0.3f));
+                          lx=e.getX(); ly=e.getY();
+                      }
                       return true;
                   });
               }
-              void startWithRole(String n, boolean isK) {
-                  findViewById(R.id.lobby_ui).setVisibility(View.GONE);
-                  findViewById(R.id.game_ui).setVisibility(View.VISIBLE);
+              void startGame(String name) {
                   ren.inGame = true;
-                  Toast.makeText(this, "Role: " + n, Toast.LENGTH_SHORT).show();
-                  timer = 180;
-                  runTimer();
-              }
-              void runTimer() {
-                  h.postDelayed(new Runnable() {
-                      @Override public void run() {
-                          timer--;
-                          ((TextView)findViewById(R.id.txt_timer)).setText("Time: " + timer);
-                          if(timer <= 0) backToLobby();
-                          else h.postDelayed(this, 1000);
-                      }
-                  }, 1000);
-              }
-              void backToLobby() {
-                  ren.inGame = false;
-                  findViewById(R.id.lobby_ui).setVisibility(View.VISIBLE);
-                  findViewById(R.id.game_ui).setVisibility(View.GONE);
-                  h.removeCallbacksAndMessages(null);
+                  findViewById(R.id.char_grid).setVisibility(View.GONE);
+                  findViewById(R.id.btn_open_char).setVisibility(View.GONE);
+                  findViewById(R.id.game_hud).setVisibility(View.VISIBLE);
+                  Toast.makeText(this, "Playing as " + name, Toast.LENGTH_SHORT).show();
               }
           }
           EOF
 
-      - name: Generate Resources
+      - name: Generate Layout
         run: |
           cat <<'EOF' > app/src/main/res/layout/activity_main.xml
-          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
+          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#050505">
               <android.opengl.GLSurfaceView android:id="@+id/gl_view" android:layout_width="match_parent" android:layout_height="match_parent"/>
-              <LinearLayout android:id="@+id/lobby_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#88000000">
-                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="FLOWERS LOBBY" android:textColor="#FFF" android:textSize="28sp" android:layout_marginBottom="20dp"/>
-                  <Button android:id="@+id/btn_select_surv" android:layout_width="220dp" android:layout_height="50dp" android:text="SURVIVOR"/>
-                  <Button android:id="@+id/btn_select_kill" android:layout_width="220dp" android:layout_height="50dp" android:text="KILLER" android:backgroundTint="#880000" android:layout_marginTop="10dp"/>
-                  <Button android:id="@+id/btn_random" android:layout_width="220dp" android:layout_height="50dp" android:text="RANDOM" android:layout_marginTop="10dp" android:backgroundTint="#444"/>
-              </LinearLayout>
-              <FrameLayout android:id="@+id/game_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
-                  <TextView android:id="@+id/txt_timer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Time: 180" android:textColor="#FFF" android:layout_gravity="top|center" android:textSize="22sp" android:layout_marginTop="15dp"/>
-                  <View android:id="@+id/joy" android:layout_width="140dp" android:layout_height="140dp" android:layout_gravity="bottom|left" android:layout_margin="30dp" android:background="@drawable/joy_bg"/>
-                  <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|right" android:layout_margin="20dp">
-                      <Button android:layout_width="65dp" android:layout_height="65dp" android:text="S1" android:backgroundTint="#44FFFFFF"/>
-                      <Button android:layout_width="65dp" android:layout_height="65dp" android:text="S2" android:backgroundTint="#44FFFFFF" android:layout_marginLeft="10dp"/>
-                      <Button android:layout_width="65dp" android:layout_height="65dp" android:text="S3" android:backgroundTint="#44FFFFFF" android:layout_marginLeft="10dp"/>
-                  </LinearLayout>
-              </FrameLayout>
+              
+              <Button android:id="@+id/btn_open_char" android:layout_width="120dp" android:layout_height="40dp" android:text="SURVIVORS" android:background="#CC000000" android:textColor="#FFF" android:layout_gravity="top|center_horizontal" android:layout_marginTop="10dp"/>
+
+              <GridLayout android:id="@+id/char_grid" android:layout_width="260dp" android:layout_height="wrap_content" android:columnCount="2" android:background="#EE111111" android:padding="10dp" android:layout_gravity="center_vertical|left" android:visibility="gone" android:layout_marginLeft="20dp">
+                  <Button android:id="@+id/char_noob" android:layout_width="110dp" android:layout_height="110dp" android:text="NOOB" android:layout_margin="5dp" android:background="#333" android:textColor="#FFF"/>
+                  <Button android:id="@+id/char_guest" android:layout_width="110dp" android:layout_height="110dp" android:text="GUEST" android:layout_margin="5dp" android:background="#333" android:textColor="#FFF"/>
+              </GridLayout>
+
+              <RelativeLayout android:id="@+id/game_hud" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
+                  <FrameLayout android:id="@+id/joy_base" android:layout_width="150dp" android:layout_height="150dp" android:layout_alignParentBottom="true" android:layout_margin="40dp" android:background="@drawable/joy_bg">
+                      <View android:id="@+id/joy_stick" android:layout_width="60dp" android:layout_height="60dp" android:layout_gravity="center" android:background="@drawable/stick_bg"/>
+                  </FrameLayout>
+                  <ProgressBar style="?android:attr/progressBarStyleHorizontal" android:layout_width="200dp" android:layout_height="20dp" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="20dp" android:progress="100" android:progressTint="#F00"/>
+              </RelativeLayout>
           </FrameLayout>
           EOF
 
           echo "<resources><style name='AppTheme' parent='Theme.AppCompat.Light.NoActionBar'><item name='android:windowFullscreen'>true</item></style></resources>" > app/src/main/res/values/styles.xml
           echo "<resources><string name='app_name'>Flowers</string></resources>" > app/src/main/res/values/strings.xml
-          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#44000000'/><stroke android:width='2dp' android:color='#00BFFF'/></shape>" > app/src/main/res/drawable/joy_bg.xml
           
+          # Отрисовка джойстика
+          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#44FFFFFF'/><stroke android:width='2dp' android:color='#FFF'/></shape>" > app/src/main/res/drawable/joy_bg.xml
+          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#AAFFFFFF'/></shape>" > app/src/main/res/drawable/stick_bg.xml
+
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.enjoer.game">
           <application android:label="@string/app_name" android:theme="@style/AppTheme">
-          <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape" android:label="@string/app_name">
+          <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape" android:configChanges="orientation|screenSize">
           <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
           </activity></application></manifest>
           EOF
 
-      - name: Build APK
+      - name: Build
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
@@ -206,11 +187,10 @@ jobs:
           android { namespace 'com.enjoer.game'; compileSdk 34; defaultConfig { applicationId 'com.enjoer.game'; minSdk 24; targetSdk 34 } }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }" > app/build.gradle
           gradle wrapper --gradle-version 8.5
-          chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: Save Flowers APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Flowers_Game_V7.1
+          name: Flowers_Roblox_V8
           path: app/build/outputs/apk/debug/app-debug.apk
