@@ -1,4 +1,4 @@
-name: FLOWERS HORROR V10 - MULTITOUCH & BOTS
+name: FLOWERS HORROR V11 - FULL GAME
 on: [push, workflow_dispatch]
 
 jobs:
@@ -8,7 +8,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup
+      - name: Prepare Project
         run: |
           find . -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
           mkdir -p app/src/main/java/com/enjoer/game
@@ -16,20 +16,25 @@ jobs:
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-      - name: Source Code
+      - name: Generate Java Code
         run: |
-          # 1. СТРУКТУРА БОТА
-          cat <<'EOF' > app/src/main/java/com/enjoer/game/Bot.java
+          # 1. КЛАСС ПЕРСОНАЖА (Логика ХП, Стамины и Скиллов)
+          cat <<'EOF' > app/src/main/java/com/enjoer/game/Actor.java
           package com.enjoer.game;
-          public class Bot {
-              public float x, z;
-              public float r, g, b;
-              public Bot(float x, float z) { this.x=x; this.z=z; this.r=0.5f; this.g=0.5f; this.b=0.8f; }
-              public void update() { x += (Math.random()-0.5)*0.1; z += (Math.random()-0.5)*0.1; }
+          public class Actor {
+              public float x, z, rY;
+              public float hp = 100, st = 100;
+              public float sMult = 1.0f;
+              public boolean invul = false;
+              public Actor(float x, float z) { this.x=x; this.z=z; }
+              public void updateBot() {
+                  x += (float)Math.sin(System.currentTimeMillis()*0.0005)*0.03;
+                  z += (float)Math.cos(System.currentTimeMillis()*0.0005)*0.03;
+              }
           }
           EOF
 
-          # 2. РЕНДЕРЕР (Светлее + Исправлено движение)
+          # 2. ДВИЖОК (3D, Камера 3-го лица, Освещение)
           cat <<'EOF' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
           import android.opengl.*;
@@ -41,51 +46,66 @@ jobs:
           public class GameRenderer implements GLSurfaceView.Renderer {
               private int prg; private FloatBuffer vB;
               private float[] proj=new float[16], view=new float[16], model=new float[16];
-              public float pX=0, pZ=10, rY=0, rX=0, jX=0, jY=0;
+              public Actor player = new Actor(0, 5);
+              public float camY=0, camX=-20, jX=0, jY=0;
               public boolean inGame = false;
-              public ArrayList<Bot> bots = new ArrayList<>();
+              public ArrayList<Actor> bots = new ArrayList<>();
 
               @Override public void onSurfaceCreated(GL10 gl, EGLConfig cfg) {
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
-                  String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uM;out vec3 vP,vN;void main(){vP=aP.xyz;vN=aN;gl_Position=uM*aP;}";
-                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec4 uC;out vec4 fC;void main(){float d=max(dot(normalize(vN),vec3(0.5,1.0,0.5)),0.3);float fog=1.0-exp(-length(vP-vec3(0.0,2.0,0.0))*0.02);fC=mix(vec4(uC.rgb*d,1.0), vec4(0.1,0.1,0.15,1.0), clamp(fog,0.0,1.0));}";
+                  String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uM;out vec3 vN;void main(){vN=aN;gl_Position=uM*aP;}";
+                  String fs="#version 300 es\nprecision highp float;in vec3 vN;uniform vec4 uC;out vec4 fC;void main(){float d=max(dot(normalize(vN),vec3(0.5,1.0,0.5)),0.3);fC=vec4(uC.rgb*d,uC.a);}";
                   int vsh=GLES30.glCreateShader(35633); GLES30.glShaderSource(vsh,vs); GLES30.glCompileShader(vsh);
                   int fsh=GLES30.glCreateShader(35632); GLES30.glShaderSource(fsh,fs); GLES30.glCompileShader(fsh);
                   prg=GLES30.glCreateProgram(); GLES30.glAttachShader(prg,vsh); GLES30.glAttachShader(prg,fsh); GLES30.glLinkProgram(prg);
                   float[] v={-.5f,.5f,.5f,0,0,1, -.5f,-.5f,.5f,0,0,1, .5f,.5f,.5f,0,0,1, .5f,-.5f,.5f,0,0,1,
                              -0.5f,0.5f,-0.5f,0,1,0, -0.5f,0.5f,0.5f,0,1,0, 0.5f,0.5f,-0.5f,0,1,0, 0.5f,0.5f,0.5f,0,1,0};
                   vB=ByteBuffer.allocateDirect(v.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(v); vB.position(0);
-                  for(int i=0; i<5; i++) bots.add(new Bot((float)Math.random()*20-10, (float)Math.random()*20-10));
+                  for(int i=0; i<4; i++) bots.add(new Actor((float)Math.random()*20-10, (float)Math.random()*20-10));
               }
 
-              @Override public void onSurfaceChanged(GL10 gl,int w,int h){ GLES30.glViewport(0,0,w,h); Matrix.perspectiveM(proj,0,65,(float)w/h,0.1f,500f); }
+              @Override public void onSurfaceChanged(GL10 gl,int w,int h){ GLES30.glViewport(0,0,w,h); Matrix.perspectiveM(proj,0,60,(float)w/h,0.1f,500f); }
               @Override public void onDrawFrame(GL10 gl) {
-                  update(); GLES30.glClearColor(0.1f, 0.1f, 0.15f, 1.0f); GLES30.glClear(16640);
-                  Matrix.setIdentityM(view,0); Matrix.rotateM(view,0, rX, 1,0,0); Matrix.rotateM(view,0, rY, 0,1,0); Matrix.translateM(view,0, -pX, -2.5f, -pZ);
+                  update(); GLES30.glClearColor(0.1f, 0.1f, 0.12f, 1.0f); GLES30.glClear(16640);
+                  Matrix.setIdentityM(view,0);
+                  float dist = 7.0f;
+                  float rx=(float)Math.toRadians(camX), ry=(float)Math.toRadians(camY);
+                  float cx = player.x + (float)(Math.sin(ry)*Math.cos(rx)*dist);
+                  float cy = 2.5f - (float)(Math.sin(rx)*dist);
+                  float cz = player.z - (float)(Math.cos(ry)*Math.cos(rx)*dist);
+                  Matrix.setLookAtM(view,0, cx, cy, cz, player.x, 1.5f, player.z, 0,1,0);
+                  
                   GLES30.glUseProgram(prg);
                   int uM=GLES30.glGetUniformLocation(prg,"uM"), uC=GLES30.glGetUniformLocation(prg,"uC");
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,24,vB); GLES30.glEnableVertexAttribArray(0);
                   vB.position(3); GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,24,vB); GLES30.glEnableVertexAttribArray(1); vB.position(0);
-                  draw(uM,uC, 0,-0.1f,0, 1000,0.1f,1000, 0.1f,0.2f,0.1f); // Трава
-                  for(Bot b : bots) { b.update(); draw(uM,uC, b.x, 1, b.z, 1, 2, 1, b.r, b.g, b.b); }
+                  
+                  draw(uM,uC, 0,-0.1f,0, 200,0.1f,200, 0.1f,0.15f,0.1f, 1); // Пол
+                  drawModel(uM,uC, player, 0.8f,0.8f,0.2f); // Игрок
+                  for(Actor b : bots) { b.updateBot(); drawModel(uM,uC, b, 0.5f,0.5f,0.7f); }
               }
-              private void draw(int mLoc,int cLoc,float x,float y,float z,float sx,float sy,float sz,float r,float g,float bl){
+              private void drawModel(int m, int c, Actor a, float r, float g, float b) {
+                  draw(m,c, a.x, 2.2f, a.z, 0.7f, 0.7f, 0.7f, 1, 0.8f, 0.6f, 1); // Голова
+                  draw(m,c, a.x, 1.0f, a.z, 1.0f, 1.6f, 0.6f, r, g, b, 1); // Тело
+              }
+              private void draw(int mLoc,int cLoc,float x,float y,float z,float sx,float sy,float sz,float r,float g,float bl,float a){
                   Matrix.setIdentityM(model,0); Matrix.translateM(model,0,x,y,z); Matrix.scaleM(model,0,sx,sy,sz);
                   float[] mvp=new float[16]; Matrix.multiplyMM(mvp,0,proj,0,view,0); Matrix.multiplyMM(mvp,0,mvp,0,model,0);
-                  GLES30.glUniformMatrix4fv(mLoc,1,false,mvp,0); GLES30.glUniform4f(cLoc,r,g,bl,1);
-                  for(int i=0;i<2;i++) GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
+                  GLES30.glUniformMatrix4fv(mLoc,1,false,mvp,0); GLES30.glUniform4f(cLoc,r,g,bl,a);
+                  for(int i=0;i<3;i++) GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
               }
               private void update(){
                   if(!inGame) return;
-                  float s=0.18f; float rad=(float)Math.toRadians(rY);
-                  // ФИКС ИНВЕРСИИ: jY идет по направлению взгляда
-                  pX += (float)(Math.sin(rad)*jY + Math.cos(rad)*jX) * s;
-                  pZ += (float)(-Math.cos(rad)*jY + Math.sin(rad)*jX) * s;
+                  float s = 0.14f * player.sMult;
+                  float rad=(float)Math.toRadians(camY);
+                  player.x += (float)(Math.sin(rad)*jY + Math.cos(rad)*jX) * s;
+                  player.z += (float)(-Math.cos(rad)*jY + Math.sin(rad)*jX) * s;
+                  if(player.st < 100) player.st += 0.15f;
               }
           }
           EOF
 
-          # 3. ACTIVITY (Мультитач + Улучшенный джойстик)
+          # 3. MAIN ACTIVITY (Логика мультитача и способностей)
           cat <<'EOF' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
           import android.os.*;
@@ -96,7 +116,8 @@ jobs:
 
           public class MainActivity extends AppCompatActivity {
               private GameRenderer ren; private float lx, ly;
-              private int movePointerId = -1;
+              private int moveId = -1;
+              private Handler h = new Handler(Looper.getMainLooper());
 
               @Override protected void onCreate(Bundle b) {
                   super.onCreate(b);
@@ -105,97 +126,93 @@ jobs:
                   gv.setEGLContextClientVersion(3);
                   ren = new GameRenderer(); gv.setRenderer(ren);
 
-                  findViewById(R.id.char_noob).setOnClickListener(v -> startGame("Noob", "Speed Boost"));
-                  findViewById(R.id.char_guest).setOnClickListener(v -> startGame("Guest", "Heal Aura"));
+                  findViewById(R.id.char_noob).setOnClickListener(v -> start("Noob"));
+                  findViewById(R.id.char_guest).setOnClickListener(v -> start("Guest"));
+
+                  // Скиллы Нуба
+                  findViewById(R.id.s1).setOnClickListener(v -> { // Juice
+                      ren.player.sMult = 2.0f; 
+                      h.postDelayed(()-> ren.player.sMult=1.0f, 5000);
+                  });
+                  findViewById(R.id.s2).setOnClickListener(v -> { // Stone Skin
+                      ren.player.invul = true; ren.player.sMult = 0.5f;
+                      h.postDelayed(()-> {ren.player.invul=false; ren.player.sMult=1.0f;}, 5000);
+                  });
+                  findViewById(R.id.s3).setOnClickListener(v -> ren.player.hp = Math.min(100, ren.player.hp+30));
 
                   View base = findViewById(R.id.joy_base);
                   View stick = findViewById(R.id.joy_stick);
 
                   gv.setOnTouchListener((v,e) -> {
                       int action = e.getActionMasked();
-                      int index = e.getActionIndex();
-                      int id = e.getPointerId(index);
-
-                      switch(action) {
-                          case MotionEvent.ACTION_DOWN:
-                          case MotionEvent.ACTION_POINTER_DOWN:
-                              if(e.getX(index) < v.getWidth()/2) { // Левая часть экрана - джойстик
-                                  movePointerId = id;
-                              } else { // Правая - камера
-                                  lx = e.getX(index); ly = e.getY(index);
+                      int idx = e.getActionIndex();
+                      int id = e.getPointerId(idx);
+                      if(action==MotionEvent.ACTION_DOWN || action==MotionEvent.ACTION_POINTER_DOWN) {
+                          if(e.getX(idx) < v.getWidth()/2) moveId = id;
+                          else { lx=e.getX(idx); ly=e.getY(idx); }
+                      } else if(action==MotionEvent.ACTION_MOVE) {
+                          for(int i=0; i<e.getPointerCount(); i++) {
+                              if(e.getPointerId(i)==moveId) {
+                                  float dx=e.getX(i)-base.getX()-base.getWidth()/2;
+                                  float dy=e.getY(i)-base.getY()-base.getHeight()/2;
+                                  float d=(float)Math.sqrt(dx*dx+dy*dy), m=base.getWidth()/2;
+                                  if(d>m){dx*=m/d; dy*=m/d;}
+                                  stick.setTranslationX(dx); stick.setTranslationY(dy);
+                                  ren.jX=dx/m; ren.jY=-dy/m;
+                              } else {
+                                  ren.camY += (e.getX(i)-lx)*0.25f;
+                                  ren.camX = Math.max(-80, Math.min(80, ren.camX+(e.getY(i)-ly)*0.25f));
+                                  lx=e.getX(i); ly=e.getY(i);
                               }
-                              break;
-                          case MotionEvent.ACTION_MOVE:
-                              for(int i=0; i<e.getPointerCount(); i++) {
-                                  int currId = e.getPointerId(i);
-                                  if(currId == movePointerId) {
-                                      float dx = e.getX(i) - base.getX() - base.getWidth()/2;
-                                      float dy = e.getY(i) - base.getY() - base.getHeight()/2;
-                                      float dist = (float)Math.sqrt(dx*dx + dy*dy);
-                                      float max = base.getWidth()/2;
-                                      if(dist > max) { dx *= max/dist; dy *= max/dist; }
-                                      stick.setTranslationX(dx); stick.setTranslationY(dy);
-                                      ren.jX = dx/max; ren.jY = -dy/max;
-                                  } else {
-                                      ren.rY += (e.getX(i) - lx) * 0.2f;
-                                      ren.rX = Math.max(-80, Math.min(80, ren.rX + (e.getY(i) - ly) * 0.2f));
-                                      lx = e.getX(i); ly = e.getY(i);
-                                  }
-                              }
-                              break;
-                          case MotionEvent.ACTION_UP:
-                          case MotionEvent.ACTION_POINTER_UP:
-                              if(id == movePointerId) {
-                                  movePointerId = -1; ren.jX = 0; ren.jY = 0;
-                                  stick.setTranslationX(0); stick.setTranslationY(0);
-                              }
-                              break;
+                          }
+                      } else if(action==MotionEvent.ACTION_UP || action==MotionEvent.ACTION_POINTER_UP) {
+                          if(id==moveId){ moveId=-1; ren.jX=0; ren.jY=0; stick.setTranslationX(0); stick.setTranslationY(0); }
                       }
                       return true;
                   });
+                  
+                  // Обновление баров
+                  h.post(new Runnable(){public void run(){
+                      ((ProgressBar)findViewById(R.id.hp_bar)).setProgress((int)ren.player.hp);
+                      ((ProgressBar)findViewById(R.id.st_bar)).setProgress((int)ren.player.st);
+                      h.postDelayed(this, 100);
+                  }});
               }
-              void startGame(String n, String skill) {
-                  ren.inGame = true;
-                  findViewById(R.id.lobby_ui).setVisibility(View.GONE);
-                  findViewById(R.id.game_hud).setVisibility(View.VISIBLE);
-                  ((TextView)findViewById(R.id.txt_skill)).setText("Skill: " + skill);
-                  Toast.makeText(this, "Playing as " + n, Toast.LENGTH_SHORT).show();
+              void start(String n) {
+                  ren.inGame=true; findViewById(R.id.lobby).setVisibility(View.GONE); findViewById(R.id.hud).setVisibility(View.VISIBLE);
               }
           }
           EOF
 
-      - name: Layouts
+      - name: Generate Resources
         run: |
           cat <<'EOF' > app/src/main/res/layout/activity_main.xml
           <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
               <android.opengl.GLSurfaceView android:id="@+id/gl_view" android:layout_width="match_parent" android:layout_height="match_parent"/>
-              
-              <LinearLayout android:id="@+id/lobby_ui" android:layout_width="350dp" android:layout_height="wrap_content" android:orientation="vertical" android:background="#CC000000" android:layout_gravity="center" android:padding="10dp">
-                  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SELECT SURVIVOR" android:textColor="#FFF" android:gravity="center" android:layout_marginBottom="10dp"/>
-                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center">
-                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_margin="10dp">
-                          <Button android:id="@+id/char_noob" android:layout_width="100dp" android:layout_height="100dp" android:text="NOOB" android:backgroundTint="#444"/>
-                          <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ability: Speed" android:textColor="#0FF" android:textSize="12sp"/>
-                      </LinearLayout>
-                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_margin="10dp">
-                          <Button android:id="@+id/char_guest" android:layout_width="100dp" android:layout_height="100dp" android:text="GUEST" android:backgroundTint="#444"/>
-                          <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ability: Heal" android:textColor="#0F0" android:textSize="12sp"/>
-                      </LinearLayout>
-                  </LinearLayout>
+              <LinearLayout android:id="@+id/lobby" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#CC000000" android:gravity="center" android:orientation="horizontal">
+                  <Button android:id="@+id/char_noob" android:layout_width="120dp" android:layout_height="160dp" android:text="NOOB\n(Speed/Tank)" android:layout_margin="10dp"/>
+                  <Button android:id="@+id/char_guest" android:layout_width="120dp" android:layout_height="160dp" android:text="GUEST\n(Dash/Stam)" android:layout_margin="10dp"/>
               </LinearLayout>
-
-              <RelativeLayout android:id="@+id/game_hud" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
-                  <FrameLayout android:id="@+id/joy_base" android:layout_width="120dp" android:layout_height="120dp" android:layout_alignParentBottom="true" android:layout_margin="30dp" android:background="@drawable/joy_bg">
-                      <View android:id="@+id/joy_stick" android:layout_width="50dp" android:layout_height="50dp" android:layout_gravity="center" android:background="@drawable/stick_bg"/>
+              <RelativeLayout android:id="@+id/hud" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
+                  <FrameLayout android:id="@+id/joy_base" android:layout_width="130dp" android:layout_height="130dp" android:layout_alignParentBottom="true" android:layout_margin="30dp" android:background="@drawable/circle">
+                      <View android:id="@+id/joy_stick" android:layout_width="50dp" android:layout_height="50dp" android:layout_gravity="center" android:background="@drawable/circle_f"/>
                   </FrameLayout>
-                  <TextView android:id="@+id/txt_skill" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_margin="30dp" android:textColor="#FFF" android:background="#88000000" android:padding="10dp"/>
+                  <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_alignParentRight="true" android:layout_margin="20dp" android:orientation="horizontal">
+                      <Button android:id="@+id/s1" android:layout_width="60dp" android:layout_height="60dp" android:text="SK1" android:backgroundTint="#44FFFFFF"/>
+                      <Button android:id="@+id/s2" android:layout_width="60dp" android:layout_height="60dp" android:text="SK2" android:backgroundTint="#44FFFFFF" android:layout_marginLeft="10dp"/>
+                      <Button android:id="@+id/s3" android:layout_width="60dp" android:layout_height="60dp" android:text="SK3" android:backgroundTint="#44FFFFFF" android:layout_marginLeft="10dp"/>
+                  </LinearLayout>
+                  <LinearLayout android:layout_width="200dp" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:orientation="vertical" android:layout_marginBottom="20dp">
+                      <ProgressBar android:id="@+id/hp_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="10dp" android:progressTint="#F00"/>
+                      <ProgressBar android:id="@+id/st_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="10dp" android:progressTint="#0F0" android:layout_marginTop="5dp"/>
+                  </LinearLayout>
               </RelativeLayout>
           </FrameLayout>
           EOF
 
           echo "<resources><style name='AppTheme' parent='Theme.AppCompat.Light.NoActionBar'><item name='android:windowFullscreen'>true</item></style></resources>" > app/src/main/res/values/styles.xml
-          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#22FFFFFF'/><stroke android:width='2dp' android:color='#FFF'/></shape>" > app/src/main/res/drawable/joy_bg.xml
-          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#88FFFFFF'/></shape>" > app/src/main/res/drawable/stick_bg.xml
+          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#33FFFFFF'/><stroke android:width='2dp' android:color='#FFF'/></shape>" > app/src/main/res/drawable/circle.xml
+          echo "<shape xmlns:android='http://schemas.android.com/apk/res/android' android:shape='oval'><solid android:color='#AAFFFFFF'/></shape>" > app/src/main/res/drawable/circle_f.xml
 
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.enjoer.game">
@@ -220,5 +237,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Flowers_V10_Fixed
+          name: Flowers_V11_Final
           path: app/build/outputs/apk/debug/app-debug.apk
