@@ -1,4 +1,4 @@
-ntme: FLOWERS HORROR V10 - MULTITOUCH & BOTS
+name: FLOWERS HORROR V10 - MULTITOUCH & BOTS
 on: [push, workflow_dispatch]
 
 jobs:
