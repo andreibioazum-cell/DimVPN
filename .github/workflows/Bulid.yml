@@ -1,4 +1,4 @@
-name: Enjoer_6.5_FullFixed
+name: Enjoer_6.6_CustomSurvivors
 on:
   push:
   workflow_dispatch:
@@ -114,7 +114,7 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application
                   android:allowBackup="true"
-                  android:label="Enjoer 6.5"
+                  android:label="Enjoer 6.6"
                   android:supportsRtl="true"
                   android:theme="@style/AppTheme">
                   <activity
@@ -188,6 +188,22 @@ jobs:
           </shape>
           EOF
 
+          cat <<EOF > app/src/main/res/drawable/top_btn.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+              <corners android:radius="10dp"/>
+              <solid android:color="#B01A1A1A"/>
+              <stroke android:width="2dp" android:color="#707070"/>
+          </shape>
+          EOF
+
+          cat <<EOF > app/src/main/res/drawable/panel.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+              <corners android:radius="12dp"/>
+              <solid android:color="#E0101010"/>
+              <stroke android:width="2dp" android:color="#606060"/>
+          </shape>
+          EOF
+
           cat <<'EOF' > app/src/main/res/layout/activity_main.xml
           <?xml version="1.0" encoding="utf-8"?>
           <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -231,6 +247,20 @@ jobs:
                           android:textStyle="bold"
                           android:textSize="18sp"/>
                   </LinearLayout>
+
+                  <Button
+                      android:id="@+id/btn_survivor"
+                      android:layout_width="120dp"
+                      android:layout_height="42dp"
+                      android:layout_alignParentTop="true"
+                      android:layout_alignParentEnd="true"
+                      android:layout_marginTop="12dp"
+                      android:layout_marginEnd="12dp"
+                      android:background="@drawable/top_btn"
+                      android:text="SURVIVOR"
+                      android:textColor="#E0E0E0"
+                      android:textStyle="bold"
+                      android:textSize="12sp"/>
 
                   <FrameLayout
                       android:id="@+id/joy_base"
@@ -298,34 +328,65 @@ jobs:
                       </FrameLayout>
                   </LinearLayout>
 
+                  <LinearLayout
+                      android:id="@+id/survivor_panel"
+                      android:layout_width="260dp"
+                      android:layout_height="wrap_content"
+                      android:layout_centerInParent="true"
+                      android:orientation="vertical"
+                      android:background="@drawable/panel"
+                      android:padding="14dp"
+                      android:visibility="gone">
+
+                      <TextView
+                          android:layout_width="wrap_content"
+                          android:layout_height="wrap_content"
+                          android:text="CHOOSE SURVIVOR"
+                          android:textColor="#FFFFFF"
+                          android:textStyle="bold"
+                          android:textSize="18sp"
+                          android:layout_gravity="center_horizontal"
+                          android:layout_marginBottom="12dp"/>
+
+                      <Button
+                          android:id="@+id/btn_surv_pig"
+                          android:layout_width="match_parent"
+                          android:layout_height="48dp"
+                          android:text="AGENT SVIN"
+                          android:textColor="#FFFFFF"
+                          android:textStyle="bold"
+                          android:background="@drawable/top_btn"/>
+
+                      <Button
+                          android:id="@+id/btn_surv_gray"
+                          android:layout_width="match_parent"
+                          android:layout_height="48dp"
+                          android:layout_marginTop="8dp"
+                          android:text="GRAY GUY"
+                          android:textColor="#FFFFFF"
+                          android:textStyle="bold"
+                          android:background="@drawable/top_btn"/>
+
+                      <Button
+                          android:id="@+id/btn_close_survivor"
+                          android:layout_width="match_parent"
+                          android:layout_height="42dp"
+                          android:layout_marginTop="12dp"
+                          android:text="CLOSE"
+                          android:textColor="#FFFFFF"
+                          android:background="@drawable/top_btn"/>
+                  </LinearLayout>
+
               </RelativeLayout>
           </FrameLayout>
           EOF
 
-          cat <<EOF > app/src/main/java/com/enjoer/game/Block.java
+          cat <<EOF > app/src/main/java/com/enjoer/game/Survivor.java
           package com.enjoer.game;
 
-          public class Block {
-              public float x, y, z, sx, sy, sz, r, g, b;
-
-              public Block(float x, float y, float z, float sx, float sy, float sz, float r, float g, float b) {
-                  this.x = x;
-                  this.y = y;
-                  this.z = z;
-                  this.sx = sx;
-                  this.sy = sy;
-                  this.sz = sz;
-                  this.r = r;
-                  this.g = g;
-                  this.b = b;
-              }
-
-              public float minX(){ return x - sx / 2f; }
-              public float maxX(){ return x + sx / 2f; }
-              public float minY(){ return y - sy / 2f; }
-              public float maxY(){ return y + sy / 2f; }
-              public float minZ(){ return z - sz / 2f; }
-              public float maxZ(){ return z + sz / 2f; }
+          public class Survivor {
+              public static final int AGENT_SVIN = 0;
+              public static final int GRAY_GUY = 1;
           }
           EOF
 
@@ -363,6 +424,8 @@ jobs:
               public boolean inLobby = false;
               public long phaseEndTimeMs = 0L;
 
+              public int selectedSurvivor = Survivor.AGENT_SVIN;
+
               private int prog;
               private FloatBuffer vBuf, nBuf;
               public CopyOnWriteArrayList<Block> blocks = new CopyOnWriteArrayList<>();
@@ -381,6 +444,10 @@ jobs:
 
               public void toggleRun() {
                   runEnabled = !runEnabled;
+              }
+
+              public void setSurvivor(int s) {
+                  selectedSurvivor = s;
               }
 
               public void startRound() {
@@ -419,29 +486,33 @@ jobs:
 
               public void loadRoundMap() {
                   blocks.clear();
-                  blocks.add(new Block(0, 1, -10, 6, 2, 6, 0.75f, 0.2f, 0.2f));
-                  blocks.add(new Block(-10, 1, -18, 5, 2, 5, 0.3f, 0.3f, 0.3f));
-                  blocks.add(new Block(10, 1, -18, 5, 2, 5, 0.45f, 0.45f, 0.45f));
-                  blocks.add(new Block(0, 1, -30, 12, 2, 12, 0.6f, 0.6f, 0.6f));
-                  blocks.add(new Block(-14, 1, -36, 5, 2, 5, 0.35f, 0.35f, 0.35f));
-                  blocks.add(new Block(14, 1, -36, 5, 2, 5, 0.5f, 0.5f, 0.5f));
-                  blocks.add(new Block(0, 4, -46, 8, 8, 8, 0.38f, 0.38f, 0.38f));
-                  blocks.add(new Block(-18, 3, -52, 6, 6, 6, 0.28f, 0.28f, 0.28f));
-                  blocks.add(new Block(18, 3, -52, 6, 6, 6, 0.72f, 0.72f, 0.72f));
-                  blocks.add(new Block(0, 2, 18, 14, 4, 6, 0.25f, 0.25f, 0.25f));
-                  blocks.add(new Block(-22, 2, 6, 6, 4, 12, 0.40f, 0.40f, 0.40f));
-                  blocks.add(new Block(22, 2, 6, 6, 4, 12, 0.55f, 0.55f, 0.55f));
+
+                  blocks.add(new Block(0, 3, -18, 8, 6, 8, 0.9f, 0.2f, 0.2f));
+                  blocks.add(new Block(-14, 4, -30, 10, 8, 10, 0.2f, 0.8f, 0.3f));
+                  blocks.add(new Block(16, 5, -34, 12, 10, 12, 0.2f, 0.5f, 0.9f));
+                  blocks.add(new Block(-28, 2, -12, 8, 4, 8, 0.9f, 0.8f, 0.2f));
+                  blocks.add(new Block(30, 3, -10, 10, 6, 10, 0.8f, 0.3f, 0.8f));
+                  blocks.add(new Block(0, 2, -42, 16, 4, 10, 0.2f, 0.9f, 0.9f));
+                  blocks.add(new Block(-24, 6, -50, 10, 12, 10, 1.0f, 0.5f, 0.2f));
+                  blocks.add(new Block(24, 7, -56, 12, 14, 12, 0.5f, 1.0f, 0.4f));
+
+                  blocks.add(new Block(0, 1, 18, 14, 2, 10, 0.3f, 0.3f, 0.3f));
+                  blocks.add(new Block(-20, 1, 8, 10, 2, 16, 0.4f, 0.4f, 0.4f));
+                  blocks.add(new Block(20, 1, 8, 10, 2, 16, 0.4f, 0.4f, 0.4f));
               }
 
               public void loadLobbyMap() {
                   blocks.clear();
-                  blocks.add(new Block(0, 1, 0, 10, 2, 10, 0.10f, 0.10f, 0.10f));
-                  blocks.add(new Block(-14, 1, -10, 8, 2, 8, 0.08f, 0.08f, 0.08f));
-                  blocks.add(new Block(14, 1, -10, 8, 2, 8, 0.08f, 0.08f, 0.08f));
-                  blocks.add(new Block(0, 1, -22, 18, 2, 8, 0.12f, 0.12f, 0.12f));
-                  blocks.add(new Block(-20, 2, 12, 4, 4, 4, 0.14f, 0.14f, 0.14f));
-                  blocks.add(new Block(20, 2, 12, 4, 4, 4, 0.14f, 0.14f, 0.14f));
-                  blocks.add(new Block(0, 3, -34, 6, 6, 6, 0.06f, 0.06f, 0.06f));
+
+                  blocks.add(new Block(0, 1, -10, 10, 2, 10, 0.18f, 0.18f, 0.18f));
+                  blocks.add(new Block(-4, 3, -10, 2, 4, 10, 0.45f, 0.30f, 0.18f));
+                  blocks.add(new Block(4, 3, -10, 2, 4, 10, 0.45f, 0.30f, 0.18f));
+                  blocks.add(new Block(0, 3, -14, 6, 4, 2, 0.45f, 0.30f, 0.18f));
+                  blocks.add(new Block(0, 3, -6, 6, 4, 2, 0.45f, 0.30f, 0.18f));
+                  blocks.add(new Block(0, 6, -10, 10, 2, 10, 0.65f, 0.10f, 0.10f));
+                  blocks.add(new Block(0, 2, 6, 8, 4, 8, 0.08f, 0.08f, 0.08f));
+                  blocks.add(new Block(-14, 1, 12, 8, 2, 8, 0.12f, 0.12f, 0.12f));
+                  blocks.add(new Block(14, 1, 12, 8, 2, 8, 0.12f, 0.12f, 0.12f));
               }
 
               @Override
@@ -744,14 +815,46 @@ jobs:
               private void drawPlayer(int uM, int uMVP, int uC) {
                   float swing = (float)Math.sin(walkTime) * 28f * Math.min(1f, moveAmount * 8f);
 
-                  drawBodyPart(uM, uMVP, uC, 0f, 2.8f, 0f, 1.2f, 1.2f, 1.2f, 0.92f, 0.80f, 0.65f);
-                  drawBodyPart(uM, uMVP, uC, 0f, 1.3f, 0f, 1.6f, 1.8f, 0.9f, 0.20f, 0.20f, 0.20f);
+                  if (selectedSurvivor == Survivor.AGENT_SVIN) {
+                      drawAgentSvin(uM, uMVP, uC, swing);
+                  } else {
+                      drawGrayGuy(uM, uMVP, uC, swing);
+                  }
+              }
 
-                  drawLimb(uM, uMVP, uC, -1.15f, 1.3f, 0f, 0.6f, 1.8f, 0.6f, 0.82f, 0.74f, 0.62f,  swing);
-                  drawLimb(uM, uMVP, uC,  1.15f, 1.3f, 0f, 0.6f, 1.8f, 0.6f, 0.82f, 0.74f, 0.62f, -swing);
+              private void drawAgentSvin(int uM, int uMVP, int uC, float swing) {
+                  drawBodyPart(uM,uMVP,uC, 0f,2.8f,0f, 1.2f,1.2f,1.2f, 1.0f,0.68f,0.78f);
+                  drawBodyPart(uM,uMVP,uC, 0f,1.3f,0f, 1.6f,1.8f,0.9f, 1f,1f,1f);
+                  drawBodyPart(uM,uMVP,uC, 0f,0.15f,0f, 1.55f,0.55f,0.92f, 0.2f,0.4f,0.95f);
 
-                  drawLimb(uM, uMVP, uC, -0.45f,-0.7f, 0f, 0.7f, 1.9f, 0.7f, 0.30f, 0.30f, 0.30f, -swing);
-                  drawLimb(uM, uMVP, uC,  0.45f,-0.7f, 0f, 0.7f, 1.9f, 0.7f, 0.30f, 0.30f, 0.30f,  swing);
+                  drawLimb(uM,uMVP,uC,-1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 1.0f,0.68f,0.78f, swing);
+                  drawLimb(uM,uMVP,uC, 1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 1.0f,0.68f,0.78f,-swing);
+
+                  drawLimb(uM,uMVP,uC,-0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.2f,0.4f,0.95f,-swing);
+                  drawLimb(uM,uMVP,uC, 0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.2f,0.4f,0.95f, swing);
+
+                  drawFacePart(uM,uMVP,uC, 0f,2.75f,0.72f, 0.58f,0.34f,0.26f, 0.96f,0.56f,0.72f);
+                  drawFacePart(uM,uMVP,uC, -0.22f,3.02f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
+                  drawFacePart(uM,uMVP,uC,  0.22f,3.02f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
+                  drawFacePart(uM,uMVP,uC, -0.10f,2.75f,0.87f, 0.06f,0.08f,0.02f, 0.55f,0.2f,0.35f);
+                  drawFacePart(uM,uMVP,uC,  0.10f,2.75f,0.87f, 0.06f,0.08f,0.02f, 0.55f,0.2f,0.35f);
+                  drawFacePart(uM,uMVP,uC, -0.38f,3.42f,0.0f, 0.22f,0.32f,0.22f, 1.0f,0.68f,0.78f);
+                  drawFacePart(uM,uMVP,uC,  0.38f,3.42f,0.0f, 0.22f,0.32f,0.22f, 1.0f,0.68f,0.78f);
+              }
+
+              private void drawGrayGuy(int uM, int uMVP, int uC, float swing) {
+                  drawBodyPart(uM,uMVP,uC, 0f,2.8f,0f, 1.2f,1.2f,1.2f, 0.8f,0.8f,0.8f);
+                  drawBodyPart(uM,uMVP,uC, 0f,1.3f,0f, 1.6f,1.8f,0.9f, 0.55f,0.55f,0.55f);
+
+                  drawLimb(uM,uMVP,uC,-1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 0.8f,0.8f,0.8f, swing);
+                  drawLimb(uM,uMVP,uC, 1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 0.8f,0.8f,0.8f,-swing);
+
+                  drawLimb(uM,uMVP,uC,-0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.3f,0.3f,0.3f,-swing);
+                  drawLimb(uM,uMVP,uC, 0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.3f,0.3f,0.3f, swing);
+
+                  drawFacePart(uM,uMVP,uC, -0.22f,3.0f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
+                  drawFacePart(uM,uMVP,uC,  0.22f,3.0f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
+                  drawFacePart(uM,uMVP,uC,  0f,2.72f,0.62f, 0.32f,0.05f,0.05f, 0f,0f,0f);
               }
 
               private void drawBodyPart(int uM, int uMVP, int uC,
@@ -779,6 +882,19 @@ jobs:
                   Matrix.translateM(model, 0, localX, localY + sy * 0.5f, localZ);
                   Matrix.rotateM(model, 0, rotX, 1f, 0f, 0f);
                   Matrix.translateM(model, 0, 0f, -sy * 0.5f, 0f);
+                  Matrix.scaleM(model, 0, sx, sy, sz);
+                  draw(uM, uMVP, uC, r, g, b, 1f);
+              }
+
+              private void drawFacePart(int uM, int uMVP, int uC,
+                                        float localX, float localY, float localZ,
+                                        float sx, float sy, float sz,
+                                        float r, float g, float b) {
+                  Matrix.setIdentityM(model, 0);
+                  Matrix.translateM(model, 0, pX, pY, pZ);
+                  Matrix.rotateM(model, 0, bodyYaw, 0f, 1f, 0f);
+                  Matrix.scaleM(model, 0, PLAYER_SCALE, PLAYER_SCALE, PLAYER_SCALE);
+                  Matrix.translateM(model, 0, localX, localY, localZ);
                   Matrix.scaleM(model, 0, sx, sy, sz);
                   draw(uM, uMVP, uC, r, g, b, 1f);
               }
@@ -831,6 +947,7 @@ jobs:
               private View staminaFill;
               private TextView txtTimer;
               private Button btnRun;
+              private View survivorPanel;
 
               @SuppressLint("ClickableViewAccessibility")
               @Override
@@ -847,10 +964,12 @@ jobs:
                   staminaFill = findViewById(R.id.stamina_fill);
                   txtTimer = findViewById(R.id.txt_timer);
                   btnRun = findViewById(R.id.btn_run);
+                  survivorPanel = findViewById(R.id.survivor_panel);
 
                   setupJoy(findViewById(R.id.joy_base), findViewById(R.id.joy_stick));
                   setupLook(findViewById(R.id.look_zone));
                   setupRunButton(btnRun);
+                  setupSurvivors();
 
                   gv.post(updateUiRunnable);
               }
@@ -866,6 +985,24 @@ jobs:
                       if (staminaFill != null) staminaFill.postDelayed(this, 16);
                   }
               };
+
+              private void setupSurvivors() {
+                  findViewById(R.id.btn_survivor).setOnClickListener(v -> {
+                      survivorPanel.setVisibility(survivorPanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+                  });
+
+                  findViewById(R.id.btn_close_survivor).setOnClickListener(v -> survivorPanel.setVisibility(View.GONE));
+
+                  findViewById(R.id.btn_surv_pig).setOnClickListener(v -> {
+                      ren.setSurvivor(Survivor.AGENT_SVIN);
+                      survivorPanel.setVisibility(View.GONE);
+                  });
+
+                  findViewById(R.id.btn_surv_gray).setOnClickListener(v -> {
+                      ren.setSurvivor(Survivor.GRAY_GUY);
+                      survivorPanel.setVisibility(View.GONE);
+                  });
+              }
 
               private void updateStaminaUi() {
                   if (staminaFill == null) return;
@@ -980,5 +1117,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_6.5_FullFixed_APK
+          name: Enjoer_6.6_CustomSurvivors_APK
           path: app/build/outputs/apk/debug/app-debug.apk
