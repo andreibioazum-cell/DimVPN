@@ -1,4 +1,4 @@
-name: Enjoer_7.2_Derka_Update
+name: Enjoer_7.2_DebugBuild
 on:
   push:
   workflow_dispatch:
@@ -6,6 +6,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,7 +35,7 @@ jobs:
           mkdir -p out
 
           cat <<EOF > gradle.properties
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          org.gradle.jvmargs=-Xmx3072m -Dfile.encoding=UTF-8
           android.useAndroidX=true
           android.enableJetifier=true
           EOF
@@ -217,597 +219,85 @@ jobs:
           </shape>
           EOF
 
-          cat <<'EOF' > app/src/main/res/layout/activity_main.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:background="#050505">
-
-              <android.opengl.GLSurfaceView
-                  android:id="@+id/gl_view"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"/>
-
-              <LinearLayout
-                  android:id="@+id/menu_ui"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:orientation="vertical"
-                  android:gravity="center"
-                  android:background="#E0050505">
-
-                  <TextView
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="ENJOER"
-                      android:textColor="#FFFFFF"
-                      android:textStyle="bold"
-                      android:textSize="42sp"/>
-
-                  <TextView
-                      android:id="@+id/txt_selected_survivor"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="SURVIVOR: AGENT SVIN"
-                      android:textColor="#D0D0D0"
-                      android:textSize="16sp"
-                      android:layout_marginTop="16dp"/>
-
-                  <TextView
-                      android:id="@+id/txt_selected_killer"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="KILLER: DIMASI4EK229"
-                      android:textColor="#D0D0D0"
-                      android:textSize="16sp"
-                      android:layout_marginTop="6dp"
-                      android:layout_marginBottom="30dp"/>
-
-                  <Button
-                      android:id="@+id/btn_play"
-                      android:layout_width="260dp"
-                      android:layout_height="56dp"
-                      android:text="PLAY"
-                      android:textStyle="bold"
-                      android:textColor="#FFFFFF"
-                      android:background="@drawable/menu_btn"
-                      android:layout_marginBottom="12dp"/>
-
-                  <Button
-                      android:id="@+id/btn_open_survivors"
-                      android:layout_width="260dp"
-                      android:layout_height="56dp"
-                      android:text="CHOOSE SURVIVOR"
-                      android:textStyle="bold"
-                      android:textColor="#FFFFFF"
-                      android:background="@drawable/menu_btn"
-                      android:layout_marginBottom="12dp"/>
-
-                  <Button
-                      android:id="@+id/btn_open_killers"
-                      android:layout_width="260dp"
-                      android:layout_height="56dp"
-                      android:text="CHOOSE KILLER"
-                      android:textStyle="bold"
-                      android:textColor="#FFFFFF"
-                      android:background="@drawable/menu_btn"/>
-              </LinearLayout>
-
-              <RelativeLayout
-                  android:id="@+id/game_ui"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:visibility="gone">
-
-                  <View
-                      android:id="@+id/look_zone"
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent"/>
-
-                  <LinearLayout
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:layout_centerHorizontal="true"
-                      android:layout_marginTop="14dp"
-                      android:orientation="vertical"
-                      android:gravity="center"
-                      android:background="@drawable/time_panel"
-                      android:paddingLeft="12dp"
-                      android:paddingTop="6dp"
-                      android:paddingRight="12dp"
-                      android:paddingBottom="6dp">
-
-                      <TextView
-                          android:id="@+id/txt_timer"
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text="1:10"
-                          android:textColor="#FFFFFF"
-                          android:textStyle="bold"
-                          android:textSize="18sp"/>
-                  </LinearLayout>
-
-                  <Button
-                      android:id="@+id/btn_back_menu"
-                      android:layout_width="90dp"
-                      android:layout_height="42dp"
-                      android:layout_alignParentTop="true"
-                      android:layout_alignParentStart="true"
-                      android:layout_marginStart="12dp"
-                      android:layout_marginTop="12dp"
-                      android:background="@drawable/top_btn"
-                      android:text="MENU"
-                      android:textColor="#FFFFFF"
-                      android:textStyle="bold"/>
-
-                  <FrameLayout
-                      android:id="@+id/joy_base"
-                      android:layout_width="140dp"
-                      android:layout_height="140dp"
-                      android:layout_alignParentBottom="true"
-                      android:layout_alignParentStart="true"
-                      android:layout_marginStart="40dp"
-                      android:layout_marginBottom="40dp"
-                      android:background="@drawable/joy_base"/>
-
-                  <View
-                      android:id="@+id/joy_stick"
-                      android:layout_width="60dp"
-                      android:layout_height="60dp"
-                      android:layout_alignLeft="@id/joy_base"
-                      android:layout_alignTop="@id/joy_base"
-                      android:layout_marginLeft="40dp"
-                      android:layout_marginTop="40dp"
-                      android:background="@drawable/joy_stick"/>
-
-                  <Button
-                      android:id="@+id/btn_run"
-                      android:layout_width="92dp"
-                      android:layout_height="92dp"
-                      android:layout_alignParentEnd="true"
-                      android:layout_alignParentBottom="true"
-                      android:layout_marginEnd="30dp"
-                      android:layout_marginBottom="42dp"
-                      android:background="@drawable/run_btn"
-                      android:text="RUN"
-                      android:textColor="#E0E0E0"
-                      android:textStyle="bold"
-                      android:textSize="18sp"/>
-
-                  <LinearLayout
-                      android:id="@+id/skill_panel"
-                      android:layout_width="100dp"
-                      android:layout_height="wrap_content"
-                      android:layout_above="@id/btn_run"
-                      android:layout_alignParentEnd="true"
-                      android:layout_marginEnd="26dp"
-                      android:layout_marginBottom="18dp"
-                      android:orientation="vertical">
-
-                      <Button
-                          android:id="@+id/btn_skill_1"
-                          android:layout_width="100dp"
-                          android:layout_height="48dp"
-                          android:background="@drawable/top_btn"
-                          android:text="SKILL 1"
-                          android:textColor="#FFFFFF"/>
-
-                      <Button
-                          android:id="@+id/btn_skill_2"
-                          android:layout_width="100dp"
-                          android:layout_height="48dp"
-                          android:layout_marginTop="8dp"
-                          android:background="@drawable/top_btn"
-                          android:text="SKILL 2"
-                          android:textColor="#FFFFFF"/>
-
-                      <Button
-                          android:id="@+id/btn_skill_3"
-                          android:layout_width="100dp"
-                          android:layout_height="48dp"
-                          android:layout_marginTop="8dp"
-                          android:background="@drawable/top_btn"
-                          android:text="SKILL 3"
-                          android:textColor="#FFFFFF"/>
-                  </LinearLayout>
-
-                  <LinearLayout
-                      android:layout_width="150dp"
-                      android:layout_height="wrap_content"
-                      android:layout_alignParentStart="true"
-                      android:layout_alignParentBottom="true"
-                      android:layout_marginStart="28dp"
-                      android:layout_marginBottom="188dp"
-                      android:orientation="vertical">
-
-                      <TextView
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text="STAMINA"
-                          android:textColor="#D0D0D0"
-                          android:textSize="11sp"
-                          android:textStyle="bold"
-                          android:layout_marginBottom="4dp"/>
-
-                      <FrameLayout
-                          android:layout_width="150dp"
-                          android:layout_height="16dp"
-                          android:background="@drawable/stamina_bg"
-                          android:padding="2dp">
-
-                          <View
-                              android:id="@+id/stamina_fill"
-                              android:layout_width="146dp"
-                              android:layout_height="match_parent"
-                              android:background="@drawable/stamina_fill"/>
-                      </FrameLayout>
-
-                      <TextView
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text="HP"
-                          android:textColor="#D0D0D0"
-                          android:textSize="11sp"
-                          android:textStyle="bold"
-                          android:layout_marginTop="8dp"
-                          android:layout_marginBottom="4dp"/>
-
-                      <FrameLayout
-                          android:layout_width="150dp"
-                          android:layout_height="16dp"
-                          android:background="@drawable/stamina_bg"
-                          android:padding="2dp">
-
-                          <View
-                              android:id="@+id/hp_fill"
-                              android:layout_width="146dp"
-                              android:layout_height="match_parent"
-                              android:background="@drawable/hp_fill"/>
-                      </FrameLayout>
-                  </LinearLayout>
-
-              </RelativeLayout>
-
-              <LinearLayout
-                  android:id="@+id/survivor_menu"
-                  android:layout_width="280dp"
-                  android:layout_height="wrap_content"
-                  android:layout_gravity="center"
-                  android:orientation="vertical"
-                  android:background="@drawable/panel"
-                  android:padding="14dp"
-                  android:visibility="gone">
-
-                  <TextView
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="CHOOSE SURVIVOR"
-                      android:textColor="#FFFFFF"
-                      android:textStyle="bold"
-                      android:textSize="18sp"
-                      android:layout_gravity="center_horizontal"
-                      android:layout_marginBottom="12dp"/>
-
-                  <Button
-                      android:id="@+id/btn_surv_svin"
-                      android:layout_width="match_parent"
-                      android:layout_height="48dp"
-                      android:text="AGENT SVIN"
-                      android:textColor="#FFFFFF"
-                      android:textStyle="bold"
-                      android:background="@drawable/top_btn"/>
-
-                  <Button
-                      android:id="@+id/btn_surv_gray"
-                      android:layout_width="match_parent"
-                      android:layout_height="48dp"
-                      android:layout_marginTop="8dp"
-                      android:text="GRAY GUY"
-                      android:textColor="#FFFFFF"
-                      android:textStyle="bold"
-                      android:background="@drawable/top_btn"/>
-
-                  <Button
-                      android:id="@+id/btn_surv_close"
-                      android:layout_width="match_parent"
-                      android:layout_height="42dp"
-                      android:layout_marginTop="12dp"
-                      android:text="CLOSE"
-                      android:textColor="#FFFFFF"
-                      android:background="@drawable/top_btn"/>
-              </LinearLayout>
-
-              <LinearLayout
-                  android:id="@+id/killer_menu"
-                  android:layout_width="280dp"
-                  android:layout_height="wrap_content"
-                  android:layout_gravity="center"
-                  android:orientation="vertical"
-                  android:background="@drawable/panel"
-                  android:padding="14dp"
-                  android:visibility="gone">
-
-                  <TextView
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="CHOOSE KILLER"
-                      android:textColor="#FFFFFF"
-                      android:textStyle="bold"
-                      android:textSize="18sp"
-                      android:layout_gravity="center_horizontal"
-                      android:layout_marginBottom="12dp"/>
-
-                  <Button
-                      android:id="@+id/btn_killer_dimas"
-                      android:layout_width="match_parent"
-                      android:layout_height="48dp"
-                      android:text="DIMASI4EK229"
-                      android:textColor="#FFFFFF"
-                      android:textStyle="bold"
-                      android:background="@drawable/top_btn"/>
-
-                  <Button
-                      android:id="@+id/btn_killer_derka"
-                      android:layout_width="match_parent"
-                      android:layout_height="48dp"
-                      android:layout_marginTop="8dp"
-                      android:text="DERKA"
-                      android:textColor="#FFFFFF"
-                      android:textStyle="bold"
-                      android:background="@drawable/top_btn"/>
-
-                  <Button
-                      android:id="@+id/btn_killer_close"
-                      android:layout_width="match_parent"
-                      android:layout_height="42dp"
-                      android:layout_marginTop="12dp"
-                      android:text="CLOSE"
-                      android:textColor="#FFFFFF"
-                      android:background="@drawable/top_btn"/>
-              </LinearLayout>
-
-          </FrameLayout>
+          cat <<EOF > app/src/main/java/com/enjoer/game/Block.java
+          package com.enjoer.game;
+          public class Block {
+              public float x, y, z, sx, sy, sz, r, g, b;
+              public Block(float x, float y, float z, float sx, float sy, float sz, float r, float g, float b) {
+                  this.x=x; this.y=y; this.z=z; this.sx=sx; this.sy=sy; this.sz=sz; this.r=r; this.g=g; this.b=b;
+              }
+              public float minX(){ return x - sx / 2f; }
+              public float maxX(){ return x + sx / 2f; }
+              public float minY(){ return y - sy / 2f; }
+              public float maxY(){ return y + sy / 2f; }
+              public float minZ(){ return z - sz / 2f; }
+              public float maxZ(){ return z + sz / 2f; }
+          }
           EOF
 
-          cat <<'EOF' > app/src/main/java/com/enjoer/game/MainActivity.java
+          cat <<EOF > app/src/main/java/com/enjoer/game/Survivor.java
           package com.enjoer.game;
-          import android.annotation.SuppressLint;
-          import android.opengl.GLSurfaceView;
+          public class Survivor {
+              public static final int AGENT_SVIN = 0;
+              public static final int GRAY_GUY = 1;
+          }
+          EOF
+
+          cat <<EOF > app/src/main/java/com/enjoer/game/Killer.java
+          package com.enjoer.game;
+          public class Killer {
+              public static final int DIMASI4EK229 = 0;
+              public static final int DERKA = 1;
+          }
+          EOF
+
+          cat <<EOF > app/src/main/java/com/enjoer/game/Bot.java
+          package com.enjoer.game;
+          public class Bot {
+              public float x, y, z;
+              public float yaw;
+              public float hp = 100f;
+              public boolean alive = true;
+              public boolean killer;
+              public int survivorType = Survivor.GRAY_GUY;
+              public int killerType = Killer.DIMASI4EK229;
+              public float anim = 0f;
+              public float swing = 0f;
+              public float hpBar = 100f;
+              public Bot(float x, float y, float z, boolean killer) {
+                  this.x=x; this.y=y; this.z=z; this.killer=killer;
+              }
+          }
+          EOF
+
+          cat <<EOF > app/src/main/java/com/enjoer/game/Projectile.java
+          package com.enjoer.game;
+          public class Projectile {
+              public float x, y, z, vx, vy, vz;
+              public boolean active = true;
+              public float life = 180f;
+              public boolean fromPlayer = true;
+              public Projectile(float x, float y, float z, float vx, float vy, float vz, boolean fromPlayer) {
+                  this.x=x; this.y=y; this.z=z; this.vx=vx; this.vy=vy; this.vz=vz; this.fromPlayer=fromPlayer;
+              }
+          }
+          EOF
+
+          cat <<EOF > app/src/main/java/com/enjoer/game/MainActivity.java
+          package com.enjoer.game;
+
           import android.os.Bundle;
-          import android.view.MotionEvent;
-          import android.view.View;
-          import android.view.ViewGroup;
-          import android.widget.Button;
-          import android.widget.TextView;
           import androidx.appcompat.app.AppCompatActivity;
-          import java.util.Locale;
 
           public class MainActivity extends AppCompatActivity {
-              private GameRenderer ren;
-              private float lx, ly;
-              private View staminaFill, hpFill;
-              private TextView txtTimer, txtSelSurv, txtSelKill;
-              private Button btnRun, btnSkill1, btnSkill2, btnSkill3;
-              private View menuUI, gameUI, survMenu, killerMenu;
-
-              @SuppressLint("ClickableViewAccessibility")
-              @Override protected void onCreate(Bundle savedInstanceState) {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-
-                  GLSurfaceView gv = findViewById(R.id.gl_view);
-                  gv.setEGLContextClientVersion(3);
-
-                  ren = new GameRenderer();
-                  gv.setRenderer(ren);
-
-                  staminaFill = findViewById(R.id.stamina_fill);
-                  hpFill = findViewById(R.id.hp_fill);
-                  txtTimer = findViewById(R.id.txt_timer);
-                  txtSelSurv = findViewById(R.id.txt_selected_survivor);
-                  txtSelKill = findViewById(R.id.txt_selected_killer);
-                  btnRun = findViewById(R.id.btn_run);
-                  btnSkill1 = findViewById(R.id.btn_skill_1);
-                  btnSkill2 = findViewById(R.id.btn_skill_2);
-                  btnSkill3 = findViewById(R.id.btn_skill_3);
-                  menuUI = findViewById(R.id.menu_ui);
-                  gameUI = findViewById(R.id.game_ui);
-                  survMenu = findViewById(R.id.survivor_menu);
-                  killerMenu = findViewById(R.id.killer_menu);
-
-                  setupJoy(findViewById(R.id.joy_base), findViewById(R.id.joy_stick));
-                  setupLook(findViewById(R.id.look_zone));
-                  setupButtons();
-
-                  gv.post(updateUiRunnable);
-              }
-
-              private void setupButtons() {
-                  findViewById(R.id.btn_play).setOnClickListener(v -> {
-                      ren.startGameFromMenu();
-                      menuUI.setVisibility(View.GONE);
-                      gameUI.setVisibility(View.VISIBLE);
-                      survMenu.setVisibility(View.GONE);
-                      killerMenu.setVisibility(View.GONE);
-                  });
-
-                  findViewById(R.id.btn_back_menu).setOnClickListener(v -> {
-                      ren.backToMenu();
-                      menuUI.setVisibility(View.VISIBLE);
-                      gameUI.setVisibility(View.GONE);
-                      survMenu.setVisibility(View.GONE);
-                      killerMenu.setVisibility(View.GONE);
-                  });
-
-                  findViewById(R.id.btn_open_survivors).setOnClickListener(v -> {
-                      survMenu.setVisibility(View.VISIBLE);
-                      killerMenu.setVisibility(View.GONE);
-                  });
-
-                  findViewById(R.id.btn_open_killers).setOnClickListener(v -> {
-                      killerMenu.setVisibility(View.VISIBLE);
-                      survMenu.setVisibility(View.GONE);
-                  });
-
-                  findViewById(R.id.btn_surv_close).setOnClickListener(v -> survMenu.setVisibility(View.GONE));
-                  findViewById(R.id.btn_killer_close).setOnClickListener(v -> killerMenu.setVisibility(View.GONE));
-
-                  findViewById(R.id.btn_surv_svin).setOnClickListener(v -> {
-                      ren.setSurvivor(Survivor.AGENT_SVIN);
-                      survMenu.setVisibility(View.GONE);
-                  });
-
-                  findViewById(R.id.btn_surv_gray).setOnClickListener(v -> {
-                      ren.setSurvivor(Survivor.GRAY_GUY);
-                      survMenu.setVisibility(View.GONE);
-                  });
-
-                  findViewById(R.id.btn_killer_dimas).setOnClickListener(v -> {
-                      ren.setKiller(Killer.DIMASI4EK229);
-                      killerMenu.setVisibility(View.GONE);
-                  });
-
-                  findViewById(R.id.btn_killer_derka).setOnClickListener(v -> {
-                      ren.setKiller(Killer.DERKA);
-                      killerMenu.setVisibility(View.GONE);
-                  });
-
-                  btnRun.setOnClickListener(v -> ren.toggleRun());
-                  btnSkill1.setOnClickListener(v -> ren.useSkill1());
-                  btnSkill2.setOnClickListener(v -> ren.useSkill2());
-                  btnSkill3.setOnClickListener(v -> ren.useSkill3());
-              }
-
-              private final Runnable updateUiRunnable = new Runnable() {
-                  @Override public void run() {
-                      updateUi();
-                      if (staminaFill != null) staminaFill.postDelayed(this, 33);
-                  }
-              };
-
-              private void updateUi() {
-                  txtSelSurv.setText("SURVIVOR: " + (ren.selectedSurvivor == Survivor.AGENT_SVIN ? "AGENT SVIN" : "GRAY GUY"));
-                  txtSelKill.setText("KILLER: " + (ren.selectedKiller == Killer.DIMASI4EK229 ? "DIMASI4EK229" : "DERKA"));
-
-                  long left = ren.getTimeLeftMs();
-                  int totalSec = (int)(left / 1000L);
-                  int min = totalSec / 60;
-                  int sec = totalSec % 60;
-                  txtTimer.setText(String.format(Locale.US, "%d:%02d", min, sec));
-
-                  ViewGroup.LayoutParams sLp = staminaFill.getLayoutParams();
-                  int max = dp(146);
-                  int sw = (int)(max * (ren.stamina / 100f));
-                  if (sw < 0) sw = 0;
-                  sLp.width = sw;
-                  staminaFill.setLayoutParams(sLp);
-
-                  ViewGroup.LayoutParams hLp = hpFill.getLayoutParams();
-                  int hw = (int)(max * (ren.playerHp / 100f));
-                  if (hw < 0) hw = 0;
-                  hLp.width = hw;
-                  hpFill.setLayoutParams(hLp);
-
-                  btnRun.setBackgroundResource(ren.runEnabled ? R.drawable.run_btn_active : R.drawable.run_btn);
-                  btnRun.setTextColor(ren.runEnabled ? 0xFF111111 : 0xFFE0E0E0);
-
-                  boolean lobby = ren.inLobby && !ren.inMenu;
-                  findViewById(R.id.btn_open_survivors).setVisibility(View.VISIBLE);
-                  findViewById(R.id.btn_open_killers).setVisibility(View.VISIBLE);
-
-                  if (!ren.inMenu) {
-                      findViewById(R.id.btn_open_survivors).setEnabled(lobby);
-                      findViewById(R.id.btn_open_killers).setEnabled(lobby);
-                  }
-
-                  if (ren.playerIsKiller) {
-                      if (ren.selectedKiller == Killer.DIMASI4EK229) {
-                          btnSkill1.setVisibility(View.VISIBLE);
-                          btnSkill2.setVisibility(View.VISIBLE);
-                          btnSkill3.setVisibility(View.VISIBLE);
-                          btnSkill1.setText(skillText("HIT", ren.skill1CdUntil));
-                          btnSkill2.setText(skillText("CUBE", ren.skill2CdUntil));
-                          btnSkill3.setText(ren.killerBoostUsed ? "BOOST X" : skillText("BOOST", ren.skill3CdUntil));
-                      } else {
-                          btnSkill1.setVisibility(View.VISIBLE);
-                          btnSkill2.setVisibility(View.VISIBLE);
-                          btnSkill3.setVisibility(View.VISIBLE);
-                          btnSkill1.setText(skillText("SLASH", ren.skill1CdUntil));
-                          btnSkill2.setText(skillText("WAVE", ren.skill2CdUntil));
-                          btnSkill3.setText(skillText("RUSH", ren.skill3CdUntil));
-                      }
-                  } else {
-                      btnSkill1.setVisibility(View.VISIBLE);
-                      btnSkill2.setVisibility(View.GONE);
-                      btnSkill3.setVisibility(View.GONE);
-                      btnSkill1.setText(skillText("OINK", ren.skill1CdUntil));
-                  }
-              }
-
-              private String skillText(String base, long until) {
-                  long now = System.currentTimeMillis();
-                  if (until <= now) return base;
-                  float sec = (until - now) / 1000f;
-                  return String.format(Locale.US, "%s %.1f", base, sec);
-              }
-
-              private int dp(int v) {
-                  return (int)(v * getResources().getDisplayMetrics().density);
-              }
-
-              private void setupJoy(View base, View stick) {
-                  base.setOnTouchListener((v, e) -> {
-                      float cx = v.getWidth() / 2f;
-                      float cy = v.getHeight() / 2f;
-
-                      if (e.getAction() == MotionEvent.ACTION_MOVE || e.getAction() == MotionEvent.ACTION_DOWN) {
-                          float dx = e.getX() - cx;
-                          float dy = e.getY() - cy;
-                          float d = (float)Math.sqrt(dx * dx + dy * dy);
-                          float lim = cx - stick.getWidth() / 2f;
-
-                          if (lim <= 0f) return true;
-
-                          if (d > lim) {
-                              dx *= lim / d;
-                              dy *= lim / d;
-                          }
-
-                          stick.setTranslationX(dx);
-                          stick.setTranslationY(dy);
-                          ren.jX = dx / lim;
-                          ren.jY = dy / lim;
-                      } else if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
-                          stick.setTranslationX(0f);
-                          stick.setTranslationY(0f);
-                          ren.jX = 0f;
-                          ren.jY = 0f;
-                      }
-                      return true;
-                  });
-              }
-
-              private void setupLook(View zone) {
-                  zone.setOnTouchListener((v, e) -> {
-                      if (e.getAction() == MotionEvent.ACTION_DOWN) {
-                          lx = e.getX();
-                          ly = e.getY();
-                      } else if (e.getAction() == MotionEvent.ACTION_MOVE) {
-                          ren.rY += (e.getX() - lx) * 0.25f;
-                          ren.rX += (e.getY() - ly) * 0.18f;
-                          if (ren.rX < -5f) ren.rX = -5f;
-                          if (ren.rX > 36f) ren.rX = 36f;
-                          lx = e.getX();
-                          ly = e.getY();
-                      }
-                      return true;
-                  });
-              }
-
-              @Override protected void onDestroy() {
-                  super.onDestroy();
-                  if (staminaFill != null) staminaFill.removeCallbacks(updateUiRunnable);
+                  android.widget.TextView tv = new android.widget.TextView(this);
+                  tv.setText("Debug build placeholder");
+                  tv.setTextColor(0xFFFFFFFF);
+                  tv.setBackgroundColor(0xFF111111);
+                  setContentView(tv);
               }
           }
           EOF
@@ -818,26 +308,33 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+      - name: Build Debug APK with log capture
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon 2>&1 | tee out/gradle_build.log
+          echo $? > out/gradle_exit_code.txt
+
+      - name: Show last log lines
+        if: always()
+        run: |
+          echo "===== LAST 300 LINES OF LOG ====="
+          tail -n 300 out/gradle_build.log || true
 
       - name: Collect outputs
         if: always()
         run: |
           mkdir -p out
           echo "=== APP BUILD TREE ===" > out/build_tree.txt
-          find app/build -maxdepth 6 -type f >> out/build_tree.txt || true
+          find app/build -maxdepth 8 -type f >> out/build_tree.txt || true
           echo "=== ROOT TREE ===" >> out/build_tree.txt
-          find . -maxdepth 4 -type f >> out/build_tree.txt || true
+          find . -maxdepth 5 -type f >> out/build_tree.txt || true
 
-          APK_PATH=$(find app/build -type f -name "*.apk" | head -n 1 || true)
-          if [ -n "$APK_PATH" ]; then
-            cp "$APK_PATH" out/app-debug.apk
-          fi
+          find . -type f -name "*.apk" -exec cp {} out/ \; || true
 
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_7.2_Output
+          name: Enjoer_7.2_Debug_Output
           path: out
