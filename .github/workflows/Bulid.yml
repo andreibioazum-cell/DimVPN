@@ -1,4 +1,4 @@
-name: Enjoer_6.6_CustomSurvivors
+name: Enjoer_6.6_CustomSurvivors_Fixed
 on:
   push:
   workflow_dispatch:
@@ -379,6 +379,33 @@ jobs:
 
               </RelativeLayout>
           </FrameLayout>
+          EOF
+
+          cat <<EOF > app/src/main/java/com/enjoer/game/Block.java
+          package com.enjoer.game;
+
+          public class Block {
+              public float x, y, z, sx, sy, sz, r, g, b;
+
+              public Block(float x, float y, float z, float sx, float sy, float sz, float r, float g, float b) {
+                  this.x = x;
+                  this.y = y;
+                  this.z = z;
+                  this.sx = sx;
+                  this.sy = sy;
+                  this.sz = sz;
+                  this.r = r;
+                  this.g = g;
+                  this.b = b;
+              }
+
+              public float minX() { return x - sx / 2f; }
+              public float maxX() { return x + sx / 2f; }
+              public float minY() { return y - sy / 2f; }
+              public float maxY() { return y + sy / 2f; }
+              public float minZ() { return z - sz / 2f; }
+              public float maxZ() { return z + sz / 2f; }
+          }
           EOF
 
           cat <<EOF > app/src/main/java/com/enjoer/game/Survivor.java
@@ -1117,5 +1144,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_6.6_CustomSurvivors_APK
+          name: Enjoer_6.6_CustomSurvivors_Fixed_APK
           path: app/build/outputs/apk/debug/app-debug.apk
