@@ -1,4 +1,4 @@
-name: TelegramFirebase
+name: Firebase_Messenger
 on: [push, workflow_dispatch]
 
 jobs:
@@ -14,552 +14,536 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Project
-        run: |
-          mkdir -p app/src/main/java/com/ttt/app
-          mkdir -p app/src/main/res/{layout,values,drawable}
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
+      - name: Create Project Files
+        run: |
+          # --- Directories ---
+          mkdir -p app/src/main/java/com/ttt/app
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
+
+          # --- google-services.json ---
           cat <<'EOF' > app/google-services.json
           {
-            "project_info": {
-              "project_number": "471748069314",
-              "firebase_url": "https://t-t-t-9865c-default-rtdb.firebaseio.com",
-              "project_id": "t-t-t-9865c",
-              "storage_bucket": "t-t-t-9865c.firebasestorage.app"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:471748069314:android:bb2d46ce73a3a55e52785b",
-                  "android_client_info": {
-                    "package_name": "com.ttt.app"
-                  }
-                },
-                "oauth_client": [],
-                "api_key": [
-                  {
-                    "current_key": "AIzaSyBsIVnBF838b0HyabxSJQpOj2dnfxNmg6o"
-                  }
-                ],
-                "services": {
-                  "appinvite_service": {
-                    "other_platform_oauth_client": []
-                  }
-                }
-              }
-            ],
+            "project_info": { "project_number": "471748069314", "firebase_url": "https://t-t-t-9865c-default-rtdb.firebaseio.com", "project_id": "t-t-t-9865c", "storage_bucket": "t-t-t-9865c.firebasestorage.app" },
+            "client": [ { "client_info": { "mobilesdk_app_id": "1:471748069314:android:bb2d46ce73a3a55e52785b", "android_client_info": { "package_name": "com.ttt.app" } }, "oauth_client": [], "api_key": [ { "current_key": "AIzaSyBsIVnBF838b0HyabxSJQpOj2dnfxNmg6o" } ], "services": { "appinvite_service": { "other_platform_oauth_client": [] } } } ],
             "configuration_version": "1"
           }
           EOF
 
-          cat <<EOF > gradle.properties
-          android.useAndroidX=true
-          android.enableJetifier=true
-          EOF
+          # --- Gradle Properties ---
+          echo "android.useAndroidX=true" > gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
 
-          cat <<EOF > settings.gradle
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositories { google(); mavenCentral() }
-          }
-          include ':app'
+          # --- Resources (styles, colors, drawables) ---
+          cat <<EOF > app/src/main/res/values/colors.xml
+          <resources><color name="tg_blue">#0088CC</color><color name="tg_toolbar">#517DA2</color><color name="tg_bg">#FFFFFF</color><color name="tg_msg_out">#EFFDDE</color><color name="tg_msg_in">#FFFFFF</color><color name="tg_divider">#E5E5EA</color></resources>
           EOF
-
-          cat <<EOF > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { 
-                  classpath 'com.android.tools.build:gradle:8.2.2'
-                  classpath 'com.google.gms:google-services:4.4.0'
-              }
-          }
-          EOF
-
-          cat <<EOF > app/build.gradle
-          plugins { 
-              id 'com.android.application'
-              id 'com.google.gms.google-services'
-          }
-          android {
-              namespace 'com.ttt.app'
-              compileSdk 34
-              defaultConfig { 
-                  applicationId 'com.ttt.app'
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-              buildFeatures { viewBinding true }
-          }
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'androidx.recyclerview:recyclerview:1.3.2'
-              implementation platform('com.google.firebase:firebase-bom:32.7.0')
-              implementation 'com.google.firebase:firebase-database'
-              implementation 'com.google.firebase:firebase-auth'
-          }
-          EOF
-
           cat <<EOF > app/src/main/res/values/themes.xml
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-                  <item name="android:statusBarColor">#517DA2</item>
-              </style>
-          </resources>
+          <resources><style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar"><item name="android:windowBackground">@color/tg_bg</item><item name="android:statusBarColor">@color/tg_toolbar</item></style></resources>
           EOF
-
-          # Drawables
           cat <<EOF > app/src/main/res/drawable/bg_toolbar.xml
           <shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#517DA2"/></shape>
           EOF
-
+          cat <<EOF > app/src/main/res/drawable/bg_msg_out.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#EFFDDE"/><corners android:topLeftRadius="18dp" android:topRightRadius="18dp" android:bottomLeftRadius="18dp" android:bottomRightRadius="4dp"/></shape>
+          EOF
+          cat <<EOF > app/src/main/res/drawable/bg_msg_in.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#FFFFFF"/><corners android:topLeftRadius="4dp" android:topRightRadius="18dp" android:bottomLeftRadius="18dp" android:bottomRightRadius="18dp"/></shape>
+          EOF
           cat <<EOF > app/src/main/res/drawable/bg_avatar.xml
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#0088CC"/></shape>
           EOF
-
-          cat <<EOF > app/src/main/res/drawable/bg_avatar_g.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#4CAF50"/></shape>
-          EOF
-
-          cat <<EOF > app/src/main/res/drawable/bg_avatar_o.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#FF9800"/></shape>
-          EOF
-
-          cat <<EOF > app/src/main/res/drawable/bg_avatar_p.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#9C27B0"/></shape>
-          EOF
-
-          cat <<EOF > app/src/main/res/drawable/bg_badge.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#0088CC"/></shape>
-          EOF
-
-          cat <<EOF > app/src/main/res/drawable/bg_online.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#4CAF50"/><stroke android:width="2dp" android:color="#FFF"/></shape>
-          EOF
-
           cat <<EOF > app/src/main/res/drawable/bg_fab.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#0088CC"/></shape>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#517DA2"/></shape>
           EOF
-
-          cat <<EOF > app/src/main/res/drawable/bg_send.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#0088CC"/></shape>
+          cat <<EOF > app/src/main/res/drawable/ic_menu.xml
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M3,18h18v-2H3v2zm0,-5h18v-2H3v2zm0,-7v2h18V6H3z"/></vector>
           EOF
-
-          cat <<EOF > app/src/main/res/drawable/bg_msg_out.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#EFFDDE"/><corners android:topLeftRadius="16dp" android:topRightRadius="16dp" android:bottomLeftRadius="16dp" android:bottomRightRadius="4dp"/></shape>
+          cat <<EOF > app/src/main/res/drawable/ic_search.xml
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M15.5,14h-0.79l-0.28,-0.27C15.41,12.59 16,11.11 16,9.5 16,5.91 13.09,3 9.5,3S3,5.91 3,9.5 5.91,16 9.5,16c1.61,0 3.09,-0.59 4.23,-1.57l0.27,0.28v0.79l5,4.99L20.49,19l-4.99,-5zm-6,0C7.01,14 5,11.99 5,9.5S7.01,5 9.5,5 14,7.01 14,9.5 11.99,14 9.5,14z"/></vector>
           EOF
-
-          cat <<EOF > app/src/main/res/drawable/bg_msg_in.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#FFFFFF"/><corners android:topLeftRadius="4dp" android:topRightRadius="16dp" android:bottomLeftRadius="16dp" android:bottomRightRadius="16dp"/></shape>
+          cat <<EOF > app/src/main/res/drawable/ic_back_gray.xml
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#757575" android:pathData="M20,11H7.83l5.59,-5.59L12,4l-8,8 8,8 1.41,-1.41L7.83,13H20v-2z"/></vector>
           EOF
-
-          cat <<EOF > app/src/main/res/drawable/bg_input.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#F5F5F5"/><corners android:radius="8dp"/><stroke android:width="1dp" android:color="#DDD"/></shape>
-          EOF
-
           cat <<EOF > app/src/main/res/drawable/ic_send.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFF" android:pathData="M2.01,21L23,12 2.01,3 2,10l15,2 -15,2z"/></vector>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M2.01,21L23,12 2.01,3 2,10l15,2 -15,2z"/></vector>
           EOF
-
           cat <<EOF > app/src/main/res/drawable/ic_edit.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFF" android:pathData="M3,17.25V21h3.75L17.81,9.94l-3.75,-3.75L3,17.25zM20.71,7.04c0.39,-0.39 0.39,-1.02 0,-1.41l-2.34,-2.34c-0.39,-0.39 -1.02,-0.39 -1.41,0l-1.83,1.83 3.75,3.75 1.83,-1.83z"/></vector>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M3,17.25V21h3.75L17.81,9.94l-3.75,-3.75L3,17.25zM20.71,7.04c0.39,-0.39 0.39,-1.02 0,-1.41l-2.34,-2.34c-0.39,-0.39 -1.02,-0.39 -1.41,0l-1.83,1.83 3.75,3.75 1.83,-1.83z"/></vector>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/ic_back.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFF" android:pathData="M20,11H7.83l5.59,-5.59L12,4l-8,8 8,8 1.41,-1.41L7.83,13H20v-2z"/></vector>
-          EOF
-
-          cat <<EOF > app/src/main/res/drawable/ic_check.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="16dp" android:height="16dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#5DB050" android:pathData="M18,7l-1.41,-1.41 -6.34,6.34 1.41,1.41zM22.24,5.59L11.66,16.17 7.48,12l-1.41,1.41 5.59,5.59 12,-12zM0.41,13.41L6,19l1.41,-1.41L1.83,12z"/></vector>
-          EOF
-
-          # Layouts
-          cat <<'EOF' > app/src/main/res/layout/activity_main.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/container" android:layout_width="match_parent" android:layout_height="match_parent"/>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/layout/screen_login.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#FFF" android:padding="24dp">
-              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerInParent="true" android:orientation="vertical">
-                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:text="Telegram" android:textColor="#0088CC" android:textSize="36sp" android:textStyle="bold"/>
-                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:layout_marginTop="8dp" android:text="Enter your name" android:textColor="#999" android:textSize="16sp"/>
-                  <EditText android:id="@+id/input_name" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="40dp" android:background="@drawable/bg_input" android:hint="Name" android:paddingLeft="16dp" android:textSize="18sp"/>
-                  <Button android:id="@+id/btn_start" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="24dp" android:background="@drawable/bg_fab" android:text="START" android:textColor="#FFF" android:textSize="16sp" android:textStyle="bold"/>
+          # --- Layouts ---
+          cat <<'LAYOUT_MAIN' > app/src/main/res/layout/activity_main.xml
+          <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/drawer_layout" android:layout_width="match_parent" android:layout_height="match_parent">
+              <FrameLayout android:id="@+id/main_container" android:layout_width="match_parent" android:layout_height="match_parent"/>
+              <LinearLayout android:layout_width="280dp" android:layout_height="match_parent" android:layout_gravity="start" android:background="#FFF" android:orientation="vertical">
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="150dp" android:background="@color/tg_toolbar" android:orientation="vertical" android:padding="16dp" android:gravity="bottom">
+                      <TextView android:id="@+id/drawer_avatar" android:layout_width="60dp" android:layout_height="60dp" android:background="@drawable/bg_avatar" text="U" android:textColor="#FFF" android:textSize="24sp" android:gravity="center" android:layout_marginBottom="12dp"/>
+                      <TextView android:id="@+id/drawer_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="User Name" android:textColor="#FFF" android:textSize="16sp" android:textStyle="bold"/>
+                      <TextView android:id="@+id/drawer_id" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UID: ..." android:textColor="#C5E1F7" android:textSize="12sp"/>
+                  </LinearLayout>
               </LinearLayout>
-          </RelativeLayout>
-          EOF
+          </androidx.drawerlayout.widget.DrawerLayout>
+          LAYOUT_MAIN
 
-          cat <<'EOF' > app/src/main/res/layout/screen_chats.xml
-          <?xml version="1.0" encoding="utf-8"?>
+          cat <<'LAYOUT_CHATS' > app/src/main/res/layout/fragment_chats.xml
           <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#FFF">
-              <LinearLayout android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/bg_toolbar" android:gravity="center_vertical" android:paddingLeft="12dp" android:paddingRight="12dp">
-                  <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Telegram" android:textColor="#FFF" android:textSize="20sp" android:textStyle="bold"/>
-              </LinearLayout>
-              <androidx.recyclerview.widget.RecyclerView android:id="@+id/list" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_below="@id/toolbar"/>
-              <FrameLayout android:id="@+id/fab" android:layout_width="56dp" android:layout_height="56dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_margin="16dp" android:background="@drawable/bg_fab" android:elevation="6dp">
+              <FrameLayout android:id="@+id/toolbar_container" android:layout_width="match_parent" android:layout_height="56dp" android:elevation="4dp">
+                  <LinearLayout android:id="@+id/toolbar_normal" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_toolbar" android:gravity="center_vertical" android:paddingHorizontal="4dp">
+                      <ImageView android:id="@+id/btn_menu" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_menu" android:background="?android:selectableItemBackgroundBorderless"/>
+                      <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Messenger" android:textColor="#FFF" android:textSize="20sp" android:textStyle="bold" android:layout_marginLeft="12dp"/>
+                      <ImageView android:id="@+id/btn_search" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_search" android:background="?android:selectableItemBackgroundBorderless"/>
+                  </LinearLayout>
+                  <LinearLayout android:id="@+id/toolbar_search" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#FFF" android:gravity="center_vertical" android:visibility="gone">
+                      <ImageView android:id="@+id/btn_search_back" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_back_gray" android:background="?android:selectableItemBackgroundBorderless"/>
+                      <EditText android:id="@+id/input_search" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@null" android:hint="Search" android:imeOptions="actionSearch" android:singleLine="true"/>
+                  </LinearLayout>
+              </FrameLayout>
+              <androidx.recyclerview.widget.RecyclerView android:id="@+id/chats_list" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_below="@id/toolbar_container"/>
+              <FrameLayout android:id="@+id/fab_new_chat" android:layout_width="56dp" android:layout_height="56dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_margin="16dp" android:background="@drawable/bg_fab" android:elevation="6dp">
                   <ImageView android:layout_width="24dp" android:layout_height="24dp" android:layout_gravity="center" android:src="@drawable/ic_edit"/>
               </FrameLayout>
           </RelativeLayout>
-          EOF
+          LAYOUT_CHATS
 
-          cat <<'EOF' > app/src/main/res/layout/screen_users.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#FFF">
-              <LinearLayout android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/bg_toolbar" android:gravity="center_vertical" android:paddingLeft="4dp">
-                  <ImageView android:id="@+id/btn_back" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_back"/>
-                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="8dp" android:text="New Message" android:textColor="#FFF" android:textSize="20sp" android:textStyle="bold"/>
-              </LinearLayout>
-              <androidx.recyclerview.widget.RecyclerView android:id="@+id/users_list" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_below="@id/toolbar"/>
-          </RelativeLayout>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/layout/screen_chat.xml
-          <?xml version="1.0" encoding="utf-8"?>
+          cat <<'LAYOUT_CHAT' > app/src/main/res/layout/fragment_chat.xml
           <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#E5DDD5">
-              <LinearLayout android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/bg_toolbar" android:gravity="center_vertical" android:paddingRight="4dp">
-                  <ImageView android:id="@+id/btn_back" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_back"/>
-                  <TextView android:id="@+id/av" android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_avatar" android:gravity="center" android:textColor="#FFF" android:textSize="16sp" android:textStyle="bold"/>
-                  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginLeft="12dp" android:orientation="vertical">
-                      <TextView android:id="@+id/t_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFF" android:textSize="17sp" android:textStyle="bold"/>
-                      <TextView android:id="@+id/t_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#C5E1F7" android:textSize="13sp"/>
+              <LinearLayout android:id="@+id/chat_toolbar" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/bg_toolbar" android:gravity="center_vertical">
+                  <ImageView android:id="@+id/btn_back" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_back_gray" android:backgroundTint="#FFF" android:srcTint="#FFF" android:background="?android:selectableItemBackgroundBorderless"/>
+                  <TextView android:id="@+id/chat_avatar" android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_avatar" android:gravity="center" android:textColor="#FFF" android:textSize="16sp"/>
+                  <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="12dp" android:orientation="vertical">
+                      <TextView android:id="@+id/toolbar_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFF" android:textSize="17sp" android:textStyle="bold"/>
                   </LinearLayout>
               </LinearLayout>
-              <androidx.recyclerview.widget.RecyclerView android:id="@+id/msgs" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_above="@id/input_bar" android:layout_below="@id/toolbar" android:clipToPadding="false" android:padding="8dp"/>
-              <LinearLayout android:id="@+id/input_bar" android:layout_width="match_parent" android:layout_height="52dp" android:layout_alignParentBottom="true" android:background="#FFF" android:gravity="center_vertical" android:padding="4dp">
-                  <EditText android:id="@+id/input" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:background="@null" android:hint="Message" android:paddingLeft="12dp" android:textSize="16sp"/>
-                  <FrameLayout android:id="@+id/btn_send" android:layout_width="44dp" android:layout_height="44dp" android:background="@drawable/bg_send">
-                      <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:src="@drawable/ic_send"/>
+              <androidx.recyclerview.widget.RecyclerView android:id="@+id/messages_list" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_above="@id/input_container" android:layout_below="@id/chat_toolbar" android:padding="8dp"/>
+              <LinearLayout android:id="@+id/input_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:background="#FFF" android:gravity="center_vertical" android:minHeight="52dp" android:padding="4dp">
+                  <EditText android:id="@+id/input_message" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@null" android:hint="Message" android:paddingHorizontal="12dp"/>
+                  <FrameLayout android:id="@+id/btn_send" android:layout_width="44dp" android:layout_height="44dp" android:layout_marginLeft="4dp" android:background="@drawable/bg_send_button" android:visibility="gone">
+                      <ImageView android:layout_width="24dp" android:layout_height="24dp" android:layout_gravity="center" android:src="@drawable/ic_send"/>
                   </FrameLayout>
               </LinearLayout>
           </RelativeLayout>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/layout/item_chat.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="72dp" android:background="?selectableItemBackground" android:paddingLeft="16dp" android:paddingRight="16dp">
-              <FrameLayout android:id="@+id/av_wrap" android:layout_width="52dp" android:layout_height="52dp" android:layout_centerVertical="true">
-                  <TextView android:id="@+id/avatar" android:layout_width="52dp" android:layout_height="52dp" android:background="@drawable/bg_avatar" android:gravity="center" android:textColor="#FFF" android:textSize="20sp" android:textStyle="bold"/>
-                  <View android:id="@+id/online" android:layout_width="14dp" android:layout_height="14dp" android:layout_gravity="bottom|right" android:background="@drawable/bg_online" android:visibility="gone"/>
-              </FrameLayout>
-              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginLeft="68dp" android:layout_marginRight="55dp" android:orientation="vertical">
-                  <TextView android:id="@+id/name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textColor="#000" android:textSize="16sp" android:textStyle="bold"/>
-                  <TextView android:id="@+id/msg" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:ellipsize="end" android:maxLines="1" android:textColor="#8E8E93" android:textSize="14sp"/>
-              </LinearLayout>
-              <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentRight="true" android:layout_centerVertical="true" android:gravity="right" android:orientation="vertical">
-                  <TextView android:id="@+id/time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#8E8E93" android:textSize="12sp"/>
-                  <TextView android:id="@+id/badge" android:layout_width="22dp" android:layout_height="22dp" android:layout_marginTop="4dp" android:background="@drawable/bg_badge" android:gravity="center" android:textColor="#FFF" android:textSize="12sp" android:visibility="gone"/>
-              </LinearLayout>
-              <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_alignParentBottom="true" android:layout_marginLeft="68dp" android:background="#E5E5EA"/>
-          </RelativeLayout>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/layout/item_user.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="60dp" android:background="?selectableItemBackground" android:gravity="center_vertical" android:paddingLeft="16dp">
-              <TextView android:id="@+id/avatar" android:layout_width="44dp" android:layout_height="44dp" android:background="@drawable/bg_avatar" android:gravity="center" android:textColor="#FFF" android:textSize="18sp" android:textStyle="bold"/>
-              <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="16dp" android:orientation="vertical">
-                  <TextView android:id="@+id/name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#000" android:textSize="16sp"/>
-                  <TextView android:id="@+id/status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#4CAF50" android:textSize="13sp" android:visibility="gone"/>
+          LAYOUT_CHAT
+          
+          cat <<'LAYOUT_ITEM_MSG' > app/src/main/res/layout/item_message.xml
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/message_root" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="2dp" android:paddingHorizontal="8dp">
+              <LinearLayout android:id="@+id/bubble" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="12dp" android:paddingVertical="8dp" android:maxWidth="280dp">
+                  <TextView android:id="@+id/msg_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="16sp"/>
+                  <TextView android:id="@+id/msg_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="end" android:textSize="11sp" android:layout_marginTop="2dp"/>
               </LinearLayout>
           </LinearLayout>
-          EOF
+          LAYOUT_ITEM_MSG
 
-          cat <<'EOF' > app/src/main/res/layout/item_msg_out.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="2dp" android:paddingBottom="2dp">
-              <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentRight="true" android:background="@drawable/bg_msg_out" android:maxWidth="280dp" android:orientation="horizontal" android:paddingLeft="10dp" android:paddingTop="6dp" android:paddingRight="8dp" android:paddingBottom="6dp">
-                  <TextView android:id="@+id/text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#000" android:textSize="15sp"/>
-                  <TextView android:id="@+id/time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom" android:layout_marginLeft="6dp" android:textColor="#5DB050" android:textSize="11sp"/>
-                  <ImageView android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="bottom" android:layout_marginLeft="2dp" android:src="@drawable/ic_check"/>
-              </LinearLayout>
-          </RelativeLayout>
-          EOF
+          cat <<'LAYOUT_ITEM_USER' > app/src/main/res/layout/item_user.xml
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:padding="16dp" android:background="?android:selectableItemBackground">
+              <TextView android:id="@+id/user_avatar" android:layout_width="48dp" android:layout_height="48dp" android:background="@drawable/bg_avatar" android:gravity="center" android:textColor="#FFF" android:textSize="20sp"/>
+              <TextView android:id="@+id/user_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="16dp" android:textSize="16sp" android:textColor="#000"/>
+          </LinearLayout>
+          LAYOUT_ITEM_USER
 
-          cat <<'EOF' > app/src/main/res/layout/item_msg_in.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="2dp" android:paddingBottom="2dp">
-              <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_msg_in" android:maxWidth="280dp" android:orientation="horizontal" android:paddingLeft="10dp" android:paddingTop="6dp" android:paddingRight="8dp" android:paddingBottom="6dp">
-                  <TextView android:id="@+id/text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#000" android:textSize="15sp"/>
-                  <TextView android:id="@+id/time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom" android:layout_marginLeft="6dp" android:textColor="#8E8E93" android:textSize="11sp"/>
-              </LinearLayout>
-          </RelativeLayout>
-          EOF
-
-          cat <<'JAVA' > app/src/main/java/com/ttt/app/MainActivity.java
+          # --- Java POJOs ---
+          cat <<'EOF' > app/src/main/java/com/ttt/app/User.java
           package com.ttt.app;
+          public class User {
+              public String name, uid;
+              public User() {}
+              public User(String name, String uid) { this.name = name; this.uid = uid; }
+          }
+          EOF
+          cat <<'EOF' > app/src/main/java/com/ttt/app/Message.java
+          package com.ttt.app;
+          public class Message {
+              public String text, senderId;
+              public long timestamp;
+              public Message() {}
+              public Message(String t, String s, long ts) { text=t; senderId=s; timestamp=ts; }
+          }
+          EOF
+          cat <<'EOF' > app/src/main/java/com/ttt/app/Chat.java
+          package com.ttt.app;
+          import java.util.HashMap;
+          import java.util.Map;
+          public class Chat {
+              public String lastMessage, chatName, otherUserId, otherUserName;
+              public long timestamp;
+              public Map<String, Boolean> members = new HashMap<>();
+              public Chat() {}
+          }
+          EOF
+
+          # --- Main Activity Java Code ---
+          cat <<'JAVA_CODE' > app/src/main/java/com/ttt/app/MainActivity.java
+          package com.ttt.app;
+          import android.content.Context;
+          import android.graphics.Color;
+          import android.graphics.drawable.GradientDrawable;
           import android.os.Bundle;
           import android.text.*;
           import android.view.*;
+          import android.view.inputmethod.InputMethodManager;
           import android.widget.*;
           import androidx.annotation.NonNull;
           import androidx.appcompat.app.AppCompatActivity;
+          import androidx.core.view.GravityCompat;
+          import androidx.drawerlayout.widget.DrawerLayout;
           import androidx.recyclerview.widget.*;
+          import com.google.firebase.auth.*;
           import com.google.firebase.database.*;
           import java.text.SimpleDateFormat;
           import java.util.*;
+
           public class MainActivity extends AppCompatActivity {
-              FrameLayout root;
-              DatabaseReference db;
-              String uid,uname;
-              Map<String,User> users=new HashMap<>();
-              Map<String,Chat> chats=new HashMap<>();
-              List<Message> msgs=new ArrayList<>();
-              RecyclerView.Adapter<?> chatAd,msgAd,userAd;
-              String curChatId="",curUserId="";
-              int[] avBg={R.drawable.bg_avatar,R.drawable.bg_avatar_g,R.drawable.bg_avatar_o,R.drawable.bg_avatar_p};
-              
-              @Override protected void onCreate(Bundle b){
+              private FirebaseAuth mAuth;
+              private DatabaseReference db;
+              private FirebaseUser currentUser;
+              private FrameLayout container;
+              private DrawerLayout drawer;
+              private int currentState = 0; // 0=Chats, 1=Chat, 2=Users
+              private ValueEventListener chatsListener;
+              private ChildEventListener messagesListener;
+              private DatabaseReference messagesRef;
+              private List<Chat> chatList = new ArrayList<>();
+              private List<User> userList = new ArrayList<>();
+              private List<Message> messageList = new ArrayList<>();
+              private RecyclerView mainRecyclerView;
+              private RecyclerView.Adapter<?> currentAdapter;
+
+              @Override protected void onCreate(Bundle b) {
                   super.onCreate(b);
                   setContentView(R.layout.activity_main);
-                  root=findViewById(R.id.container);
-                  db=FirebaseDatabase.getInstance().getReference();
-                  uid=UUID.randomUUID().toString().substring(0,8);
-                  showLogin();
+                  container = findViewById(R.id.main_container);
+                  drawer = findViewById(R.id.drawer_layout);
+                  db = FirebaseDatabase.getInstance().getReference();
+                  mAuth = FirebaseAuth.getInstance();
+                  
+                  signInAnonymously();
               }
               
-              void showLogin(){
-                  View v=LayoutInflater.from(this).inflate(R.layout.screen_login,root,false);
-                  root.removeAllViews();root.addView(v);
-                  EditText inp=v.findViewById(R.id.input_name);
-                  v.findViewById(R.id.btn_start).setOnClickListener(x->{
-                      uname=inp.getText().toString().trim();
-                      if(!uname.isEmpty()){
-                          db.child("users").child(uid).child("name").setValue(uname);
-                          db.child("users").child(uid).child("online").setValue(true);
-                          db.child("users").child(uid).child("last").setValue(System.currentTimeMillis());
-                          showChats();
-                      }else toast("Enter name");
+              private void signInAnonymously() {
+                  mAuth.signInAnonymously().addOnCompleteListener(this, task -> {
+                      if (task.isSuccessful()) {
+                          currentUser = mAuth.getCurrentUser();
+                          Toast.makeText(this, "Signed in as: " + currentUser.getUid().substring(0, 6), Toast.LENGTH_SHORT).show();
+                          setupUser();
+                          showChatsList();
+                      } else {
+                          Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show();
+                      }
                   });
               }
-              
-              void showChats(){
-                  View v=LayoutInflater.from(this).inflate(R.layout.screen_chats,root,false);
-                  root.removeAllViews();root.addView(v);
-                  RecyclerView rv=v.findViewById(R.id.list);
-                  rv.setLayoutManager(new LinearLayoutManager(this));
-                  chatAd=new RecyclerView.Adapter<VH>(){
-                      List<String> keys=new ArrayList<>();
-                      @Override public VH onCreateViewHolder(ViewGroup p,int t){return new VH(LayoutInflater.from(p.getContext()).inflate(R.layout.item_chat,p,false));}
-                      @Override public void onBindViewHolder(VH h,int i){
-                          String k=keys.get(i);Chat c=chats.get(k);if(c==null)return;
-                          String otherId=c.u1.equals(uid)?c.u2:c.u1;
-                          User u=users.get(otherId);
-                          if(u==null)return;
-                          ((TextView)h.v.findViewById(R.id.name)).setText(u.name);
-                          ((TextView)h.v.findViewById(R.id.msg)).setText(c.lastMsg);
-                          ((TextView)h.v.findViewById(R.id.time)).setText(fmt(c.lastTime));
-                          TextView av=h.v.findViewById(R.id.avatar);
-                          av.setText(u.name.substring(0,1).toUpperCase());
-                          av.setBackgroundResource(avBg[Math.abs(otherId.hashCode())%4]);
-                          h.v.findViewById(R.id.online).setVisibility(u.online?View.VISIBLE:View.GONE);
-                          TextView bd=h.v.findViewById(R.id.badge);
-                          if(c.unread>0){bd.setVisibility(View.VISIBLE);bd.setText(String.valueOf(c.unread));}else bd.setVisibility(View.GONE);
-                          h.v.setOnClickListener(x->openChat(k,otherId));
+
+              private void setupUser() {
+                  String name = "User " + currentUser.getUid().substring(0, 4);
+                  User user = new User(name, currentUser.getUid());
+                  db.child("users").child(currentUser.getUid()).setValue(user);
+                  ((TextView)findViewById(R.id.drawer_name)).setText(name);
+                  ((TextView)findViewById(R.id.drawer_avatar)).setText(name.substring(0, 1));
+                  ((TextView)findViewById(R.id.drawer_id)).setText("ID: " + currentUser.getUid().substring(0,6));
+              }
+
+              private void showChatsList() {
+                  currentState = 0;
+                  View v = inflate(R.layout.fragment_chats);
+                  mainRecyclerView = v.findViewById(R.id.chats_list);
+                  mainRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+                  
+                  currentAdapter = new RecyclerView.Adapter<ChatVH>() {
+                      @NonNull @Override public ChatVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new ChatVH(inflate(R.layout.item_user)); }
+                      @Override public void onBindViewHolder(@NonNull ChatVH h, int pos) {
+                          Chat chat = chatList.get(pos);
+                          h.name.setText(chat.otherUserName);
+                          h.avatar.setText(chat.otherUserName.substring(0, 1));
+                          h.avatar.setBackground(getAvatar(chat.otherUserName.hashCode()));
+                          h.itemView.setOnClickListener(view -> showChat(chat.otherUserId, chat.otherUserName));
                       }
-                      @Override public int getItemCount(){keys.clear();keys.addAll(chats.keySet());Collections.sort(keys,(a,b)->Long.compare(chats.get(b).lastTime,chats.get(a).lastTime));return keys.size();}
+                      @Override public int getItemCount() { return chatList.size(); }
                   };
-                  rv.setAdapter(chatAd);
-                  v.findViewById(R.id.fab).setOnClickListener(x->showUsers());
-                  listenUsers();
-                  listenChats();
+                  mainRecyclerView.setAdapter(currentAdapter);
+                  
+                  v.findViewById(R.id.btn_menu).setOnClickListener(x -> drawer.openDrawer(GravityCompat.START));
+                  v.findViewById(R.id.fab_new_chat).setOnClickListener(x -> showUsersList());
+                  setupSearch(v);
+                  attachChatsListener();
               }
               
-              void listenUsers(){
-                  db.child("users").addValueEventListener(new ValueEventListener(){
-                      @Override public void onDataChange(@NonNull DataSnapshot s){
-                          users.clear();
-                          for(DataSnapshot d:s.getChildren()){
-                              String id=d.getKey();
-                              User u=new User();
-                              u.name=d.child("name").getValue(String.class);
-                              u.online=Boolean.TRUE.equals(d.child("online").getValue(Boolean.class));
-                              u.last=d.child("last").getValue(Long.class);
-                              if(u.name!=null)users.put(id,u);
-                          }
-                          if(chatAd!=null)chatAd.notifyDataSetChanged();
-                          if(userAd!=null)userAd.notifyDataSetChanged();
-                      }
-                      @Override public void onCancelled(@NonNull DatabaseError e){}
+              private void setupSearch(View v) {
+                  View norm = v.findViewById(R.id.toolbar_normal);
+                  View search = v.findViewById(R.id.toolbar_search);
+                  EditText input = v.findViewById(R.id.input_search);
+                  v.findViewById(R.id.btn_search).setOnClickListener(x -> { norm.setVisibility(View.GONE); search.setVisibility(View.VISIBLE); requestFocusAndShowKeyboard(input); });
+                  v.findViewById(R.id.btn_search_back).setOnClickListener(x -> { input.setText(""); search.setVisibility(View.GONE); norm.setVisibility(View.VISIBLE); hideKeyboard(input); showUsersList(); });
+                  input.addTextChangedListener(new TextWatcher() {
+                      public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
+                      public void onTextChanged(CharSequence s, int i, int i1, int i2) { filterUsers(s.toString()); }
+                      public void afterTextChanged(Editable s) {}
                   });
               }
-              
-              void listenChats(){
-                  db.child("chats").orderByChild("users/"+uid).equalTo(true).addValueEventListener(new ValueEventListener(){
-                      @Override public void onDataChange(@NonNull DataSnapshot s){
-                          chats.clear();
-                          for(DataSnapshot d:s.getChildren()){
-                              String id=d.getKey();Chat c=new Chat();
-                              c.u1=d.child("u1").getValue(String.class);
-                              c.u2=d.child("u2").getValue(String.class);
-                              c.lastMsg=d.child("lastMsg").getValue(String.class);
-                              Long lt=d.child("lastTime").getValue(Long.class);
-                              c.lastTime=lt!=null?lt:0;
-                              Long ur=d.child("unread").child(uid).getValue(Long.class);
-                              c.unread=ur!=null?ur.intValue():0;
-                              if(c.u1!=null&&c.u2!=null)chats.put(id,c);
+
+              private void attachChatsListener() {
+                  if (chatsListener != null) db.removeEventListener(chatsListener);
+                  chatsListener = new ValueEventListener() {
+                      @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
+                          chatList.clear();
+                          for (DataSnapshot ds : snapshot.getChildren()) {
+                              if (ds.child("members").hasChild(currentUser.getUid())) {
+                                  Chat chat = ds.getValue(Chat.class);
+                                  for(String uid : chat.members.keySet()) {
+                                      if(!uid.equals(currentUser.getUid())) chat.otherUserId = uid;
+                                  }
+                                  if(chat.otherUserId != null) {
+                                      db.child("users").child(chat.otherUserId).child("name").addListenerForSingleValueEvent(new ValueEventListener() {
+                                          @Override public void onDataChange(@NonNull DataSnapshot nameSnap) {
+                                              chat.otherUserName = nameSnap.getValue(String.class);
+                                              if(!chatList.contains(chat)) chatList.add(chat);
+                                              currentAdapter.notifyDataSetChanged();
+                                          }
+                                          @Override public void onCancelled(@NonNull DatabaseError error) {}
+                                      });
+                                  }
+                              }
                           }
-                          if(chatAd!=null)chatAd.notifyDataSetChanged();
                       }
-                      @Override public void onCancelled(@NonNull DatabaseError e){}
-                  });
-              }
-              
-              void showUsers(){
-                  View v=LayoutInflater.from(this).inflate(R.layout.screen_users,root,false);
-                  root.removeAllViews();root.addView(v);
-                  v.findViewById(R.id.btn_back).setOnClickListener(x->showChats());
-                  RecyclerView rv=v.findViewById(R.id.users_list);
-                  rv.setLayoutManager(new LinearLayoutManager(this));
-                  userAd=new RecyclerView.Adapter<VH>(){
-                      List<String> keys=new ArrayList<>();
-                      @Override public VH onCreateViewHolder(ViewGroup p,int t){return new VH(LayoutInflater.from(p.getContext()).inflate(R.layout.item_user,p,false));}
-                      @Override public void onBindViewHolder(VH h,int i){
-                          String k=keys.get(i);User u=users.get(k);
-                          if(u==null)return;
-                          ((TextView)h.v.findViewById(R.id.name)).setText(u.name);
-                          TextView av=h.v.findViewById(R.id.avatar);
-                          av.setText(u.name.substring(0,1).toUpperCase());
-                          av.setBackgroundResource(avBg[Math.abs(k.hashCode())%4]);
-                          TextView st=h.v.findViewById(R.id.status);
-                          if(u.online){st.setText("online");st.setVisibility(View.VISIBLE);}else st.setVisibility(View.GONE);
-                          h.v.setOnClickListener(x->startChat(k));
-                      }
-                      @Override public int getItemCount(){keys.clear();for(String k:users.keySet())if(!k.equals(uid))keys.add(k);Collections.sort(keys,(a,b)->users.get(b).name.compareToIgnoreCase(users.get(a).name));return keys.size();}
+                      @Override public void onCancelled(@NonNull DatabaseError error) {}
                   };
-                  rv.setAdapter(userAd);
+                  db.child("chats").addValueEventListener(chatsListener);
               }
-              
-              void startChat(String otherId){
-                  String[] ids={uid,otherId};Arrays.sort(ids);
-                  String chatId=ids[0]+"_"+ids[1];
-                  db.child("chats").child(chatId).child("u1").setValue(ids[0]);
-                  db.child("chats").child(chatId).child("u2").setValue(ids[1]);
-                  db.child("chats").child(chatId).child("users").child(uid).setValue(true);
-                  db.child("chats").child(chatId).child("users").child(otherId).setValue(true);
-                  openChat(chatId,otherId);
-              }
-              
-              void openChat(String chatId,String otherId){
-                  curChatId=chatId;curUserId=otherId;
-                  db.child("chats").child(chatId).child("unread").child(uid).setValue(0);
-                  msgs.clear();
-                  View v=LayoutInflater.from(this).inflate(R.layout.screen_chat,root,false);
-                  root.removeAllViews();root.addView(v);
-                  User u=users.get(otherId);
-                  if(u!=null){
-                      ((TextView)v.findViewById(R.id.t_name)).setText(u.name);
-                      TextView st=v.findViewById(R.id.t_status);
-                      st.setText(u.online?"online":"last seen "+fmt(u.last));
-                      TextView av=v.findViewById(R.id.av);
-                      av.setText(u.name.substring(0,1).toUpperCase());
-                      av.setBackgroundResource(avBg[Math.abs(otherId.hashCode())%4]);
-                  }
-                  v.findViewById(R.id.btn_back).setOnClickListener(x->{curChatId="";showChats();});
-                  RecyclerView mrv=v.findViewById(R.id.msgs);
-                  LinearLayoutManager lm=new LinearLayoutManager(this);lm.setStackFromEnd(true);
-                  mrv.setLayoutManager(lm);
-                  msgAd=new RecyclerView.Adapter<VH>(){
-                      @Override public int getItemViewType(int p){return msgs.get(p).from.equals(uid)?1:0;}
-                      @Override public VH onCreateViewHolder(ViewGroup p,int t){return new VH(LayoutInflater.from(p.getContext()).inflate(t==1?R.layout.item_msg_out:R.layout.item_msg_in,p,false));}
-                      @Override public void onBindViewHolder(VH h,int p){
-                          Message m=msgs.get(p);
-                          ((TextView)h.v.findViewById(R.id.text)).setText(m.text);
-                          ((TextView)h.v.findViewById(R.id.time)).setText(fmt(m.time));
+
+              private void showUsersList() {
+                  currentState = 2;
+                  View v = inflate(R.layout.fragment_chats);
+                  ((TextView)v.findViewById(R.id.toolbar_normal).findViewById(R.id.toolbar_title)).setText("New Message");
+                  v.findViewById(R.id.fab_new_chat).setVisibility(View.GONE);
+                  
+                  mainRecyclerView = v.findViewById(R.id.chats_list);
+                  mainRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+                  currentAdapter = new RecyclerView.Adapter<UserVH>() {
+                      @NonNull @Override public UserVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new UserVH(inflate(R.layout.item_user)); }
+                      @Override public void onBindViewHolder(@NonNull UserVH h, int pos) {
+                          User user = userList.get(pos);
+                          h.name.setText(user.name);
+                          h.avatar.setText(user.name.substring(0, 1));
+                          h.avatar.setBackground(getAvatar(user.name.hashCode()));
+                          h.itemView.setOnClickListener(view -> showChat(user.uid, user.name));
                       }
-                      @Override public int getItemCount(){return msgs.size();}
+                      @Override public int getItemCount() { return userList.size(); }
                   };
-                  mrv.setAdapter(msgAd);
-                  EditText inp=v.findViewById(R.id.input);
-                  v.findViewById(R.id.btn_send).setOnClickListener(x->{
-                      String txt=inp.getText().toString().trim();
-                      if(!txt.isEmpty()){
-                          long now=System.currentTimeMillis();
-                          String mid=UUID.randomUUID().toString();
-                          db.child("messages").child(chatId).child(mid).child("from").setValue(uid);
-                          db.child("messages").child(chatId).child(mid).child("text").setValue(txt);
-                          db.child("messages").child(chatId).child(mid).child("time").setValue(now);
-                          db.child("chats").child(chatId).child("lastMsg").setValue(txt);
-                          db.child("chats").child(chatId).child("lastTime").setValue(now);
-                          db.child("chats").child(chatId).child("unread").child(otherId).setValue(ServerValue.increment(1));
-                          inp.setText("");
-                      }
-                  });
-                  listenMessages(chatId,mrv);
-              }
-              
-              void listenMessages(String chatId,RecyclerView rv){
-                  db.child("messages").child(chatId).orderByChild("time").addValueEventListener(new ValueEventListener(){
-                      @Override public void onDataChange(@NonNull DataSnapshot s){
-                          msgs.clear();
-                          for(DataSnapshot d:s.getChildren()){
-                              Message m=new Message();
-                              m.from=d.child("from").getValue(String.class);
-                              m.text=d.child("text").getValue(String.class);
-                              Long t=d.child("time").getValue(Long.class);
-                              m.time=t!=null?t:0;
-                              if(m.from!=null&&m.text!=null)msgs.add(m);
+                  mainRecyclerView.setAdapter(currentAdapter);
+                  
+                  v.findViewById(R.id.btn_menu).setOnClickListener(x -> showChatsList());
+                  
+                  db.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
+                      @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
+                          userList.clear();
+                          for (DataSnapshot ds : snapshot.getChildren()) {
+                              User u = ds.getValue(User.class);
+                              if (u != null && !u.uid.equals(currentUser.getUid())) userList.add(u);
                           }
-                          if(msgAd!=null){msgAd.notifyDataSetChanged();rv.scrollToPosition(msgs.size()-1);}
+                          currentAdapter.notifyDataSetChanged();
                       }
-                      @Override public void onCancelled(@NonNull DatabaseError e){}
+                      @Override public void onCancelled(@NonNull DatabaseError error) {}
+                  });
+              }
+
+              private void filterUsers(String query) {
+                   List<User> filtered = new ArrayList<>();
+                   for(User u : userList) {
+                       if(u.name.toLowerCase().contains(query.toLowerCase())) filtered.add(u);
+                   }
+                   mainRecyclerView.setAdapter(new RecyclerView.Adapter<UserVH>() {
+                      @NonNull @Override public UserVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new UserVH(inflate(R.layout.item_user)); }
+                      @Override public void onBindViewHolder(@NonNull UserVH h, int pos) {
+                          User user = filtered.get(pos);
+                          h.name.setText(user.name); h.avatar.setText(user.name.substring(0,1));
+                          h.avatar.setBackground(getAvatar(user.name.hashCode()));
+                          h.itemView.setOnClickListener(view -> showChat(user.uid, user.name));
+                      }
+                      @Override public int getItemCount() { return filtered.size(); }
                   });
               }
               
-              String fmt(long t){
-                  long d=(System.currentTimeMillis()-t)/1000;
-                  if(d<60)return "now";
-                  if(d<3600)return (d/60)+"m";
-                  if(d<86400)return new SimpleDateFormat("HH:mm",Locale.getDefault()).format(new Date(t));
-                  return new SimpleDateFormat("dd MMM",Locale.getDefault()).format(new Date(t));
+              private void showChat(String otherId, String otherName) {
+                  currentState = 1;
+                  View v = inflate(R.layout.fragment_chat);
+                  ((TextView) v.findViewById(R.id.toolbar_name)).setText(otherName);
+                  TextView avatar = v.findViewById(R.id.chat_avatar);
+                  avatar.setText(otherName.substring(0, 1));
+                  avatar.setBackground(getAvatar(otherName.hashCode()));
+                  v.findViewById(R.id.btn_back).setOnClickListener(x -> showChatsList());
+                  
+                  String chatId = getChatId(currentUser.getUid(), otherId);
+                  
+                  RecyclerView rv = v.findViewById(R.id.messages_list);
+                  LinearLayoutManager lm = new LinearLayoutManager(this);
+                  lm.setStackFromEnd(true);
+                  rv.setLayoutManager(lm);
+                  
+                  currentAdapter = new RecyclerView.Adapter<MessageVH>() {
+                      @Override public int getItemViewType(int pos) { return messageList.get(pos).senderId.equals(currentUser.getUid()) ? 1 : 0; }
+                      @NonNull @Override public MessageVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new MessageVH(inflate(R.layout.item_message), vt); }
+                      @Override public void onBindViewHolder(@NonNull MessageVH h, int pos) {
+                          Message msg = messageList.get(pos);
+                          h.text.setText(msg.text);
+                          h.time.setText(new SimpleDateFormat("HH:mm", Locale.US).format(new Date(msg.timestamp)));
+                      }
+                      @Override public int getItemCount() { return messageList.size(); }
+                  };
+                  rv.setAdapter(currentAdapter);
+
+                  attachMessagesListener(chatId);
+
+                  EditText input = v.findViewById(R.id.input_message);
+                  View sendBtn = v.findViewById(R.id.btn_send);
+                  input.addTextChangedListener(new TextWatcher() {
+                      public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
+                      public void onTextChanged(CharSequence s, int i, int i1, int i2) {}
+                      public void afterTextChanged(Editable s) { sendBtn.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE); }
+                  });
+                  sendBtn.setOnClickListener(x -> {
+                      String text = input.getText().toString().trim();
+                      if(!text.isEmpty()) {
+                          sendMessage(text, chatId, otherId);
+                          input.setText("");
+                      }
+                  });
+              }
+
+              private void attachMessagesListener(String chatId) {
+                  if (messagesListener != null && messagesRef != null) messagesRef.removeEventListener(messagesListener);
+                  messageList.clear();
+                  messagesRef = db.child("messages").child(chatId);
+                  messagesListener = new ChildEventListener() {
+                      @Override public void onChildAdded(@NonNull DataSnapshot s, String prev) {
+                          Message msg = s.getValue(Message.class);
+                          if(msg != null) { messageList.add(msg); currentAdapter.notifyItemInserted(messageList.size()-1); mainRecyclerView.scrollToPosition(messageList.size()-1); }
+                      }
+                      public void onChildChanged(@NonNull DataSnapshot s, String p) {}
+                      public void onChildRemoved(@NonNull DataSnapshot s) {}
+                      public void onChildMoved(@NonNull DataSnapshot s, String p) {}
+                      public void onCancelled(@NonNull DatabaseError e) {}
+                  };
+                  messagesRef.addChildEventListener(messagesListener);
               }
               
-              void toast(String s){Toast.makeText(this,s,Toast.LENGTH_SHORT).show();}
+              private void sendMessage(String text, String chatId, String otherId) {
+                  long timestamp = System.currentTimeMillis();
+                  Message msg = new Message(text, currentUser.getUid(), timestamp);
+                  db.child("messages").child(chatId).push().setValue(msg);
+                  
+                  Map<String, Object> chatUpdate = new HashMap<>();
+                  chatUpdate.put("lastMessage", text);
+                  chatUpdate.put("timestamp", timestamp);
+                  chatUpdate.put("members/" + currentUser.getUid(), true);
+                  chatUpdate.put("members/" + otherId, true);
+                  db.child("chats").child(chatId).updateChildren(chatUpdate);
+              }
+
+              private String getChatId(String uid1, String uid2) {
+                  return uid1.compareTo(uid2) > 0 ? uid1 + "_" + uid2 : uid2 + "_" + uid1;
+              }
+
+              private GradientDrawable getAvatar(int seed) {
+                  GradientDrawable gd = new GradientDrawable();
+                  gd.setShape(GradientDrawable.OVAL);
+                  int[] colors = {Color.BLUE, Color.GREEN, Color.RED, Color.MAGENTA, Color.CYAN};
+                  gd.setColor(colors[Math.abs(seed) % colors.length]);
+                  return gd;
+              }
               
-              @Override public void onBackPressed(){
-                  if(!curChatId.isEmpty()){curChatId="";showChats();}
+              private View inflate(int layoutId) { return LayoutInflater.from(this).inflate(layoutId, container, false); }
+              private void requestFocusAndShowKeyboard(View v) { v.requestFocus(); ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).showSoftInput(v, InputMethodManager.SHOW_IMPLICIT); }
+              private void hideKeyboard(View v) { ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(v.getWindowToken(), 0); }
+
+              @Override public void onBackPressed() {
+                  if (drawer.isDrawerOpen(GravityCompat.START)) drawer.closeDrawer(GravityCompat.START);
+                  else if (currentState != 0) showChatsList();
                   else super.onBackPressed();
               }
               
-              @Override protected void onDestroy(){
+              @Override protected void onDestroy() {
                   super.onDestroy();
-                  if(uid!=null)db.child("users").child(uid).child("online").setValue(false);
+                  if (chatsListener != null) db.removeEventListener(chatsListener);
+                  if (messagesListener != null && messagesRef != null) messagesRef.removeEventListener(messagesListener);
               }
-              
-              class VH extends RecyclerView.ViewHolder{View v;VH(View x){super(x);v=x;}}
-              class User{String name;boolean online;Long last;}
-              class Chat{String u1,u2,lastMsg;long lastTime;int unread;}
-              class Message{String from,text;long time;}
-          }
-          JAVA
 
+              // --- ViewHolders ---
+              class ChatVH extends RecyclerView.ViewHolder {
+                  TextView name, avatar;
+                  ChatVH(View v) { super(v); name=v.findViewById(R.id.user_name); avatar=v.findViewById(R.id.user_avatar); }
+              }
+              class UserVH extends RecyclerView.ViewHolder {
+                  TextView name, avatar;
+                  UserVH(View v) { super(v); name=v.findViewById(R.id.user_name); avatar=v.findViewById(R.id.user_avatar); }
+              }
+              class MessageVH extends RecyclerView.ViewHolder {
+                  TextView text, time;
+                  MessageVH(View v, int type) {
+                      super(v);
+                      text = v.findViewById(R.id.msg_text);
+                      time = v.findViewById(R.id.msg_time);
+                      LinearLayout root = v.findViewById(R.id.message_root);
+                      LinearLayout bubble = v.findViewById(R.id.bubble);
+                      if (type == 1) { // Outgoing
+                          root.setGravity(Gravity.END);
+                          bubble.setBackgroundResource(R.drawable.bg_msg_out);
+                          ((TextView)v.findViewById(R.id.msg_time)).setTextColor(Color.parseColor("#6B9F6B"));
+                      } else { // Incoming
+                          root.setGravity(Gravity.START);
+                          bubble.setBackgroundResource(R.drawable.bg_msg_in);
+                          ((TextView)v.findViewById(R.id.msg_time)).setTextColor(Color.GRAY);
+                      }
+                  }
+              }
+          }
+          JAVA_CODE
+
+          # --- Build & Manifest Files ---
           cat <<EOF > app/src/main/AndroidManifest.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET"/>
-              <application android:label="Telegram" android:theme="@style/AppTheme" android:usesCleartextTraffic="true">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.ttt.app">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:label="Firebase Messenger" android:theme="@style/AppTheme" android:icon="@android:drawable/sym_action_chat">
                   <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
+                      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
                   </activity>
               </application>
           </manifest>
           EOF
+          echo "include ':app'" > settings.gradle
+          cat <<EOF > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.google.gms:google-services:4.4.1'; classpath 'com.android.tools.build:gradle:8.2.2'; }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+          cat <<EOF > app/build.gradle
+          plugins { id 'com.android.application'; id 'com.google.gms.google-services'; }
+          android {
+              namespace 'com.ttt.app'; compileSdk 34;
+              defaultConfig { applicationId 'com.ttt.app'; minSdk 24; targetSdk 34; }
+              compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8; }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
+              implementation 'androidx.recyclerview:recyclerview:1.3.2'
+              implementation platform('com.google.firebase:firebase-bom:33.0.0')
+              implementation 'com.google.firebase:firebase-auth'
+              implementation 'com.google.firebase:firebase-database'
+          }
+          EOF
 
-      - name: Build
+      - name: Build APK
         run: |
           gradle wrapper --gradle-version 8.5
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TelegramFirebase
+          name: Firebase_Messenger
           path: app/build/outputs/apk/debug/app-debug.apk
