@@ -19,6 +19,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,15 +33,19 @@ jobs:
       - name: Generate plugin sources (Maven project)
         shell: bash
         env:
-          PAPER_API_VERSION: ${{ inputs.paper_api_version }}
-          PLUGIN_VERSION: ${{ inputs.plugin_version }}
+          # На push этих inputs нет -> будут пустые строки, поэтому ниже есть дефолты
+          PAPER_API_VERSION: ${{ github.event.inputs.paper_api_version }}
+          PLUGIN_VERSION: ${{ github.event.inputs.plugin_version }}
         run: |
-          set -euxo pipefail
+          set -euo pipefail
+
+          # дефолты для push
+          PAPER_API_VERSION="${PAPER_API_VERSION:-1.21.11-R0.1-SNAPSHOT}"
+          PLUGIN_VERSION="${PLUGIN_VERSION:-1.0.0}"
 
           mkdir -p project/src/main/java/com/example/simpleclaim
           mkdir -p project/src/main/resources
 
-          # ВАЖНО: этот heredoc НЕ в одинарных кавычках, чтобы подставились переменные.
           cat > project/pom.xml <<EOF
           <project xmlns="http://maven.apache.org/POM/4.0.0"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -88,9 +93,9 @@ jobs:
           </project>
           EOF
 
-          cat > project/src/main/resources/plugin.yml <<'EOF'
+          cat > project/src/main/resources/plugin.yml <<EOF
           name: SimpleClaim
-          version: 1.0.0
+          version: ${PLUGIN_VERSION}
           main: com.example.simpleclaim.SimpleClaimPlugin
           api-version: "1.21"
           author: generated-by-github-actions
@@ -104,9 +109,6 @@ jobs:
             simpleclaim.tools:
               default: op
           EOF
-
-          # подставим версию в plugin.yml тоже
-          sed -i "s/^version: .*/version: ${PLUGIN_VERSION}/" project/src/main/resources/plugin.yml
 
           cat > project/src/main/java/com/example/simpleclaim/SimpleClaimPlugin.java <<'EOF'
           package com.example.simpleclaim;
@@ -273,7 +275,7 @@ jobs:
                       return;
                   }
 
-                  // Пока блок в привате — запретим взаимодействие всем (сундуки/двери и т.д.)
+                  // Пока блок в привате — запретим взаимодействие всем
                   if (isClaimed(loc)) {
                       e.setCancelled(true);
                       warn(p, "§c[Приват] §7Этот блок приватный. Взаимодействовать нельзя.");
@@ -288,7 +290,6 @@ jobs:
                   warn(e.getPlayer(), "§c[Приват] §7Этот блок приватный и не ломается, пока приват активен.");
               }
 
-              // Взрывы не удаляют приватные блоки
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onEntityExplode(EntityExplodeEvent e) {
                   e.blockList().removeIf(b -> isClaimed(b.getLocation()));
@@ -299,7 +300,6 @@ jobs:
                   e.blockList().removeIf(b -> isClaimed(b.getLocation()));
               }
 
-              // Поршни не двигают приватные блоки
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onPistonExtend(BlockPistonExtendEvent e) {
                   for (Block b : e.getBlocks()) {
