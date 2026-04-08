@@ -1,542 +1,411 @@
-name: Firebase_Messenger_Fixed
-on: [push, workflow_dispatch]
+name: Build SimpleClaim (block privat via click)
+
+on:
+  workflow_dispatch:
+    inputs:
+      paper_api_version:
+        description: "Paper API version (from your logs: 1.21.11-R0.1-SNAPSHOT)"
+        required: true
+        default: "1.21.11-R0.1-SNAPSHOT"
+      plugin_version:
+        description: "Plugin version"
+        required: true
+        default: "1.0.0"
+  push:
+    branches: ["main"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: "21"
+          cache: maven
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Create Project Files
+      - name: Generate plugin sources (Maven project)
+        shell: bash
+        env:
+          PAPER_API_VERSION: ${{ inputs.paper_api_version }}
+          PLUGIN_VERSION: ${{ inputs.plugin_version }}
         run: |
-          # --- Directories ---
-          mkdir -p app/src/main/java/com/ttt/app
-          mkdir -p app/src/main/res/layout
-          mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/drawable
+          set -euxo pipefail
 
-          # --- google-services.json ---
-          cat <<'EOF' > app/google-services.json
-          {
-            "project_info": { "project_number": "471748069314", "firebase_url": "https://t-t-t-9865c-default-rtdb.firebaseio.com", "project_id": "t-t-t-9865c", "storage_bucket": "t-t-t-9865c.firebasestorage.app" },
-            "client": [ { "client_info": { "mobilesdk_app_id": "1:471748069314:android:bb2d46ce73a3a55e52785b", "android_client_info": { "package_name": "com.ttt.app" } }, "oauth_client": [], "api_key": [ { "current_key": "AIzaSyBsIVnBF838b0HyabxSJQpOj2dnfxNmg6o" } ], "services": { "appinvite_service": { "other_platform_oauth_client": [] } } } ],
-            "configuration_version": "1"
-          }
-          EOF
+          mkdir -p project/src/main/java/com/example/simpleclaim
+          mkdir -p project/src/main/resources
 
-          # --- Gradle Properties ---
-          echo "android.useAndroidX=true" > gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
+          cat > project/pom.xml <<'EOF'
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+            <modelVersion>4.0.0</modelVersion>
 
-          # --- Resources (styles, colors, drawables) ---
-          cat <<EOF > app/src/main/res/values/colors.xml
-          <resources><color name="tg_blue">#0088CC</color><color name="tg_toolbar">#517DA2</color><color name="tg_bg">#FFFFFF</color><color name="tg_msg_out">#EFFDDE</color><color name="tg_msg_in">#FFFFFF</color><color name="tg_divider">#E5E5EA</color></resources>
-          EOF
-          cat <<EOF > app/src/main/res/values/themes.xml
-          <resources><style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar"><item name="android:windowBackground">@color/tg_bg</item><item name="android:statusBarColor">@color/tg_toolbar</item></style></resources>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/bg_toolbar.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#517DA2"/></shape>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/bg_msg_out.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#EFFDDE"/><corners android:topLeftRadius="18dp" android:topRightRadius="18dp" android:bottomLeftRadius="18dp" android:bottomRightRadius="4dp"/></shape>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/bg_msg_in.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#FFFFFF"/><corners android:topLeftRadius="4dp" android:topRightRadius="18dp" android:bottomLeftRadius="18dp" android:bottomRightRadius="18dp"/></shape>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/bg_avatar.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#0088CC"/></shape>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/bg_fab.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#517DA2"/></shape>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/bg_send_button.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#0088CC"/><size android:width="48dp" android:height="48dp"/></shape>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/ic_menu.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M3,18h18v-2H3v2zm0,-5h18v-2H3v2zm0,-7v2h18V6H3z"/></vector>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/ic_search.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M15.5,14h-0.79l-0.28,-0.27C15.41,12.59 16,11.11 16,9.5 16,5.91 13.09,3 9.5,3S3,5.91 3,9.5 5.91,16 9.5,16c1.61,0 3.09,-0.59 4.23,-1.57l0.27,0.28v0.79l5,4.99L20.49,19l-4.99,-5zm-6,0C7.01,14 5,11.99 5,9.5S7.01,5 9.5,5 14,7.01 14,9.5 11.99,14 9.5,14z"/></vector>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/ic_back.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M20,11H7.83l5.59,-5.59L12,4l-8,8 8,8 1.41,-1.41L7.83,13H20v-2z"/></vector>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/ic_back_gray.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#757575" android:pathData="M20,11H7.83l5.59,-5.59L12,4l-8,8 8,8 1.41,-1.41L7.83,13H20v-2z"/></vector>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/ic_send.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M2.01,21L23,12 2.01,3 2,10l15,2 -15,2z"/></vector>
-          EOF
-          cat <<EOF > app/src/main/res/drawable/ic_edit.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M3,17.25V21h3.75L17.81,9.94l-3.75,-3.75L3,17.25zM20.71,7.04c0.39,-0.39 0.39,-1.02 0,-1.41l-2.34,-2.34c-0.39,-0.39 -1.02,-0.39 -1.41,0l-1.83,1.83 3.75,3.75 1.83,-1.83z"/></vector>
+            <groupId>com.example</groupId>
+            <artifactId>simpleclaim</artifactId>
+            <version>${env.PLUGIN_VERSION}</version>
+            <packaging>jar</packaging>
+
+            <properties>
+              <maven.compiler.release>21</maven.compiler.release>
+              <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+              <paper.api.version>${env.PAPER_API_VERSION}</paper.api.version>
+            </properties>
+
+            <repositories>
+              <repository>
+                <id>papermc</id>
+                <url>https://repo.papermc.io/repository/maven-public/</url>
+              </repository>
+            </repositories>
+
+            <dependencies>
+              <dependency>
+                <groupId>io.papermc.paper</groupId>
+                <artifactId>paper-api</artifactId>
+                <version>${paper.api.version}</version>
+                <scope>provided</scope>
+              </dependency>
+            </dependencies>
+
+            <build>
+              <plugins>
+                <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-compiler-plugin</artifactId>
+                  <version>3.13.0</version>
+                  <configuration>
+                    <release>${maven.compiler.release}</release>
+                  </configuration>
+                </plugin>
+              </plugins>
+            </build>
+          </project>
           EOF
 
-          # --- Layouts ---
-          cat <<'LAYOUT_MAIN' > app/src/main/res/layout/activity_main.xml
-          <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/drawer_layout" android:layout_width="match_parent" android:layout_height="match_parent">
-              <FrameLayout android:id="@+id/main_container" android:layout_width="match_parent" android:layout_height="match_parent"/>
-              <LinearLayout android:layout_width="280dp" android:layout_height="match_parent" android:layout_gravity="start" android:background="#FFF" android:orientation="vertical">
-                  <LinearLayout android:layout_width="match_parent" android:layout_height="150dp" android:background="@color/tg_toolbar" android:orientation="vertical" android:padding="16dp" android:gravity="bottom">
-                      <TextView android:id="@+id/drawer_avatar" android:layout_width="60dp" android:layout_height="60dp" android:background="@drawable/bg_avatar" text="U" android:textColor="#FFF" android:textSize="24sp" android:gravity="center" android:layout_marginBottom="12dp"/>
-                      <TextView android:id="@+id/drawer_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="User Name" android:textColor="#FFF" android:textSize="16sp" android:textStyle="bold"/>
-                      <TextView android:id="@+id/drawer_id" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UID: ..." android:textColor="#C5E1F7" android:textSize="12sp"/>
-                  </LinearLayout>
-              </LinearLayout>
-          </androidx.drawerlayout.widget.DrawerLayout>
-          LAYOUT_MAIN
+          cat > project/src/main/resources/plugin.yml <<'EOF'
+          name: SimpleClaim
+          version: __PLUGIN_VERSION__
+          main: com.example.simpleclaim.SimpleClaimPlugin
+          api-version: "1.21"
+          author: generated-by-github-actions
 
-          cat <<'LAYOUT_CHATS' > app/src/main/res/layout/fragment_chats.xml
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#FFF">
-              <FrameLayout android:id="@+id/toolbar_container" android:layout_width="match_parent" android:layout_height="56dp" android:elevation="4dp">
-                  <LinearLayout android:id="@+id/toolbar_normal" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_toolbar" android:gravity="center_vertical" android:paddingHorizontal="4dp">
-                      <ImageView android:id="@+id/btn_menu" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_menu" android:background="?android:selectableItemBackgroundBorderless"/>
-                      <TextView android:id="@+id/toolbar_title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Messenger" android:textColor="#FFF" android:textSize="20sp" android:textStyle="bold" android:layout_marginLeft="12dp"/>
-                      <ImageView android:id="@+id/btn_search" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_search" android:background="?android:selectableItemBackgroundBorderless"/>
-                  </LinearLayout>
-                  <LinearLayout android:id="@+id/toolbar_search" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#FFF" android:gravity="center_vertical" android:visibility="gone">
-                      <ImageView android:id="@+id/btn_search_back" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_back_gray" android:background="?android:selectableItemBackgroundBorderless"/>
-                      <EditText android:id="@+id/input_search" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@null" android:hint="Search" android:imeOptions="actionSearch" android:singleLine="true"/>
-                  </LinearLayout>
-              </FrameLayout>
-              <androidx.recyclerview.widget.RecyclerView android:id="@+id/main_list" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_below="@id/toolbar_container"/>
-              <FrameLayout android:id="@+id/fab_new_chat" android:layout_width="56dp" android:layout_height="56dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_margin="16dp" android:background="@drawable/bg_fab" android:elevation="6dp">
-                  <ImageView android:layout_width="24dp" android:layout_height="24dp" android:layout_gravity="center" android:src="@drawable/ic_edit"/>
-              </FrameLayout>
-          </RelativeLayout>
-          LAYOUT_CHATS
-
-          cat <<'LAYOUT_CHAT' > app/src/main/res/layout/fragment_chat.xml
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#E5DDD5">
-              <LinearLayout android:id="@+id/chat_toolbar" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/bg_toolbar" android:gravity="center_vertical">
-                  <ImageView android:id="@+id/btn_back" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_back" android:background="?android:selectableItemBackgroundBorderless"/>
-                  <TextView android:id="@+id/chat_avatar" android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_avatar" android:gravity="center" android:textColor="#FFF" android:textSize="16sp"/>
-                  <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="12dp" android:orientation="vertical">
-                      <TextView android:id="@+id/toolbar_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFF" android:textSize="17sp" android:textStyle="bold"/>
-                  </LinearLayout>
-              </LinearLayout>
-              <androidx.recyclerview.widget.RecyclerView android:id="@+id/messages_list" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_above="@id/input_container" android:layout_below="@id/chat_toolbar" android:padding="8dp"/>
-              <LinearLayout android:id="@+id/input_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:background="#FFF" android:gravity="center_vertical" android:minHeight="52dp" android:padding="4dp">
-                  <EditText android:id="@+id/input_message" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@null" android:hint="Message" android:paddingHorizontal="12dp"/>
-                  <FrameLayout android:id="@+id/btn_send" android:layout_width="44dp" android:layout_height="44dp" android:layout_marginLeft="4dp" android:background="@drawable/bg_send_button" android:visibility="gone">
-                      <ImageView android:layout_width="24dp" android:layout_height="24dp" android:layout_gravity="center" android:src="@drawable/ic_send"/>
-                  </FrameLayout>
-              </LinearLayout>
-          </RelativeLayout>
-          LAYOUT_CHAT
-          
-          cat <<'LAYOUT_ITEM_MSG' > app/src/main/res/layout/item_message.xml
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/message_root" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="2dp" android:paddingHorizontal="8dp">
-              <LinearLayout android:id="@+id/bubble" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="12dp" android:paddingVertical="8dp" android:maxWidth="280dp">
-                  <TextView android:id="@+id/msg_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="16sp"/>
-                  <TextView android:id="@+id/msg_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="end" android:textSize="11sp" android:layout_marginTop="2dp"/>
-              </LinearLayout>
-          </LinearLayout>
-          LAYOUT_ITEM_MSG
-
-          cat <<'LAYOUT_ITEM_USER' > app/src/main/res/layout/item_user.xml
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:padding="16dp" android:background="?android:selectableItemBackground">
-              <TextView android:id="@+id/user_avatar" android:layout_width="48dp" android:layout_height="48dp" android:background="@drawable/bg_avatar" android:gravity="center" android:textColor="#FFF" android:textSize="20sp"/>
-              <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginLeft="16dp">
-                  <TextView android:id="@+id/user_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="16sp" android:textColor="#000" android:textStyle="bold"/>
-                  <TextView android:id="@+id/user_last_message" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="#757575"/>
-              </LinearLayout>
-          </LinearLayout>
-          LAYOUT_ITEM_USER
-
-          # --- Java POJOs ---
-          cat <<'EOF' > app/src/main/java/com/ttt/app/User.java
-          package com.ttt.app;
-          public class User {
-              public String name, uid;
-              public User() {}
-              public User(String name, String uid) { this.name = name; this.uid = uid; }
-          }
-          EOF
-          cat <<'EOF' > app/src/main/java/com/ttt/app/Message.java
-          package com.ttt.app;
-          public class Message {
-              public String text, senderId;
-              public long timestamp;
-              public Message() {}
-              public Message(String t, String s, long ts) { text=t; senderId=s; timestamp=ts; }
-          }
-          EOF
-          cat <<'EOF' > app/src/main/java/com/ttt/app/Chat.java
-          package com.ttt.app;
-          import java.util.HashMap;
-          import java.util.Map;
-          public class Chat {
-              public String lastMessage;
-              public long timestamp;
-              public Map<String, Boolean> members = new HashMap<>();
-              // Transient fields for UI
-              public transient String chatId, otherUserId, otherUserName;
-              public Chat() {}
-          }
+          permissions:
+            simpleclaim.tools:
+              default: op
+            simpleclaim.admin:
+              default: op
           EOF
 
-          # --- Main Activity Java Code ---
-          cat <<'JAVA_CODE' > app/src/main/java/com/ttt/app/MainActivity.java
-          package com.ttt.app;
-          import android.content.Context;
-          import android.graphics.Color;
-          import android.graphics.drawable.GradientDrawable;
-          import android.os.Bundle;
-          import android.text.*;
-          import android.view.*;
-          import android.view.inputmethod.InputMethodManager;
-          import android.widget.*;
-          import androidx.annotation.NonNull;
-          import androidx.appcompat.app.AppCompatActivity;
-          import androidx.core.view.GravityCompat;
-          import androidx.drawerlayout.widget.DrawerLayout;
-          import androidx.recyclerview.widget.*;
-          import com.google.firebase.auth.*;
-          import com.google.firebase.database.*;
-          import java.text.SimpleDateFormat;
+          sed -i "s/__PLUGIN_VERSION__/${PLUGIN_VERSION}/g" project/src/main/resources/plugin.yml
+
+          cat > project/src/main/java/com/example/simpleclaim/SimpleClaimPlugin.java <<'EOF'
+          package com.example.simpleclaim;
+
+          import org.bukkit.Bukkit;
+          import org.bukkit.GameMode;
+          import org.bukkit.Location;
+          import org.bukkit.Material;
+          import org.bukkit.NamespacedKey;
+          import org.bukkit.World;
+          import org.bukkit.block.Block;
+          import org.bukkit.configuration.ConfigurationSection;
+          import org.bukkit.configuration.file.YamlConfiguration;
+          import org.bukkit.entity.Player;
+          import org.bukkit.event.EventHandler;
+          import org.bukkit.event.EventPriority;
+          import org.bukkit.event.Listener;
+          import org.bukkit.event.block.*;
+          import org.bukkit.event.entity.EntityExplodeEvent;
+          import org.bukkit.event.player.PlayerGameModeChangeEvent;
+          import org.bukkit.event.player.PlayerInteractEvent;
+          import org.bukkit.event.player.PlayerJoinEvent;
+          import org.bukkit.inventory.ItemFlag;
+          import org.bukkit.inventory.ItemStack;
+          import org.bukkit.inventory.meta.ItemMeta;
+          import org.bukkit.persistence.PersistentDataContainer;
+          import org.bukkit.persistence.PersistentDataType;
+          import org.bukkit.plugin.java.JavaPlugin;
+
+          import java.io.File;
+          import java.io.IOException;
           import java.util.*;
 
-          public class MainActivity extends AppCompatActivity {
-              private FirebaseAuth mAuth;
-              private DatabaseReference db;
-              private FirebaseUser currentUser;
-              private FrameLayout container;
-              private DrawerLayout drawer;
-              private int currentState = 0; // 0=Chats, 1=Chat, 2=Users
-              private ValueEventListener chatsListener;
-              private ChildEventListener messagesListener;
-              private DatabaseReference messagesRef;
-              private final List<Chat> allChats = new ArrayList<>(), displayedChats = new ArrayList<>();
-              private final List<User> allUsers = new ArrayList<>(), displayedUsers = new ArrayList<>();
-              private final List<Message> messageList = new ArrayList<>();
-              private RecyclerView mainRecyclerView;
-              private RecyclerView.Adapter<?> currentAdapter;
+          public final class SimpleClaimPlugin extends JavaPlugin implements Listener {
 
-              @Override protected void onCreate(Bundle b) {
-                  super.onCreate(b);
-                  setContentView(R.layout.activity_main);
-                  container = findViewById(R.id.main_container);
-                  drawer = findViewById(R.id.drawer_layout);
-                  db = FirebaseDatabase.getInstance().getReference();
-                  mAuth = FirebaseAuth.getInstance();
-                  signInAnonymously();
-              }
-              
-              private void signInAnonymously() {
-                  mAuth.signInAnonymously().addOnCompleteListener(this, task -> {
-                      if (task.isSuccessful()) {
-                          currentUser = mAuth.getCurrentUser();
-                          setupUser();
-                          showChatsList();
-                      } else {
-                          Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show();
-                      }
-                  });
+              // === Items ===
+              private NamespacedKey keyToolType;
+              private static final String TOOL_CLAIM = "claim_block";
+              private static final String TOOL_UNCLAIM = "unclaim_block";
+
+              // === Storage ===
+              private final Map<String, UUID> claimedBlocks = new HashMap<>();
+              private File dataFile;
+              private YamlConfiguration cfg;
+
+              private final Map<UUID, Long> lastWarn = new HashMap<>();
+
+              @Override
+              public void onEnable() {
+                  keyToolType = new NamespacedKey(this, "tool_type");
+                  dataFile = new File(getDataFolder(), "claims.yml");
+                  if (!getDataFolder().exists()) getDataFolder().mkdirs();
+
+                  loadClaims();
+
+                  getServer().getPluginManager().registerEvents(this, this);
+                  getLogger().info("SimpleClaim enabled. Claimed blocks: " + claimedBlocks.size());
               }
 
-              private void setupUser() {
-                  String name = "User " + currentUser.getUid().substring(0, 4);
-                  db.child("users").child(currentUser.getUid()).setValue(new User(name, currentUser.getUid()));
-                  ((TextView)findViewById(R.id.drawer_name)).setText(name);
-                  ((TextView)findViewById(R.id.drawer_avatar)).setText(name.substring(0, 1));
-                  ((TextView)findViewById(R.id.drawer_id)).setText("ID: " + currentUser.getUid().substring(0,6));
+              @Override
+              public void onDisable() {
+                  saveClaims();
               }
 
-              private void showScreen(int layoutId) {
-                  View v = LayoutInflater.from(this).inflate(layoutId, container, false);
-                  container.removeAllViews();
-                  container.addView(v);
-                  mainRecyclerView = v.findViewById(R.id.main_list);
+              // === Give tools (creative + op by default) ===
+              @EventHandler
+              public void onJoin(PlayerJoinEvent e) {
+                  giveToolsIfNeeded(e.getPlayer());
               }
 
-              private void showChatsList() {
-                  currentState = 0;
-                  showScreen(R.layout.fragment_chats);
-                  mainRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-                  currentAdapter = new ChatAdapter(displayedChats);
-                  mainRecyclerView.setAdapter(currentAdapter);
-
-                  findViewById(R.id.btn_menu).setOnClickListener(x -> drawer.openDrawer(GravityCompat.START));
-                  findViewById(R.id.fab_new_chat).setOnClickListener(x -> showUsersList());
-                  setupSearch(findViewById(android.R.id.content));
-                  attachChatsListener();
-              }
-              
-              private void setupSearch(View v) {
-                  View norm = v.findViewById(R.id.toolbar_normal);
-                  View search = v.findViewById(R.id.toolbar_search);
-                  EditText input = v.findViewById(R.id.input_search);
-                  v.findViewById(R.id.btn_search).setOnClickListener(x -> { norm.setVisibility(View.GONE); search.setVisibility(View.VISIBLE); requestFocusAndShowKeyboard(input); });
-                  v.findViewById(R.id.btn_search_back).setOnClickListener(x -> { input.setText(""); search.setVisibility(View.GONE); norm.setVisibility(View.VISIBLE); hideKeyboard(input); showChatsList(); });
-                  input.addTextChangedListener(new TextWatcher() {
-                      public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
-                      public void onTextChanged(CharSequence s, int i, int i1, int i2) {
-                          if(currentState == 0) filterChats(s.toString()); else filterUsers(s.toString());
-                      }
-                      public void afterTextChanged(Editable s) {}
-                  });
+              @EventHandler
+              public void onGamemode(PlayerGameModeChangeEvent e) {
+                  Bukkit.getScheduler().runTask(this, () -> giveToolsIfNeeded(e.getPlayer()));
               }
 
-              private void filterChats(String query) {
-                  displayedChats.clear();
-                  if(query.isEmpty()) displayedChats.addAll(allChats);
-                  else for(Chat c : allChats) if(c.otherUserName.toLowerCase().contains(query.toLowerCase())) displayedChats.add(c);
-                  currentAdapter.notifyDataSetChanged();
-              }
-              
-              private void filterUsers(String query) {
-                  displayedUsers.clear();
-                  if(query.isEmpty()) displayedUsers.addAll(allUsers);
-                  else for(User u : allUsers) if(u.name.toLowerCase().contains(query.toLowerCase())) displayedUsers.add(u);
-                  currentAdapter.notifyDataSetChanged();
+              private void giveToolsIfNeeded(Player p) {
+                  if (!p.hasPermission("simpleclaim.tools") && !p.hasPermission("simpleclaim.admin")) return;
+                  if (p.getGameMode() != GameMode.CREATIVE) return;
+
+                  ItemStack claimTool = makeTool(TOOL_CLAIM,
+                          "§cПриват блока",
+                          List.of("§7Возьми в руку и §fПКМ по блоку§7 чтобы заприватить.",
+                                  "§7Заприватенный блок нельзя сломать никому."));
+
+                  ItemStack unclaimTool = makeTool(TOOL_UNCLAIM,
+                          "§aСнять приват блока",
+                          List.of("§7Возьми в руку и §fПКМ по блоку§7 чтобы снять приват.",
+                                  "§7Снимать может только владелец (или админ)."));
+
+                  if (!hasTool(p, TOOL_CLAIM)) p.getInventory().addItem(claimTool);
+                  if (!hasTool(p, TOOL_UNCLAIM)) p.getInventory().addItem(unclaimTool);
               }
 
-              private void attachChatsListener() {
-                  if (chatsListener != null) db.child("chats").removeEventListener(chatsListener);
-                  chatsListener = new ValueEventListener() {
-                      @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
-                          allChats.clear();
-                          for (DataSnapshot ds : snapshot.getChildren()) {
-                              if (Boolean.TRUE.equals(ds.child("members").hasChild(currentUser.getUid()))) {
-                                  Chat chat = ds.getValue(Chat.class);
-                                  chat.chatId = ds.getKey();
-                                  for(String uid : chat.members.keySet()) if(!uid.equals(currentUser.getUid())) chat.otherUserId = uid;
-                                  
-                                  if(chat.otherUserId != null) {
-                                      db.child("users").child(chat.otherUserId).child("name").addListenerForSingleValueEvent(new ValueEventListener() {
-                                          public void onDataChange(@NonNull DataSnapshot nameSnap) {
-                                              chat.otherUserName = nameSnap.getValue(String.class);
-                                              allChats.removeIf(c -> c.chatId.equals(chat.chatId));
-                                              allChats.add(chat);
-                                              Collections.sort(allChats, (c1, c2) -> Long.compare(c2.timestamp, c1.timestamp));
-                                              filterChats(((EditText)findViewById(R.id.input_search)).getText().toString());
-                                          }
-                                          public void onCancelled(@NonNull DatabaseError error) {}
-                                      });
-                                  }
-                              }
-                          }
-                      }
-                      @Override public void onCancelled(@NonNull DatabaseError error) {}
-                  };
-                  db.child("chats").orderByChild("timestamp").addValueEventListener(chatsListener);
+              private ItemStack makeTool(String type, String name, List<String> lore) {
+                  ItemStack it = new ItemStack(Material.BARRIER, 1);
+                  ItemMeta meta = it.getItemMeta();
+                  meta.setDisplayName(name);
+                  meta.setLore(lore);
+                  meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+
+                  PersistentDataContainer pdc = meta.getPersistentDataContainer();
+                  pdc.set(keyToolType, PersistentDataType.STRING, type);
+
+                  it.setItemMeta(meta);
+                  return it;
               }
 
-              private void showUsersList() {
-                  currentState = 2;
-                  showScreen(R.layout.fragment_chats);
-                  ((TextView)findViewById(R.id.toolbar_title)).setText("New Message");
-                  findViewById(R.id.fab_new_chat).setVisibility(View.GONE);
-                  
-                  mainRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-                  currentAdapter = new UserAdapter(displayedUsers);
-                  mainRecyclerView.setAdapter(currentAdapter);
-                  
-                  findViewById(R.id.btn_menu).setOnClickListener(x -> showChatsList());
-                  
-                  db.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
-                      @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
-                          allUsers.clear();
-                          for (DataSnapshot ds : snapshot.getChildren()) {
-                              User u = ds.getValue(User.class);
-                              if (u != null && !u.uid.equals(currentUser.getUid())) allUsers.add(u);
-                          }
-                          filterUsers("");
-                      }
-                      @Override public void onCancelled(@NonNull DatabaseError error) {}
-                  });
-              }
-
-              private void showChat(String otherId, String otherName) {
-                  currentState = 1;
-                  showScreen(R.layout.fragment_chat);
-                  ((TextView) findViewById(R.id.toolbar_name)).setText(otherName);
-                  TextView avatar = findViewById(R.id.chat_avatar);
-                  avatar.setText(otherName.substring(0, 1));
-                  avatar.setBackground(getAvatar(otherName.hashCode()));
-                  findViewById(R.id.btn_back).setOnClickListener(x -> showChatsList());
-                  
-                  RecyclerView rv = findViewById(R.id.messages_list);
-                  LinearLayoutManager lm = new LinearLayoutManager(this); lm.setStackFromEnd(true);
-                  rv.setLayoutManager(lm);
-                  currentAdapter = new MessageAdapter(messageList);
-                  rv.setAdapter(currentAdapter);
-
-                  String chatId = getChatId(currentUser.getUid(), otherId);
-                  attachMessagesListener(chatId);
-
-                  EditText input = findViewById(R.id.input_message);
-                  View sendBtn = findViewById(R.id.btn_send);
-                  input.addTextChangedListener(new TextWatcher() {
-                      public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
-                      public void onTextChanged(CharSequence s, int i, int i1, int i2) {}
-                      public void afterTextChanged(Editable s) { sendBtn.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE); }
-                  });
-                  sendBtn.setOnClickListener(x -> {
-                      String text = input.getText().toString().trim();
-                      if(!text.isEmpty()) { sendMessage(text, chatId, otherId); input.setText(""); }
-                  });
-              }
-
-              private void attachMessagesListener(String chatId) {
-                  if (messagesListener != null && messagesRef != null) messagesRef.removeEventListener(messagesListener);
-                  messageList.clear();
-                  messagesRef = db.child("messages").child(chatId);
-                  messagesListener = new ChildEventListener() {
-                      @Override public void onChildAdded(@NonNull DataSnapshot s, String prev) {
-                          Message msg = s.getValue(Message.class);
-                          if(msg != null) { messageList.add(msg); currentAdapter.notifyItemInserted(messageList.size()-1); mainRecyclerView.scrollToPosition(messageList.size()-1); }
-                      }
-                      public void onChildChanged(@NonNull DataSnapshot s, String p) {}
-                      public void onChildRemoved(@NonNull DataSnapshot s) {}
-                      public void onChildMoved(@NonNull DataSnapshot s, String p) {}
-                      public void onCancelled(@NonNull DatabaseError e) {}
-                  };
-                  messagesRef.addChildEventListener(messagesListener);
-              }
-              
-              private void sendMessage(String text, String chatId, String otherId) {
-                  long timestamp = System.currentTimeMillis();
-                  db.child("messages").child(chatId).push().setValue(new Message(text, currentUser.getUid(), timestamp));
-                  Map<String, Object> chatUpdate = new HashMap<>();
-                  chatUpdate.put("lastMessage", text); chatUpdate.put("timestamp", timestamp);
-                  chatUpdate.put("members/" + currentUser.getUid(), true); chatUpdate.put("members/" + otherId, true);
-                  db.child("chats").child(chatId).updateChildren(chatUpdate);
-              }
-
-              private String getChatId(String uid1, String uid2) { return uid1.compareTo(uid2) > 0 ? uid1 + "_" + uid2 : uid2 + "_" + uid1; }
-              private GradientDrawable getAvatar(int seed) {
-                  GradientDrawable gd = new GradientDrawable(); gd.setShape(GradientDrawable.OVAL);
-                  int[] colors = {Color.parseColor("#4CAF50"), Color.parseColor("#F44336"), Color.parseColor("#9C27B0"), Color.parseColor("#FF9800"), Color.parseColor("#0088CC")};
-                  gd.setColor(colors[Math.abs(seed) % colors.length]);
-                  return gd;
-              }
-              
-              private void requestFocusAndShowKeyboard(View v) { v.requestFocus(); ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).showSoftInput(v, InputMethodManager.SHOW_IMPLICIT); }
-              private void hideKeyboard(View v) { ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(v.getWindowToken(), 0); }
-              @Override public void onBackPressed() {
-                  if (drawer.isDrawerOpen(GravityCompat.START)) drawer.closeDrawer(GravityCompat.START);
-                  else if (currentState != 0) showChatsList();
-                  else super.onBackPressed();
-              }
-              @Override protected void onDestroy() {
-                  super.onDestroy();
-                  if (chatsListener != null) db.child("chats").removeEventListener(chatsListener);
-                  if (messagesListener != null && messagesRef != null) messagesRef.removeEventListener(messagesListener);
-              }
-
-              // --- ViewHolders & Adapters ---
-              class ChatAdapter extends RecyclerView.Adapter<UserVH> {
-                  private List<Chat> items;
-                  ChatAdapter(List<Chat> items) { this.items = items; }
-                  @NonNull @Override public UserVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new UserVH(LayoutInflater.from(p.getContext()).inflate(R.layout.item_user, p, false)); }
-                  @Override public void onBindViewHolder(@NonNull UserVH h, int pos) {
-                      Chat chat = items.get(pos);
-                      h.name.setText(chat.otherUserName);
-                      h.lastMessage.setText(chat.lastMessage);
-                      h.avatar.setText(chat.otherUserName.substring(0, 1));
-                      h.avatar.setBackground(getAvatar(chat.otherUserName.hashCode()));
-                      h.itemView.setOnClickListener(view -> showChat(chat.otherUserId, chat.otherUserName));
+              private boolean hasTool(Player p, String type) {
+                  for (ItemStack it : p.getInventory().getContents()) {
+                      if (isTool(it, type)) return true;
                   }
-                  @Override public int getItemCount() { return items.size(); }
+                  return false;
               }
-              class UserAdapter extends RecyclerView.Adapter<UserVH> {
-                  private List<User> items;
-                  UserAdapter(List<User> items) { this.items = items; }
-                  @NonNull @Override public UserVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new UserVH(LayoutInflater.from(p.getContext()).inflate(R.layout.item_user, p, false)); }
-                  @Override public void onBindViewHolder(@NonNull UserVH h, int pos) {
-                      User user = items.get(pos);
-                      h.name.setText(user.name);
-                      h.lastMessage.setVisibility(View.GONE);
-                      h.avatar.setText(user.name.substring(0, 1));
-                      h.avatar.setBackground(getAvatar(user.name.hashCode()));
-                      h.itemView.setOnClickListener(view -> showChat(user.uid, user.name));
+
+              private boolean isTool(ItemStack it, String type) {
+                  if (it == null || it.getType() == Material.AIR || !it.hasItemMeta()) return false;
+                  String v = it.getItemMeta().getPersistentDataContainer().get(keyToolType, PersistentDataType.STRING);
+                  return type.equals(v);
+              }
+
+              // === Claim / Unclaim by clicking blocks ===
+              @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+              public void onInteract(PlayerInteractEvent e) {
+                  if (!e.getAction().isRightClick()) return;
+                  if (e.getClickedBlock() == null) return;
+
+                  Player p = e.getPlayer();
+                  Block b = e.getClickedBlock();
+                  Location loc = b.getLocation();
+
+                  ItemStack hand = e.getItem();
+
+                  // Claim tool: ПКМ по блоку
+                  if (isTool(hand, TOOL_CLAIM)) {
+                      e.setCancelled(true);
+
+                      if (!p.hasPermission("simpleclaim.tools") && !p.hasPermission("simpleclaim.admin")) {
+                          msg(p, "§c[Приват] §7Нет прав.");
+                          return;
+                      }
+
+                      String k = blockKey(loc);
+                      if (claimedBlocks.containsKey(k)) {
+                          msg(p, "§c[Приват] §7Этот блок уже приватный.");
+                          return;
+                      }
+
+                      claimedBlocks.put(k, p.getUniqueId());
+                      saveClaims();
+                      msg(p, "§a[Приват] §7Блок заприватен. Теперь его нельзя сломать никому.");
+                      return;
                   }
-                  @Override public int getItemCount() { return items.size(); }
-              }
-              class MessageAdapter extends RecyclerView.Adapter<MessageVH> {
-                  private List<Message> items;
-                  MessageAdapter(List<Message> items) { this.items = items; }
-                  @Override public int getItemViewType(int pos) { return items.get(pos).senderId.equals(currentUser.getUid()) ? 1 : 0; }
-                  @NonNull @Override public MessageVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new MessageVH(LayoutInflater.from(p.getContext()).inflate(R.layout.item_message, p, false), vt); }
-                  @Override public void onBindViewHolder(@NonNull MessageVH h, int pos) {
-                      Message msg = items.get(pos);
-                      h.text.setText(msg.text);
-                      h.time.setText(new SimpleDateFormat("HH:mm", Locale.US).format(new Date(msg.timestamp)));
+
+                  // Unclaim tool: ПКМ по блоку
+                  if (isTool(hand, TOOL_UNCLAIM)) {
+                      e.setCancelled(true);
+
+                      String k = blockKey(loc);
+                      UUID owner = claimedBlocks.get(k);
+                      if (owner == null) {
+                          msg(p, "§c[Приват] §7Этот блок не приватный.");
+                          return;
+                      }
+
+                      boolean canUnclaim = p.hasPermission("simpleclaim.admin") || owner.equals(p.getUniqueId());
+                      if (!canUnclaim) {
+                          msg(p, "§c[Приват] §7Ты не владелец этого привата.");
+                          return;
+                      }
+
+                      claimedBlocks.remove(k);
+                      saveClaims();
+                      msg(p, "§a[Приват] §7Приват снят. Теперь блок можно ломать.");
+                      return;
                   }
-                  @Override public int getItemCount() { return items.size(); }
-              }
-              class UserVH extends RecyclerView.ViewHolder {
-                  TextView name, lastMessage, avatar;
-                  UserVH(View v){super(v); name=v.findViewById(R.id.user_name); lastMessage=v.findViewById(R.id.user_last_message); avatar=v.findViewById(R.id.user_avatar);}
-              }
-              class MessageVH extends RecyclerView.ViewHolder {
-                  TextView text, time;
-                  MessageVH(View v, int type) {
-                      super(v); text = v.findViewById(R.id.msg_text); time = v.findViewById(R.id.msg_time);
-                      LinearLayout root = v.findViewById(R.id.message_root), bubble = v.findViewById(R.id.bubble);
-                      if(type == 1) { root.setGravity(Gravity.END); bubble.setBackgroundResource(R.drawable.bg_msg_out); time.setTextColor(Color.parseColor("#6B9F6B")); } 
-                      else { root.setGravity(Gravity.START); bubble.setBackgroundResource(R.drawable.bg_msg_in); time.setTextColor(Color.GRAY); }
+
+                  // Защита взаимодействий: чужие не могут открывать/тыкать приватный блок
+                  if (isClaimed(loc) && !isOwnerOrAdmin(p, loc)) {
+                      e.setCancelled(true);
+                      warn(p, "§c[Приват] §7Этот блок приватный. Взаимодействовать нельзя.");
                   }
               }
-          }
-          JAVA_CODE
 
-          # --- Build & Manifest Files ---
-          cat <<EOF > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <application android:label="Firebase Messenger" android:theme="@style/AppTheme" android:icon="@android:drawable/sym_action_chat">
-                  <activity android:name="com.ttt.app.MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
-                      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-          echo "include ':app'" > settings.gradle
-          cat <<EOF > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.google.gms:google-services:4.4.1'; classpath 'com.android.tools.build:gradle:8.2.2'; }
-          }
-          allprojects { repositories { google(); mavenCentral() } }
-          EOF
-          cat <<EOF > app/build.gradle
-          plugins { id 'com.android.application'; id 'com.google.gms.google-services'; }
-          android {
-              namespace 'com.ttt.app'; compileSdk 34;
-              defaultConfig { applicationId 'com.ttt.app'; minSdk 24; targetSdk 34; }
-              compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8; }
-          }
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
-              implementation 'androidx.recyclerview:recyclerview:1.3.2'
-              implementation platform('com.google.firebase:firebase-bom:33.0.0')
-              implementation 'com.google.firebase:firebase-auth'
-              implementation 'com.google.firebase:firebase-database'
+              // === Protection: block cannot be broken by anyone while claimed ===
+              @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+              public void onBreak(BlockBreakEvent e) {
+                  if (!isClaimed(e.getBlock().getLocation())) return;
+                  e.setCancelled(true);
+                  warn(e.getPlayer(), "§c[Приват] §7Этот блок приватный и не ломается, пока приват активен.");
+              }
+
+              // Explosions shouldn't delete claimed blocks
+              @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+              public void onEntityExplode(EntityExplodeEvent e) {
+                  e.blockList().removeIf(b -> isClaimed(b.getLocation()));
+              }
+
+              @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+              public void onBlockExplode(BlockExplodeEvent e) {
+                  e.blockList().removeIf(b -> isClaimed(b.getLocation()));
+              }
+
+              // Pistons shouldn't move claimed blocks
+              @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+              public void onPistonExtend(BlockPistonExtendEvent e) {
+                  for (Block b : e.getBlocks()) {
+                      if (isClaimed(b.getLocation())) {
+                          e.setCancelled(true);
+                          return;
+                      }
+                  }
+              }
+
+              @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+              public void onPistonRetract(BlockPistonRetractEvent e) {
+                  for (Block b : e.getBlocks()) {
+                      if (isClaimed(b.getLocation())) {
+                          e.setCancelled(true);
+                          return;
+                      }
+                  }
+              }
+
+              // Optional: fire / fade / physics can also "remove" blocks (simple hardening)
+              @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+              public void onBurn(BlockBurnEvent e) {
+                  if (isClaimed(e.getBlock().getLocation())) e.setCancelled(true);
+              }
+
+              @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+              public void onFade(BlockFadeEvent e) {
+                  if (isClaimed(e.getBlock().getLocation())) e.setCancelled(true);
+              }
+
+              // === Helpers ===
+              private boolean isOwnerOrAdmin(Player p, Location loc) {
+                  if (p.hasPermission("simpleclaim.admin")) return true;
+                  UUID owner = claimedBlocks.get(blockKey(loc));
+                  return owner != null && owner.equals(p.getUniqueId());
+              }
+
+              private boolean isClaimed(Location loc) {
+                  return claimedBlocks.containsKey(blockKey(loc));
+              }
+
+              private void warn(Player p, String msg) {
+                  long now = System.currentTimeMillis();
+                  long last = lastWarn.getOrDefault(p.getUniqueId(), 0L);
+                  if (now - last < 1200) return;
+                  lastWarn.put(p.getUniqueId(), now);
+                  p.sendMessage(msg);
+              }
+
+              private void msg(Player p, String msg) {
+                  p.sendMessage(msg);
+              }
+
+              private String blockKey(Location loc) {
+                  World w = loc.getWorld();
+                  return w.getUID() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
+              }
+
+              // === YAML persistence ===
+              private void loadClaims() {
+                  cfg = YamlConfiguration.loadConfiguration(dataFile);
+                  claimedBlocks.clear();
+
+                  ConfigurationSection root = cfg.getConfigurationSection("blocks");
+                  if (root == null) return;
+
+                  for (String k : root.getKeys(false)) {
+                      String ownerStr = root.getString(k + ".owner");
+                      if (ownerStr == null) continue;
+                      try {
+                          claimedBlocks.put(k, UUID.fromString(ownerStr));
+                      } catch (IllegalArgumentException ignored) {}
+                  }
+              }
+
+              private void saveClaims() {
+                  if (cfg == null) cfg = new YamlConfiguration();
+                  cfg.set("blocks", null);
+
+                  for (var e : claimedBlocks.entrySet()) {
+                      cfg.set("blocks." + e.getKey() + ".owner", e.getValue().toString());
+                  }
+
+                  try {
+                      cfg.save(dataFile);
+                  } catch (IOException ex) {
+                      getLogger().severe("Failed to save claims.yml: " + ex.getMessage());
+                  }
+              }
           }
           EOF
 
-      - name: Build APK
-        run: |
-          gradle wrapper --gradle-version 8.5
-          chmod +x gradlew
-          ./gradlew assembleDebug
+      - name: Build with Maven
+        run: mvn -B -ntp -f project/pom.xml clean package
+        env:
+          PAPER_API_VERSION: ${{ inputs.paper_api_version }}
+          PLUGIN_VERSION: ${{ inputs.plugin_version }}
 
-      - name: Upload APK
+      - name: Upload plugin jar
         uses: actions/upload-artifact@v4
         with:
-          name: Firebase_Messenger
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: SimpleClaim-jar
+          path: |
+            project/target/*.jar
+            !project/target/*-sources.jar
+            !project/target/*-javadoc.jar
