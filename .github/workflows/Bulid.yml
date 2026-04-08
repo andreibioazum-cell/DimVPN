@@ -1,10 +1,11 @@
 name: Build SimpleClaim (block privat via click)
 
 on:
+  push: {}
   workflow_dispatch:
     inputs:
       paper_api_version:
-        description: "Paper API version (from logs: 1.21.11-R0.1-SNAPSHOT)"
+        description: "Paper API version (у тебя: 1.21.11-R0.1-SNAPSHOT)"
         required: true
         default: "1.21.11-R0.1-SNAPSHOT"
       plugin_version:
@@ -23,7 +24,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1) СНАЧАЛА генерим проект, чтобы существовал project/pom.xml для Maven cache
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
       - name: Generate plugin sources (Maven project)
         shell: bash
         env:
@@ -90,10 +96,13 @@ jobs:
           api-version: "1.21"
           author: generated-by-github-actions
 
+          commands:
+            scgive:
+              description: Give claim tools (Creative only)
+              usage: /scgive
+
           permissions:
             simpleclaim.tools:
-              default: op
-            simpleclaim.admin:
               default: op
           EOF
 
@@ -102,13 +111,14 @@ jobs:
           cat > project/src/main/java/com/example/simpleclaim/SimpleClaimPlugin.java <<'EOF'
           package com.example.simpleclaim;
 
-          import org.bukkit.Bukkit;
           import org.bukkit.GameMode;
           import org.bukkit.Location;
           import org.bukkit.Material;
           import org.bukkit.NamespacedKey;
           import org.bukkit.World;
           import org.bukkit.block.Block;
+          import org.bukkit.command.Command;
+          import org.bukkit.command.CommandSender;
           import org.bukkit.configuration.ConfigurationSection;
           import org.bukkit.configuration.file.YamlConfiguration;
           import org.bukkit.entity.Player;
@@ -117,9 +127,7 @@ jobs:
           import org.bukkit.event.Listener;
           import org.bukkit.event.block.*;
           import org.bukkit.event.entity.EntityExplodeEvent;
-          import org.bukkit.event.player.PlayerGameModeChangeEvent;
           import org.bukkit.event.player.PlayerInteractEvent;
-          import org.bukkit.event.player.PlayerJoinEvent;
           import org.bukkit.inventory.ItemFlag;
           import org.bukkit.inventory.ItemStack;
           import org.bukkit.inventory.meta.ItemMeta;
@@ -137,7 +145,9 @@ jobs:
               private static final String TOOL_CLAIM = "claim_block";
               private static final String TOOL_UNCLAIM = "unclaim_block";
 
+              // blockKey -> ownerUUID (owner хранится, но unclaim разрешён любому с тулом)
               private final Map<String, UUID> claimedBlocks = new HashMap<>();
+
               private File dataFile;
               private YamlConfiguration cfg;
 
@@ -146,6 +156,7 @@ jobs:
               @Override
               public void onEnable() {
                   keyToolType = new NamespacedKey(this, "tool_type");
+
                   dataFile = new File(getDataFolder(), "claims.yml");
                   if (!getDataFolder().exists()) getDataFolder().mkdirs();
 
@@ -160,32 +171,40 @@ jobs:
                   saveClaims();
               }
 
-              @EventHandler
-              public void onJoin(PlayerJoinEvent e) {
-                  giveToolsIfNeeded(e.getPlayer());
-              }
+              // ===== /scgive (взять можно только в креативе) =====
+              @Override
+              public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+                  if (!command.getName().equalsIgnoreCase("scgive")) return false;
 
-              @EventHandler
-              public void onGamemode(PlayerGameModeChangeEvent e) {
-                  Bukkit.getScheduler().runTask(this, () -> giveToolsIfNeeded(e.getPlayer()));
-              }
+                  if (!(sender instanceof Player p)) {
+                      sender.sendMessage("Only players.");
+                      return true;
+                  }
 
-              private void giveToolsIfNeeded(Player p) {
-                  if (!p.hasPermission("simpleclaim.tools") && !p.hasPermission("simpleclaim.admin")) return;
-                  if (p.getGameMode() != GameMode.CREATIVE) return;
+                  if (!p.hasPermission("simpleclaim.tools")) {
+                      p.sendMessage("§c[Приват] §7Нет прав.");
+                      return true;
+                  }
+
+                  if (p.getGameMode() != GameMode.CREATIVE) {
+                      p.sendMessage("§c[Приват] §7Взять инструменты можно только в креативе.");
+                      return true;
+                  }
 
                   ItemStack claimTool = makeTool(TOOL_CLAIM,
                           "§cПриват блока",
-                          List.of("§7Возьми в руку и §fПКМ по блоку§7 чтобы заприватить.",
-                                  "§7Заприватенный блок нельзя сломать никому."));
+                          List.of("§7ПКМ по блоку — заприватить.",
+                                  "§7Пока приват активен — блок §fне ломается никому§7."));
 
                   ItemStack unclaimTool = makeTool(TOOL_UNCLAIM,
                           "§aСнять приват блока",
-                          List.of("§7Возьми в руку и §fПКМ по блоку§7 чтобы снять приват.",
-                                  "§7Снимать может владелец или админ."));
+                          List.of("§7ПКМ по блоку — снять приват.",
+                                  "§7Снять может §fлюбой§7 у кого есть этот тул."));
 
-                  if (!hasTool(p, TOOL_CLAIM)) p.getInventory().addItem(claimTool);
-                  if (!hasTool(p, TOOL_UNCLAIM)) p.getInventory().addItem(unclaimTool);
+                  p.getInventory().addItem(claimTool);
+                  p.getInventory().addItem(unclaimTool);
+                  p.sendMessage("§a[Приват] §7Инструменты выданы.");
+                  return true;
               }
 
               private ItemStack makeTool(String type, String name, List<String> lore) {
@@ -202,19 +221,22 @@ jobs:
                   return it;
               }
 
-              private boolean hasTool(Player p, String type) {
-                  for (ItemStack it : p.getInventory().getContents()) {
-                      if (isTool(it, type)) return true;
-                  }
-                  return false;
-              }
-
               private boolean isTool(ItemStack it, String type) {
                   if (it == null || it.getType() == Material.AIR || !it.hasItemMeta()) return false;
                   String v = it.getItemMeta().getPersistentDataContainer().get(keyToolType, PersistentDataType.STRING);
                   return type.equals(v);
               }
 
+              // чтобы барьер-инструмент нельзя было поставить как блок
+              @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+              public void onPlace(BlockPlaceEvent e) {
+                  ItemStack it = e.getItemInHand();
+                  if (isTool(it, TOOL_CLAIM) || isTool(it, TOOL_UNCLAIM)) {
+                      e.setCancelled(true);
+                  }
+              }
+
+              // ===== Claim/Unclaim по ПКМ =====
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onInteract(PlayerInteractEvent e) {
                   if (!e.getAction().isRightClick()) return;
@@ -223,9 +245,9 @@ jobs:
                   Player p = e.getPlayer();
                   Block b = e.getClickedBlock();
                   Location loc = b.getLocation();
-
                   ItemStack hand = e.getItem();
 
+                  // Claim (кто с тулом — тот и приватит)
                   if (isTool(hand, TOOL_CLAIM)) {
                       e.setCancelled(true);
 
@@ -237,39 +259,34 @@ jobs:
 
                       claimedBlocks.put(k, p.getUniqueId());
                       saveClaims();
-                      msg(p, "§a[Приват] §7Блок заприватен. Его нельзя сломать никому, пока приват активен.");
+                      msg(p, "§a[Приват] §7Блок заприватен. Ломать его теперь нельзя никому (даже тебе).");
                       return;
                   }
 
+                  // Unclaim (любой с тулом может снять)
                   if (isTool(hand, TOOL_UNCLAIM)) {
                       e.setCancelled(true);
 
                       String k = blockKey(loc);
-                      UUID owner = claimedBlocks.get(k);
-                      if (owner == null) {
+                      if (!claimedBlocks.containsKey(k)) {
                           msg(p, "§c[Приват] §7Этот блок не приватный.");
-                          return;
-                      }
-
-                      boolean canUnclaim = p.hasPermission("simpleclaim.admin") || owner.equals(p.getUniqueId());
-                      if (!canUnclaim) {
-                          msg(p, "§c[Приват] §7Ты не владелец этого привата.");
                           return;
                       }
 
                       claimedBlocks.remove(k);
                       saveClaims();
-                      msg(p, "§a[Приват] §7Приват снят. Теперь блок можно ломать.");
+                      msg(p, "§a[Приват] §7Приват снят.");
                       return;
                   }
 
-                  // запрет взаимодействий с приватным блоком для всех, кроме владельца/админа
-                  if (isClaimed(loc) && !isOwnerOrAdmin(p, loc)) {
+                  // запрет взаимодействий с приватным блоком для всех (пока приват активен)
+                  if (isClaimed(loc)) {
                       e.setCancelled(true);
                       warn(p, "§c[Приват] §7Этот блок приватный. Взаимодействовать нельзя.");
                   }
               }
 
+              // ===== Protection: приватный блок не ломается НИКОМУ =====
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onBreak(BlockBreakEvent e) {
                   if (!isClaimed(e.getBlock().getLocation())) return;
@@ -277,6 +294,7 @@ jobs:
                   warn(e.getPlayer(), "§c[Приват] §7Этот блок приватный и не ломается, пока приват активен.");
               }
 
+              // взрывы не удаляют приватные блоки
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onEntityExplode(EntityExplodeEvent e) {
                   e.blockList().removeIf(b -> isClaimed(b.getLocation()));
@@ -287,6 +305,7 @@ jobs:
                   e.blockList().removeIf(b -> isClaimed(b.getLocation()));
               }
 
+              // поршни не двигают приватные блоки
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onPistonExtend(BlockPistonExtendEvent e) {
                   for (Block b : e.getBlocks()) {
@@ -311,12 +330,6 @@ jobs:
                   if (isClaimed(e.getBlock().getLocation())) e.setCancelled(true);
               }
 
-              private boolean isOwnerOrAdmin(Player p, Location loc) {
-                  if (p.hasPermission("simpleclaim.admin")) return true;
-                  UUID owner = claimedBlocks.get(blockKey(loc));
-                  return owner != null && owner.equals(p.getUniqueId());
-              }
-
               private boolean isClaimed(Location loc) {
                   return claimedBlocks.containsKey(blockKey(loc));
               }
@@ -338,6 +351,7 @@ jobs:
                   return w.getUID() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
               }
 
+              // ===== YAML =====
               private void loadClaims() {
                   cfg = YamlConfiguration.loadConfiguration(dataFile);
                   claimedBlocks.clear();
@@ -366,15 +380,6 @@ jobs:
               }
           }
           EOF
-
-      # 2) Теперь Java + Maven cache (уже есть project/pom.xml)
-      - name: Set up Java 21 (with Maven cache)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-          cache-dependency-path: project/pom.xml
 
       - name: Build with Maven
         run: mvn -B -ntp -f project/pom.xml clean package
