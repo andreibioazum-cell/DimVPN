@@ -1,4 +1,4 @@
-name: Firebase_Messenger
+name: Firebase_Messenger_Fixed
 on: [push, workflow_dispatch]
 
 jobs:
@@ -60,11 +60,17 @@ jobs:
           cat <<EOF > app/src/main/res/drawable/bg_fab.xml
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#517DA2"/></shape>
           EOF
+          cat <<EOF > app/src/main/res/drawable/bg_send_button.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval"><solid android:color="#0088CC"/><size android:width="48dp" android:height="48dp"/></shape>
+          EOF
           cat <<EOF > app/src/main/res/drawable/ic_menu.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M3,18h18v-2H3v2zm0,-5h18v-2H3v2zm0,-7v2h18V6H3z"/></vector>
           EOF
           cat <<EOF > app/src/main/res/drawable/ic_search.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M15.5,14h-0.79l-0.28,-0.27C15.41,12.59 16,11.11 16,9.5 16,5.91 13.09,3 9.5,3S3,5.91 3,9.5 5.91,16 9.5,16c1.61,0 3.09,-0.59 4.23,-1.57l0.27,0.28v0.79l5,4.99L20.49,19l-4.99,-5zm-6,0C7.01,14 5,11.99 5,9.5S7.01,5 9.5,5 14,7.01 14,9.5 11.99,14 9.5,14z"/></vector>
+          EOF
+          cat <<EOF > app/src/main/res/drawable/ic_back.xml
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="M20,11H7.83l5.59,-5.59L12,4l-8,8 8,8 1.41,-1.41L7.83,13H20v-2z"/></vector>
           EOF
           cat <<EOF > app/src/main/res/drawable/ic_back_gray.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#757575" android:pathData="M20,11H7.83l5.59,-5.59L12,4l-8,8 8,8 1.41,-1.41L7.83,13H20v-2z"/></vector>
@@ -95,7 +101,7 @@ jobs:
               <FrameLayout android:id="@+id/toolbar_container" android:layout_width="match_parent" android:layout_height="56dp" android:elevation="4dp">
                   <LinearLayout android:id="@+id/toolbar_normal" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_toolbar" android:gravity="center_vertical" android:paddingHorizontal="4dp">
                       <ImageView android:id="@+id/btn_menu" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_menu" android:background="?android:selectableItemBackgroundBorderless"/>
-                      <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Messenger" android:textColor="#FFF" android:textSize="20sp" android:textStyle="bold" android:layout_marginLeft="12dp"/>
+                      <TextView android:id="@+id/toolbar_title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Messenger" android:textColor="#FFF" android:textSize="20sp" android:textStyle="bold" android:layout_marginLeft="12dp"/>
                       <ImageView android:id="@+id/btn_search" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_search" android:background="?android:selectableItemBackgroundBorderless"/>
                   </LinearLayout>
                   <LinearLayout android:id="@+id/toolbar_search" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#FFF" android:gravity="center_vertical" android:visibility="gone">
@@ -103,7 +109,7 @@ jobs:
                       <EditText android:id="@+id/input_search" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@null" android:hint="Search" android:imeOptions="actionSearch" android:singleLine="true"/>
                   </LinearLayout>
               </FrameLayout>
-              <androidx.recyclerview.widget.RecyclerView android:id="@+id/chats_list" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_below="@id/toolbar_container"/>
+              <androidx.recyclerview.widget.RecyclerView android:id="@+id/main_list" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_below="@id/toolbar_container"/>
               <FrameLayout android:id="@+id/fab_new_chat" android:layout_width="56dp" android:layout_height="56dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_margin="16dp" android:background="@drawable/bg_fab" android:elevation="6dp">
                   <ImageView android:layout_width="24dp" android:layout_height="24dp" android:layout_gravity="center" android:src="@drawable/ic_edit"/>
               </FrameLayout>
@@ -113,7 +119,7 @@ jobs:
           cat <<'LAYOUT_CHAT' > app/src/main/res/layout/fragment_chat.xml
           <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#E5DDD5">
               <LinearLayout android:id="@+id/chat_toolbar" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/bg_toolbar" android:gravity="center_vertical">
-                  <ImageView android:id="@+id/btn_back" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_back_gray" android:backgroundTint="#FFF" android:srcTint="#FFF" android:background="?android:selectableItemBackgroundBorderless"/>
+                  <ImageView android:id="@+id/btn_back" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_back" android:background="?android:selectableItemBackgroundBorderless"/>
                   <TextView android:id="@+id/chat_avatar" android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_avatar" android:gravity="center" android:textColor="#FFF" android:textSize="16sp"/>
                   <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="12dp" android:orientation="vertical">
                       <TextView android:id="@+id/toolbar_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFF" android:textSize="17sp" android:textStyle="bold"/>
@@ -141,7 +147,10 @@ jobs:
           cat <<'LAYOUT_ITEM_USER' > app/src/main/res/layout/item_user.xml
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:padding="16dp" android:background="?android:selectableItemBackground">
               <TextView android:id="@+id/user_avatar" android:layout_width="48dp" android:layout_height="48dp" android:background="@drawable/bg_avatar" android:gravity="center" android:textColor="#FFF" android:textSize="20sp"/>
-              <TextView android:id="@+id/user_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="16dp" android:textSize="16sp" android:textColor="#000"/>
+              <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginLeft="16dp">
+                  <TextView android:id="@+id/user_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="16sp" android:textColor="#000" android:textStyle="bold"/>
+                  <TextView android:id="@+id/user_last_message" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="#757575"/>
+              </LinearLayout>
           </LinearLayout>
           LAYOUT_ITEM_USER
 
@@ -168,9 +177,11 @@ jobs:
           import java.util.HashMap;
           import java.util.Map;
           public class Chat {
-              public String lastMessage, chatName, otherUserId, otherUserName;
+              public String lastMessage;
               public long timestamp;
               public Map<String, Boolean> members = new HashMap<>();
+              // Transient fields for UI
+              public transient String chatId, otherUserId, otherUserName;
               public Chat() {}
           }
           EOF
@@ -206,9 +217,9 @@ jobs:
               private ValueEventListener chatsListener;
               private ChildEventListener messagesListener;
               private DatabaseReference messagesRef;
-              private List<Chat> chatList = new ArrayList<>();
-              private List<User> userList = new ArrayList<>();
-              private List<Message> messageList = new ArrayList<>();
+              private final List<Chat> allChats = new ArrayList<>(), displayedChats = new ArrayList<>();
+              private final List<User> allUsers = new ArrayList<>(), displayedUsers = new ArrayList<>();
+              private final List<Message> messageList = new ArrayList<>();
               private RecyclerView mainRecyclerView;
               private RecyclerView.Adapter<?> currentAdapter;
 
@@ -219,7 +230,6 @@ jobs:
                   drawer = findViewById(R.id.drawer_layout);
                   db = FirebaseDatabase.getInstance().getReference();
                   mAuth = FirebaseAuth.getInstance();
-                  
                   signInAnonymously();
               }
               
@@ -227,7 +237,6 @@ jobs:
                   mAuth.signInAnonymously().addOnCompleteListener(this, task -> {
                       if (task.isSuccessful()) {
                           currentUser = mAuth.getCurrentUser();
-                          Toast.makeText(this, "Signed in as: " + currentUser.getUid().substring(0, 6), Toast.LENGTH_SHORT).show();
                           setupUser();
                           showChatsList();
                       } else {
@@ -238,35 +247,29 @@ jobs:
 
               private void setupUser() {
                   String name = "User " + currentUser.getUid().substring(0, 4);
-                  User user = new User(name, currentUser.getUid());
-                  db.child("users").child(currentUser.getUid()).setValue(user);
+                  db.child("users").child(currentUser.getUid()).setValue(new User(name, currentUser.getUid()));
                   ((TextView)findViewById(R.id.drawer_name)).setText(name);
                   ((TextView)findViewById(R.id.drawer_avatar)).setText(name.substring(0, 1));
                   ((TextView)findViewById(R.id.drawer_id)).setText("ID: " + currentUser.getUid().substring(0,6));
               }
 
+              private void showScreen(int layoutId) {
+                  View v = LayoutInflater.from(this).inflate(layoutId, container, false);
+                  container.removeAllViews();
+                  container.addView(v);
+                  mainRecyclerView = v.findViewById(R.id.main_list);
+              }
+
               private void showChatsList() {
                   currentState = 0;
-                  View v = inflate(R.layout.fragment_chats);
-                  mainRecyclerView = v.findViewById(R.id.chats_list);
+                  showScreen(R.layout.fragment_chats);
                   mainRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-                  
-                  currentAdapter = new RecyclerView.Adapter<ChatVH>() {
-                      @NonNull @Override public ChatVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new ChatVH(inflate(R.layout.item_user)); }
-                      @Override public void onBindViewHolder(@NonNull ChatVH h, int pos) {
-                          Chat chat = chatList.get(pos);
-                          h.name.setText(chat.otherUserName);
-                          h.avatar.setText(chat.otherUserName.substring(0, 1));
-                          h.avatar.setBackground(getAvatar(chat.otherUserName.hashCode()));
-                          h.itemView.setOnClickListener(view -> showChat(chat.otherUserId, chat.otherUserName));
-                      }
-                      @Override public int getItemCount() { return chatList.size(); }
-                  };
+                  currentAdapter = new ChatAdapter(displayedChats);
                   mainRecyclerView.setAdapter(currentAdapter);
-                  
-                  v.findViewById(R.id.btn_menu).setOnClickListener(x -> drawer.openDrawer(GravityCompat.START));
-                  v.findViewById(R.id.fab_new_chat).setOnClickListener(x -> showUsersList());
-                  setupSearch(v);
+
+                  findViewById(R.id.btn_menu).setOnClickListener(x -> drawer.openDrawer(GravityCompat.START));
+                  findViewById(R.id.fab_new_chat).setOnClickListener(x -> showUsersList());
+                  setupSearch(findViewById(android.R.id.content));
                   attachChatsListener();
               }
               
@@ -275,33 +278,51 @@ jobs:
                   View search = v.findViewById(R.id.toolbar_search);
                   EditText input = v.findViewById(R.id.input_search);
                   v.findViewById(R.id.btn_search).setOnClickListener(x -> { norm.setVisibility(View.GONE); search.setVisibility(View.VISIBLE); requestFocusAndShowKeyboard(input); });
-                  v.findViewById(R.id.btn_search_back).setOnClickListener(x -> { input.setText(""); search.setVisibility(View.GONE); norm.setVisibility(View.VISIBLE); hideKeyboard(input); showUsersList(); });
+                  v.findViewById(R.id.btn_search_back).setOnClickListener(x -> { input.setText(""); search.setVisibility(View.GONE); norm.setVisibility(View.VISIBLE); hideKeyboard(input); showChatsList(); });
                   input.addTextChangedListener(new TextWatcher() {
                       public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
-                      public void onTextChanged(CharSequence s, int i, int i1, int i2) { filterUsers(s.toString()); }
+                      public void onTextChanged(CharSequence s, int i, int i1, int i2) {
+                          if(currentState == 0) filterChats(s.toString()); else filterUsers(s.toString());
+                      }
                       public void afterTextChanged(Editable s) {}
                   });
               }
 
+              private void filterChats(String query) {
+                  displayedChats.clear();
+                  if(query.isEmpty()) displayedChats.addAll(allChats);
+                  else for(Chat c : allChats) if(c.otherUserName.toLowerCase().contains(query.toLowerCase())) displayedChats.add(c);
+                  currentAdapter.notifyDataSetChanged();
+              }
+              
+              private void filterUsers(String query) {
+                  displayedUsers.clear();
+                  if(query.isEmpty()) displayedUsers.addAll(allUsers);
+                  else for(User u : allUsers) if(u.name.toLowerCase().contains(query.toLowerCase())) displayedUsers.add(u);
+                  currentAdapter.notifyDataSetChanged();
+              }
+
               private void attachChatsListener() {
-                  if (chatsListener != null) db.removeEventListener(chatsListener);
+                  if (chatsListener != null) db.child("chats").removeEventListener(chatsListener);
                   chatsListener = new ValueEventListener() {
                       @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
-                          chatList.clear();
+                          allChats.clear();
                           for (DataSnapshot ds : snapshot.getChildren()) {
-                              if (ds.child("members").hasChild(currentUser.getUid())) {
+                              if (Boolean.TRUE.equals(ds.child("members").hasChild(currentUser.getUid()))) {
                                   Chat chat = ds.getValue(Chat.class);
-                                  for(String uid : chat.members.keySet()) {
-                                      if(!uid.equals(currentUser.getUid())) chat.otherUserId = uid;
-                                  }
+                                  chat.chatId = ds.getKey();
+                                  for(String uid : chat.members.keySet()) if(!uid.equals(currentUser.getUid())) chat.otherUserId = uid;
+                                  
                                   if(chat.otherUserId != null) {
                                       db.child("users").child(chat.otherUserId).child("name").addListenerForSingleValueEvent(new ValueEventListener() {
-                                          @Override public void onDataChange(@NonNull DataSnapshot nameSnap) {
+                                          public void onDataChange(@NonNull DataSnapshot nameSnap) {
                                               chat.otherUserName = nameSnap.getValue(String.class);
-                                              if(!chatList.contains(chat)) chatList.add(chat);
-                                              currentAdapter.notifyDataSetChanged();
+                                              allChats.removeIf(c -> c.chatId.equals(chat.chatId));
+                                              allChats.add(chat);
+                                              Collections.sort(allChats, (c1, c2) -> Long.compare(c2.timestamp, c1.timestamp));
+                                              filterChats(((EditText)findViewById(R.id.input_search)).getText().toString());
                                           }
-                                          @Override public void onCancelled(@NonNull DatabaseError error) {}
+                                          public void onCancelled(@NonNull DatabaseError error) {}
                                       });
                                   }
                               }
@@ -309,94 +330,54 @@ jobs:
                       }
                       @Override public void onCancelled(@NonNull DatabaseError error) {}
                   };
-                  db.child("chats").addValueEventListener(chatsListener);
+                  db.child("chats").orderByChild("timestamp").addValueEventListener(chatsListener);
               }
 
               private void showUsersList() {
                   currentState = 2;
-                  View v = inflate(R.layout.fragment_chats);
-                  ((TextView)v.findViewById(R.id.toolbar_normal).findViewById(R.id.toolbar_title)).setText("New Message");
-                  v.findViewById(R.id.fab_new_chat).setVisibility(View.GONE);
+                  showScreen(R.layout.fragment_chats);
+                  ((TextView)findViewById(R.id.toolbar_title)).setText("New Message");
+                  findViewById(R.id.fab_new_chat).setVisibility(View.GONE);
                   
-                  mainRecyclerView = v.findViewById(R.id.chats_list);
                   mainRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-                  currentAdapter = new RecyclerView.Adapter<UserVH>() {
-                      @NonNull @Override public UserVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new UserVH(inflate(R.layout.item_user)); }
-                      @Override public void onBindViewHolder(@NonNull UserVH h, int pos) {
-                          User user = userList.get(pos);
-                          h.name.setText(user.name);
-                          h.avatar.setText(user.name.substring(0, 1));
-                          h.avatar.setBackground(getAvatar(user.name.hashCode()));
-                          h.itemView.setOnClickListener(view -> showChat(user.uid, user.name));
-                      }
-                      @Override public int getItemCount() { return userList.size(); }
-                  };
+                  currentAdapter = new UserAdapter(displayedUsers);
                   mainRecyclerView.setAdapter(currentAdapter);
                   
-                  v.findViewById(R.id.btn_menu).setOnClickListener(x -> showChatsList());
+                  findViewById(R.id.btn_menu).setOnClickListener(x -> showChatsList());
                   
                   db.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
                       @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
-                          userList.clear();
+                          allUsers.clear();
                           for (DataSnapshot ds : snapshot.getChildren()) {
                               User u = ds.getValue(User.class);
-                              if (u != null && !u.uid.equals(currentUser.getUid())) userList.add(u);
+                              if (u != null && !u.uid.equals(currentUser.getUid())) allUsers.add(u);
                           }
-                          currentAdapter.notifyDataSetChanged();
+                          filterUsers("");
                       }
                       @Override public void onCancelled(@NonNull DatabaseError error) {}
                   });
               }
 
-              private void filterUsers(String query) {
-                   List<User> filtered = new ArrayList<>();
-                   for(User u : userList) {
-                       if(u.name.toLowerCase().contains(query.toLowerCase())) filtered.add(u);
-                   }
-                   mainRecyclerView.setAdapter(new RecyclerView.Adapter<UserVH>() {
-                      @NonNull @Override public UserVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new UserVH(inflate(R.layout.item_user)); }
-                      @Override public void onBindViewHolder(@NonNull UserVH h, int pos) {
-                          User user = filtered.get(pos);
-                          h.name.setText(user.name); h.avatar.setText(user.name.substring(0,1));
-                          h.avatar.setBackground(getAvatar(user.name.hashCode()));
-                          h.itemView.setOnClickListener(view -> showChat(user.uid, user.name));
-                      }
-                      @Override public int getItemCount() { return filtered.size(); }
-                  });
-              }
-              
               private void showChat(String otherId, String otherName) {
                   currentState = 1;
-                  View v = inflate(R.layout.fragment_chat);
-                  ((TextView) v.findViewById(R.id.toolbar_name)).setText(otherName);
-                  TextView avatar = v.findViewById(R.id.chat_avatar);
+                  showScreen(R.layout.fragment_chat);
+                  ((TextView) findViewById(R.id.toolbar_name)).setText(otherName);
+                  TextView avatar = findViewById(R.id.chat_avatar);
                   avatar.setText(otherName.substring(0, 1));
                   avatar.setBackground(getAvatar(otherName.hashCode()));
-                  v.findViewById(R.id.btn_back).setOnClickListener(x -> showChatsList());
+                  findViewById(R.id.btn_back).setOnClickListener(x -> showChatsList());
                   
-                  String chatId = getChatId(currentUser.getUid(), otherId);
-                  
-                  RecyclerView rv = v.findViewById(R.id.messages_list);
-                  LinearLayoutManager lm = new LinearLayoutManager(this);
-                  lm.setStackFromEnd(true);
+                  RecyclerView rv = findViewById(R.id.messages_list);
+                  LinearLayoutManager lm = new LinearLayoutManager(this); lm.setStackFromEnd(true);
                   rv.setLayoutManager(lm);
-                  
-                  currentAdapter = new RecyclerView.Adapter<MessageVH>() {
-                      @Override public int getItemViewType(int pos) { return messageList.get(pos).senderId.equals(currentUser.getUid()) ? 1 : 0; }
-                      @NonNull @Override public MessageVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new MessageVH(inflate(R.layout.item_message), vt); }
-                      @Override public void onBindViewHolder(@NonNull MessageVH h, int pos) {
-                          Message msg = messageList.get(pos);
-                          h.text.setText(msg.text);
-                          h.time.setText(new SimpleDateFormat("HH:mm", Locale.US).format(new Date(msg.timestamp)));
-                      }
-                      @Override public int getItemCount() { return messageList.size(); }
-                  };
+                  currentAdapter = new MessageAdapter(messageList);
                   rv.setAdapter(currentAdapter);
 
+                  String chatId = getChatId(currentUser.getUid(), otherId);
                   attachMessagesListener(chatId);
 
-                  EditText input = v.findViewById(R.id.input_message);
-                  View sendBtn = v.findViewById(R.id.btn_send);
+                  EditText input = findViewById(R.id.input_message);
+                  View sendBtn = findViewById(R.id.btn_send);
                   input.addTextChangedListener(new TextWatcher() {
                       public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
                       public void onTextChanged(CharSequence s, int i, int i1, int i2) {}
@@ -404,10 +385,7 @@ jobs:
                   });
                   sendBtn.setOnClickListener(x -> {
                       String text = input.getText().toString().trim();
-                      if(!text.isEmpty()) {
-                          sendMessage(text, chatId, otherId);
-                          input.setText("");
-                      }
+                      if(!text.isEmpty()) { sendMessage(text, chatId, otherId); input.setText(""); }
                   });
               }
 
@@ -430,71 +408,86 @@ jobs:
               
               private void sendMessage(String text, String chatId, String otherId) {
                   long timestamp = System.currentTimeMillis();
-                  Message msg = new Message(text, currentUser.getUid(), timestamp);
-                  db.child("messages").child(chatId).push().setValue(msg);
-                  
+                  db.child("messages").child(chatId).push().setValue(new Message(text, currentUser.getUid(), timestamp));
                   Map<String, Object> chatUpdate = new HashMap<>();
-                  chatUpdate.put("lastMessage", text);
-                  chatUpdate.put("timestamp", timestamp);
-                  chatUpdate.put("members/" + currentUser.getUid(), true);
-                  chatUpdate.put("members/" + otherId, true);
+                  chatUpdate.put("lastMessage", text); chatUpdate.put("timestamp", timestamp);
+                  chatUpdate.put("members/" + currentUser.getUid(), true); chatUpdate.put("members/" + otherId, true);
                   db.child("chats").child(chatId).updateChildren(chatUpdate);
               }
 
-              private String getChatId(String uid1, String uid2) {
-                  return uid1.compareTo(uid2) > 0 ? uid1 + "_" + uid2 : uid2 + "_" + uid1;
-              }
-
+              private String getChatId(String uid1, String uid2) { return uid1.compareTo(uid2) > 0 ? uid1 + "_" + uid2 : uid2 + "_" + uid1; }
               private GradientDrawable getAvatar(int seed) {
-                  GradientDrawable gd = new GradientDrawable();
-                  gd.setShape(GradientDrawable.OVAL);
-                  int[] colors = {Color.BLUE, Color.GREEN, Color.RED, Color.MAGENTA, Color.CYAN};
+                  GradientDrawable gd = new GradientDrawable(); gd.setShape(GradientDrawable.OVAL);
+                  int[] colors = {Color.parseColor("#4CAF50"), Color.parseColor("#F44336"), Color.parseColor("#9C27B0"), Color.parseColor("#FF9800"), Color.parseColor("#0088CC")};
                   gd.setColor(colors[Math.abs(seed) % colors.length]);
                   return gd;
               }
               
-              private View inflate(int layoutId) { return LayoutInflater.from(this).inflate(layoutId, container, false); }
               private void requestFocusAndShowKeyboard(View v) { v.requestFocus(); ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).showSoftInput(v, InputMethodManager.SHOW_IMPLICIT); }
               private void hideKeyboard(View v) { ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(v.getWindowToken(), 0); }
-
               @Override public void onBackPressed() {
                   if (drawer.isDrawerOpen(GravityCompat.START)) drawer.closeDrawer(GravityCompat.START);
                   else if (currentState != 0) showChatsList();
                   else super.onBackPressed();
               }
-              
               @Override protected void onDestroy() {
                   super.onDestroy();
-                  if (chatsListener != null) db.removeEventListener(chatsListener);
+                  if (chatsListener != null) db.child("chats").removeEventListener(chatsListener);
                   if (messagesListener != null && messagesRef != null) messagesRef.removeEventListener(messagesListener);
               }
 
-              // --- ViewHolders ---
-              class ChatVH extends RecyclerView.ViewHolder {
-                  TextView name, avatar;
-                  ChatVH(View v) { super(v); name=v.findViewById(R.id.user_name); avatar=v.findViewById(R.id.user_avatar); }
+              // --- ViewHolders & Adapters ---
+              class ChatAdapter extends RecyclerView.Adapter<UserVH> {
+                  private List<Chat> items;
+                  ChatAdapter(List<Chat> items) { this.items = items; }
+                  @NonNull @Override public UserVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new UserVH(LayoutInflater.from(p.getContext()).inflate(R.layout.item_user, p, false)); }
+                  @Override public void onBindViewHolder(@NonNull UserVH h, int pos) {
+                      Chat chat = items.get(pos);
+                      h.name.setText(chat.otherUserName);
+                      h.lastMessage.setText(chat.lastMessage);
+                      h.avatar.setText(chat.otherUserName.substring(0, 1));
+                      h.avatar.setBackground(getAvatar(chat.otherUserName.hashCode()));
+                      h.itemView.setOnClickListener(view -> showChat(chat.otherUserId, chat.otherUserName));
+                  }
+                  @Override public int getItemCount() { return items.size(); }
+              }
+              class UserAdapter extends RecyclerView.Adapter<UserVH> {
+                  private List<User> items;
+                  UserAdapter(List<User> items) { this.items = items; }
+                  @NonNull @Override public UserVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new UserVH(LayoutInflater.from(p.getContext()).inflate(R.layout.item_user, p, false)); }
+                  @Override public void onBindViewHolder(@NonNull UserVH h, int pos) {
+                      User user = items.get(pos);
+                      h.name.setText(user.name);
+                      h.lastMessage.setVisibility(View.GONE);
+                      h.avatar.setText(user.name.substring(0, 1));
+                      h.avatar.setBackground(getAvatar(user.name.hashCode()));
+                      h.itemView.setOnClickListener(view -> showChat(user.uid, user.name));
+                  }
+                  @Override public int getItemCount() { return items.size(); }
+              }
+              class MessageAdapter extends RecyclerView.Adapter<MessageVH> {
+                  private List<Message> items;
+                  MessageAdapter(List<Message> items) { this.items = items; }
+                  @Override public int getItemViewType(int pos) { return items.get(pos).senderId.equals(currentUser.getUid()) ? 1 : 0; }
+                  @NonNull @Override public MessageVH onCreateViewHolder(@NonNull ViewGroup p, int vt) { return new MessageVH(LayoutInflater.from(p.getContext()).inflate(R.layout.item_message, p, false), vt); }
+                  @Override public void onBindViewHolder(@NonNull MessageVH h, int pos) {
+                      Message msg = items.get(pos);
+                      h.text.setText(msg.text);
+                      h.time.setText(new SimpleDateFormat("HH:mm", Locale.US).format(new Date(msg.timestamp)));
+                  }
+                  @Override public int getItemCount() { return items.size(); }
               }
               class UserVH extends RecyclerView.ViewHolder {
-                  TextView name, avatar;
-                  UserVH(View v) { super(v); name=v.findViewById(R.id.user_name); avatar=v.findViewById(R.id.user_avatar); }
+                  TextView name, lastMessage, avatar;
+                  UserVH(View v){super(v); name=v.findViewById(R.id.user_name); lastMessage=v.findViewById(R.id.user_last_message); avatar=v.findViewById(R.id.user_avatar);}
               }
               class MessageVH extends RecyclerView.ViewHolder {
                   TextView text, time;
                   MessageVH(View v, int type) {
-                      super(v);
-                      text = v.findViewById(R.id.msg_text);
-                      time = v.findViewById(R.id.msg_time);
-                      LinearLayout root = v.findViewById(R.id.message_root);
-                      LinearLayout bubble = v.findViewById(R.id.bubble);
-                      if (type == 1) { // Outgoing
-                          root.setGravity(Gravity.END);
-                          bubble.setBackgroundResource(R.drawable.bg_msg_out);
-                          ((TextView)v.findViewById(R.id.msg_time)).setTextColor(Color.parseColor("#6B9F6B"));
-                      } else { // Incoming
-                          root.setGravity(Gravity.START);
-                          bubble.setBackgroundResource(R.drawable.bg_msg_in);
-                          ((TextView)v.findViewById(R.id.msg_time)).setTextColor(Color.GRAY);
-                      }
+                      super(v); text = v.findViewById(R.id.msg_text); time = v.findViewById(R.id.msg_time);
+                      LinearLayout root = v.findViewById(R.id.message_root), bubble = v.findViewById(R.id.bubble);
+                      if(type == 1) { root.setGravity(Gravity.END); bubble.setBackgroundResource(R.drawable.bg_msg_out); time.setTextColor(Color.parseColor("#6B9F6B")); } 
+                      else { root.setGravity(Gravity.START); bubble.setBackgroundResource(R.drawable.bg_msg_in); time.setTextColor(Color.GRAY); }
                   }
               }
           }
@@ -502,10 +495,10 @@ jobs:
 
           # --- Build & Manifest Files ---
           cat <<EOF > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.ttt.app">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
               <application android:label="Firebase Messenger" android:theme="@style/AppTheme" android:icon="@android:drawable/sym_action_chat">
-                  <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
+                  <activity android:name="com.ttt.app.MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
                       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
                   </activity>
               </application>
