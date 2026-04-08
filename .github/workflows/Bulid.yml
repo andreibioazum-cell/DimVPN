@@ -1,4 +1,4 @@
-name: Enjoer_7.2_Final_Polish
+name: Enjoer_7.3_AI_Sounds_Fixes
 on:
   push:
   workflow_dispatch:
@@ -31,6 +31,7 @@ jobs:
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
+          mkdir -p app/src/main/res/raw
 
           cat <<EOF > gradle.properties
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
@@ -112,7 +113,7 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application
                   android:allowBackup="true"
-                  android:label="Enjoer 7.2"
+                  android:label="Enjoer 7.3"
                   android:supportsRtl="true"
                   android:theme="@style/AppTheme">
                   <activity
@@ -572,16 +573,13 @@ jobs:
 
           cat <<EOF > app/src/main/java/com/enjoer/game/Block.java
           package com.enjoer.game;
-
           public class Block {
               public float x, y, z, sx, sy, sz, r, g, b;
-
               public Block(float x, float y, float z, float sx, float sy, float sz, float r, float g, float b) {
                   this.x = x; this.y = y; this.z = z;
                   this.sx = sx; this.sy = sy; this.sz = sz;
                   this.r = r; this.g = g; this.b = b;
               }
-
               public float minX(){ return x - sx / 2f; }
               public float maxX(){ return x + sx / 2f; }
               public float minY(){ return y - sy / 2f; }
@@ -593,7 +591,6 @@ jobs:
 
           cat <<EOF > app/src/main/java/com/enjoer/game/Survivor.java
           package com.enjoer.game;
-
           public class Survivor {
               public static final int AGENT_SVIN = 0;
               public static final int GRAY_GUY = 1;
@@ -602,16 +599,15 @@ jobs:
 
           cat <<EOF > app/src/main/java/com/enjoer/game/Killer.java
           package com.enjoer.game;
-
           public class Killer {
               public static final int DIMASI4EK229 = 0;
               public static final int DERKA = 1;
           }
           EOF
 
-          cat <<EOF > app/src/main/java/com/enjoer/game/Bot.java
+          cat <<'EOF' > app/src/main/java/com/enjoer/game/Bot.java
           package com.enjoer.game;
-
+          import java.util.*;
           public class Bot {
               public float x, y, z, yaw;
               public float hp = 100f;
@@ -629,6 +625,9 @@ jobs:
               public boolean runMode = false;
               public long hideUntil = 0L;
               public float smoothMoveAmount = 0f;
+              public List<float[]> path = new ArrayList<>();
+              public int pathIndex = 0;
+              public long lastPathTime = 0L;
 
               public Bot(float x, float y, float z, boolean killer) {
                   this.x = x; this.y = y; this.z = z;
@@ -639,7 +638,6 @@ jobs:
 
           cat <<EOF > app/src/main/java/com/enjoer/game/Projectile.java
           package com.enjoer.game;
-
           public class Projectile {
               public float x, y, z, vx, vy, vz;
               public boolean active = true;
@@ -654,9 +652,79 @@ jobs:
           }
           EOF
 
-          cat <<'RENDEREREOF' > app/src/main/java/com/enjoer/game/GameRenderer.java
+          cat <<'EOF' > app/src/main/java/com/enjoer/game/SoundManager.java
+          package com.enjoer.game;
+          import android.content.Context;
+          import android.media.AudioAttributes;
+          import android.media.AudioFormat;
+          import android.media.AudioTrack;
+
+          public class SoundManager {
+              private static final int SAMPLE_RATE = 22050;
+
+              public static void playFootstep(Context ctx) {
+                  playTone(180, 50);
+              }
+
+              public static void playHit(Context ctx) {
+                  playTone(120, 100);
+              }
+
+              public static void playOink(Context ctx) {
+                  playTone(400, 150);
+              }
+
+              public static void playDash(Context ctx) {
+                  playTone(600, 80);
+              }
+
+              public static void playShoot(Context ctx) {
+                  playTone(300, 120);
+              }
+
+              public static void playStun(Context ctx) {
+                  playTone(150, 200);
+              }
+
+              private static void playTone(final int frequency, final int durationMs) {
+                  new Thread(() -> {
+                      try {
+                          int numSamples = (int)((durationMs / 1000.0) * SAMPLE_RATE);
+                          byte[] sound = new byte[numSamples];
+                          for (int i = 0; i < numSamples; i++) {
+                              double angle = 2.0 * Math.PI * i * frequency / SAMPLE_RATE;
+                              sound[i] = (byte)(Math.sin(angle) * 127);
+                          }
+
+                          AudioTrack track = new AudioTrack.Builder()
+                              .setAudioAttributes(new AudioAttributes.Builder()
+                                  .setUsage(AudioAttributes.USAGE_GAME)
+                                  .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                  .build())
+                              .setAudioFormat(new AudioFormat.Builder()
+                                  .setEncoding(AudioFormat.ENCODING_PCM_8BIT)
+                                  .setSampleRate(SAMPLE_RATE)
+                                  .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                                  .build())
+                              .setBufferSizeInBytes(sound.length)
+                              .build();
+
+                          track.play();
+                          track.write(sound, 0, sound.length);
+                          track.stop();
+                          track.release();
+                      } catch (Exception e) {
+                          e.printStackTrace();
+                      }
+                  }).start();
+              }
+          }
+          EOF
+
+          cat <<'RENDEREOF' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
 
+          import android.content.Context;
           import android.opengl.GLES30;
           import android.opengl.GLSurfaceView;
           import android.opengl.Matrix;
@@ -673,6 +741,7 @@ jobs:
               private final float[] view = new float[16];
               private final float[] model = new float[16];
               private final Random rnd = new Random();
+              public Context context;
 
               public float pX = 0f, pY = 1f, pZ = 0f;
               public float rY = 180f, rX = 15f;
@@ -681,6 +750,7 @@ jobs:
               public float walkTime = 0f;
               public float moveAmount = 0f;
               public float smoothMoveAmount = 0f;
+              private float lastMoveAmount = 0f;
 
               public boolean runEnabled = false;
               public float stamina = 100f;
@@ -723,7 +793,12 @@ jobs:
               public static final long ROUND_MS = 70000L;
               public static final long LOBBY_MS = 30000L;
 
-              public GameRenderer() { startLobby(); }
+              private long footstepTimer = 0L;
+
+              public GameRenderer(Context ctx) {
+                  this.context = ctx;
+                  startLobby();
+              }
 
               public void toggleRun() { runEnabled = !runEnabled; }
               public void setSurvivor(int s) { selectedSurvivor = s; }
@@ -816,24 +891,30 @@ jobs:
                               if (!b.alive || !b.killer) continue;
                               float dx = b.x - pX, dz = b.z - pZ;
                               float d = dx*dx + dz*dz;
-                              if (d < best && d < 36f) { best = d; nearest = b; }
+                              if (d < best) { best = d; nearest = b; }
                           }
-                          if (nearest != null) {
+
+                          boolean hit = false;
+                          if (nearest != null && best < 36f) {
                               float dx = nearest.x - pX, dz = nearest.z - pZ;
                               float dist = (float)Math.sqrt(dx*dx + dz*dz);
-                              if (dist < 0.001f) return;
-                              dx /= dist; dz /= dist;
-                              float yawRad = (float)Math.toRadians(bodyYaw);
-                              float fx = (float)Math.sin(yawRad);
-                              float fz = (float)Math.cos(yawRad);
-                              float dot = fx * dx + fz * dz;
-                              float angle = (float)Math.toDegrees(Math.acos(Math.max(-1f, Math.min(1f, dot))));
-                              if (angle < 60f && dist < 6f) {
-                                  nearest.anim = -120f;
-                                  playerBodyAnim = 16f;
-                                  skill1CdUntil = now + 8000L;
+                              if (dist > 0.001f) {
+                                  dx /= dist; dz /= dist;
+                                  float yawRad = (float)Math.toRadians(bodyYaw);
+                                  float fx = (float)Math.sin(yawRad);
+                                  float fz = (float)Math.cos(yawRad);
+                                  float dot = fx * dx + fz * dz;
+                                  float angle = (float)Math.toDegrees(Math.acos(Math.max(-1f, Math.min(1f, dot))));
+                                  if (angle < 60f) {
+                                      nearest.anim = -120f;
+                                      hit = true;
+                                  }
                               }
                           }
+
+                          playerBodyAnim = 16f;
+                          skill1CdUntil = now + 8000L;
+                          SoundManager.playOink(context);
                       } else if (selectedSurvivor == Survivor.GRAY_GUY) {
                           float yawRad = (float)Math.toRadians(bodyYaw);
                           float dx = (float)Math.sin(yawRad) * 4f;
@@ -846,9 +927,10 @@ jobs:
                           }
                           playerBodyAnim = 12f;
                           skill1CdUntil = now + 6000L;
+                          SoundManager.playDash(context);
                       }
                   } else {
-                      playerArmAnim = 45f;
+                      playerArmAnim = 60f;
                       float range = (selectedKiller == Killer.DERKA) ? 6.5f : 4f;
                       float dmg = (selectedKiller == Killer.DERKA) ? 35f : 30f;
                       for (Bot b : bots) {
@@ -860,6 +942,7 @@ jobs:
                           }
                       }
                       skill1CdUntil = now + 2500L;
+                      SoundManager.playHit(context);
                   }
               }
 
@@ -878,11 +961,13 @@ jobs:
                           float vx = (float)Math.sin(yawRad) * 0.45f;
                           float vz = (float)Math.cos(yawRad) * 0.45f;
                           projectiles.add(new Projectile(pX, pY + 1.7f, pZ, vx, 0f, vz, true));
-                          playerArmAnim = 35f;
+                          playerArmAnim = 50f;
                           skill2CdUntil = now + 5000L;
+                          SoundManager.playShoot(context);
                       } else if (selectedKiller == Killer.DERKA) {
                           derkaDashUntil = now + 350L;
                           skill2CdUntil = now + 6000L;
+                          SoundManager.playDash(context);
                       }
                   }
               }
@@ -898,7 +983,7 @@ jobs:
                           killerBoostUsed = true;
                           skill3CdUntil = now + 9999999L;
                       } else if (selectedKiller == Killer.DERKA) {
-                          playerArmAnim = 30f;
+                          playerArmAnim = 40f;
                           for (Bot b : bots) {
                               if (!b.alive || b.killer) continue;
                               float dx = b.x - pX, dz = b.z - pZ;
@@ -907,6 +992,7 @@ jobs:
                               }
                           }
                           skill3CdUntil = now + 12000L;
+                          SoundManager.playStun(context);
                       }
                   }
               }
@@ -944,8 +1030,7 @@ jobs:
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
                   GLES30.glDisable(GLES30.GL_CULL_FACE);
 
-                  String vs = "#version 300 es\n" +
-                      "layout(location=0) in vec4 aP;layout(location=1) in vec3 aN;" +
+                  String vs = "#version 300 es\nlayout(location=0) in vec4 aP;layout(location=1) in vec3 aN;" +
                       "uniform mat4 uMVP;uniform mat4 uM;out vec3 vN;out vec3 vP;" +
                       "void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
 
@@ -955,8 +1040,7 @@ jobs:
                       "vec3 n=normalize(vN),vD=normalize(camP-vP),lD=normalize(vec3(.3,1.,.15));" +
                       "float diff=max(dot(n,lD),0.);vec3 h=normalize(lD+vD);" +
                       "float spec=pow(max(dot(n,h),0.),28.)*.18;vec3 amb=vec3(.14);" +
-                      "vec3 fin=uC.rgb*(diff+amb)+spec;" +
-                      "fC=vec4(fin,uC.a);}";
+                      "fC=vec4(uC.rgb*(diff+amb)+spec,uC.a);}";
 
                   prog3d = mkProg(vs, fs);
 
@@ -964,22 +1048,11 @@ jobs:
                   String fs2d = "#version 300 es\nprecision mediump float;uniform vec4 uC;out vec4 fC;void main(){fC=uC;}";
                   prog2d = mkProg(vs2d, fs2d);
 
-                  float[] vc = {
-                      -.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,
-                      -.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,
-                      -.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,
-                      -.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,
-                      -.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,
-                      .5f,.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f
-                  };
-                  float[] nc = {
-                      0,0,1,0,0,1,0,0,1,0,0,1,
-                      0,0,-1,0,0,-1,0,0,-1,0,0,-1,
-                      0,1,0,0,1,0,0,1,0,0,1,0,
-                      0,-1,0,0,-1,0,0,-1,0,0,-1,0,
-                      -1,0,0,-1,0,0,-1,0,0,-1,0,0,
-                      1,0,0,1,0,0,1,0,0,1,0,0
-                  };
+                  float[] vc = {-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,
+                      -.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,
+                      -.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f};
+                  float[] nc = {0,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,1,0,0,1,0,0,1,0,0,1,0,
+                      0,-1,0,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,0,-1,0,0,1,0,0,1,0,0,1,0,0,1,0,0};
 
                   vBuf = ByteBuffer.allocateDirect(vc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vc);
                   vBuf.position(0);
@@ -1002,19 +1075,15 @@ jobs:
 
                   float[] cam = computeCamera();
                   float camX = cam[0], camY = cam[1], camZ = cam[2];
-
                   float targetX = pX, targetY = pY + 1.25f, targetZ = pZ;
-
                   if (Math.abs(camX - targetX) < 0.0001f && Math.abs(camZ - targetZ) < 0.0001f) camX += 0.001f;
-
                   Matrix.setLookAtM(view, 0, camX, camY, camZ, targetX, targetY, targetZ, 0, 1, 0);
 
                   GLES30.glUseProgram(prog3d);
                   int uMVP = GLES30.glGetUniformLocation(prog3d, "uMVP");
                   int uM = GLES30.glGetUniformLocation(prog3d, "uM");
                   int uC = GLES30.glGetUniformLocation(prog3d, "uC");
-                  int camLoc = GLES30.glGetUniformLocation(prog3d, "camP");
-                  GLES30.glUniform3f(camLoc, camX, camY, camZ);
+                  GLES30.glUniform3f(GLES30.glGetUniformLocation(prog3d, "camP"), camX, camY, camZ);
 
                   GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 0, vBuf);
                   GLES30.glEnableVertexAttribArray(0);
@@ -1058,7 +1127,6 @@ jobs:
                   GLES30.glUseProgram(prog2d);
                   int uMVP2d = GLES30.glGetUniformLocation(prog2d, "uMVP");
                   int uC2d = GLES30.glGetUniformLocation(prog2d, "uC");
-
                   GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 0, vBuf);
                   GLES30.glEnableVertexAttribArray(0);
 
@@ -1098,7 +1166,6 @@ jobs:
               private float[] computeCamera() {
                   float yawRad = (float)Math.toRadians(rY);
                   float pitchRad = (float)Math.toRadians(rX);
-
                   float targetX = pX, targetY = pY + 1.25f, targetZ = pZ;
                   float desiredDist = 8.0f, minDist = 3.6f;
 
@@ -1111,7 +1178,6 @@ jobs:
                   float desiredZ = targetZ + dirZ * desiredDist;
 
                   float bestT = 1f;
-
                   for (Block b : blocks) {
                       float t = segmentAabbExpanded(targetX, targetY, targetZ, desiredX, desiredY, desiredZ, b, 1.05f);
                       if (t >= 0f && t < bestT) bestT = t;
@@ -1176,7 +1242,7 @@ jobs:
                   updateProjectiles();
                   updateBots();
 
-                  if (playerArmAnim > 0f) playerArmAnim -= 2.2f;
+                  if (playerArmAnim > 0f) playerArmAnim -= 3f;
                   if (playerBodyAnim > 0f) playerBodyAnim -= 1f;
 
                   if (inMenu) return;
@@ -1236,6 +1302,11 @@ jobs:
                       walkTime += canUseRun ? 0.40f : 0.24f;
                   }
 
+                  if (moveAmount > 0.01f && now - footstepTimer > 300L) {
+                      SoundManager.playFootstep(context);
+                      footstepTimer = now;
+                  }
+
                   if (canUseRun) {
                       stamina -= 0.14f;
                       if (stamina <= 0f) {
@@ -1255,20 +1326,15 @@ jobs:
               private void updateProjectiles() {
                   for (Projectile p : projectiles) {
                       if (!p.active) continue;
-
                       p.x += p.vx; p.y += p.vy; p.z += p.vz;
                       p.life -= 1f;
-
                       if (p.life <= 0f) p.active = false;
-
                       for (Block b : blocks) {
                           if (p.x > b.minX() && p.x < b.maxX() && p.y > b.minY() && p.y < b.maxY() && p.z > b.minZ() && p.z < b.maxZ()) {
                               p.active = false;
                           }
                       }
-
                       if (!p.active) continue;
-
                       if (p.fromPlayer) {
                           for (Bot b : bots) {
                               if (!b.alive || b.killer == playerIsKiller) continue;
@@ -1298,7 +1364,6 @@ jobs:
                   for (Bot b : bots) {
                       if (!b.alive) continue;
                       if (now < b.stunnedUntil) continue;
-
                       if (b.anim < 0f) { b.anim += 1f; continue; }
                       if (b.swing > 0f) b.swing -= 1f;
 
@@ -1319,37 +1384,25 @@ jobs:
                           }
                           if (nearestSurvivor == null && !playerIsKiller && now >= playerHideUntil) {
                               float dx = pX - b.x, dz = pZ - b.z;
-                              bestD = dx*dx + dz*dz;
-                              nearestSurvivor = null;
-                          }
-                          if (nearestSurvivor != null) {
+                              float d = dx*dx + dz*dz;
+                              if (d < bestD) { bestD = d; tx = pX; tz = pZ; }
+                              else { tx = b.x; tz = b.z; }
+                          } else if (nearestSurvivor != null) {
                               tx = nearestSurvivor.x; tz = nearestSurvivor.z;
-                              if (bestD < 100f) shouldRun = true;
-                          } else if (!playerIsKiller && now >= playerHideUntil) {
-                              tx = pX; tz = pZ;
-                              if (bestD < 100f) shouldRun = true;
                           } else {
-                              tx = b.x + (rnd.nextFloat() - 0.5f);
-                              tz = b.z + (rnd.nextFloat() - 0.5f);
+                              tx = b.x; tz = b.z;
                           }
+                          if (bestD < 100f) shouldRun = true;
                       } else {
-                          Bot killerBot = getKillerBot();
-                          if (playerIsKiller) {
-                              float dx = pX - b.x, dz = pZ - b.z;
-                              float d = dx*dx + dz*dz;
-                              if (d < 64f) shouldRun = true;
-                              tx = b.x - (pX - b.x);
-                              tz = b.z - (pZ - b.z);
-                          } else if (killerBot != null) {
-                              float dx = killerBot.x - b.x, dz = killerBot.z - b.z;
-                              float d = dx*dx + dz*dz;
-                              if (d < 64f) shouldRun = true;
-                              tx = b.x - (killerBot.x - b.x);
-                              tz = b.z - (killerBot.z - b.z);
-                          } else {
-                              tx = b.x + (rnd.nextFloat() - 0.5f);
-                              tz = b.z + (rnd.nextFloat() - 0.5f);
-                          }
+                          Bot killerBot = null;
+                          for (Bot k : bots) if (k.alive && k.killer) killerBot = k;
+                          float kx = playerIsKiller ? pX : (killerBot != null ? killerBot.x : b.x);
+                          float kz = playerIsKiller ? pZ : (killerBot != null ? killerBot.z : b.z);
+                          float dx = kx - b.x, dz = kz - b.z;
+                          float d = dx*dx + dz*dz;
+                          if (d < 64f) shouldRun = true;
+                          tx = b.x - (kx - b.x);
+                          tz = b.z - (kz - b.z);
 
                           if (b.survivorType == Survivor.GRAY_GUY && rnd.nextInt(300) == 0) {
                               b.hideUntil = now + 5000L;
@@ -1398,7 +1451,7 @@ jobs:
                           if (pdx*pdx + pdz*pdz < 3.2f && !playerIsKiller) {
                               playerHp -= 0.18f;
                               if (playerHp < 0f) playerHp = 0f;
-                              b.swing = 18f;
+                              b.swing = 25f;
                           }
 
                           if (b.killerType == Killer.DIMASI4EK229 && rnd.nextInt(220) == 0) {
@@ -1406,11 +1459,12 @@ jobs:
                               float vx = (float)Math.sin(yawRad) * 0.32f;
                               float vz = (float)Math.cos(yawRad) * 0.32f;
                               projectiles.add(new Projectile(b.x, b.y + 1.7f, b.z, vx, 0f, vz, false));
-                              b.swing = 14f;
+                              b.swing = 18f;
                           }
                       } else {
                           if (rnd.nextInt(260) == 0 && !playerIsKiller) {
-                              Bot killer = getKillerBot();
+                              Bot killer = null;
+                              for (Bot k : bots) if (k.alive && k.killer) killer = k;
                               if (killer != null) {
                                   float kdx = killer.x - b.x, kdz = killer.z - b.z;
                                   if (kdx*kdx + kdz*kdz < 25f) {
@@ -1420,11 +1474,6 @@ jobs:
                           }
                       }
                   }
-              }
-
-              private Bot getKillerBot() {
-                  for (Bot b : bots) if (b.alive && b.killer) return b;
-                  return null;
               }
 
               private boolean collides(float x, float z) {
@@ -1469,8 +1518,8 @@ jobs:
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.8f,0f, 0.9f,1.8f,0.9f, 0.08f,0.12f,0.08f);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.85f,1.5f,0f, 0.35f,2.4f,0.35f, 0.05f,0.10f,0.05f, attackAnim > 0f ? attackAnim : swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.85f,1.5f,0f, 0.35f,2.4f,0.35f, 0.05f,0.10f,0.05f, -swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.35f,-0.7f,0f, 0.40f,2.2f,0.40f, 0.04f,0.08f,0.04f,-swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.35f,-0.7f,0f, 0.40f,2.2f,0.40f, 0.04f,0.08f,0.04f, swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.35f,-0.5f,0f, 0.40f,2.5f,0.40f, 0.04f,0.08f,0.04f,-swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.35f,-0.5f,0f, 0.40f,2.5f,0.40f, 0.04f,0.08f,0.04f, swing);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,4.1f,0f, 0.8f,0.8f,0.8f, 0.70f,0.72f,0.65f);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.22f,4.2f,0.41f, 0.15f,0.15f,0.05f, 0.9f,0.05f,0.05f);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.22f,4.2f,0.41f, 0.15f,0.15f,0.05f, 0.9f,0.05f,0.05f);
@@ -1479,21 +1528,22 @@ jobs:
 
               private void drawDimasi4ek(int uM,int uMVP,int uC,float bx,float by,float bz,float yaw,float swing,float attackAnim){
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.8f,0f, 1.15f,1.15f,1.15f, 0.92f,0.83f,0.74f);
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.32f,0f, 1.02f,0.28f,1.0f, 0.28f,0.20f,0.14f);
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, -0.38f,3.08f,0.08f, 0.18f,0.45f,0.68f, 0.27f,0.19f,0.13f);
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw,  0.38f,3.08f,0.08f, 0.18f,0.45f,0.68f, 0.27f,0.19f,0.13f);
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.05f,0.46f, 0.72f,0.18f,0.18f, 0.26f,0.18f,0.12f);
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.05f,-0.50f, 0.88f,0.22f,0.18f, 0.26f,0.18f,0.12f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.40f,0f, 1.15f,0.35f,1.15f, 0.28f,0.20f,0.14f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, -0.45f,3.15f,0.12f, 0.25f,0.55f,0.80f, 0.27f,0.19f,0.13f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw,  0.45f,3.15f,0.12f, 0.25f,0.55f,0.80f, 0.27f,0.19f,0.13f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.15f,0.58f, 0.95f,0.24f,0.24f, 0.26f,0.18f,0.12f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.12f,-0.58f, 1.05f,0.28f,0.24f, 0.26f,0.18f,0.12f);
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,1.3f,0f, 1.6f,1.8f,0.9f, 0.22f,0.22f,0.22f);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.88f,0f, 0.64f,0.34f,0.64f, 0.15f,0.15f,0.18f, attackAnim > 0f ? attackAnim : swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.88f,0f, 0.64f,0.34f,0.64f, 0.15f,0.15f,0.18f, -swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.12f,0f, 0.54f,1.22f,0.54f, 0.92f,0.83f,0.74f, attackAnim > 0f ? attackAnim : swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.12f,0f, 0.54f,1.22f,0.54f, 0.92f,0.83f,0.74f, -swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.14f,0.14f,0.14f,-swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.14f,0.14f,0.14f, swing);
-                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.22f,3.0f,0.51f, 0.10f,0.10f,0.08f, 0.05f,0.05f,0.05f);
-                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.22f,3.0f,0.51f, 0.10f,0.10f,0.08f, 0.05f,0.05f,0.05f);
-                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.70f,0.51f, 0.34f,0.06f,0.06f, 0.05f,0.05f,0.05f);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.96f,0f, 0.75f,0.42f,0.75f, 0.15f,0.15f,0.18f, attackAnim > 0f ? attackAnim : swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.96f,0f, 0.75f,0.42f,0.75f, 0.15f,0.15f,0.18f, -swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.15f,0f, 0.60f,1.35f,0.60f, 0.92f,0.83f,0.74f, attackAnim > 0f ? attackAnim : swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.15f,0f, 0.60f,1.35f,0.60f, 0.92f,0.83f,0.74f, -swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.45f,-0.5f,0f, 0.7f,2.3f,0.7f, 0.14f,0.14f,0.14f,-swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.45f,-0.5f,0f, 0.7f,2.3f,0.7f, 0.14f,0.14f,0.14f, swing);
+                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.24f,3.05f,0.59f, 0.12f,0.12f,0.10f, 0.05f,0.05f,0.05f);
+                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.24f,3.05f,0.59f, 0.12f,0.12f,0.10f, 0.05f,0.05f,0.05f);
+                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.88f,0.60f, 0.15f,0.05f,0.05f, 0.50f,0.40f,0.35f);
+                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.72f,0.59f, 0.38f,0.08f,0.08f, 0.05f,0.05f,0.05f);
               }
 
               private void drawAgentSvin(int uM,int uMVP,int uC,float bx,float by,float bz,float yaw,float swing,float bodyAnim){
@@ -1502,8 +1552,8 @@ jobs:
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,0.15f,0f, 1.55f,0.55f,0.92f, 0.2f,0.4f,0.95f);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 1.0f,0.68f,0.78f, swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 1.0f,0.68f,0.78f,-swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.2f,0.4f,0.95f,-swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.2f,0.4f,0.95f, swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.45f,-0.5f,0f, 0.7f,2.3f,0.7f, 0.2f,0.4f,0.95f,-swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.45f,-0.5f,0f, 0.7f,2.3f,0.7f, 0.2f,0.4f,0.95f, swing);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.75f,0.72f, 0.58f,0.34f,0.26f, 0.96f,0.56f,0.72f);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.22f,3.02f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.22f,3.02f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
@@ -1516,8 +1566,8 @@ jobs:
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,1.3f,0f, 1.6f,1.8f,0.9f, 0.55f,0.55f,0.55f);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 0.82f,0.82f,0.82f, swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 0.82f,0.82f,0.82f,-swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.3f,0.3f,0.3f,-swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.3f,0.3f,0.3f, swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.45f,-0.5f,0f, 0.7f,2.3f,0.7f, 0.3f,0.3f,0.3f,-swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.45f,-0.5f,0f, 0.7f,2.3f,0.7f, 0.3f,0.3f,0.3f, swing);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.22f,3.0f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.22f,3.0f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.72f,0.62f, 0.32f,0.05f,0.05f, 0f,0f,0f);
@@ -1584,7 +1634,7 @@ jobs:
                   return sh;
               }
           }
-          RENDEREREOF
+          RENDEREOF
 
           cat <<'EOF' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
@@ -1608,7 +1658,9 @@ jobs:
               private TextView txtTimer, txtSelSurv, txtSelKill;
               private Button btnRun, btnSkill1, btnSkill2, btnSkill3;
               private View menuUI, gameUI, survMenu, killerMenu;
-              private Button btnBackMenu, btnOpenSurvivors, btnOpenKillers;
+              private Button btnBackMenu, btnOpenSurvivors, btnOpenKillers, btnPlay;
+
+              private long menuCooldownUntil = 0L;
 
               @SuppressLint("ClickableViewAccessibility")
               @Override
@@ -1619,7 +1671,7 @@ jobs:
                   GLSurfaceView gv = findViewById(R.id.gl_view);
                   gv.setEGLContextClientVersion(3);
 
-                  ren = new GameRenderer();
+                  ren = new GameRenderer(this);
                   gv.setRenderer(ren);
 
                   staminaFill = findViewById(R.id.stamina_fill);
@@ -1638,6 +1690,7 @@ jobs:
                   btnBackMenu = findViewById(R.id.btn_back_menu);
                   btnOpenSurvivors = findViewById(R.id.btn_open_survivors);
                   btnOpenKillers = findViewById(R.id.btn_open_killers);
+                  btnPlay = findViewById(R.id.btn_play);
 
                   setupJoy(findViewById(R.id.joy_base), findViewById(R.id.joy_stick));
                   setupLook(findViewById(R.id.look_zone));
@@ -1647,7 +1700,10 @@ jobs:
               }
 
               private void setupButtons() {
-                  findViewById(R.id.btn_play).setOnClickListener(v -> {
+                  btnPlay.setOnClickListener(v -> {
+                      long now = System.currentTimeMillis();
+                      if (now < menuCooldownUntil) return;
+
                       ren.startGameFromMenu();
                       menuUI.setVisibility(View.GONE);
                       gameUI.setVisibility(View.VISIBLE);
@@ -1661,6 +1717,7 @@ jobs:
                       gameUI.setVisibility(View.GONE);
                       survMenu.setVisibility(View.GONE);
                       killerMenu.setVisibility(View.GONE);
+                      menuCooldownUntil = System.currentTimeMillis() + 10000L;
                   });
 
                   btnOpenSurvivors.setOnClickListener(v -> {
@@ -1714,6 +1771,16 @@ jobs:
                   txtSelSurv.setText("SURVIVOR: " + (ren.selectedSurvivor == Survivor.AGENT_SVIN ? "AGENT SVIN" : "GRAY GUY"));
                   txtSelKill.setText("KILLER: " + (ren.selectedKiller == Killer.DERKA ? "DERKA" : "DIMASI4EK229"));
 
+                  long now = System.currentTimeMillis();
+                  if (now < menuCooldownUntil) {
+                      long leftSec = (menuCooldownUntil - now) / 1000L;
+                      btnPlay.setText("WAIT " + leftSec + "s");
+                      btnPlay.setEnabled(false);
+                  } else {
+                      btnPlay.setText("PLAY");
+                      btnPlay.setEnabled(true);
+                  }
+
                   if (!ren.inMenu && !ren.inLobby) {
                       btnBackMenu.setVisibility(View.GONE);
                       btnOpenSurvivors.setEnabled(false);
@@ -1748,8 +1815,6 @@ jobs:
 
                   btnRun.setBackgroundResource(ren.runEnabled ? R.drawable.run_btn_active : R.drawable.run_btn);
                   btnRun.setTextColor(ren.runEnabled ? 0xFF111111 : 0xFFE0E0E0);
-
-                  long now = System.currentTimeMillis();
 
                   if (ren.playerIsKiller) {
                       btnSkill2.setVisibility(View.VISIBLE);
@@ -1856,5 +1921,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_7.2_Final_Polish_APK
+          name: Enjoer_7.3_AI_Sounds_Fixes_APK
           path: app/build/outputs/apk/debug/app-debug.apk
