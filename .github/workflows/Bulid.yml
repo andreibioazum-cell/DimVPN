@@ -1,4 +1,4 @@
-name: Enjoer_7.1_LobbySelect_Fixes
+name: Enjoer_7.2_Final_Polish
 on:
   push:
   workflow_dispatch:
@@ -112,7 +112,7 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application
                   android:allowBackup="true"
-                  android:label="Enjoer 7.1"
+                  android:label="Enjoer 7.2"
                   android:supportsRtl="true"
                   android:theme="@style/AppTheme">
                   <activity
@@ -577,15 +577,9 @@ jobs:
               public float x, y, z, sx, sy, sz, r, g, b;
 
               public Block(float x, float y, float z, float sx, float sy, float sz, float r, float g, float b) {
-                  this.x = x;
-                  this.y = y;
-                  this.z = z;
-                  this.sx = sx;
-                  this.sy = sy;
-                  this.sz = sz;
-                  this.r = r;
-                  this.g = g;
-                  this.b = b;
+                  this.x = x; this.y = y; this.z = z;
+                  this.sx = sx; this.sy = sy; this.sz = sz;
+                  this.r = r; this.g = g; this.b = b;
               }
 
               public float minX(){ return x - sx / 2f; }
@@ -619,8 +613,7 @@ jobs:
           package com.enjoer.game;
 
           public class Bot {
-              public float x, y, z;
-              public float yaw;
+              public float x, y, z, yaw;
               public float hp = 100f;
               public boolean alive = true;
               public boolean killer;
@@ -630,11 +623,15 @@ jobs:
               public float swing = 0f;
               public float hpBar = 100f;
               public long stunnedUntil = 0L;
+              public float stamina = 100f;
+              public long staminaCdUntil = 0L;
+              public boolean staminaBroken = false;
+              public boolean runMode = false;
+              public long hideUntil = 0L;
+              public float smoothMoveAmount = 0f;
 
               public Bot(float x, float y, float z, boolean killer) {
-                  this.x = x;
-                  this.y = y;
-                  this.z = z;
+                  this.x = x; this.y = y; this.z = z;
                   this.killer = killer;
               }
           }
@@ -644,25 +641,20 @@ jobs:
           package com.enjoer.game;
 
           public class Projectile {
-              public float x, y, z;
-              public float vx, vy, vz;
+              public float x, y, z, vx, vy, vz;
               public boolean active = true;
               public float life = 180f;
               public boolean fromPlayer = true;
 
               public Projectile(float x, float y, float z, float vx, float vy, float vz, boolean fromPlayer) {
-                  this.x = x;
-                  this.y = y;
-                  this.z = z;
-                  this.vx = vx;
-                  this.vy = vy;
-                  this.vz = vz;
+                  this.x = x; this.y = y; this.z = z;
+                  this.vx = vx; this.vy = vy; this.vz = vz;
                   this.fromPlayer = fromPlayer;
               }
           }
           EOF
 
-          cat <<'EOF' > app/src/main/java/com/enjoer/game/GameRenderer.java
+          cat <<'RENDEREREOF' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
 
           import android.opengl.GLES30;
@@ -671,7 +663,7 @@ jobs:
           import java.nio.ByteBuffer;
           import java.nio.ByteOrder;
           import java.nio.FloatBuffer;
-          import java.util.Random;
+          import java.util.*;
           import java.util.concurrent.CopyOnWriteArrayList;
           import javax.microedition.khronos.egl.EGLConfig;
           import javax.microedition.khronos.opengles.GL10;
@@ -688,6 +680,7 @@ jobs:
               public float bodyYaw = 180f;
               public float walkTime = 0f;
               public float moveAmount = 0f;
+              public float smoothMoveAmount = 0f;
 
               public boolean runEnabled = false;
               public float stamina = 100f;
@@ -705,6 +698,7 @@ jobs:
               public float playerHp = 100f;
               public long playerStunnedUntil = 0L;
               public long derkaDashUntil = 0L;
+              public long playerHideUntil = 0L;
 
               public long skill1CdUntil = 0L;
               public long skill2CdUntil = 0L;
@@ -729,9 +723,7 @@ jobs:
               public static final long ROUND_MS = 70000L;
               public static final long LOBBY_MS = 30000L;
 
-              public GameRenderer() {
-                  startLobby();
-              }
+              public GameRenderer() { startLobby(); }
 
               public void toggleRun() { runEnabled = !runEnabled; }
               public void setSurvivor(int s) { selectedSurvivor = s; }
@@ -756,6 +748,7 @@ jobs:
                   playerHp = 100f;
                   playerStunnedUntil = 0L;
                   derkaDashUntil = 0L;
+                  playerHideUntil = 0L;
                   skill1CdUntil = 0L;
                   skill2CdUntil = 0L;
                   skill3CdUntil = 0L;
@@ -763,6 +756,7 @@ jobs:
                   stamina = 100f;
                   staminaBroken = false;
                   runEnabled = false;
+                  smoothMoveAmount = 0f;
                   loadRoundMap();
                   spawnRoundBots();
               }
@@ -773,6 +767,7 @@ jobs:
                   pX = 0f; pY = 1f; pZ = 20f;
                   bodyYaw = 180f; rY = 180f; rX = 15f;
                   playerHp = 100f;
+                  smoothMoveAmount = 0f;
                   loadLobbyMap();
                   spawnLobbyBots();
               }
@@ -787,16 +782,13 @@ jobs:
               private void spawnRoundBots() {
                   bots.clear();
                   projectiles.clear();
-
                   int killerIndex = rnd.nextInt(4);
                   playerIsKiller = killerIndex == 0;
-
                   for (int i = 1; i <= 3; i++) {
                       boolean isKiller = killerIndex == i;
                       Bot b = new Bot(-8f + i * 6f, 1f, -2f - i * 4f, isKiller);
                       b.survivorType = (i % 2 == 0) ? Survivor.AGENT_SVIN : Survivor.GRAY_GUY;
-                      b.killerType = (rnd.nextBoolean()) ? Killer.DIMASI4EK229 : Killer.DERKA;
-                      if(isKiller && playerIsKiller) b.killerType = selectedKiller; // Keep consistency if bot was killer
+                      b.killerType = rnd.nextBoolean() ? Killer.DIMASI4EK229 : Killer.DERKA;
                       bots.add(b);
                   }
               }
@@ -817,21 +809,46 @@ jobs:
                   if (now < skill1CdUntil || inMenu) return;
 
                   if (!playerIsKiller) {
-                      Bot nearest = null;
-                      float best = 99999f;
-                      for (Bot b : bots) {
-                          if (!b.alive || !b.killer) continue;
-                          float dx = b.x - pX, dz = b.z - pZ;
-                          float d = dx*dx + dz*dz;
-                          if (d < best && d < 36f) { best = d; nearest = b; }
-                      }
-                      if (nearest != null) {
-                          nearest.anim = -120f;
-                          playerBodyAnim = 16f;
-                          skill1CdUntil = now + 8000L;
+                      if (selectedSurvivor == Survivor.AGENT_SVIN) {
+                          Bot nearest = null;
+                          float best = 99999f;
+                          for (Bot b : bots) {
+                              if (!b.alive || !b.killer) continue;
+                              float dx = b.x - pX, dz = b.z - pZ;
+                              float d = dx*dx + dz*dz;
+                              if (d < best && d < 36f) { best = d; nearest = b; }
+                          }
+                          if (nearest != null) {
+                              float dx = nearest.x - pX, dz = nearest.z - pZ;
+                              float dist = (float)Math.sqrt(dx*dx + dz*dz);
+                              if (dist < 0.001f) return;
+                              dx /= dist; dz /= dist;
+                              float yawRad = (float)Math.toRadians(bodyYaw);
+                              float fx = (float)Math.sin(yawRad);
+                              float fz = (float)Math.cos(yawRad);
+                              float dot = fx * dx + fz * dz;
+                              float angle = (float)Math.toDegrees(Math.acos(Math.max(-1f, Math.min(1f, dot))));
+                              if (angle < 60f && dist < 6f) {
+                                  nearest.anim = -120f;
+                                  playerBodyAnim = 16f;
+                                  skill1CdUntil = now + 8000L;
+                              }
+                          }
+                      } else if (selectedSurvivor == Survivor.GRAY_GUY) {
+                          float yawRad = (float)Math.toRadians(bodyYaw);
+                          float dx = (float)Math.sin(yawRad) * 4f;
+                          float dz = (float)Math.cos(yawRad) * 4f;
+                          float newX = pX + dx;
+                          float newZ = pZ + dz;
+                          if (!collides(newX, newZ)) {
+                              pX = newX;
+                              pZ = newZ;
+                          }
+                          playerBodyAnim = 12f;
+                          skill1CdUntil = now + 6000L;
                       }
                   } else {
-                      playerArmAnim = 28f;
+                      playerArmAnim = 45f;
                       float range = (selectedKiller == Killer.DERKA) ? 6.5f : 4f;
                       float dmg = (selectedKiller == Killer.DERKA) ? 35f : 30f;
                       for (Bot b : bots) {
@@ -850,13 +867,18 @@ jobs:
                   long now = System.currentTimeMillis();
                   if (now < skill2CdUntil || inMenu) return;
 
-                  if (playerIsKiller) {
+                  if (!playerIsKiller) {
+                      if (selectedSurvivor == Survivor.GRAY_GUY) {
+                          playerHideUntil = now + 5000L;
+                          skill2CdUntil = now + 12000L;
+                      }
+                  } else {
                       if (selectedKiller == Killer.DIMASI4EK229) {
                           float yawRad = (float)Math.toRadians(bodyYaw);
                           float vx = (float)Math.sin(yawRad) * 0.45f;
                           float vz = (float)Math.cos(yawRad) * 0.45f;
                           projectiles.add(new Projectile(pX, pY + 1.7f, pZ, vx, 0f, vz, true));
-                          playerArmAnim = 22f;
+                          playerArmAnim = 35f;
                           skill2CdUntil = now + 5000L;
                       } else if (selectedKiller == Killer.DERKA) {
                           derkaDashUntil = now + 350L;
@@ -876,7 +898,7 @@ jobs:
                           killerBoostUsed = true;
                           skill3CdUntil = now + 9999999L;
                       } else if (selectedKiller == Killer.DERKA) {
-                          playerArmAnim = 20f;
+                          playerArmAnim = 30f;
                           for (Bot b : bots) {
                               if (!b.alive || b.killer) continue;
                               float dx = b.x - pX, dz = b.z - pZ;
@@ -922,44 +944,19 @@ jobs:
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
                   GLES30.glDisable(GLES30.GL_CULL_FACE);
 
-                  String vs =
-                          "#version 300 es\n" +
-                          "layout(location=0) in vec4 aP;" +
-                          "layout(location=1) in vec3 aN;" +
-                          "uniform mat4 uMVP;" +
-                          "uniform mat4 uM;" +
-                          "out vec3 vN;" +
-                          "out vec3 vP;" +
-                          "void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
+                  String vs = "#version 300 es\n" +
+                      "layout(location=0) in vec4 aP;layout(location=1) in vec3 aN;" +
+                      "uniform mat4 uMVP;uniform mat4 uM;out vec3 vN;out vec3 vP;" +
+                      "void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
 
-                  String fs =
-                          "#version 300 es\nprecision highp float;" +
-                          "in vec3 vN;in vec3 vP;uniform vec3 camP;uniform vec4 uC;out vec4 fC;" +
-                          "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}" +
-                          "vec3 sky(vec3 d){" +
-                          "float t=clamp(d.y*.5+.5,0.,1.);" +
-                          "vec3 base=mix(vec3(.10,.12,.18),vec3(.55,.72,.95),t);" +
-                          "if(d.y>0.05){" +
-                          "vec2 uv=d.xz/(d.y+.001);" +
-                          "vec2 id=floor(uv*80.);" +
-                          "float star=hash(id);" +
-                          "if(star>.985){" +
-                          "vec2 gv=fract(uv*80.)-.5;" +
-                          "float dist=length(gv);" +
-                          "float brightness=hash(id+.1);" +
-                          "float s=smoothstep(.15,.0,dist)*brightness;" +
-                          "base+=vec3(1.)*s;}}" +
-                          "return base;}" +
-                          "void main(){" +
-                          "vec3 n=normalize(vN),vD=normalize(camP-vP),lD=normalize(vec3(.3,1.,.15));" +
-                          "float diff=max(dot(n,lD),0.);" +
-                          "vec3 h=normalize(lD+vD);" +
-                          "float spec=pow(max(dot(n,h),0.),28.)*.18;" +
-                          "vec3 amb=vec3(.14,.14,.14);" +
-                          "vec3 fin=uC.rgb*(diff+amb)+spec;" +
-                          "float dist=length(camP-vP),fog=1.-exp(-dist*.010);" +
-                          "vec3 c=mix(fin,sky(vD),clamp(fog,0.,.75));" +
-                          "fC=vec4(c,uC.a);}";
+                  String fs = "#version 300 es\nprecision highp float;" +
+                      "in vec3 vN;in vec3 vP;uniform vec3 camP;uniform vec4 uC;out vec4 fC;" +
+                      "void main(){" +
+                      "vec3 n=normalize(vN),vD=normalize(camP-vP),lD=normalize(vec3(.3,1.,.15));" +
+                      "float diff=max(dot(n,lD),0.);vec3 h=normalize(lD+vD);" +
+                      "float spec=pow(max(dot(n,h),0.),28.)*.18;vec3 amb=vec3(.14);" +
+                      "vec3 fin=uC.rgb*(diff+amb)+spec;" +
+                      "fC=vec4(fin,uC.a);}";
 
                   prog3d = mkProg(vs, fs);
 
@@ -968,35 +965,32 @@ jobs:
                   prog2d = mkProg(vs2d, fs2d);
 
                   float[] vc = {
-                          -.5f,.5f,.5f,   -.5f,-.5f,.5f,   .5f,.5f,.5f,   .5f,-.5f,.5f,
-                          -.5f,.5f,-.5f,  -.5f,-.5f,-.5f,  .5f,.5f,-.5f,  .5f,-.5f,-.5f,
-                          -.5f,.5f,-.5f,  -.5f,.5f,.5f,    .5f,.5f,-.5f,  .5f,.5f,.5f,
-                          -.5f,-.5f,-.5f, -.5f,-.5f,.5f,   .5f,-.5f,-.5f, .5f,-.5f,.5f,
-                          -.5f,.5f,-.5f,  -.5f,-.5f,-.5f,  -.5f,.5f,.5f,  -.5f,-.5f,.5f,
-                           .5f,.5f,-.5f,   .5f,-.5f,-.5f,   .5f,.5f,.5f,   .5f,-.5f,.5f
+                      -.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,
+                      -.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,
+                      -.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,
+                      -.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,
+                      -.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,
+                      .5f,.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f
                   };
                   float[] nc = {
-                          0,0,1, 0,0,1, 0,0,1, 0,0,1,
-                          0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
-                          0,1,0, 0,1,0, 0,1,0, 0,1,0,
-                          0,-1,0, 0,-1,0, 0,-1,0, 0,-1,0,
-                          -1,0,0, -1,0,0, -1,0,0, -1,0,0,
-                          1,0,0, 1,0,0, 1,0,0, 1,0,0
+                      0,0,1,0,0,1,0,0,1,0,0,1,
+                      0,0,-1,0,0,-1,0,0,-1,0,0,-1,
+                      0,1,0,0,1,0,0,1,0,0,1,0,
+                      0,-1,0,0,-1,0,0,-1,0,0,-1,0,
+                      -1,0,0,-1,0,0,-1,0,0,-1,0,0,
+                      1,0,0,1,0,0,1,0,0,1,0,0
                   };
 
-                  vBuf = ByteBuffer.allocateDirect(vc.length * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-                  vBuf.put(vc).position(0);
-                  nBuf = ByteBuffer.allocateDirect(nc.length * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-                  nBuf.put(nc).position(0);
-
-                  loadLobbyMap();
-                  spawnLobbyBots();
+                  vBuf = ByteBuffer.allocateDirect(vc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vc);
+                  vBuf.position(0);
+                  nBuf = ByteBuffer.allocateDirect(nc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(nc);
+                  nBuf.position(0);
               }
 
               @Override
-              public void onSurfaceChanged(GL10 gl, int width, int height) {
-                  GLES30.glViewport(0, 0, width, height);
-                  Matrix.perspectiveM(proj, 0, 60f, (float) width / (float) height, 0.1f, 500f);
+              public void onSurfaceChanged(GL10 gl, int w, int h) {
+                  GLES30.glViewport(0, 0, w, h);
+                  Matrix.perspectiveM(proj, 0, 60f, (float)w/(float)h, 0.1f, 500f);
               }
 
               @Override
@@ -1011,10 +1005,7 @@ jobs:
 
                   float targetX = pX, targetY = pY + 1.25f, targetZ = pZ;
 
-                  // ANTI BLUE SCREEN FIX: Prevents NaN in view matrix if vectors are perfectly collinear
-                  if (Math.abs(camX - targetX) < 0.0001f && Math.abs(camZ - targetZ) < 0.0001f) {
-                      camX += 0.001f;
-                  }
+                  if (Math.abs(camX - targetX) < 0.0001f && Math.abs(camZ - targetZ) < 0.0001f) camX += 0.001f;
 
                   Matrix.setLookAtM(view, 0, camX, camY, camZ, targetX, targetY, targetZ, 0, 1, 0);
 
@@ -1042,11 +1033,13 @@ jobs:
                       draw(uM, uMVP, uC, b.r, b.g, b.b, 1f);
                   }
 
-                  drawPlayer(uM, uMVP, uC);
+                  boolean playerHidden = System.currentTimeMillis() < playerHideUntil;
+                  if (!playerHidden) drawPlayer(uM, uMVP, uC);
 
                   for (Bot b : bots) {
                       if (!b.alive) continue;
-                      drawBot(uM, uMVP, uC, b);
+                      boolean botHidden = System.currentTimeMillis() < b.hideUntil;
+                      if (!botHidden) drawBot(uM, uMVP, uC, b);
                   }
 
                   for (Projectile p : projectiles) {
@@ -1073,8 +1066,8 @@ jobs:
                   Matrix.multiplyMM(pv, 0, proj, 0, view, 0);
 
                   for (Bot b : bots) {
-                      if (!b.alive) continue;
-                      float heightOffset = (b.killer && b.killerType == Killer.DERKA) ? 4.8f : 3.5f;
+                      if (!b.alive || b.killer) continue;
+                      float heightOffset = 3.5f;
                       float[] pos = {b.x, b.y + heightOffset, b.z, 1.0f};
                       float[] clip = new float[4];
                       Matrix.multiplyMV(clip, 0, pv, 0, pos, 0);
@@ -1103,15 +1096,11 @@ jobs:
               }
 
               private float[] computeCamera() {
-                  float yawRad = (float) Math.toRadians(rY);
-                  float pitchRad = (float) Math.toRadians(rX);
+                  float yawRad = (float)Math.toRadians(rY);
+                  float pitchRad = (float)Math.toRadians(rX);
 
-                  float targetX = pX;
-                  float targetY = pY + 1.25f;
-                  float targetZ = pZ;
-
-                  float desiredDist = 8.0f;
-                  float minDist = 3.6f;
+                  float targetX = pX, targetY = pY + 1.25f, targetZ = pZ;
+                  float desiredDist = 8.0f, minDist = 3.6f;
 
                   float dirX = (float)(-Math.sin(yawRad) * Math.cos(pitchRad));
                   float dirY = (float)(Math.sin(pitchRad));
@@ -1135,25 +1124,19 @@ jobs:
                       camY = targetY + (desiredY - targetY) * safeT;
                       camZ = targetZ + (desiredZ - targetZ) * safeT;
                   } else {
-                      camX = desiredX;
-                      camY = desiredY;
-                      camZ = desiredZ;
+                      camX = desiredX; camY = desiredY; camZ = desiredZ;
                   }
 
-                  float dx = camX - targetX;
-                  float dy = camY - targetY;
-                  float dz = camZ - targetZ;
+                  float dx = camX - targetX, dy = camY - targetY, dz = camZ - targetZ;
                   float dist = (float)Math.sqrt(dx*dx + dy*dy + dz*dz);
 
-                  if (dist < minDist) {
-                      float len = Math.max(0.0001f, dist);
-                      camX = targetX + dx / len * minDist;
-                      camY = targetY + dy / len * minDist;
-                      camZ = targetZ + dz / len * minDist;
+                  if (dist < minDist && dist > 0.001f) {
+                      camX = targetX + dx / dist * minDist;
+                      camY = targetY + dy / dist * minDist;
+                      camZ = targetZ + dz / dist * minDist;
                   }
 
                   camY = Math.max(camY, targetY + 0.7f);
-
                   return new float[]{camX, camY, camZ};
               }
 
@@ -1193,7 +1176,7 @@ jobs:
                   updateProjectiles();
                   updateBots();
 
-                  if (playerArmAnim > 0f) playerArmAnim -= 1f;
+                  if (playerArmAnim > 0f) playerArmAnim -= 2.2f;
                   if (playerBodyAnim > 0f) playerBodyAnim -= 1f;
 
                   if (inMenu) return;
@@ -1208,19 +1191,21 @@ jobs:
                   boolean canUseRun = runEnabled && hasInput && !cooldownActive && !staminaBroken && stamina > 0f && !stunned;
                   float walkSpeed = 0.16f;
                   float runSpeed = playerIsKiller ? 0.28f : 0.23f;
-                  float speed = canUseRun ? runSpeed : walkSpeed;
+                  float targetSpeed = canUseRun ? runSpeed : walkSpeed;
                   
-                  if (playerIsKiller && selectedKiller == Killer.DERKA && now < derkaDashUntil) speed = 0.55f;
-                  if (stunned) speed = 0f;
+                  if (playerIsKiller && selectedKiller == Killer.DERKA && now < derkaDashUntil) targetSpeed = 0.55f;
+                  if (stunned) targetSpeed = 0f;
 
-                  float camYawRad = (float) Math.toRadians(rY);
-                  float inputX = jX;
-                  float inputY = -jY;
+                  smoothMoveAmount += (targetSpeed - smoothMoveAmount) * 0.18f;
+                  float speed = smoothMoveAmount;
 
-                  float worldMoveX = ((float)Math.sin(camYawRad) * inputY + (float)Math.cos(camYawRad) * inputX);
-                  float worldMoveZ = ((float)-Math.cos(camYawRad) * inputY + (float)Math.sin(camYawRad) * inputX);
+                  float camYawRad = (float)Math.toRadians(rY);
+                  float inputX = jX, inputY = -jY;
 
-                  float len = (float)Math.sqrt(worldMoveX * worldMoveX + worldMoveZ * worldMoveZ);
+                  float worldMoveX = (float)Math.sin(camYawRad) * inputY + (float)Math.cos(camYawRad) * inputX;
+                  float worldMoveZ = (float)-Math.cos(camYawRad) * inputY + (float)Math.sin(camYawRad) * inputX;
+
+                  float len = (float)Math.sqrt(worldMoveX*worldMoveX + worldMoveZ*worldMoveZ);
                   if (len > 0.0001f) {
                       worldMoveX /= len;
                       worldMoveZ /= len;
@@ -1232,9 +1217,7 @@ jobs:
                   float moveX = worldMoveX * speed;
                   float moveZ = worldMoveZ * speed;
 
-                  float newX = pX;
-                  float newZ = pZ;
-
+                  float newX = pX, newZ = pZ;
                   if (moveX != 0f) {
                       float testX = pX + moveX;
                       if (!collides(testX, pZ)) newX = testX;
@@ -1244,10 +1227,8 @@ jobs:
                       if (!collides(newX, testZ)) newZ = testZ;
                   }
 
-                  pX = newX;
-                  pZ = newZ;
-
-                  moveAmount = (float)Math.sqrt(moveX * moveX + moveZ * moveZ);
+                  pX = newX; pZ = newZ;
+                  moveAmount = (float)Math.sqrt(moveX*moveX + moveZ*moveZ);
 
                   if (hasInput && len > 0.0001f) {
                       float desiredYaw = (float)Math.toDegrees(Math.atan2(worldMoveX, worldMoveZ));
@@ -1275,9 +1256,7 @@ jobs:
                   for (Projectile p : projectiles) {
                       if (!p.active) continue;
 
-                      p.x += p.vx;
-                      p.y += p.vy;
-                      p.z += p.vz;
+                      p.x += p.vx; p.y += p.vy; p.z += p.vz;
                       p.life -= 1f;
 
                       if (p.life <= 0f) p.active = false;
@@ -1293,8 +1272,7 @@ jobs:
                       if (p.fromPlayer) {
                           for (Bot b : bots) {
                               if (!b.alive || b.killer == playerIsKiller) continue;
-                              float dx = b.x - p.x;
-                              float dz = b.z - p.z;
+                              float dx = b.x - p.x, dz = b.z - p.z;
                               if (dx*dx + dz*dz < 1.6f) {
                                   b.hp -= 20f;
                                   if (b.hp <= 0f) b.alive = false;
@@ -1303,8 +1281,7 @@ jobs:
                               }
                           }
                       } else {
-                          float dx = pX - p.x;
-                          float dz = pZ - p.z;
+                          float dx = pX - p.x, dz = pZ - p.z;
                           if (dx*dx + dz*dz < 1.6f) {
                               playerHp -= 20f;
                               if (playerHp < 0f) playerHp = 0f;
@@ -1322,42 +1299,77 @@ jobs:
                       if (!b.alive) continue;
                       if (now < b.stunnedUntil) continue;
 
-                      if (b.anim < 0f) {
-                          b.anim += 1f;
-                          continue;
-                      }
-
+                      if (b.anim < 0f) { b.anim += 1f; continue; }
                       if (b.swing > 0f) b.swing -= 1f;
 
+                      boolean botCdActive = now < b.staminaCdUntil;
+                      if (b.staminaBroken && !botCdActive && b.stamina >= 35f) b.staminaBroken = false;
+
                       float tx, tz;
+                      boolean shouldRun = false;
+
                       if (b.killer) {
-                          tx = pX;
-                          tz = pZ;
+                          Bot nearestSurvivor = null;
+                          float bestD = 99999f;
+                          for (Bot s : bots) {
+                              if (!s.alive || s.killer || now < s.hideUntil) continue;
+                              float dx = s.x - b.x, dz = s.z - b.z;
+                              float d = dx*dx + dz*dz;
+                              if (d < bestD) { bestD = d; nearestSurvivor = s; }
+                          }
+                          if (nearestSurvivor == null && !playerIsKiller && now >= playerHideUntil) {
+                              float dx = pX - b.x, dz = pZ - b.z;
+                              bestD = dx*dx + dz*dz;
+                              nearestSurvivor = null;
+                          }
+                          if (nearestSurvivor != null) {
+                              tx = nearestSurvivor.x; tz = nearestSurvivor.z;
+                              if (bestD < 100f) shouldRun = true;
+                          } else if (!playerIsKiller && now >= playerHideUntil) {
+                              tx = pX; tz = pZ;
+                              if (bestD < 100f) shouldRun = true;
+                          } else {
+                              tx = b.x + (rnd.nextFloat() - 0.5f);
+                              tz = b.z + (rnd.nextFloat() - 0.5f);
+                          }
                       } else {
                           Bot killerBot = getKillerBot();
                           if (playerIsKiller) {
+                              float dx = pX - b.x, dz = pZ - b.z;
+                              float d = dx*dx + dz*dz;
+                              if (d < 64f) shouldRun = true;
                               tx = b.x - (pX - b.x);
                               tz = b.z - (pZ - b.z);
                           } else if (killerBot != null) {
+                              float dx = killerBot.x - b.x, dz = killerBot.z - b.z;
+                              float d = dx*dx + dz*dz;
+                              if (d < 64f) shouldRun = true;
                               tx = b.x - (killerBot.x - b.x);
                               tz = b.z - (killerBot.z - b.z);
                           } else {
                               tx = b.x + (rnd.nextFloat() - 0.5f);
                               tz = b.z + (rnd.nextFloat() - 0.5f);
                           }
+
+                          if (b.survivorType == Survivor.GRAY_GUY && rnd.nextInt(300) == 0) {
+                              b.hideUntil = now + 5000L;
+                          }
                       }
 
-                      float dx = tx - b.x;
-                      float dz = tz - b.z;
+                      float dx = tx - b.x, dz = tz - b.z;
                       float len = (float)Math.sqrt(dx*dx + dz*dz);
-                      if (len > 0.001f) {
-                          dx /= len;
-                          dz /= len;
-                      }
+                      if (len > 0.001f) { dx /= len; dz /= len; }
 
-                      float speed = b.killer ? 0.12f : 0.10f;
-                      float nx = b.x + dx * speed;
-                      float nz = b.z + dz * speed;
+                      boolean canBotRun = shouldRun && !botCdActive && !b.staminaBroken && b.stamina > 0f;
+                      b.runMode = canBotRun;
+
+                      float walkSpeed = 0.10f;
+                      float runSpeed = b.killer ? 0.12f : 0.11f;
+                      float targetSpeed = canBotRun ? runSpeed : walkSpeed;
+                      b.smoothMoveAmount += (targetSpeed - b.smoothMoveAmount) * 0.18f;
+                      float speed = b.smoothMoveAmount;
+
+                      float nx = b.x + dx * speed, nz = b.z + dz * speed;
 
                       if (!collides(nx, b.z)) b.x = nx;
                       if (!collides(b.x, nz)) b.z = nz;
@@ -1366,9 +1378,23 @@ jobs:
                       b.anim += speed * 5f;
                       b.hpBar += (b.hp - b.hpBar) * 0.15f;
 
+                      if (canBotRun) {
+                          b.stamina -= 0.14f;
+                          if (b.stamina <= 0f) {
+                              b.stamina = 0f;
+                              b.staminaCdUntil = now + 750L;
+                              b.staminaBroken = true;
+                              b.runMode = false;
+                          }
+                      } else {
+                          if (!botCdActive) {
+                              b.stamina += 0.09f;
+                              if (b.stamina > 100f) b.stamina = 100f;
+                          }
+                      }
+
                       if (b.killer) {
-                          float pdx = pX - b.x;
-                          float pdz = pZ - b.z;
+                          float pdx = pX - b.x, pdz = pZ - b.z;
                           if (pdx*pdx + pdz*pdz < 3.2f && !playerIsKiller) {
                               playerHp -= 0.18f;
                               if (playerHp < 0f) playerHp = 0f;
@@ -1386,8 +1412,7 @@ jobs:
                           if (rnd.nextInt(260) == 0 && !playerIsKiller) {
                               Bot killer = getKillerBot();
                               if (killer != null) {
-                                  float kdx = killer.x - b.x;
-                                  float kdz = killer.z - b.z;
+                                  float kdx = killer.x - b.x, kdz = killer.z - b.z;
                                   if (kdx*kdx + kdz*kdz < 25f) {
                                       killer.anim = -80f;
                                   }
@@ -1405,12 +1430,8 @@ jobs:
               private boolean collides(float x, float z) {
                   float pad = 0.02f;
                   for (Block b : blocks) {
-                      boolean hitXZ =
-                              x + PLAYER_RADIUS > b.minX() - pad &&
-                              x - PLAYER_RADIUS < b.maxX() + pad &&
-                              z + PLAYER_RADIUS > b.minZ() - pad &&
-                              z - PLAYER_RADIUS < b.maxZ() + pad;
-
+                      boolean hitXZ = x + PLAYER_RADIUS > b.minX() - pad && x - PLAYER_RADIUS < b.maxX() + pad &&
+                                      z + PLAYER_RADIUS > b.minZ() - pad && z - PLAYER_RADIUS < b.maxZ() + pad;
                       boolean hitY = FLOOR_Y < b.maxY() && PLAYER_HEIGHT > b.minY();
                       if (hitXZ && hitY) return true;
                   }
@@ -1426,7 +1447,7 @@ jobs:
                   float swing = (float)Math.sin(walkTime) * 28f * Math.min(1f, moveAmount * 8f);
                   if (playerIsKiller) {
                       if (selectedKiller == Killer.DIMASI4EK229) drawDimasi4ek(uM, uMVP, uC, pX, pY, pZ, bodyYaw, swing, playerArmAnim);
-                      else if (selectedKiller == Killer.DERKA) drawDerka(uM, uMVP, uC, pX, pY, pZ, bodyYaw, swing, playerArmAnim);
+                      else drawDerka(uM, uMVP, uC, pX, pY, pZ, bodyYaw, swing, playerArmAnim);
                   } else {
                       if (selectedSurvivor == Survivor.AGENT_SVIN) drawAgentSvin(uM, uMVP, uC, pX, pY, pZ, bodyYaw, swing, playerBodyAnim);
                       else drawGrayGuy(uM, uMVP, uC, pX, pY, pZ, bodyYaw, swing);
@@ -1445,67 +1466,44 @@ jobs:
               }
 
               private void drawDerka(int uM,int uMVP,int uC,float bx,float by,float bz,float yaw,float swing,float attackAnim){
-                  // Body
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.8f,0f, 0.9f,1.8f,0.9f, 0.08f,0.12f,0.08f);
-
-                  // Long Arms
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.85f,1.5f,0f, 0.35f,2.4f,0.35f, 0.05f,0.10f,0.05f, attackAnim > 0f ? -attackAnim : swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.85f,1.5f,0f, 0.35f,2.4f,0.35f, 0.05f,0.10f,0.05f, attackAnim > 0f ? attackAnim : swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.85f,1.5f,0f, 0.35f,2.4f,0.35f, 0.05f,0.10f,0.05f, -swing);
-
-                  // Long Legs
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.35f,-0.7f,0f, 0.40f,2.2f,0.40f, 0.04f,0.08f,0.04f,-swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.35f,-0.7f,0f, 0.40f,2.2f,0.40f, 0.04f,0.08f,0.04f, swing);
-
-                  // Face
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,4.1f,0f, 0.8f,0.8f,0.8f, 0.70f,0.72f,0.65f);
-                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.22f,4.2f,0.41f, 0.15f,0.15f,0.05f, 0.9f,0.05f,0.05f); // Red eye
-                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.22f,4.2f,0.41f, 0.15f,0.15f,0.05f, 0.9f,0.05f,0.05f); // Red eye
-                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.9f,0.41f, 0.3f,0.12f,0.05f, 0.05f,0.05f,0.05f); // Mouth
+                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.22f,4.2f,0.41f, 0.15f,0.15f,0.05f, 0.9f,0.05f,0.05f);
+                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.22f,4.2f,0.41f, 0.15f,0.15f,0.05f, 0.9f,0.05f,0.05f);
+                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.9f,0.41f, 0.3f,0.12f,0.05f, 0.05f,0.05f,0.05f);
               }
 
               private void drawDimasi4ek(int uM,int uMVP,int uC,float bx,float by,float bz,float yaw,float swing,float attackAnim){
-                  // Body (T-Shirt)
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.8f,0f, 1.2f,1.2f,1.2f, 0.15f,0.15f,0.18f);
-
-                  // Hair (More styled, less bowl-like)
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.35f,0f, 1.05f,0.3f,1.05f, 0.25f,0.18f,0.12f);
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, -0.4f,3.15f,0.05f, 0.2f,0.5f,0.8f, 0.25f,0.18f,0.12f);
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw,  0.4f,3.15f,0.05f, 0.2f,0.5f,0.8f, 0.25f,0.18f,0.12f);
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.15f,0.5f, 0.9f,0.3f,0.25f, 0.25f,0.18f,0.12f);
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.1f,-0.5f, 0.9f,0.4f,0.25f, 0.25f,0.18f,0.12f);
-
-                  // Face Base
-                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,1.3f,0f, 1.6f,1.8f,0.9f, 0.22f,0.22f,0.22f); // Pants
-
-                  // T-shirt Sleeves
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.85f,0f, 0.65f,0.35f,0.65f, 0.15f,0.15f,0.18f, attackAnim > 0f ? -attackAnim : swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.85f,0f, 0.65f,0.35f,0.65f, 0.15f,0.15f,0.18f, -swing);
-
-                  // Arms (Skin) Note: Fix negative attack anim to swing forward
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.1f,0f, 0.55f,1.25f,0.55f, 0.93f,0.82f,0.72f, attackAnim > 0f ? -attackAnim : swing);
-                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.1f,0f, 0.55f,1.25f,0.55f, 0.93f,0.82f,0.72f, -swing);
-
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.8f,0f, 1.15f,1.15f,1.15f, 0.92f,0.83f,0.74f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.32f,0f, 1.02f,0.28f,1.0f, 0.28f,0.20f,0.14f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, -0.38f,3.08f,0.08f, 0.18f,0.45f,0.68f, 0.27f,0.19f,0.13f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw,  0.38f,3.08f,0.08f, 0.18f,0.45f,0.68f, 0.27f,0.19f,0.13f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.05f,0.46f, 0.72f,0.18f,0.18f, 0.26f,0.18f,0.12f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,3.05f,-0.50f, 0.88f,0.22f,0.18f, 0.26f,0.18f,0.12f);
+                  drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,1.3f,0f, 1.6f,1.8f,0.9f, 0.22f,0.22f,0.22f);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.88f,0f, 0.64f,0.34f,0.64f, 0.15f,0.15f,0.18f, attackAnim > 0f ? attackAnim : swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.88f,0f, 0.64f,0.34f,0.64f, 0.15f,0.15f,0.18f, -swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.12f,0f, 0.54f,1.22f,0.54f, 0.92f,0.83f,0.74f, attackAnim > 0f ? attackAnim : swing);
+                  drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.12f,0f, 0.54f,1.22f,0.54f, 0.92f,0.83f,0.74f, -swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.14f,0.14f,0.14f,-swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.14f,0.14f,0.14f, swing);
-
-                  // Eyes & Mouth
-                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.85f,0f, 1.0f,1.0f,1.0f, 0.93f,0.82f,0.72f);
-                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.22f,3.0f,0.51f, 0.10f,0.10f,0.08f, 0f,0f,0f);
-                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.22f,3.0f,0.51f, 0.10f,0.10f,0.08f, 0f,0f,0f);
-                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.68f,0.51f, 0.35f,0.06f,0.06f, 0f,0f,0f); // Mouth
+                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.22f,3.0f,0.51f, 0.10f,0.10f,0.08f, 0.05f,0.05f,0.05f);
+                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.22f,3.0f,0.51f, 0.10f,0.10f,0.08f, 0.05f,0.05f,0.05f);
+                  drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.70f,0.51f, 0.34f,0.06f,0.06f, 0.05f,0.05f,0.05f);
               }
 
               private void drawAgentSvin(int uM,int uMVP,int uC,float bx,float by,float bz,float yaw,float swing,float bodyAnim){
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.8f + bodyAnim*0.01f,0f, 1.2f,1.2f,1.2f, 1.0f,0.68f,0.78f);
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,1.3f + bodyAnim*0.01f,0f, 1.6f,1.8f,0.9f, 1f,1f,1f);
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,0.15f,0f, 1.55f,0.55f,0.92f, 0.2f,0.4f,0.95f);
-
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 1.0f,0.68f,0.78f, swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 1.0f,0.68f,0.78f,-swing);
-
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.2f,0.4f,0.95f,-swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.2f,0.4f,0.95f, swing);
-
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.75f,0.72f, 0.58f,0.34f,0.26f, 0.96f,0.56f,0.72f);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.22f,3.02f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.22f,3.02f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
@@ -1516,12 +1514,10 @@ jobs:
               private void drawGrayGuy(int uM,int uMVP,int uC,float bx,float by,float bz,float yaw,float swing){
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.8f,0f, 1.2f,1.2f,1.2f, 0.82f,0.82f,0.82f);
                   drawBodyPart(uM,uMVP,uC,bx,by,bz,yaw, 0f,1.3f,0f, 1.6f,1.8f,0.9f, 0.55f,0.55f,0.55f);
-
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 0.82f,0.82f,0.82f, swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 1.15f,1.3f,0f, 0.6f,1.8f,0.6f, 0.82f,0.82f,0.82f,-swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw,-0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.3f,0.3f,0.3f,-swing);
                   drawLimb(uM,uMVP,uC,bx,by,bz,yaw, 0.45f,-0.7f,0f, 0.7f,1.9f,0.7f, 0.3f,0.3f,0.3f, swing);
-
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw,-0.22f,3.0f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0.22f,3.0f,0.62f, 0.10f,0.10f,0.08f, 0f,0f,0f);
                   drawFacePart(uM,uMVP,uC,bx,by,bz,yaw, 0f,2.72f,0.62f, 0.32f,0.05f,0.05f, 0f,0f,0f);
@@ -1588,7 +1584,7 @@ jobs:
                   return sh;
               }
           }
-          EOF
+          RENDEREREOF
 
           cat <<'EOF' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
@@ -1612,7 +1608,7 @@ jobs:
               private TextView txtTimer, txtSelSurv, txtSelKill;
               private Button btnRun, btnSkill1, btnSkill2, btnSkill3;
               private View menuUI, gameUI, survMenu, killerMenu;
-              private Button btnBackMenu;
+              private Button btnBackMenu, btnOpenSurvivors, btnOpenKillers;
 
               @SuppressLint("ClickableViewAccessibility")
               @Override
@@ -1640,6 +1636,8 @@ jobs:
                   survMenu = findViewById(R.id.survivor_menu);
                   killerMenu = findViewById(R.id.killer_menu);
                   btnBackMenu = findViewById(R.id.btn_back_menu);
+                  btnOpenSurvivors = findViewById(R.id.btn_open_survivors);
+                  btnOpenKillers = findViewById(R.id.btn_open_killers);
 
                   setupJoy(findViewById(R.id.joy_base), findViewById(R.id.joy_stick));
                   setupLook(findViewById(R.id.look_zone));
@@ -1665,12 +1663,12 @@ jobs:
                       killerMenu.setVisibility(View.GONE);
                   });
 
-                  findViewById(R.id.btn_open_survivors).setOnClickListener(v -> {
+                  btnOpenSurvivors.setOnClickListener(v -> {
                       survMenu.setVisibility(View.VISIBLE);
                       killerMenu.setVisibility(View.GONE);
                   });
 
-                  findViewById(R.id.btn_open_killers).setOnClickListener(v -> {
+                  btnOpenKillers.setOnClickListener(v -> {
                       killerMenu.setVisibility(View.VISIBLE);
                       survMenu.setVisibility(View.GONE);
                   });
@@ -1716,11 +1714,17 @@ jobs:
                   txtSelSurv.setText("SURVIVOR: " + (ren.selectedSurvivor == Survivor.AGENT_SVIN ? "AGENT SVIN" : "GRAY GUY"));
                   txtSelKill.setText("KILLER: " + (ren.selectedKiller == Killer.DERKA ? "DERKA" : "DIMASI4EK229"));
 
-                  // Hide back to menu button if inside active round
                   if (!ren.inMenu && !ren.inLobby) {
                       btnBackMenu.setVisibility(View.GONE);
+                      btnOpenSurvivors.setEnabled(false);
+                      btnOpenKillers.setEnabled(false);
                   } else if (!ren.inMenu) {
                       btnBackMenu.setVisibility(View.VISIBLE);
+                      btnOpenSurvivors.setEnabled(false);
+                      btnOpenKillers.setEnabled(false);
+                  } else {
+                      btnOpenSurvivors.setEnabled(true);
+                      btnOpenKillers.setEnabled(true);
                   }
 
                   long left = ren.getTimeLeftMs();
@@ -1761,9 +1765,16 @@ jobs:
                           btnSkill3.setText(now < ren.skill3CdUntil ? String.format(Locale.US, "%.1fs", (ren.skill3CdUntil - now)/1000f) : "STUN");
                       }
                   } else {
-                      btnSkill1.setText(now < ren.skill1CdUntil ? String.format(Locale.US, "%.1fs", (ren.skill1CdUntil - now)/1000f) : "OINK");
-                      btnSkill2.setVisibility(View.GONE);
-                      btnSkill3.setVisibility(View.GONE);
+                      if (ren.selectedSurvivor == Survivor.AGENT_SVIN) {
+                          btnSkill1.setText(now < ren.skill1CdUntil ? String.format(Locale.US, "%.1fs", (ren.skill1CdUntil - now)/1000f) : "OINK");
+                          btnSkill2.setVisibility(View.GONE);
+                          btnSkill3.setVisibility(View.GONE);
+                      } else if (ren.selectedSurvivor == Survivor.GRAY_GUY) {
+                          btnSkill1.setText(now < ren.skill1CdUntil ? String.format(Locale.US, "%.1fs", (ren.skill1CdUntil - now)/1000f) : "DASH");
+                          btnSkill2.setVisibility(View.VISIBLE);
+                          btnSkill2.setText(now < ren.skill2CdUntil ? String.format(Locale.US, "%.1fs", (ren.skill2CdUntil - now)/1000f) : "HIDE");
+                          btnSkill3.setVisibility(View.GONE);
+                      }
                   }
               }
 
@@ -1845,5 +1856,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_7.1_LobbySelect_Fixes_APK
+          name: Enjoer_7.2_Final_Polish_APK
           path: app/build/outputs/apk/debug/app-debug.apk
