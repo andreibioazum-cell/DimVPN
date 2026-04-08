@@ -4,27 +4,26 @@ on:
   workflow_dispatch:
     inputs:
       paper_api_version:
-        description: "Paper API version (from your logs: 1.21.11-R0.1-SNAPSHOT)"
+        description: "Paper API version (from logs: 1.21.11-R0.1-SNAPSHOT)"
         required: true
         default: "1.21.11-R0.1-SNAPSHOT"
       plugin_version:
         description: "Plugin version"
         required: true
         default: "1.0.0"
-  push:
-    branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1) СНАЧАЛА генерим проект, чтобы существовал project/pom.xml для Maven cache
       - name: Generate plugin sources (Maven project)
         shell: bash
         env:
@@ -134,12 +133,10 @@ jobs:
 
           public final class SimpleClaimPlugin extends JavaPlugin implements Listener {
 
-              // === Items ===
               private NamespacedKey keyToolType;
               private static final String TOOL_CLAIM = "claim_block";
               private static final String TOOL_UNCLAIM = "unclaim_block";
 
-              // === Storage ===
               private final Map<String, UUID> claimedBlocks = new HashMap<>();
               private File dataFile;
               private YamlConfiguration cfg;
@@ -163,7 +160,6 @@ jobs:
                   saveClaims();
               }
 
-              // === Give tools (creative + op by default) ===
               @EventHandler
               public void onJoin(PlayerJoinEvent e) {
                   giveToolsIfNeeded(e.getPlayer());
@@ -186,7 +182,7 @@ jobs:
                   ItemStack unclaimTool = makeTool(TOOL_UNCLAIM,
                           "§aСнять приват блока",
                           List.of("§7Возьми в руку и §fПКМ по блоку§7 чтобы снять приват.",
-                                  "§7Снимать может только владелец (или админ)."));
+                                  "§7Снимать может владелец или админ."));
 
                   if (!hasTool(p, TOOL_CLAIM)) p.getInventory().addItem(claimTool);
                   if (!hasTool(p, TOOL_UNCLAIM)) p.getInventory().addItem(unclaimTool);
@@ -219,7 +215,6 @@ jobs:
                   return type.equals(v);
               }
 
-              // === Claim / Unclaim by clicking blocks ===
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onInteract(PlayerInteractEvent e) {
                   if (!e.getAction().isRightClick()) return;
@@ -231,14 +226,8 @@ jobs:
 
                   ItemStack hand = e.getItem();
 
-                  // Claim tool: ПКМ по блоку
                   if (isTool(hand, TOOL_CLAIM)) {
                       e.setCancelled(true);
-
-                      if (!p.hasPermission("simpleclaim.tools") && !p.hasPermission("simpleclaim.admin")) {
-                          msg(p, "§c[Приват] §7Нет прав.");
-                          return;
-                      }
 
                       String k = blockKey(loc);
                       if (claimedBlocks.containsKey(k)) {
@@ -248,11 +237,10 @@ jobs:
 
                       claimedBlocks.put(k, p.getUniqueId());
                       saveClaims();
-                      msg(p, "§a[Приват] §7Блок заприватен. Теперь его нельзя сломать никому.");
+                      msg(p, "§a[Приват] §7Блок заприватен. Его нельзя сломать никому, пока приват активен.");
                       return;
                   }
 
-                  // Unclaim tool: ПКМ по блоку
                   if (isTool(hand, TOOL_UNCLAIM)) {
                       e.setCancelled(true);
 
@@ -275,14 +263,13 @@ jobs:
                       return;
                   }
 
-                  // Защита взаимодействий: чужие не могут открывать/тыкать приватный блок
+                  // запрет взаимодействий с приватным блоком для всех, кроме владельца/админа
                   if (isClaimed(loc) && !isOwnerOrAdmin(p, loc)) {
                       e.setCancelled(true);
                       warn(p, "§c[Приват] §7Этот блок приватный. Взаимодействовать нельзя.");
                   }
               }
 
-              // === Protection: block cannot be broken by anyone while claimed ===
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onBreak(BlockBreakEvent e) {
                   if (!isClaimed(e.getBlock().getLocation())) return;
@@ -290,7 +277,6 @@ jobs:
                   warn(e.getPlayer(), "§c[Приват] §7Этот блок приватный и не ломается, пока приват активен.");
               }
 
-              // Explosions shouldn't delete claimed blocks
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onEntityExplode(EntityExplodeEvent e) {
                   e.blockList().removeIf(b -> isClaimed(b.getLocation()));
@@ -301,28 +287,20 @@ jobs:
                   e.blockList().removeIf(b -> isClaimed(b.getLocation()));
               }
 
-              // Pistons shouldn't move claimed blocks
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onPistonExtend(BlockPistonExtendEvent e) {
                   for (Block b : e.getBlocks()) {
-                      if (isClaimed(b.getLocation())) {
-                          e.setCancelled(true);
-                          return;
-                      }
+                      if (isClaimed(b.getLocation())) { e.setCancelled(true); return; }
                   }
               }
 
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onPistonRetract(BlockPistonRetractEvent e) {
                   for (Block b : e.getBlocks()) {
-                      if (isClaimed(b.getLocation())) {
-                          e.setCancelled(true);
-                          return;
-                      }
+                      if (isClaimed(b.getLocation())) { e.setCancelled(true); return; }
                   }
               }
 
-              // Optional: fire / fade / physics can also "remove" blocks (simple hardening)
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onBurn(BlockBurnEvent e) {
                   if (isClaimed(e.getBlock().getLocation())) e.setCancelled(true);
@@ -333,7 +311,6 @@ jobs:
                   if (isClaimed(e.getBlock().getLocation())) e.setCancelled(true);
               }
 
-              // === Helpers ===
               private boolean isOwnerOrAdmin(Player p, Location loc) {
                   if (p.hasPermission("simpleclaim.admin")) return true;
                   UUID owner = claimedBlocks.get(blockKey(loc));
@@ -361,7 +338,6 @@ jobs:
                   return w.getUID() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
               }
 
-              // === YAML persistence ===
               private void loadClaims() {
                   cfg = YamlConfiguration.loadConfiguration(dataFile);
                   claimedBlocks.clear();
@@ -372,9 +348,8 @@ jobs:
                   for (String k : root.getKeys(false)) {
                       String ownerStr = root.getString(k + ".owner");
                       if (ownerStr == null) continue;
-                      try {
-                          claimedBlocks.put(k, UUID.fromString(ownerStr));
-                      } catch (IllegalArgumentException ignored) {}
+                      try { claimedBlocks.put(k, UUID.fromString(ownerStr)); }
+                      catch (IllegalArgumentException ignored) {}
                   }
               }
 
@@ -386,20 +361,23 @@ jobs:
                       cfg.set("blocks." + e.getKey() + ".owner", e.getValue().toString());
                   }
 
-                  try {
-                      cfg.save(dataFile);
-                  } catch (IOException ex) {
-                      getLogger().severe("Failed to save claims.yml: " + ex.getMessage());
-                  }
+                  try { cfg.save(dataFile); }
+                  catch (IOException ex) { getLogger().severe("Failed to save claims.yml: " + ex.getMessage()); }
               }
           }
           EOF
 
+      # 2) Теперь Java + Maven cache (уже есть project/pom.xml)
+      - name: Set up Java 21 (with Maven cache)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: project/pom.xml
+
       - name: Build with Maven
         run: mvn -B -ntp -f project/pom.xml clean package
-        env:
-          PAPER_API_VERSION: ${{ inputs.paper_api_version }}
-          PLUGIN_VERSION: ${{ inputs.plugin_version }}
 
       - name: Upload plugin jar
         uses: actions/upload-artifact@v4
