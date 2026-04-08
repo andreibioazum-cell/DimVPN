@@ -19,7 +19,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,7 +40,8 @@ jobs:
           mkdir -p project/src/main/java/com/example/simpleclaim
           mkdir -p project/src/main/resources
 
-          cat > project/pom.xml <<'EOF'
+          # ВАЖНО: этот heredoc НЕ в одинарных кавычках, чтобы подставились переменные.
+          cat > project/pom.xml <<EOF
           <project xmlns="http://maven.apache.org/POM/4.0.0"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -49,13 +49,12 @@ jobs:
 
             <groupId>com.example</groupId>
             <artifactId>simpleclaim</artifactId>
-            <version>${env.PLUGIN_VERSION}</version>
+            <version>${PLUGIN_VERSION}</version>
             <packaging>jar</packaging>
 
             <properties>
               <maven.compiler.release>21</maven.compiler.release>
               <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-              <paper.api.version>${env.PAPER_API_VERSION}</paper.api.version>
             </properties>
 
             <repositories>
@@ -69,7 +68,7 @@ jobs:
               <dependency>
                 <groupId>io.papermc.paper</groupId>
                 <artifactId>paper-api</artifactId>
-                <version>${paper.api.version}</version>
+                <version>${PAPER_API_VERSION}</version>
                 <scope>provided</scope>
               </dependency>
             </dependencies>
@@ -81,7 +80,7 @@ jobs:
                   <artifactId>maven-compiler-plugin</artifactId>
                   <version>3.13.0</version>
                   <configuration>
-                    <release>${maven.compiler.release}</release>
+                    <release>21</release>
                   </configuration>
                 </plugin>
               </plugins>
@@ -91,7 +90,7 @@ jobs:
 
           cat > project/src/main/resources/plugin.yml <<'EOF'
           name: SimpleClaim
-          version: __PLUGIN_VERSION__
+          version: 1.0.0
           main: com.example.simpleclaim.SimpleClaimPlugin
           api-version: "1.21"
           author: generated-by-github-actions
@@ -106,7 +105,8 @@ jobs:
               default: op
           EOF
 
-          sed -i "s/__PLUGIN_VERSION__/${PLUGIN_VERSION}/g" project/src/main/resources/plugin.yml
+          # подставим версию в plugin.yml тоже
+          sed -i "s/^version: .*/version: ${PLUGIN_VERSION}/" project/src/main/resources/plugin.yml
 
           cat > project/src/main/java/com/example/simpleclaim/SimpleClaimPlugin.java <<'EOF'
           package com.example.simpleclaim;
@@ -145,7 +145,7 @@ jobs:
               private static final String TOOL_CLAIM = "claim_block";
               private static final String TOOL_UNCLAIM = "unclaim_block";
 
-              // blockKey -> ownerUUID (owner хранится, но unclaim разрешён любому с тулом)
+              // blockKey -> ownerUUID (owner сохраняем, но unclaim разрешён любому с тулом)
               private final Map<String, UUID> claimedBlocks = new HashMap<>();
 
               private File dataFile;
@@ -171,7 +171,7 @@ jobs:
                   saveClaims();
               }
 
-              // ===== /scgive (взять можно только в креативе) =====
+              // /scgive — получить можно ТОЛЬКО в креативе
               @Override
               public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
                   if (!command.getName().equalsIgnoreCase("scgive")) return false;
@@ -180,12 +180,10 @@ jobs:
                       sender.sendMessage("Only players.");
                       return true;
                   }
-
                   if (!p.hasPermission("simpleclaim.tools")) {
                       p.sendMessage("§c[Приват] §7Нет прав.");
                       return true;
                   }
-
                   if (p.getGameMode() != GameMode.CREATIVE) {
                       p.sendMessage("§c[Приват] §7Взять инструменты можно только в креативе.");
                       return true;
@@ -227,16 +225,14 @@ jobs:
                   return type.equals(v);
               }
 
-              // чтобы барьер-инструмент нельзя было поставить как блок
+              // запрет ставить "инструменты" как блок
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onPlace(BlockPlaceEvent e) {
                   ItemStack it = e.getItemInHand();
-                  if (isTool(it, TOOL_CLAIM) || isTool(it, TOOL_UNCLAIM)) {
-                      e.setCancelled(true);
-                  }
+                  if (isTool(it, TOOL_CLAIM) || isTool(it, TOOL_UNCLAIM)) e.setCancelled(true);
               }
 
-              // ===== Claim/Unclaim по ПКМ =====
+              // Claim/Unclaim по ПКМ
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onInteract(PlayerInteractEvent e) {
                   if (!e.getAction().isRightClick()) return;
@@ -247,7 +243,6 @@ jobs:
                   Location loc = b.getLocation();
                   ItemStack hand = e.getItem();
 
-                  // Claim (кто с тулом — тот и приватит)
                   if (isTool(hand, TOOL_CLAIM)) {
                       e.setCancelled(true);
 
@@ -263,7 +258,6 @@ jobs:
                       return;
                   }
 
-                  // Unclaim (любой с тулом может снять)
                   if (isTool(hand, TOOL_UNCLAIM)) {
                       e.setCancelled(true);
 
@@ -279,14 +273,14 @@ jobs:
                       return;
                   }
 
-                  // запрет взаимодействий с приватным блоком для всех (пока приват активен)
+                  // Пока блок в привате — запретим взаимодействие всем (сундуки/двери и т.д.)
                   if (isClaimed(loc)) {
                       e.setCancelled(true);
                       warn(p, "§c[Приват] §7Этот блок приватный. Взаимодействовать нельзя.");
                   }
               }
 
-              // ===== Protection: приватный блок не ломается НИКОМУ =====
+              // Приватный блок нельзя сломать НИКОМУ
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onBreak(BlockBreakEvent e) {
                   if (!isClaimed(e.getBlock().getLocation())) return;
@@ -294,7 +288,7 @@ jobs:
                   warn(e.getPlayer(), "§c[Приват] §7Этот блок приватный и не ломается, пока приват активен.");
               }
 
-              // взрывы не удаляют приватные блоки
+              // Взрывы не удаляют приватные блоки
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onEntityExplode(EntityExplodeEvent e) {
                   e.blockList().removeIf(b -> isClaimed(b.getLocation()));
@@ -305,7 +299,7 @@ jobs:
                   e.blockList().removeIf(b -> isClaimed(b.getLocation()));
               }
 
-              // поршни не двигают приватные блоки
+              // Поршни не двигают приватные блоки
               @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
               public void onPistonExtend(BlockPistonExtendEvent e) {
                   for (Block b : e.getBlocks()) {
@@ -351,7 +345,6 @@ jobs:
                   return w.getUID() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
               }
 
-              // ===== YAML =====
               private void loadClaims() {
                   cfg = YamlConfiguration.loadConfiguration(dataFile);
                   claimedBlocks.clear();
