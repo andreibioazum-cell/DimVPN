@@ -331,29 +331,19 @@ jobs:
           include ':app'
           EOF
 
-      - name: Create gradle wrapper
+      - name: Generate Gradle Wrapper
         run: |
-          mkdir -p gradle/wrapper
-          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.0-bin.zip
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          EOF
-          
-          # Скачиваем официальный gradle-wrapper.jar
-          curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradle/wrapper/gradle-wrapper.jar
-          
-          # Создаём простой, но рабочий gradlew
-          cat > gradlew << 'EOF'
-          #!/bin/sh
-          JAVA_CMD="java"
-          if [ -n "$JAVA_HOME" ]; then
-              JAVA_CMD="$JAVA_HOME/bin/java"
+          # Устанавливаем Gradle (если не установлен)
+          if ! command -v gradle &> /dev/null; then
+              wget https://services.gradle.org/distributions/gradle-8.0-bin.zip
+              unzip gradle-8.0-bin.zip
+              export PATH=$PATH:$(pwd)/gradle-8.0/bin
           fi
-          exec $JAVA_CMD -jar gradle/wrapper/gradle-wrapper.jar "$@"
-          EOF
+          
+          # Генерируем wrapper
+          gradle wrapper
+          
+          # Даём права на выполнение
           chmod +x gradlew
 
       - name: Build APK
