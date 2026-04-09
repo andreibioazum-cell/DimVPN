@@ -30,6 +30,15 @@ jobs:
           mkdir -p app/src/main/jni
           mkdir -p app/src/main/res/layout
 
+      - name: Generate gradle.properties
+        run: |
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          android.enableJetifier=true
+          android.nonTransitiveRClass=false
+          EOF
+
       - name: Generate AndroidManifest.xml
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
