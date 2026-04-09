@@ -1,4 +1,4 @@
-name: GameScriptPro
+name: D1m
 on: [push, workflow_dispatch]
 
 jobs:
@@ -11,1763 +11,84 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
-      - name: Create GameScript Pro
+      - name: Create Project (D1m offline)
         run: |
-          mkdir -p app/src/main/java/com/gamescript/pro
-          mkdir -p app/src/main/res/{layout,values,drawable,menu,xml}
-          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/java/com/d1m/app
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
+          mkdir -p app/src/main/res/menu
 
-          cat <<'EOF' > gradle.properties
-          android.useAndroidX=true
-          android.enableJetifier=true
-          EOF
+          echo "android.useAndroidX=true" > gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
 
           cat <<EOF > settings.gradle
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositories { google(); mavenCentral() }
-          }
           include ':app'
           EOF
 
           cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
-              dependencies { 
-                  classpath 'com.android.tools.build:gradle:8.2.2'
-              }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects {
+              repositories { google(); mavenCentral() }
           }
           EOF
 
           cat <<EOF > app/build.gradle
-          plugins { 
+          plugins {
               id 'com.android.application'
           }
+
           android {
-              namespace 'com.gamescript.pro'
+              namespace 'com.d1m.app'
               compileSdk 34
-              defaultConfig { 
-                  applicationId 'com.gamescript.pro'
+
+              defaultConfig {
+                  applicationId 'com.d1m.app'
                   minSdk 24
                   targetSdk 34
                   versionCode 1
                   versionName "1.0"
               }
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                  }
+
+              buildFeatures {
+                  viewBinding true
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
               }
           }
+
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
-              implementation 'androidx.documentfile:documentfile:1.0.1'
+              implementation 'com.google.android.material:material:1.12.0'
+              implementation 'androidx.recyclerview:recyclerview:1.3.2'
+              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
           }
           EOF
-
-          cat <<EOF > app/src/main/res/values/themes.xml
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-                  <item name="colorPrimary">#2196F3</item>
-                  <item name="colorPrimaryDark">#1976D2</item>
-                  <item name="colorAccent">#FF5722</item>
-              </style>
-              <style name="GameTheme" parent="Theme.AppCompat.Light.NoActionBar">
-                  <item name="android:statusBarColor">#000000</item>
-              </style>
-          </resources>
-          EOF
-
-          cat <<EOF > app/src/main/res/values/colors.xml
-          <resources>
-              <color name="primary">#2196F3</color>
-              <color name="primary_dark">#1976D2</color>
-              <color name="accent">#FF5722</color>
-              <color name="white">#FFFFFF</color>
-              <color name="black">#000000</color>
-              <color name="editor_bg">#1E1E1E</color>
-              <color name="debug_bg">#CC000000</color>
-              <color name="debug_text">#00FF00</color>
-          </resources>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/layout/activity_main.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical">
-              
-              <com.google.android.material.tabs.TabLayout
-                  android:id="@+id/tabs"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:background="@color/primary"
-                  android:theme="@style/ThemeOverlay.AppCompat.Dark"/>
-              
-              <FrameLayout
-                  android:id="@+id/container"
-                  android:layout_width="match_parent"
-                  android:layout_height="0dp"
-                  android:layout_weight="1"/>
-          </LinearLayout>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/layout/fragment_editor.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:background="#1E1E1E">
-              
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="56dp"
-                  android:background="#2D2D30"
-                  android:gravity="center_vertical"
-                  android:paddingLeft="8dp"
-                  android:paddingRight="8dp">
-                  
-                  <Spinner
-                      android:id="@+id/fileSpinner"
-                      android:layout_width="0dp"
-                      android:layout_height="wrap_content"
-                      android:layout_weight="1"/>
-                  
-                  <Button
-                      android:id="@+id/btnNew"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="NEW"
-                      android:textSize="12sp"/>
-                  
-                  <Button
-                      android:id="@+id/btnSave"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="SAVE"
-                      android:textSize="12sp"/>
-                  
-                  <Button
-                      android:id="@+id/btnRun"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="▶ RUN"
-                      android:textColor="#4CAF50"
-                      android:textStyle="bold"
-                      android:textSize="12sp"/>
-              </LinearLayout>
-              
-              <HorizontalScrollView
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:background="#2D2D30"
-                  android:scrollbars="none">
-                  
-                  <LinearLayout
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:orientation="horizontal"
-                      android:padding="4dp">
-                      
-                      <Button android:id="@+id/btn_if" style="@style/CodeButton" android:text="if"/>
-                      <Button android:id="@+id/btn_for" style="@style/CodeButton" android:text="for"/>
-                      <Button android:id="@+id/btn_while" style="@style/CodeButton" android:text="while"/>
-                      <Button android:id="@+id/btn_def" style="@style/CodeButton" android:text="def"/>
-                      <Button android:id="@+id/btn_class" style="@style/CodeButton" android:text="class"/>
-                      <Button android:id="@+id/btn_import" style="@style/CodeButton" android:text="import"/>
-                      <Button android:id="@+id/btn_print" style="@style/CodeButton" android:text="print"/>
-                      <Button android:id="@+id/btn_input" style="@style/CodeButton" android:text="input"/>
-                      <Button android:id="@+id/btn_len" style="@style/CodeButton" android:text="len"/>
-                      <Button android:id="@+id/btn_range" style="@style/CodeButton" android:text="range"/>
-                      <Button android:id="@+id/btn_list" style="@style/CodeButton" android:text="[]"/>
-                      <Button android:id="@+id/btn_dict" style="@style/CodeButton" android:text="{}"/>
-                  </LinearLayout>
-              </HorizontalScrollView>
-              
-              <RelativeLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="0dp"
-                  android:layout_weight="1">
-                  
-                  <TextView
-                      android:id="@+id/lineNumbers"
-                      android:layout_width="40dp"
-                      android:layout_height="match_parent"
-                      android:background="#252526"
-                      android:fontFamily="monospace"
-                      android:gravity="right"
-                      android:padding="8dp"
-                      android:textColor="#858585"
-                      android:textSize="14sp"/>
-                  
-                  <HorizontalScrollView
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent"
-                      android:layout_toRightOf="@id/lineNumbers">
-                      
-                      <ScrollView
-                          android:layout_width="wrap_content"
-                          android:layout_height="match_parent">
-                          
-                          <EditText
-                              android:id="@+id/codeEditor"
-                              android:layout_width="wrap_content"
-                              android:layout_height="wrap_content"
-                              android:background="@color/editor_bg"
-                              android:fontFamily="monospace"
-                              android:gravity="top"
-                              android:hint="# Write Python code here..."
-                              android:inputType="textMultiLine|textNoSuggestions"
-                              android:minWidth="600dp"
-                              android:padding="8dp"
-                              android:textColor="#D4D4D4"
-                              android:textColorHint="#6A9955"
-                              android:textSize="14sp"/>
-                      </ScrollView>
-                  </HorizontalScrollView>
-              </RelativeLayout>
-              
-              <TextView
-                  android:id="@+id/console"
-                  android:layout_width="match_parent"
-                  android:layout_height="120dp"
-                  android:background="#0C0C0C"
-                  android:fontFamily="monospace"
-                  android:padding="8dp"
-                  android:scrollbars="vertical"
-                  android:textColor="#00FF00"
-                  android:textSize="12sp"/>
-          </LinearLayout>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/layout/fragment_files.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:background="#FFFFFF">
-              
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:orientation="horizontal"
-                  android:padding="8dp"
-                  android:background="@color/primary">
-                  
-                  <Button
-                      android:id="@+id/btnLoadImage"
-                      android:layout_width="0dp"
-                      android:layout_height="wrap_content"
-                      android:layout_weight="1"
-                      android:text="📷 Load Image"
-                      android:layout_margin="4dp"/>
-                  
-                  <Button
-                      android:id="@+id/btnLoadAudio"
-                      android:layout_width="0dp"
-                      android:layout_height="wrap_content"
-                      android:layout_weight="1"
-                      android:text="🔊 Load Audio"
-                      android:layout_margin="4dp"/>
-                  
-                  <Button
-                      android:id="@+id/btnLoadFile"
-                      android:layout_width="0dp"
-                      android:layout_height="wrap_content"
-                      android:layout_weight="1"
-                      android:text="📁 Load File"
-                      android:layout_margin="4dp"/>
-              </LinearLayout>
-              
-              <androidx.recyclerview.widget.RecyclerView
-                  android:id="@+id/filesList"
-                  android:layout_width="match_parent"
-                  android:layout_height="0dp"
-                  android:layout_weight="1"/>
-              
-              <TextView
-                  android:id="@+id/fileInfo"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:padding="16dp"
-                  android:text="No files loaded"
-                  android:textSize="14sp"
-                  android:background="#F5F5F5"/>
-          </LinearLayout>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/layout/fragment_game.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:background="#000000">
-              
-              <com.gamescript.pro.GameView
-                  android:id="@+id/gameView"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"/>
-              
-              <LinearLayout
-                  android:id="@+id/debugMenu"
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:layout_alignParentTop="true"
-                  android:layout_alignParentLeft="true"
-                  android:orientation="vertical"
-                  android:padding="12dp"
-                  android:background="@color/debug_bg"
-                  android:visibility="gone">
-                  
-                  <TextView
-                      android:id="@+id/fpsText"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="FPS: 0"
-                      android:textColor="@color/debug_text"
-                      android:textSize="16sp"
-                      android:fontFamily="monospace"
-                      android:textStyle="bold"/>
-                  
-                  <TextView
-                      android:id="@+id/objectsText"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="Objects: 0"
-                      android:textColor="@color/debug_text"
-                      android:textSize="13sp"
-                      android:fontFamily="monospace"
-                      android:layout_marginTop="4dp"/>
-                  
-                  <TextView
-                      android:id="@+id/memoryText"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="Memory: 0 MB"
-                      android:textColor="@color/debug_text"
-                      android:textSize="13sp"
-                      android:fontFamily="monospace"
-                      android:layout_marginTop="4dp"/>
-                  
-                  <TextView
-                      android:id="@+id/varsText"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="Variables: 0"
-                      android:textColor="@color/debug_text"
-                      android:textSize="13sp"
-                      android:fontFamily="monospace"
-                      android:layout_marginTop="4dp"/>
-                  
-                  <TextView
-                      android:id="@+id/touchText"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="Touch: (0, 0)"
-                      android:textColor="@color/debug_text"
-                      android:textSize="13sp"
-                      android:fontFamily="monospace"
-                      android:layout_marginTop="4dp"/>
-              </LinearLayout>
-              
-              <Button
-                  android:id="@+id/debugButton"
-                  android:layout_width="56dp"
-                  android:layout_height="56dp"
-                  android:layout_alignParentBottom="true"
-                  android:layout_alignParentRight="true"
-                  android:layout_margin="16dp"
-                  android:text="🐛"
-                  android:textSize="24sp"
-                  android:background="@color/debug_bg"/>
-              
-              <Button
-                  android:id="@+id/stopButton"
-                  android:layout_width="56dp"
-                  android:layout_height="56dp"
-                  android:layout_alignParentBottom="true"
-                  android:layout_alignParentLeft="true"
-                  android:layout_margin="16dp"
-                  android:text="⏹"
-                  android:textSize="24sp"
-                  android:background="#CCFF0000"/>
-          </RelativeLayout>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/layout/item_file.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:orientation="horizontal"
-              android:padding="12dp"
-              android:background="?selectableItemBackground">
-              
-              <ImageView
-                  android:id="@+id/fileIcon"
-                  android:layout_width="48dp"
-                  android:layout_height="48dp"
-                  android:scaleType="centerCrop"/>
-              
-              <LinearLayout
-                  android:layout_width="0dp"
-                  android:layout_height="wrap_content"
-                  android:layout_weight="1"
-                  android:orientation="vertical"
-                  android:layout_marginLeft="12dp"
-                  android:layout_gravity="center_vertical">
-                  
-                  <TextView
-                      android:id="@+id/fileName"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:textSize="16sp"
-                      android:textColor="#000000"
-                      android:textStyle="bold"/>
-                  
-                  <TextView
-                      android:id="@+id/fileSize"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:textSize="12sp"
-                      android:textColor="#666666"/>
-              </LinearLayout>
-              
-              <Button
-                  android:id="@+id/btnDelete"
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="❌"
-                  android:textSize="16sp"/>
-          </LinearLayout>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/values/styles.xml
-          <resources>
-              <style name="CodeButton">
-                  <item name="android:layout_width">wrap_content</item>
-                  <item name="android:layout_height">32dp</item>
-                  <item name="android:layout_margin">2dp</item>
-                  <item name="android:textSize">11sp</item>
-                  <item name="android:paddingLeft">12dp</item>
-                  <item name="android:paddingRight">12dp</item>
-                  <item name="android:textColor">#D4D4D4</item>
-                  <item name="android:background">#3E3E42</item>
-              </style>
-          </resources>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/xml/file_paths.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <paths>
-              <external-path name="external_files" path="."/>
-              <cache-path name="cache" path="."/>
-              <files-path name="files" path="."/>
-          </paths>
-          EOF
-
-          cat <<'JAVA' > app/src/main/java/com/gamescript/pro/MainActivity.java
-          package com.gamescript.pro;
-
-          import android.os.Bundle;
-          import androidx.appcompat.app.AppCompatActivity;
-          import androidx.fragment.app.Fragment;
-          import com.google.android.material.tabs.TabLayout;
-
-          public class MainActivity extends AppCompatActivity {
-              EditorFragment editorFrag;
-              FilesFragment filesFrag;
-              GameFragment gameFrag;
-
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-
-                  editorFrag = new EditorFragment();
-                  filesFrag = new FilesFragment();
-                  gameFrag = new GameFragment();
-
-                  getSupportFragmentManager().beginTransaction()
-                      .replace(R.id.container, editorFrag)
-                      .commit();
-
-                  TabLayout tabs = findViewById(R.id.tabs);
-                  tabs.addTab(tabs.newTab().setText("📝 Editor"));
-                  tabs.addTab(tabs.newTab().setText("📁 Files"));
-                  tabs.addTab(tabs.newTab().setText("🎮 Game"));
-
-                  tabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-                      @Override
-                      public void onTabSelected(TabLayout.Tab tab) {
-                          Fragment frag = null;
-                          switch (tab.getPosition()) {
-                              case 0: frag = editorFrag; break;
-                              case 1: frag = filesFrag; break;
-                              case 2: frag = gameFrag; break;
-                          }
-                          if (frag != null) {
-                              getSupportFragmentManager().beginTransaction()
-                                  .replace(R.id.container, frag)
-                                  .commit();
-                          }
-                      }
-                      @Override public void onTabUnselected(TabLayout.Tab tab) {}
-                      @Override public void onTabReselected(TabLayout.Tab tab) {}
-                  });
-              }
-
-              public FilesFragment getFilesFragment() {
-                  return filesFrag;
-              }
-
-              public GameFragment getGameFragment() {
-                  return gameFrag;
-              }
-          }
-          JAVA
-
-          cat <<'JAVA' > app/src/main/java/com/gamescript/pro/EditorFragment.java
-          package com.gamescript.pro;
-
-          import android.os.Bundle;
-          import android.text.*;
-          import android.view.*;
-          import android.widget.*;
-          import androidx.fragment.app.Fragment;
-          import java.io.*;
-          import java.util.*;
-
-          public class EditorFragment extends Fragment {
-              EditText codeEditor;
-              TextView console, lineNumbers;
-              Spinner fileSpinner;
-              List<CodeFile> files = new ArrayList<>();
-              int currentFileIndex = 0;
-
-              @Override
-              public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-                  View v = inflater.inflate(R.layout.fragment_editor, container, false);
-
-                  codeEditor = v.findViewById(R.id.codeEditor);
-                  console = v.findViewById(R.id.console);
-                  lineNumbers = v.findViewById(R.id.lineNumbers);
-                  fileSpinner = v.findViewById(R.id.fileSpinner);
-
-                  // Default file
-                  files.add(new CodeFile("main.gs", getDefaultCode()));
-                  updateFileSpinner();
-
-                  codeEditor.setText(files.get(0).content);
-
-                  codeEditor.addTextChangedListener(new TextWatcher() {
-                      @Override
-                      public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                      @Override
-                      public void onTextChanged(CharSequence s, int start, int before, int count) {
-                          updateLineNumbers();
-                          syntaxHighlight();
-                      }
-                      @Override
-                      public void afterTextChanged(Editable s) {}
-                  });
-
-                  v.findViewById(R.id.btnNew).setOnClickListener(x -> newFile());
-                  v.findViewById(R.id.btnSave).setOnClickListener(x -> saveFile());
-                  v.findViewById(R.id.btnRun).setOnClickListener(x -> runCode());
-
-                  setupCodeButtons(v);
-
-                  fileSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                      @Override
-                      public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                          if (currentFileIndex < files.size()) {
-                              files.get(currentFileIndex).content = codeEditor.getText().toString();
-                          }
-                          currentFileIndex = position;
-                          codeEditor.setText(files.get(position).content);
-                      }
-                      @Override public void onNothingSelected(AdapterView<?> parent) {}
-                  });
-
-                  updateLineNumbers();
-                  return v;
-              }
-
-              void setupCodeButtons(View v) {
-                  v.findViewById(R.id.btn_if).setOnClickListener(x -> insertCode("if condition:\n    "));
-                  v.findViewById(R.id.btn_for).setOnClickListener(x -> insertCode("for i in range(10):\n    "));
-                  v.findViewById(R.id.btn_while).setOnClickListener(x -> insertCode("while True:\n    "));
-                  v.findViewById(R.id.btn_def).setOnClickListener(x -> insertCode("def function():\n    "));
-                  v.findViewById(R.id.btn_class).setOnClickListener(x -> insertCode("class MyClass:\n    "));
-                  v.findViewById(R.id.btn_import).setOnClickListener(x -> insertCode("import "));
-                  v.findViewById(R.id.btn_print).setOnClickListener(x -> insertCode("print()"));
-                  v.findViewById(R.id.btn_input).setOnClickListener(x -> insertCode("input()"));
-                  v.findViewById(R.id.btn_len).setOnClickListener(x -> insertCode("len()"));
-                  v.findViewById(R.id.btn_range).setOnClickListener(x -> insertCode("range()"));
-                  v.findViewById(R.id.btn_list).setOnClickListener(x -> insertCode("[]"));
-                  v.findViewById(R.id.btn_dict).setOnClickListener(x -> insertCode("{}"));
-              }
-
-              void insertCode(String code) {
-                  int pos = codeEditor.getSelectionStart();
-                  codeEditor.getText().insert(pos, code);
-              }
-
-              void updateLineNumbers() {
-                  String text = codeEditor.getText().toString();
-                  int lines = text.split("\n").length;
-                  StringBuilder nums = new StringBuilder();
-                  for (int i = 1; i <= lines; i++) {
-                      nums.append(i).append("\n");
-                  }
-                  lineNumbers.setText(nums.toString());
-              }
-
-              void syntaxHighlight() {
-                  // Simple syntax highlighting would go here
-                  // For full implementation, use Spannable with ForegroundColorSpan
-              }
-
-              void newFile() {
-                  String name = "file" + (files.size() + 1) + ".gs";
-                  files.add(new CodeFile(name, "# New file\n"));
-                  updateFileSpinner();
-                  fileSpinner.setSelection(files.size() - 1);
-              }
-
-              void saveFile() {
-                  files.get(currentFileIndex).content = codeEditor.getText().toString();
-                  try {
-                      File file = new File(getContext().getFilesDir(), files.get(currentFileIndex).name);
-                      FileWriter writer = new FileWriter(file);
-                      writer.write(files.get(currentFileIndex).content);
-                      writer.close();
-                      log("✓ Saved: " + files.get(currentFileIndex).name);
-                  } catch (IOException e) {
-                      log("✗ Error saving file: " + e.getMessage());
-                  }
-              }
-
-              void runCode() {
-                  console.setText("");
-                  saveFile();
-                  
-                  String code = codeEditor.getText().toString();
-                  GameFragment gameFrag = ((MainActivity)getActivity()).getGameFragment();
-                  if (gameFrag != null) {
-                      gameFrag.runCode(code, files, ((MainActivity)getActivity()).getFilesFragment().getLoadedFiles());
-                      getActivity().getSupportFragmentManager().beginTransaction()
-                          .replace(R.id.container, gameFrag)
-                          .commit();
-                      ((TabLayout)getActivity().findViewById(R.id.tabs)).getTabAt(2).select();
-                  }
-              }
-
-              void updateFileSpinner() {
-                  ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), 
-                      android.R.layout.simple_spinner_item,
-                      files.stream().map(f -> f.name).toArray(String[]::new));
-                  adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                  fileSpinner.setAdapter(adapter);
-              }
-
-              void log(String msg) {
-                  console.append(msg + "\n");
-              }
-
-              String getDefaultCode() {
-                  return "# GameScript Pro - Full Python for Games\n" +
-                         "# Load images in Files tab, then use:\n" +
-                         "# img = load_image('filename.png')\n\n" +
-                         "# Variables\n" +
-                         "x, y = 100, 100\n" +
-                         "speed = 5\n" +
-                         "score = 0\n" +
-                         "colors = [(255,0,0), (0,255,0), (0,0,255)]\n\n" +
-                         "# Game loop\n" +
-                         "def update():\n" +
-                         "    global x, y, score\n" +
-                         "    \n" +
-                         "    # Movement\n" +
-                         "    if key('left'):\n" +
-                         "        x -= speed\n" +
-                         "    if key('right'):\n" +
-                         "        x += speed\n" +
-                         "    if key('up'):\n" +
-                         "        y -= speed\n" +
-                         "    if key('down'):\n" +
-                         "        y += speed\n" +
-                         "    \n" +
-                         "    # Touch/Click\n" +
-                         "    if touching():\n" +
-                         "        tx, ty = touch_pos()\n" +
-                         "        x, y = tx - 25, ty - 25\n" +
-                         "    \n" +
-                         "    score += 1\n\n" +
-                         "def draw():\n" +
-                         "    # Clear screen\n" +
-                         "    clear(30, 30, 30)\n" +
-                         "    \n" +
-                         "    # Draw player\n" +
-                         "    rect(x, y, 50, 50, 255, 100, 0)\n" +
-                         "    \n" +
-                         "    # Draw score\n" +
-                         "    text('Score: ' + str(score), 20, 50, 255, 255, 255, 30)\n" +
-                         "    \n" +
-                         "    # Example: circles\n" +
-                         "    for i in range(5):\n" +
-                         "        circle(100 + i*100, 300, 30, *colors[i % 3])\n" +
-                         "    \n" +
-                         "    # Example: lines\n" +
-                         "    line(0, 0, width(), height(), 255, 255, 0, 2)\n";
-              }
-
-              class CodeFile {
-                  String name;
-                  String content;
-                  CodeFile(String n, String c) { name = n; content = c; }
-              }
-          }
-          JAVA
-
-          cat <<'JAVA' > app/src/main/java/com/gamescript/pro/FilesFragment.java
-          package com.gamescript.pro;
-
-          import android.content.Intent;
-          import android.graphics.Bitmap;
-          import android.graphics.BitmapFactory;
-          import android.net.Uri;
-          import android.os.Bundle;
-          import android.view.*;
-          import android.widget.*;
-          import androidx.activity.result.ActivityResultLauncher;
-          import androidx.activity.result.contract.ActivityResultContracts;
-          import androidx.fragment.app.Fragment;
-          import androidx.recyclerview.widget.*;
-          import java.io.*;
-          import java.util.*;
-
-          public class FilesFragment extends Fragment {
-              RecyclerView filesList;
-              TextView fileInfo;
-              List<LoadedFile> loadedFiles = new ArrayList<>();
-              FilesAdapter adapter;
-
-              ActivityResultLauncher<Intent> imageLauncher;
-              ActivityResultLauncher<Intent> audioLauncher;
-              ActivityResultLauncher<Intent> fileLauncher;
-
-              @Override
-              public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-                  View v = inflater.inflate(R.layout.fragment_files, container, false);
-
-                  filesList = v.findViewById(R.id.filesList);
-                  fileInfo = v.findViewById(R.id.fileInfo);
-
-                  filesList.setLayoutManager(new LinearLayoutManager(getContext()));
-                  adapter = new FilesAdapter();
-                  filesList.setAdapter(adapter);
-
-                  setupLaunchers();
-
-                  v.findViewById(R.id.btnLoadImage).setOnClickListener(x -> loadImage());
-                  v.findViewById(R.id.btnLoadAudio).setOnClickListener(x -> loadAudio());
-                  v.findViewById(R.id.btnLoadFile).setOnClickListener(x -> loadFile());
-
-                  updateInfo();
-                  return v;
-              }
-
-              void setupLaunchers() {
-                  imageLauncher = registerForActivityResult(
-                      new ActivityResultContracts.StartActivityForResult(),
-                      result -> {
-                          if (result.getResultCode() == getActivity().RESULT_OK && result.getData() != null) {
-                              handleImageUri(result.getData().getData());
-                          }
-                      }
-                  );
-
-                  audioLauncher = registerForActivityResult(
-                      new ActivityResultContracts.StartActivityForResult(),
-                      result -> {
-                          if (result.getResultCode() == getActivity().RESULT_OK && result.getData() != null) {
-                              handleAudioUri(result.getData().getData());
-                          }
-                      }
-                  );
-
-                  fileLauncher = registerForActivityResult(
-                      new ActivityResultContracts.StartActivityForResult(),
-                      result -> {
-                          if (result.getResultCode() == getActivity().RESULT_OK && result.getData() != null) {
-                              handleFileUri(result.getData().getData());
-                          }
-                      }
-                  );
-              }
-
-              void loadImage() {
-                  Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                  intent.setType("image/*");
-                  imageLauncher.launch(intent);
-              }
-
-              void loadAudio() {
-                  Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                  intent.setType("audio/*");
-                  audioLauncher.launch(intent);
-              }
-
-              void loadFile() {
-                  Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                  intent.setType("*/*");
-                  fileLauncher.launch(intent);
-              }
-
-              void handleImageUri(Uri uri) {
-                  try {
-                      InputStream input = getContext().getContentResolver().openInputStream(uri);
-                      Bitmap bitmap = BitmapFactory.decodeStream(input);
-                      
-                      String fileName = "image_" + System.currentTimeMillis() + ".png";
-                      File file = new File(getContext().getFilesDir(), fileName);
-                      
-                      FileOutputStream out = new FileOutputStream(file);
-                      bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-                      out.close();
-                      input.close();
-
-                      LoadedFile lf = new LoadedFile();
-                      lf.name = fileName;
-                      lf.type = "image";
-                      lf.path = file.getAbsolutePath();
-                      lf.size = file.length();
-                      lf.bitmap = bitmap;
-                      
-                      loadedFiles.add(lf);
-                      adapter.notifyDataSetChanged();
-                      updateInfo();
-                      
-                      Toast.makeText(getContext(), "Image loaded: " + fileName, Toast.LENGTH_SHORT).show();
-                  } catch (Exception e) {
-                      Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                  }
-              }
-
-              void handleAudioUri(Uri uri) {
-                  try {
-                      InputStream input = getContext().getContentResolver().openInputStream(uri);
-                      
-                      String fileName = "audio_" + System.currentTimeMillis() + ".mp3";
-                      File file = new File(getContext().getFilesDir(), fileName);
-                      
-                      FileOutputStream out = new FileOutputStream(file);
-                      byte[] buffer = new byte[1024];
-                      int read;
-                      while ((read = input.read(buffer)) != -1) {
-                          out.write(buffer, 0, read);
-                      }
-                      out.close();
-                      input.close();
-
-                      LoadedFile lf = new LoadedFile();
-                      lf.name = fileName;
-                      lf.type = "audio";
-                      lf.path = file.getAbsolutePath();
-                      lf.size = file.length();
-                      
-                      loadedFiles.add(lf);
-                      adapter.notifyDataSetChanged();
-                      updateInfo();
-                      
-                      Toast.makeText(getContext(), "Audio loaded: " + fileName, Toast.LENGTH_SHORT).show();
-                  } catch (Exception e) {
-                      Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                  }
-              }
-
-              void handleFileUri(Uri uri) {
-                  try {
-                      InputStream input = getContext().getContentResolver().openInputStream(uri);
-                      
-                      String fileName = "file_" + System.currentTimeMillis() + ".dat";
-                      File file = new File(getContext().getFilesDir(), fileName);
-                      
-                      FileOutputStream out = new FileOutputStream(file);
-                      byte[] buffer = new byte[1024];
-                      int read;
-                      while ((read = input.read(buffer)) != -1) {
-                          out.write(buffer, 0, read);
-                      }
-                      out.close();
-                      input.close();
-
-                      LoadedFile lf = new LoadedFile();
-                      lf.name = fileName;
-                      lf.type = "file";
-                      lf.path = file.getAbsolutePath();
-                      lf.size = file.length();
-                      
-                      loadedFiles.add(lf);
-                      adapter.notifyDataSetChanged();
-                      updateInfo();
-                      
-                      Toast.makeText(getContext(), "File loaded: " + fileName, Toast.LENGTH_SHORT).show();
-                  } catch (Exception e) {
-                      Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                  }
-              }
-
-              void updateInfo() {
-                  long totalSize = 0;
-                  for (LoadedFile f : loadedFiles) totalSize += f.size;
-                  fileInfo.setText(String.format("Files: %d | Total size: %.2f MB", 
-                      loadedFiles.size(), totalSize / 1048576.0));
-              }
-
-              public List<LoadedFile> getLoadedFiles() {
-                  return loadedFiles;
-              }
-
-              class FilesAdapter extends RecyclerView.Adapter<FileViewHolder> {
-                  @Override
-                  public FileViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                      View v = LayoutInflater.from(parent.getContext())
-                          .inflate(R.layout.item_file, parent, false);
-                      return new FileViewHolder(v);
-                  }
-
-                  @Override
-                  public void onBindViewHolder(FileViewHolder h, int pos) {
-                      LoadedFile f = loadedFiles.get(pos);
-                      h.fileName.setText(f.name);
-                      h.fileSize.setText(String.format("%.2f KB | %s", f.size / 1024.0, f.type));
-                      
-                      if (f.bitmap != null) {
-                          h.fileIcon.setImageBitmap(f.bitmap);
-                      } else {
-                          h.fileIcon.setImageResource(android.R.drawable.ic_menu_gallery);
-                      }
-
-                      h.btnDelete.setOnClickListener(v -> {
-                          loadedFiles.remove(pos);
-                          notifyDataSetChanged();
-                          updateInfo();
-                      });
-                  }
-
-                  @Override
-                  public int getItemCount() {
-                      return loadedFiles.size();
-                  }
-              }
-
-              class FileViewHolder extends RecyclerView.ViewHolder {
-                  TextView fileName, fileSize;
-                  ImageView fileIcon;
-                  Button btnDelete;
-
-                  FileViewHolder(View v) {
-                      super(v);
-                      fileName = v.findViewById(R.id.fileName);
-                      fileSize = v.findViewById(R.id.fileSize);
-                      fileIcon = v.findViewById(R.id.fileIcon);
-                      btnDelete = v.findViewById(R.id.btnDelete);
-                  }
-              }
-          }
-          JAVA
-
-          cat <<'JAVA' > app/src/main/java/com/gamescript/pro/LoadedFile.java
-          package com.gamescript.pro;
-
-          import android.graphics.Bitmap;
-
-          public class LoadedFile {
-              public String name;
-              public String type;
-              public String path;
-              public long size;
-              public Bitmap bitmap;
-          }
-          JAVA
-
-          cat <<'JAVA' > app/src/main/java/com/gamescript/pro/GameFragment.java
-          package com.gamescript.pro;
-
-          import android.os.Bundle;
-          import android.view.*;
-          import android.widget.*;
-          import androidx.fragment.app.Fragment;
-          import java.util.*;
-
-          public class GameFragment extends Fragment {
-              GameView gameView;
-              View debugMenu;
-              TextView fpsText, objectsText, memoryText, varsText, touchText;
-              boolean debugVisible = false;
-
-              @Override
-              public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-                  View v = inflater.inflate(R.layout.fragment_game, container, false);
-
-                  gameView = v.findViewById(R.id.gameView);
-                  debugMenu = v.findViewById(R.id.debugMenu);
-                  fpsText = v.findViewById(R.id.fpsText);
-                  objectsText = v.findViewById(R.id.objectsText);
-                  memoryText = v.findViewById(R.id.memoryText);
-                  varsText = v.findViewById(R.id.varsText);
-                  touchText = v.findViewById(R.id.touchText);
-
-                  v.findViewById(R.id.debugButton).setOnClickListener(x -> toggleDebug());
-                  v.findViewById(R.id.stopButton).setOnClickListener(x -> stopGame());
-
-                  startDebugUpdates();
-                  return v;
-              }
-
-              public void runCode(String code, List<EditorFragment.CodeFile> files, List<LoadedFile> loadedFiles) {
-                  if (gameView != null) {
-                      PythonInterpreter interpreter = new PythonInterpreter(getContext());
-                      interpreter.setLoadedFiles(loadedFiles);
-                      interpreter.execute(code);
-                      gameView.setInterpreter(interpreter);
-                  }
-              }
-
-              void toggleDebug() {
-                  debugVisible = !debugVisible;
-                  debugMenu.setVisibility(debugVisible ? View.VISIBLE : View.GONE);
-              }
-
-              void stopGame() {
-                  if (gameView != null) {
-                      gameView.pause();
-                  }
-                  getActivity().getSupportFragmentManager().beginTransaction()
-                      .replace(R.id.container, ((MainActivity)getActivity()).editorFrag)
-                      .commit();
-              }
-
-              void startDebugUpdates() {
-                  new Thread(() -> {
-                      while (true) {
-                          try {
-                              Thread.sleep(100);
-                              if (getActivity() != null) {
-                                  getActivity().runOnUiThread(() -> {
-                                      if (debugVisible && gameView != null) {
-                                          fpsText.setText("FPS: " + gameView.getFPS());
-                                          objectsText.setText("Objects: " + gameView.getObjectCount());
-                                          memoryText.setText("Memory: " + getMemoryUsage() + " MB");
-                                          varsText.setText("Variables: " + gameView.getVarCount());
-                                          touchText.setText(String.format("Touch: (%.0f, %.0f)", 
-                                              gameView.getTouchX(), gameView.getTouchY()));
-                                      }
-                                  });
-                              }
-                          } catch (Exception e) {
-                              break;
-                          }
-                      }
-                  }).start();
-              }
-
-              long getMemoryUsage() {
-                  Runtime runtime = Runtime.getRuntime();
-                  return (runtime.totalMemory() - runtime.freeMemory()) / 1048576;
-              }
-
-              @Override
-              public void onPause() {
-                  super.onPause();
-                  if (gameView != null) gameView.pause();
-              }
-
-              @Override
-              public void onResume() {
-                  super.onResume();
-                  if (gameView != null) gameView.resume();
-              }
-          }
-          JAVA
-
-          cat <<'JAVA' > app/src/main/java/com/gamescript/pro/GameView.java
-          package com.gamescript.pro;
-
-          import android.content.Context;
-          import android.graphics.*;
-          import android.util.AttributeSet;
-          import android.view.*;
-
-          public class GameView extends SurfaceView implements Runnable {
-              Thread gameThread;
-              SurfaceHolder holder;
-              boolean running = false;
-              Paint paint = new Paint();
-              PythonInterpreter interpreter;
-              
-              int fps = 0;
-              long frameCount = 0;
-              long lastFpsTime = System.currentTimeMillis();
-              
-              float touchX = 0, touchY = 0;
-              boolean touching = false;
-
-              public GameView(Context context, AttributeSet attrs) {
-                  super(context, attrs);
-                  holder = getHolder();
-                  setFocusable(true);
-                  paint.setAntiAlias(true);
-              }
-
-              public void setInterpreter(PythonInterpreter interp) {
-                  this.interpreter = interp;
-                  interp.setGameView(this);
-                  resume();
-              }
-
-              public void resume() {
-                  running = true;
-                  gameThread = new Thread(this);
-                  gameThread.start();
-              }
-
-              public void pause() {
-                  running = false;
-                  try {
-                      if (gameThread != null) gameThread.join();
-                  } catch (InterruptedException e) {}
-              }
-
-              @Override
-              public void run() {
-                  while (running) {
-                      long startTime = System.currentTimeMillis();
-                      
-                      if (holder.getSurface().isValid()) {
-                          Canvas canvas = holder.lockCanvas();
-                          if (canvas != null) {
-                              update();
-                              draw(canvas);
-                              holder.unlockCanvasAndPost(canvas);
-                          }
-                          
-                          frameCount++;
-                          long now = System.currentTimeMillis();
-                          if (now - lastFpsTime >= 1000) {
-                              fps = (int) frameCount;
-                              frameCount = 0;
-                              lastFpsTime = now;
-                          }
-                      }
-                      
-                      // Target 60 FPS
-                      long frameTime = System.currentTimeMillis() - startTime;
-                      if (frameTime < 16) {
-                          try {
-                              Thread.sleep(16 - frameTime);
-                          } catch (InterruptedException e) {}
-                      }
-                  }
-              }
-
-              void update() {
-                  if (interpreter != null) {
-                      interpreter.update();
-                  }
-              }
-
-              void draw(Canvas canvas) {
-                  if (interpreter != null) {
-                      interpreter.draw(canvas, paint);
-                  }
-              }
-
-              @Override
-              public boolean onTouchEvent(MotionEvent event) {
-                  touchX = event.getX();
-                  touchY = event.getY();
-                  
-                  switch (event.getAction()) {
-                      case MotionEvent.ACTION_DOWN:
-                      case MotionEvent.ACTION_MOVE:
-                          touching = true;
-                          break;
-                      case MotionEvent.ACTION_UP:
-                      case MotionEvent.ACTION_CANCEL:
-                          touching = false;
-                          break;
-                  }
-                  return true;
-              }
-
-              public int getFPS() { return fps; }
-              public int getObjectCount() { return interpreter != null ? interpreter.getObjectCount() : 0; }
-              public int getVarCount() { return interpreter != null ? interpreter.getVarCount() : 0; }
-              public float getTouchX() { return touchX; }
-              public float getTouchY() { return touchY; }
-              public boolean isTouching() { return touching; }
-              public int getWidth2() { return getWidth(); }
-              public int getHeight2() { return getHeight(); }
-          }
-          JAVA
-
-          cat <<'JAVA' > app/src/main/java/com/gamescript/pro/PythonInterpreter.java
-          package com.gamescript.pro;
-
-          import android.content.Context;
-          import android.graphics.*;
-          import java.util.*;
-          import java.util.regex.*;
-
-          public class PythonInterpreter {
-              Context context;
-              GameView gameView;
-              Map<String, Object> variables = new HashMap<>();
-              Map<String, Function> functions = new HashMap<>();
-              List<LoadedFile> loadedFiles = new ArrayList<>();
-              
-              Canvas currentCanvas;
-              Paint currentPaint;
-              Random random = new Random();
-
-              public PythonInterpreter(Context ctx) {
-                  this.context = ctx;
-              }
-
-              public void setGameView(GameView gv) {
-                  this.gameView = gv;
-              }
-
-              public void setLoadedFiles(List<LoadedFile> files) {
-                  this.loadedFiles = files;
-              }
-
-              public void execute(String code) {
-                  String[] lines = code.split("\n");
-                  
-                  for (int i = 0; i < lines.length; i++) {
-                      String line = lines[i];
-                      
-                      if (line.trim().isEmpty() || line.trim().startsWith("#")) continue;
-                      
-                      if (line.trim().startsWith("def ")) {
-                          i = parseFunction(lines, i);
-                      } else if (!line.startsWith(" ") && !line.startsWith("\t")) {
-                          executeLine(line);
-                      }
-                  }
-              }
-
-              int parseFunction(String[] lines, int start) {
-                  String header = lines[start].trim();
-                  String funcName = header.substring(4, header.indexOf('(')).trim();
-                  
-                  List<String> body = new ArrayList<>();
-                  int i = start + 1;
-                  
-                  while (i < lines.length) {
-                      String line = lines[i];
-                      if (!line.trim().isEmpty() && !line.startsWith(" ") && !line.startsWith("\t")) {
-                          break;
-                      }
-                      if (!line.trim().isEmpty()) {
-                          body.add(line.replaceFirst("^    ", "").replaceFirst("^\t", ""));
-                      }
-                      i++;
-                  }
-                  
-                  Function func = new Function();
-                  func.name = funcName;
-                  func.body = body;
-                  functions.put(funcName, func);
-                  
-                  return i - 1;
-              }
-
-              public void update() {
-                  if (functions.containsKey("update")) {
-                      executeFunction(functions.get("update"));
-                  }
-              }
-
-              public void draw(Canvas canvas, Paint paint) {
-                  currentCanvas = canvas;
-                  currentPaint = paint;
-                  
-                  if (functions.containsKey("draw")) {
-                      executeFunction(functions.get("draw"));
-                  }
-              }
-
-              void executeFunction(Function func) {
-                  for (String line : func.body) {
-                      executeLine(line);
-                  }
-              }
-
-              void executeLine(String line) {
-                  line = line.trim();
-                  if (line.isEmpty() || line.startsWith("#")) return;
-
-                  // Variable assignment
-                  if (line.matches(".*=.*") && !line.contains("==")) {
-                      String[] parts = line.split("=", 2);
-                      String left = parts[0].trim();
-                      String right = parts[1].trim();
-                      
-                      // Multiple assignment: x, y = 100, 200
-                      if (left.contains(",")) {
-                          String[] vars = left.split(",");
-                          String[] vals = right.split(",");
-                          for (int i = 0; i < Math.min(vars.length, vals.length); i++) {
-                              variables.put(vars[i].trim(), evaluateExpression(vals[i].trim()));
-                          }
-                      } else {
-                          variables.put(left, evaluateExpression(right));
-                      }
-                  }
-                  // If statement
-                  else if (line.startsWith("if ")) {
-                      executeIf(line);
-                  }
-                  // For loop
-                  else if (line.startsWith("for ")) {
-                      executeFor(line);
-                  }
-                  // While loop
-                  else if (line.startsWith("while ")) {
-                      executeWhile(line);
-                  }
-                  // Function call
-                  else if (line.contains("(") && line.contains(")")) {
-                      executeFunctionCall(line);
-                  }
-              }
-
-              void executeIf(String line) {
-                  Pattern p = Pattern.compile("if\\s+(.+):");
-                  Matcher m = p.matcher(line);
-                  if (m.find()) {
-                      String condition = m.group(1).trim();
-                      if (evaluateCondition(condition)) {
-                          String stmt = line.substring(line.indexOf(':') + 1).trim();
-                          if (!stmt.isEmpty()) {
-                              executeLine(stmt);
-                          }
-                      }
-                  }
-              }
-
-              void executeFor(String line) {
-                  // for i in range(10):
-                  Pattern p = Pattern.compile("for\\s+(\\w+)\\s+in\\s+range\\((\\d+)\\):");
-                  Matcher m = p.matcher(line);
-                  if (m.find()) {
-                      String varName = m.group(1);
-                      int count = Integer.parseInt(m.group(2));
-                      String stmt = line.substring(line.indexOf(':') + 1).trim();
-                      
-                      for (int i = 0; i < count; i++) {
-                          variables.put(varName, i);
-                          if (!stmt.isEmpty()) {
-                              executeLine(stmt);
-                          }
-                      }
-                  }
-              }
-
-              void executeWhile(String line) {
-                  Pattern p = Pattern.compile("while\\s+(.+):");
-                  Matcher m = p.matcher(line);
-                  if (m.find()) {
-                      String condition = m.group(1).trim();
-                      String stmt = line.substring(line.indexOf(':') + 1).trim();
-                      
-                      int safety = 0;
-                      while (evaluateCondition(condition) && safety++ < 10000) {
-                          if (!stmt.isEmpty()) {
-                              executeLine(stmt);
-                          }
-                      }
-                  }
-              }
-
-              boolean evaluateCondition(String cond) {
-                  if (cond.equals("True")) return true;
-                  if (cond.equals("False")) return false;
-                  
-                  // key('left')
-                  if (cond.contains("key(")) {
-                      Pattern p = Pattern.compile("key\\(['\"]?(\\w+)['\"]?\\)");
-                      Matcher m = p.matcher(cond);
-                      if (m.find() && gameView != null) {
-                          return isKeyPressed(m.group(1));
-                      }
-                  }
-                  
-                  // touching()
-                  if (cond.equals("touching()")) {
-                      return gameView != null && gameView.isTouching();
-                  }
-                  
-                  // Comparison operators
-                  if (cond.contains("==")) {
-                      String[] parts = cond.split("==");
-                      return evaluateExpression(parts[0]).equals(evaluateExpression(parts[1]));
-                  }
-                  if (cond.contains(">")) {
-                      String[] parts = cond.split(">");
-                      return toFloat(evaluateExpression(parts[0])) > toFloat(evaluateExpression(parts[1]));
-                  }
-                  if (cond.contains("<")) {
-                      String[] parts = cond.split("<");
-                      return toFloat(evaluateExpression(parts[0])) < toFloat(evaluateExpression(parts[1]));
-                  }
-                  
-                  return false;
-              }
-
-              void executeFunctionCall(String line) {
-                  String funcName = line.substring(0, line.indexOf('(')).trim();
-                  String params = line.substring(line.indexOf('(') + 1, line.lastIndexOf(')')).trim();
-                  String[] args = params.isEmpty() ? new String[0] : params.split(",");
-                  
-                  for (int i = 0; i < args.length; i++) {
-                      args[i] = args[i].trim();
-                  }
-                  
-                  // Built-in functions
-                  switch (funcName) {
-                      case "print":
-                          System.out.println(evaluateExpression(args[0]));
-                          break;
-                      case "clear":
-                          drawClear(args);
-                          break;
-                      case "rect":
-                          drawRect(args);
-                          break;
-                      case "circle":
-                          drawCircle(args);
-                          break;
-                      case "line":
-                          drawLine(args);
-                          break;
-                      case "text":
-                          drawText(args);
-                          break;
-                      case "load_image":
-                          loadImage(args);
-                          break;
-                      case "draw_image":
-                          drawImage(args);
-                          break;
-                      case "play_sound":
-                          playSound(args);
-                          break;
-                      default:
-                          // User defined functions
-                          if (functions.containsKey(funcName)) {
-                              executeFunction(functions.get(funcName));
-                          }
-                          break;
-                  }
-              }
-
-              Object evaluateExpression(String expr) {
-                  expr = expr.trim();
-                  
-                  // String literal
-                  if (expr.startsWith("'") || expr.startsWith("\"")) {
-                      return expr.substring(1, expr.length() - 1);
-                  }
-                  
-                  // List literal
-                  if (expr.startsWith("[") && expr.endsWith("]")) {
-                      String content = expr.substring(1, expr.length() - 1);
-                      if (content.isEmpty()) return new ArrayList<>();
-                      String[] items = content.split(",");
-                      List<Object> list = new ArrayList<>();
-                      for (String item : items) {
-                          list.add(evaluateExpression(item.trim()));
-                      }
-                      return list;
-                  }
-                  
-                  // Tuple literal
-                  if (expr.startsWith("(") && expr.endsWith(")")) {
-                      String content = expr.substring(1, expr.length() - 1);
-                      String[] items = content.split(",");
-                      List<Object> tuple = new ArrayList<>();
-                      for (String item : items) {
-                          tuple.add(evaluateExpression(item.trim()));
-                      }
-                      return tuple;
-                  }
-                  
-                  // Function calls
-                  if (expr.contains("(")) {
-                      String funcName = expr.substring(0, expr.indexOf('(')).trim();
-                      String params = expr.substring(expr.indexOf('(') + 1, expr.lastIndexOf(')')).trim();
-                      
-                      switch (funcName) {
-                          case "str":
-                              return String.valueOf(evaluateExpression(params));
-                          case "int":
-                              return (int) toFloat(evaluateExpression(params));
-                          case "float":
-                              return toFloat(evaluateExpression(params));
-                          case "len":
-                              Object obj = evaluateExpression(params);
-                              if (obj instanceof List) return ((List) obj).size();
-                              if (obj instanceof String) return ((String) obj).length();
-                              return 0;
-                          case "range":
-                              int n = (int) toFloat(evaluateExpression(params));
-                              List<Integer> range = new ArrayList<>();
-                              for (int i = 0; i < n; i++) range.add(i);
-                              return range;
-                          case "width":
-                              return gameView != null ? gameView.getWidth2() : 0;
-                          case "height":
-                              return gameView != null ? gameView.getHeight2() : 0;
-                          case "touch_pos":
-                              List<Float> pos = new ArrayList<>();
-                              if (gameView != null) {
-                                  pos.add(gameView.getTouchX());
-                                  pos.add(gameView.getTouchY());
-                              }
-                              return pos;
-                          case "random":
-                              return random.nextFloat();
-                          case "randint":
-                              String[] rargs = params.split(",");
-                              int min = (int) toFloat(evaluateExpression(rargs[0]));
-                              int max = (int) toFloat(evaluateExpression(rargs[1]));
-                              return min + random.nextInt(max - min + 1);
-                      }
-                  }
-                  
-                  // Arithmetic operations
-                  if (expr.contains("+") && !expr.startsWith("+")) {
-                      String[] parts = expr.split("\\+", 2);
-                      float left = toFloat(evaluateExpression(parts[0]));
-                      float right = toFloat(evaluateExpression(parts[1]));
-                      return left + right;
-                  }
-                  if (expr.contains("-") && !expr.startsWith("-")) {
-                      String[] parts = expr.split("-", 2);
-                      float left = toFloat(evaluateExpression(parts[0]));
-                      float right = toFloat(evaluateExpression(parts[1]));
-                      return left - right;
-                  }
-                  if (expr.contains("*")) {
-                      String[] parts = expr.split("\\*", 2);
-                      float left = toFloat(evaluateExpression(parts[0]));
-                      float right = toFloat(evaluateExpression(parts[1]));
-                      return left * right;
-                  }
-                  if (expr.contains("/")) {
-                      String[] parts = expr.split("/", 2);
-                      float left = toFloat(evaluateExpression(parts[0]));
-                      float right = toFloat(evaluateExpression(parts[1]));
-                      return right != 0 ? left / right : 0;
-                  }
-                  
-                  // List indexing
-                  if (expr.contains("[") && expr.contains("]")) {
-                      String varName = expr.substring(0, expr.indexOf('['));
-                      String indexStr = expr.substring(expr.indexOf('[') + 1, expr.indexOf(']'));
-                      int index = (int) toFloat(evaluateExpression(indexStr));
-                      
-                      Object var = variables.get(varName.trim());
-                      if (var instanceof List) {
-                          List list = (List) var;
-                          if (index >= 0 && index < list.size()) {
-                              return list.get(index);
-                          }
-                      }
-                  }
-                  
-                  // Variable
-                  if (variables.containsKey(expr)) {
-                      return variables.get(expr);
-                  }
-                  
-                  // Number literal
-                  try {
-                      if (expr.contains(".")) {
-                          return Float.parseFloat(expr);
-                      } else {
-                          return Integer.parseInt(expr);
-                      }
-                  } catch (NumberFormatException e) {
-                      return expr;
-                  }
-              }
-
-              float toFloat(Object obj) {
-                  if (obj instanceof Number) {
-                      return ((Number) obj).floatValue();
-                  }
-                  try {
-                      return Float.parseFloat(String.valueOf(obj));
-                  } catch (Exception e) {
-                      return 0;
-                  }
-              }
-
-              boolean isKeyPressed(String key) {
-                  // Implement key detection for Android
-                  return false;
-              }
-
-              // Drawing functions
-              void drawClear(String[] args) {
-                  if (currentCanvas != null && args.length >= 3) {
-                      int r = (int) toFloat(evaluateExpression(args[0]));
-                      int g = (int) toFloat(evaluateExpression(args[1]));
-                      int b = (int) toFloat(evaluateExpression(args[2]));
-                      currentCanvas.drawColor(Color.rgb(r, g, b));
-                  }
-              }
-
-              void drawRect(String[] args) {
-                  if (currentCanvas != null && args.length >= 7) {
-                      float x = toFloat(evaluateExpression(args[0]));
-                      float y = toFloat(evaluateExpression(args[1]));
-                      float w = toFloat(evaluateExpression(args[2]));
-                      float h = toFloat(evaluateExpression(args[3]));
-                      int r = (int) toFloat(evaluateExpression(args[4]));
-                      int g = (int) toFloat(evaluateExpression(args[5]));
-                      int b = (int) toFloat(evaluateExpression(args[6]));
-                      
-                      currentPaint.setColor(Color.rgb(r, g, b));
-                      currentPaint.setStyle(Paint.Style.FILL);
-                      currentCanvas.drawRect(x, y, x + w, y + h, currentPaint);
-                  }
-              }
-
-              void drawCircle(String[] args) {
-                  if (currentCanvas != null && args.length >= 6) {
-                      float x = toFloat(evaluateExpression(args[0]));
-                      float y = toFloat(evaluateExpression(args[1]));
-                      float r = toFloat(evaluateExpression(args[2]));
-                      int cr = (int) toFloat(evaluateExpression(args[3]));
-                      int cg = (int) toFloat(evaluateExpression(args[4]));
-                      int cb = (int) toFloat(evaluateExpression(args[5]));
-                      
-                      currentPaint.setColor(Color.rgb(cr, cg, cb));
-                      currentPaint.setStyle(Paint.Style.FILL);
-                      currentCanvas.drawCircle(x, y, r, currentPaint);
-                  }
-              }
-
-              void drawLine(String[] args) {
-                  if (currentCanvas != null && args.length >= 7) {
-                      float x1 = toFloat(evaluateExpression(args[0]));
-                      float y1 = toFloat(evaluateExpression(args[1]));
-                      float x2 = toFloat(evaluateExpression(args[2]));
-                      float y2 = toFloat(evaluateExpression(args[3]));
-                      int r = (int) toFloat(evaluateExpression(args[4]));
-                      int g = (int) toFloat(evaluateExpression(args[5]));
-                      int b = (int) toFloat(evaluateExpression(args[6]));
-                      float width = args.length > 7 ? toFloat(evaluateExpression(args[7])) : 2;
-                      
-                      currentPaint.setColor(Color.rgb(r, g, b));
-                      currentPaint.setStrokeWidth(width);
-                      currentPaint.setStyle(Paint.Style.STROKE);
-                      currentCanvas.drawLine(x1, y1, x2, y2, currentPaint);
-                  }
-              }
-
-              void drawText(String[] args) {
-                  if (currentCanvas != null && args.length >= 6) {
-                      String txt = String.valueOf(evaluateExpression(args[0]));
-                      float x = toFloat(evaluateExpression(args[1]));
-                      float y = toFloat(evaluateExpression(args[2]));
-                      int r = (int) toFloat(evaluateExpression(args[3]));
-                      int g = (int) toFloat(evaluateExpression(args[4]));
-                      int b = (int) toFloat(evaluateExpression(args[5]));
-                      float size = args.length > 6 ? toFloat(evaluateExpression(args[6])) : 40;
-                      
-                      currentPaint.setColor(Color.rgb(r, g, b));
-                      currentPaint.setTextSize(size);
-                      currentPaint.setStyle(Paint.Style.FILL);
-                      currentCanvas.drawText(txt, x, y, currentPaint);
-                  }
-              }
-
-              void loadImage(String[] args) {
-                  if (args.length > 0) {
-                      String filename = String.valueOf(evaluateExpression(args[0]));
-                      for (LoadedFile file : loadedFiles) {
-                          if (file.name.equals(filename) && file.type.equals("image")) {
-                              variables.put("_last_image", file.bitmap);
-                              return;
-                          }
-                      }
-                  }
-              }
-
-              void drawImage(String[] args) {
-                  if (currentCanvas != null && args.length >= 3) {
-                      String imgVar = args[0].trim();
-                      float x = toFloat(evaluateExpression(args[1]));
-                      float y = toFloat(evaluateExpression(args[2]));
-                      
-                      Object img = variables.get(imgVar);
-                      if (img instanceof Bitmap) {
-                          currentCanvas.drawBitmap((Bitmap) img, x, y, currentPaint);
-                      }
-                  }
-              }
-
-              void playSound(String[] args) {
-                  // Implement audio playback
-              }
-
-              public int getObjectCount() {
-                  return variables.size();
-              }
-
-              public int getVarCount() {
-                  return variables.size();
-              }
-
-              class Function {
-                  String name;
-                  List<String> body;
-              }
-          }
-          JAVA
 
           cat <<EOF > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-              
-              <application 
-                  android:label="GameScript Pro" 
-                  android:theme="@style/AppTheme"
-                  android:requestLegacyExternalStorage="true">
-                  <activity 
-                      android:name=".MainActivity" 
-                      android:exported="true"
-                      android:windowSoftInputMode="adjustResize">
+              <application
+                  android:label="D1m"
+                  android:theme="@style/Theme.D1m">
+                  <activity
+                      android:name=".ChatActivity"
+                      android:exported="false" />
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="false" />
+                  <activity
+                      android:name=".LoginActivity"
+                      android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
@@ -1777,14 +98,1123 @@ jobs:
           </manifest>
           EOF
 
+          cat <<EOF > app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">D1m</string>
+              <string name="nav_open">Открыть меню</string>
+              <string name="nav_close">Закрыть меню</string>
+          </resources>
+          EOF
+
+          cat <<EOF > app/src/main/res/values/colors.xml
+          <resources>
+              <color name="d1m_bg">#F2F8FD</color>
+              <color name="d1m_primary">#4C97FF</color>
+              <color name="d1m_primary_dark">#2D678F</color>
+              <color name="d1m_panel">#FFFFFF</color>
+              <color name="d1m_text">#0E1621</color>
+              <color name="d1m_hint">#6A7B8C</color>
+
+              <color name="bubble_out">#CFE6FF</color>
+              <color name="bubble_in">#FFFFFF</color>
+              <color name="bubble_stroke">#D6E6F2</color>
+          </resources>
+          EOF
+
+          cat <<EOF > app/src/main/res/values/themes.xml
+          <resources>
+              <style name="Theme.D1m" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+                  <item name="colorPrimary">@color/d1m_primary</item>
+                  <item name="colorPrimaryVariant">@color/d1m_primary</item>
+                  <item name="colorOnPrimary">@android:color/white</item>
+                  <item name="android:statusBarColor">@color/d1m_primary</item>
+                  <item name="android:windowBackground">@color/d1m_bg</item>
+              </style>
+          </resources>
+          EOF
+
+          cat <<EOF > app/src/main/res/drawable/panel_bg.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@color/d1m_panel"/>
+              <corners android:radius="16dp"/>
+              <stroke android:width="1dp" android:color="#D6E6F2"/>
+          </shape>
+          EOF
+
+          cat <<EOF > app/src/main/res/drawable/avatar_circle.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+              <solid android:color="#4C97FF"/>
+          </shape>
+          EOF
+
+          cat <<EOF > app/src/main/res/drawable/bubble_out.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@color/bubble_out"/>
+              <corners android:radius="14dp"/>
+              <stroke android:width="1dp" android:color="@color/bubble_stroke"/>
+          </shape>
+          EOF
+
+          cat <<EOF > app/src/main/res/drawable/bubble_in.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@color/bubble_in"/>
+              <corners android:radius="14dp"/>
+              <stroke android:width="1dp" android:color="@color/bubble_stroke"/>
+          </shape>
+          EOF
+
+          cat <<EOF > app/src/main/res/drawable/btn_primary.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@color/d1m_primary"/>
+              <corners android:radius="14dp"/>
+          </shape>
+          EOF
+
+          cat <<EOF > app/src/main/res/menu/drawer_menu.xml
+          <menu xmlns:android="http://schemas.android.com/apk/res/android">
+              <group android:checkableBehavior="single">
+                  <item
+                      android:id="@+id/nav_chats"
+                      android:title="Чаты" />
+                  <item
+                      android:id="@+id/nav_profile"
+                      android:title="Профиль" />
+                  <item
+                      android:id="@+id/nav_settings"
+                      android:title="Настройки" />
+                  <item
+                      android:id="@+id/nav_about"
+                      android:title="О приложении" />
+                  <item
+                      android:id="@+id/nav_logout"
+                      android:title="Выйти" />
+              </group>
+          </menu>
+          EOF
+
+          cat <<'LAYOUT' > app/src/main/res/layout/activity_login.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="@color/d1m_bg"
+              android:padding="16dp">
+
+              <TextView
+                  android:id="@+id/title"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="D1m"
+                  android:textSize="42sp"
+                  android:textStyle="bold"
+                  android:textColor="@color/d1m_primary_dark"
+                  app:layout_constraintTop_toTopOf="parent"
+                  app:layout_constraintStart_toStartOf="parent"
+                  app:layout_constraintEnd_toEndOf="parent"
+                  android:layout_marginTop="40dp"/>
+
+              <TextView
+                  android:id="@+id/subtitle"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Регистрация (заглушка, без онлайна)"
+                  android:textColor="@color/d1m_hint"
+                  android:textSize="14sp"
+                  app:layout_constraintTop_toBottomOf="@id/title"
+                  app:layout_constraintStart_toStartOf="parent"
+                  app:layout_constraintEnd_toEndOf="parent"
+                  android:layout_marginTop="8dp"/>
+
+              <LinearLayout
+                  android:id="@+id/card"
+                  android:layout_width="0dp"
+                  android:layout_height="wrap_content"
+                  android:orientation="vertical"
+                  android:padding="16dp"
+                  android:background="@drawable/panel_bg"
+                  app:layout_constraintTop_toBottomOf="@id/subtitle"
+                  app:layout_constraintStart_toStartOf="parent"
+                  app:layout_constraintEnd_toEndOf="parent"
+                  android:layout_marginTop="22dp">
+
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="Имя"
+                      android:textColor="@color/d1m_hint"/>
+
+                  <EditText
+                      android:id="@+id/ed_name"
+                      android:layout_width="match_parent"
+                      android:layout_height="48dp"
+                      android:hint="Например: Дима"
+                      android:inputType="textPersonName"
+                      android:backgroundTint="@color/d1m_primary"
+                      android:padding="10dp"/>
+
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="Телефон"
+                      android:textColor="@color/d1m_hint"
+                      android:layout_marginTop="12dp"/>
+
+                  <EditText
+                      android:id="@+id/ed_phone"
+                      android:layout_width="match_parent"
+                      android:layout_height="48dp"
+                      android:hint="+7..."
+                      android:inputType="phone"
+                      android:backgroundTint="@color/d1m_primary"
+                      android:padding="10dp"/>
+
+                  <Button
+                      android:id="@+id/btn_continue"
+                      android:layout_width="match_parent"
+                      android:layout_height="52dp"
+                      android:text="Продолжить"
+                      android:textColor="@android:color/white"
+                      android:background="@drawable/btn_primary"
+                      android:layout_marginTop="16dp"/>
+              </LinearLayout>
+
+              <TextView
+                  android:layout_width="0dp"
+                  android:layout_height="wrap_content"
+                  android:text="Это офлайн-версия. Данные сохраняются только на телефоне."
+                  android:textColor="@color/d1m_hint"
+                  android:textSize="12sp"
+                  android:gravity="center"
+                  app:layout_constraintBottom_toBottomOf="parent"
+                  app:layout_constraintStart_toStartOf="parent"
+                  app:layout_constraintEnd_toEndOf="parent"
+                  android:layout_marginBottom="16dp"/>
+          </androidx.constraintlayout.widget.ConstraintLayout>
+          LAYOUT
+
+          cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:id="@+id/drawer"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+              <LinearLayout
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:orientation="vertical"
+                  android:background="@color/d1m_bg">
+
+                  <androidx.appcompat.widget.Toolbar
+                      android:id="@+id/toolbar"
+                      android:layout_width="match_parent"
+                      android:layout_height="56dp"
+                      android:background="@color/d1m_primary"
+                      app:titleTextColor="@android:color/white"
+                      app:popupTheme="@style/ThemeOverlay.MaterialComponents.Light"/>
+
+                  <LinearLayout
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:orientation="horizontal"
+                      android:padding="10dp">
+
+                      <TextView
+                          android:id="@+id/txt_header"
+                          android:layout_width="0dp"
+                          android:layout_height="wrap_content"
+                          android:layout_weight="1"
+                          android:text="Чаты"
+                          android:textStyle="bold"
+                          android:textSize="18sp"
+                          android:textColor="@color/d1m_primary_dark"/>
+
+                      <Button
+                          android:id="@+id/btn_new_chat"
+                          android:layout_width="wrap_content"
+                          android:layout_height="40dp"
+                          android:text="+"
+                          android:textSize="18sp"
+                          android:textColor="@android:color/white"
+                          android:background="@drawable/btn_primary"/>
+                  </LinearLayout>
+
+                  <androidx.recyclerview.widget.RecyclerView
+                      android:id="@+id/rv_chats"
+                      android:layout_width="match_parent"
+                      android:layout_height="0dp"
+                      android:layout_weight="1"
+                      android:padding="10dp"/>
+              </LinearLayout>
+
+              <com.google.android.material.navigation.NavigationView
+                  android:id="@+id/nav"
+                  android:layout_width="wrap_content"
+                  android:layout_height="match_parent"
+                  android:layout_gravity="start"
+                  app:menu="@menu/drawer_menu"
+                  app:headerLayout="@layout/drawer_header"/>
+          </androidx.drawerlayout.widget.DrawerLayout>
+          LAYOUT
+
+          cat <<'LAYOUT' > app/src/main/res/layout/drawer_header.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="140dp"
+              android:background="@color/d1m_primary"
+              android:orientation="horizontal"
+              android:padding="16dp"
+              android:gravity="bottom">
+
+              <TextView
+                  android:id="@+id/h_avatar"
+                  android:layout_width="52dp"
+                  android:layout_height="52dp"
+                  android:background="@drawable/avatar_circle"
+                  android:text="D"
+                  android:textStyle="bold"
+                  android:textSize="22sp"
+                  android:textColor="@android:color/white"
+                  android:gravity="center"/>
+
+              <LinearLayout
+                  android:layout_width="0dp"
+                  android:layout_height="wrap_content"
+                  android:layout_weight="1"
+                  android:orientation="vertical"
+                  android:layout_marginLeft="12dp">
+
+                  <TextView
+                      android:id="@+id/h_name"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="Пользователь"
+                      android:textStyle="bold"
+                      android:textSize="18sp"
+                      android:textColor="@android:color/white"/>
+
+                  <TextView
+                      android:id="@+id/h_phone"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="+7..."
+                      android:textSize="13sp"
+                      android:textColor="#E9F4FF"/>
+              </LinearLayout>
+          </LinearLayout>
+          LAYOUT
+
+          cat <<'LAYOUT' > app/src/main/res/layout/item_chat.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              android:background="@drawable/panel_bg"
+              android:padding="12dp"
+              android:layout_marginBottom="10dp">
+
+              <TextView
+                  android:id="@+id/avatar"
+                  android:layout_width="44dp"
+                  android:layout_height="44dp"
+                  android:background="@drawable/avatar_circle"
+                  android:text="A"
+                  android:textStyle="bold"
+                  android:textSize="18sp"
+                  android:textColor="@android:color/white"
+                  android:gravity="center"/>
+
+              <LinearLayout
+                  android:layout_width="0dp"
+                  android:layout_height="wrap_content"
+                  android:layout_weight="1"
+                  android:orientation="vertical"
+                  android:layout_marginLeft="12dp">
+
+                  <TextView
+                      android:id="@+id/title"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="Чат"
+                      android:textStyle="bold"
+                      android:textColor="@color/d1m_text"
+                      android:textSize="16sp"/>
+
+                  <TextView
+                      android:id="@+id/last"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="Последнее сообщение..."
+                      android:textColor="@color/d1m_hint"
+                      android:textSize="13sp"
+                      android:maxLines="1"/>
+              </LinearLayout>
+
+              <TextView
+                  android:id="@+id/time"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="12:00"
+                  android:textColor="@color/d1m_hint"
+                  android:textSize="12sp"/>
+          </LinearLayout>
+          LAYOUT
+
+          cat <<'LAYOUT' > app/src/main/res/layout/activity_chat.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="@color/d1m_bg">
+
+              <androidx.appcompat.widget.Toolbar
+                  android:id="@+id/toolbar"
+                  android:layout_width="0dp"
+                  android:layout_height="56dp"
+                  android:background="@color/d1m_primary"
+                  app:titleTextColor="@android:color/white"
+                  app:layout_constraintTop_toTopOf="parent"
+                  app:layout_constraintStart_toStartOf="parent"
+                  app:layout_constraintEnd_toEndOf="parent"/>
+
+              <androidx.recyclerview.widget.RecyclerView
+                  android:id="@+id/rv_messages"
+                  android:layout_width="0dp"
+                  android:layout_height="0dp"
+                  android:padding="10dp"
+                  app:layout_constraintTop_toBottomOf="@id/toolbar"
+                  app:layout_constraintBottom_toTopOf="@id/compose_panel"
+                  app:layout_constraintStart_toStartOf="parent"
+                  app:layout_constraintEnd_toEndOf="parent"/>
+
+              <LinearLayout
+                  android:id="@+id/compose_panel"
+                  android:layout_width="0dp"
+                  android:layout_height="wrap_content"
+                  android:orientation="horizontal"
+                  android:padding="10dp"
+                  android:background="@color/d1m_panel"
+                  app:layout_constraintBottom_toBottomOf="parent"
+                  app:layout_constraintStart_toStartOf="parent"
+                  app:layout_constraintEnd_toEndOf="parent">
+
+                  <EditText
+                      android:id="@+id/ed_text"
+                      android:layout_width="0dp"
+                      android:layout_height="48dp"
+                      android:layout_weight="1"
+                      android:hint="Сообщение"
+                      android:backgroundTint="@color/d1m_primary"
+                      android:padding="10dp"/>
+
+                  <Button
+                      android:id="@+id/btn_send"
+                      android:layout_width="70dp"
+                      android:layout_height="48dp"
+                      android:text="➤"
+                      android:textSize="18sp"
+                      android:textColor="@android:color/white"
+                      android:background="@drawable/btn_primary"
+                      android:layout_marginLeft="10dp"/>
+              </LinearLayout>
+          </androidx.constraintlayout.widget.ConstraintLayout>
+          LAYOUT
+
+          cat <<'LAYOUT' > app/src/main/res/layout/item_message.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:paddingTop="6dp"
+              android:paddingBottom="6dp">
+
+              <LinearLayout
+                  android:id="@+id/bubble"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:orientation="vertical"
+                  android:padding="10dp"
+                  android:layout_gravity="start"
+                  android:background="@drawable/bubble_in">
+
+                  <TextView
+                      android:id="@+id/text"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="Привет"
+                      android:textColor="@color/d1m_text"
+                      android:textSize="15sp"/>
+
+                  <TextView
+                      android:id="@+id/time"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="12:00"
+                      android:textColor="@color/d1m_hint"
+                      android:textSize="11sp"
+                      android:layout_gravity="end"
+                      android:layout_marginTop="4dp"/>
+              </LinearLayout>
+          </FrameLayout>
+          LAYOUT
+
+          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/Prefs.java
+          package com.pocketlite.ru;
+
+          import android.content.Context;
+          import android.content.SharedPreferences;
+
+          public class Prefs {
+              private static final String SP = "d1m_prefs";
+              private static final String K_NAME = "name";
+              private static final String K_PHONE = "phone";
+              private static final String K_LOGGED = "logged";
+
+              public static boolean isLogged(Context c){
+                  return c.getSharedPreferences(SP, Context.MODE_PRIVATE).getBoolean(K_LOGGED, false);
+              }
+
+              public static void setProfile(Context c, String name, String phone){
+                  SharedPreferences sp = c.getSharedPreferences(SP, Context.MODE_PRIVATE);
+                  sp.edit()
+                      .putString(K_NAME, name)
+                      .putString(K_PHONE, phone)
+                      .putBoolean(K_LOGGED, true)
+                      .apply();
+              }
+
+              public static String name(Context c){
+                  return c.getSharedPreferences(SP, Context.MODE_PRIVATE).getString(K_NAME, "Пользователь");
+              }
+
+              public static String phone(Context c){
+                  return c.getSharedPreferences(SP, Context.MODE_PRIVATE).getString(K_PHONE, "+7...");
+              }
+
+              public static void logout(Context c){
+                  c.getSharedPreferences(SP, Context.MODE_PRIVATE).edit().clear().apply();
+              }
+          }
+          JAVA
+
+          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/Models.java
+          package com.pocketlite.ru;
+
+          public class Models {
+              public static class Chat {
+                  public String id;
+                  public String title;
+                  public long updatedAt;
+                  public String lastText;
+
+                  public Chat(String id, String title){
+                      this.id = id;
+                      this.title = title;
+                      this.updatedAt = System.currentTimeMillis();
+                      this.lastText = "";
+                  }
+              }
+
+              public static class Msg {
+                  public String id;
+                  public String chatId;
+                  public String text;
+                  public long time;
+                  public boolean outgoing;
+
+                  public Msg(String id, String chatId, String text, boolean outgoing){
+                      this.id = id;
+                      this.chatId = chatId;
+                      this.text = text;
+                      this.outgoing = outgoing;
+                      this.time = System.currentTimeMillis();
+                  }
+              }
+          }
+          JAVA
+
+          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/Storage.java
+          package com.pocketlite.ru;
+
+          import android.content.Context;
+          import org.json.JSONArray;
+          import org.json.JSONObject;
+          import java.io.*;
+          import java.util.ArrayList;
+          import java.util.HashMap;
+          import java.util.Map;
+          import java.util.UUID;
+
+          public class Storage {
+              private static File file(Context c){
+                  return new File(c.getFilesDir(), "d1m_data.json");
+              }
+
+              public static void ensureSeed(Context c){
+                  File f = file(c);
+                  if(f.exists()) return;
+
+                  try{
+                      JSONObject root = new JSONObject();
+                      JSONArray chats = new JSONArray();
+
+                      Models.Chat c1 = new Models.Chat(UUID.randomUUID().toString(), "Заметки");
+                      c1.lastText = "Добро пожаловать в D1m!";
+                      c1.updatedAt = System.currentTimeMillis();
+                      chats.put(chatToJson(c1));
+
+                      Models.Chat c2 = new Models.Chat(UUID.randomUUID().toString(), "Алиса");
+                      c2.lastText = "Привет!";
+                      c2.updatedAt = System.currentTimeMillis()-60000;
+                      chats.put(chatToJson(c2));
+
+                      Models.Chat c3 = new Models.Chat(UUID.randomUUID().toString(), "Боб");
+                      c3.lastText = "Как дела?";
+                      c3.updatedAt = System.currentTimeMillis()-120000;
+                      chats.put(chatToJson(c3));
+
+                      root.put("chats", chats);
+
+                      JSONObject msgs = new JSONObject();
+                      msgs.put(c1.id, new JSONArray().put(msgToJson(new Models.Msg(UUID.randomUUID().toString(), c1.id, "Добро пожаловать в D1m!", false))));
+                      msgs.put(c2.id, new JSONArray().put(msgToJson(new Models.Msg(UUID.randomUUID().toString(), c2.id, "Привет!", false))));
+                      msgs.put(c3.id, new JSONArray().put(msgToJson(new Models.Msg(UUID.randomUUID().toString(), c3.id, "Как дела?", false))));
+                      root.put("messages", msgs);
+
+                      write(c, root.toString());
+                  }catch(Exception ignored){}
+              }
+
+              public static ArrayList<Models.Chat> loadChats(Context c){
+                  ensureSeed(c);
+                  ArrayList<Models.Chat> out = new ArrayList<>();
+                  try{
+                      JSONObject root = new JSONObject(read(c));
+                      JSONArray arr = root.getJSONArray("chats");
+                      for(int i=0;i<arr.length();i++){
+                          out.add(chatFromJson(arr.getJSONObject(i)));
+                      }
+                  }catch(Exception ignored){}
+                  return out;
+              }
+
+              public static ArrayList<Models.Msg> loadMessages(Context c, String chatId){
+                  ensureSeed(c);
+                  ArrayList<Models.Msg> out = new ArrayList<>();
+                  try{
+                      JSONObject root = new JSONObject(read(c));
+                      JSONObject all = root.getJSONObject("messages");
+                      JSONArray arr = all.optJSONArray(chatId);
+                      if(arr == null) return out;
+                      for(int i=0;i<arr.length();i++){
+                          out.add(msgFromJson(arr.getJSONObject(i)));
+                      }
+                  }catch(Exception ignored){}
+                  return out;
+              }
+
+              public static void addMessage(Context c, Models.Msg msg){
+                  ensureSeed(c);
+                  try{
+                      JSONObject root = new JSONObject(read(c));
+                      JSONObject all = root.getJSONObject("messages");
+                      JSONArray arr = all.optJSONArray(msg.chatId);
+                      if(arr == null) arr = new JSONArray();
+                      arr.put(msgToJson(msg));
+                      all.put(msg.chatId, arr);
+
+                      JSONArray chats = root.getJSONArray("chats");
+                      for(int i=0;i<chats.length();i++){
+                          JSONObject co = chats.getJSONObject(i);
+                          if(co.optString("id").equals(msg.chatId)){
+                              co.put("lastText", msg.text);
+                              co.put("updatedAt", msg.time);
+                              break;
+                          }
+                      }
+
+                      write(c, root.toString());
+                  }catch(Exception ignored){}
+              }
+
+              public static Models.Chat createChat(Context c, String title){
+                  ensureSeed(c);
+                  Models.Chat chat = new Models.Chat(UUID.randomUUID().toString(), title);
+                  try{
+                      JSONObject root = new JSONObject(read(c));
+                      JSONArray chats = root.getJSONArray("chats");
+                      chats.put(chatToJson(chat));
+                      root.put("chats", chats);
+
+                      JSONObject all = root.getJSONObject("messages");
+                      all.put(chat.id, new JSONArray());
+                      root.put("messages", all);
+
+                      write(c, root.toString());
+                  }catch(Exception ignored){}
+                  return chat;
+              }
+
+              private static JSONObject chatToJson(Models.Chat c){
+                  JSONObject o = new JSONObject();
+                  try{
+                      o.put("id", c.id);
+                      o.put("title", c.title);
+                      o.put("updatedAt", c.updatedAt);
+                      o.put("lastText", c.lastText);
+                  }catch(Exception ignored){}
+                  return o;
+              }
+
+              private static Models.Chat chatFromJson(JSONObject o){
+                  Models.Chat c = new Models.Chat(o.optString("id"), o.optString("title"));
+                  c.updatedAt = o.optLong("updatedAt", System.currentTimeMillis());
+                  c.lastText = o.optString("lastText", "");
+                  return c;
+              }
+
+              private static JSONObject msgToJson(Models.Msg m){
+                  JSONObject o = new JSONObject();
+                  try{
+                      o.put("id", m.id);
+                      o.put("chatId", m.chatId);
+                      o.put("text", m.text);
+                      o.put("time", m.time);
+                      o.put("outgoing", m.outgoing);
+                  }catch(Exception ignored){}
+                  return o;
+              }
+
+              private static Models.Msg msgFromJson(JSONObject o){
+                  Models.Msg m = new Models.Msg(
+                      o.optString("id"),
+                      o.optString("chatId"),
+                      o.optString("text"),
+                      o.optBoolean("outgoing", false)
+                  );
+                  m.time = o.optLong("time", System.currentTimeMillis());
+                  return m;
+              }
+
+              private static String read(Context c) throws Exception{
+                  File f = file(c);
+                  BufferedReader rd = new BufferedReader(new FileReader(f));
+                  StringBuilder sb = new StringBuilder();
+                  String line;
+                  while((line = rd.readLine()) != null) sb.append(line);
+                  rd.close();
+                  return sb.toString();
+              }
+
+              private static void write(Context c, String s) throws Exception{
+                  File f = file(c);
+                  FileWriter w = new FileWriter(f);
+                  w.write(s);
+                  w.close();
+              }
+          }
+          JAVA
+
+          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/LoginActivity.java
+          package com.pocketlite.ru;
+
+          import android.content.Intent;
+          import android.os.Bundle;
+          import android.widget.Toast;
+          import androidx.appcompat.app.AppCompatActivity;
+          import com.pocketlite.ru.databinding.ActivityLoginBinding;
+
+          public class LoginActivity extends AppCompatActivity {
+              private ActivityLoginBinding b;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  b = ActivityLoginBinding.inflate(getLayoutInflater());
+                  setContentView(b.getRoot());
+
+                  if(Prefs.isLogged(this)){
+                      startActivity(new Intent(this, MainActivity.class));
+                      finish();
+                      return;
+                  }
+
+                  b.btnContinue.setOnClickListener(v -> {
+                      String name = b.edName.getText().toString().trim();
+                      String phone = b.edPhone.getText().toString().trim();
+                      if(name.isEmpty()) name = "Пользователь";
+                      if(phone.isEmpty()) phone = "+7...";
+                      Prefs.setProfile(this, name, phone);
+                      Toast.makeText(this, "Готово!", Toast.LENGTH_SHORT).show();
+                      startActivity(new Intent(this, MainActivity.class));
+                      finish();
+                  });
+              }
+          }
+          JAVA
+
+          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/ChatsAdapter.java
+          package com.pocketlite.ru;
+
+          import android.view.LayoutInflater;
+          import android.view.View;
+          import android.view.ViewGroup;
+          import android.widget.TextView;
+          import androidx.annotation.NonNull;
+          import androidx.recyclerview.widget.RecyclerView;
+          import com.pocketlite.ru.Models.Chat;
+          import com.pocketlite.ru.databinding.ItemChatBinding;
+          import java.text.SimpleDateFormat;
+          import java.util.ArrayList;
+          import java.util.Date;
+          import java.util.Locale;
+
+          public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.VH> {
+              public interface Listener { void onClick(Chat chat); }
+
+              private final ArrayList<Chat> items = new ArrayList<>();
+              private final Listener listener;
+              private final SimpleDateFormat fmt = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
+              public ChatsAdapter(Listener l){ this.listener = l; }
+
+              public void setItems(ArrayList<Chat> list){
+                  items.clear();
+                  items.addAll(list);
+                  items.sort((a,b)-> Long.compare(b.updatedAt, a.updatedAt));
+                  notifyDataSetChanged();
+              }
+
+              @NonNull @Override
+              public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                  ItemChatBinding b = ItemChatBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+                  return new VH(b);
+              }
+
+              @Override
+              public void onBindViewHolder(@NonNull VH h, int position) {
+                  Chat c = items.get(position);
+                  h.b.title.setText(c.title);
+                  h.b.last.setText(c.lastText == null ? "" : c.lastText);
+                  h.b.time.setText(fmt.format(new Date(c.updatedAt)));
+
+                  String a = c.title == null || c.title.isEmpty() ? "?" : (""+Character.toUpperCase(c.title.charAt(0)));
+                  h.b.avatar.setText(a);
+
+                  h.itemView.setOnClickListener(v -> listener.onClick(c));
+              }
+
+              @Override
+              public int getItemCount() { return items.size(); }
+
+              static class VH extends RecyclerView.ViewHolder{
+                  ItemChatBinding b;
+                  VH(ItemChatBinding b){
+                      super(b.getRoot());
+                      this.b = b;
+                  }
+              }
+          }
+          JAVA
+
+          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/MessagesAdapter.java
+          package com.pocketlite.ru;
+
+          import android.view.Gravity;
+          import android.view.LayoutInflater;
+          import android.view.ViewGroup;
+          import androidx.annotation.NonNull;
+          import androidx.recyclerview.widget.RecyclerView;
+          import com.pocketlite.ru.Models.Msg;
+          import com.pocketlite.ru.databinding.ItemMessageBinding;
+          import java.text.SimpleDateFormat;
+          import java.util.ArrayList;
+          import java.util.Date;
+          import java.util.Locale;
+
+          public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.VH> {
+              private final ArrayList<Msg> items = new ArrayList<>();
+              private final SimpleDateFormat fmt = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
+              public void setItems(ArrayList<Msg> list){
+                  items.clear();
+                  items.addAll(list);
+                  notifyDataSetChanged();
+              }
+
+              public void add(Msg m){
+                  items.add(m);
+                  notifyItemInserted(items.size()-1);
+              }
+
+              @NonNull @Override
+              public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                  ItemMessageBinding b = ItemMessageBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+                  return new VH(b);
+              }
+
+              @Override
+              public void onBindViewHolder(@NonNull VH h, int position) {
+                  Msg m = items.get(position);
+                  h.b.text.setText(m.text);
+                  h.b.time.setText(fmt.format(new Date(m.time)));
+
+                  FrameLayoutLayoutHelper.applyBubble(h.b, m.outgoing);
+              }
+
+              @Override
+              public int getItemCount() { return items.size(); }
+
+              static class VH extends RecyclerView.ViewHolder{
+                  ItemMessageBinding b;
+                  VH(ItemMessageBinding b){
+                      super(b.getRoot());
+                      this.b = b;
+                  }
+              }
+
+              static class FrameLayoutLayoutHelper{
+                  static void applyBubble(ItemMessageBinding b, boolean outgoing){
+                      FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) b.bubble.getLayoutParams();
+                      if(outgoing){
+                          lp.gravity = Gravity.END;
+                          b.bubble.setBackgroundResource(R.drawable.bubble_out);
+                      } else {
+                          lp.gravity = Gravity.START;
+                          b.bubble.setBackgroundResource(R.drawable.bubble_in);
+                      }
+                      b.bubble.setLayoutParams(lp);
+                  }
+              }
+          }
+          JAVA
+
+          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/MainActivity.java
+          package com.pocketlite.ru;
+
+          import android.app.AlertDialog;
+          import android.content.Intent;
+          import android.os.Bundle;
+          import android.view.MenuItem;
+          import android.widget.TextView;
+          import androidx.annotation.NonNull;
+          import androidx.appcompat.app.ActionBarDrawerToggle;
+          import androidx.appcompat.app.AppCompatActivity;
+          import androidx.appcompat.widget.Toolbar;
+          import androidx.drawerlayout.widget.DrawerLayout;
+          import androidx.recyclerview.widget.LinearLayoutManager;
+          import com.google.android.material.navigation.NavigationView;
+          import com.pocketlite.ru.Models.Chat;
+          import com.pocketlite.ru.databinding.ActivityMainBinding;
+          import java.util.ArrayList;
+
+          public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+              private ActivityMainBinding b;
+              private ChatsAdapter adapter;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+
+                  if(!Prefs.isLogged(this)){
+                      startActivity(new Intent(this, LoginActivity.class));
+                      finish();
+                      return;
+                  }
+
+                  Storage.ensureSeed(this);
+
+                  b = ActivityMainBinding.inflate(getLayoutInflater());
+                  setContentView(b.getRoot());
+
+                  setSupportActionBar(b.toolbar);
+                  getSupportActionBar().setTitle("D1m");
+
+                  ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                      this, b.drawer, b.toolbar,
+                      R.string.nav_open, R.string.nav_close
+                  );
+                  b.drawer.addDrawerListener(toggle);
+                  toggle.syncState();
+
+                  b.nav.setNavigationItemSelectedListener(this);
+                  fillDrawerHeader();
+
+                  adapter = new ChatsAdapter(chat -> {
+                      Intent i = new Intent(this, ChatActivity.class);
+                      i.putExtra("chatId", chat.id);
+                      i.putExtra("title", chat.title);
+                      startActivity(i);
+                  });
+
+                  b.rvChats.setLayoutManager(new LinearLayoutManager(this));
+                  b.rvChats.setAdapter(adapter);
+
+                  b.btnNewChat.setOnClickListener(v -> createChatDialog());
+
+                  reloadChats();
+              }
+
+              @Override
+              protected void onResume() {
+                  super.onResume();
+                  reloadChats();
+              }
+
+              private void reloadChats(){
+                  ArrayList<Chat> chats = Storage.loadChats(this);
+                  adapter.setItems(chats);
+              }
+
+              private void fillDrawerHeader(){
+                  TextView name = b.nav.getHeaderView(0).findViewById(R.id.h_name);
+                  TextView phone = b.nav.getHeaderView(0).findViewById(R.id.h_phone);
+                  TextView avatar = b.nav.getHeaderView(0).findViewById(R.id.h_avatar);
+
+                  String n = Prefs.name(this);
+                  String p = Prefs.phone(this);
+                  name.setText(n);
+                  phone.setText(p);
+                  String a = (n == null || n.isEmpty()) ? "D" : (""+Character.toUpperCase(n.charAt(0)));
+                  avatar.setText(a);
+              }
+
+              private void createChatDialog(){
+                  final android.widget.EditText input = new android.widget.EditText(this);
+                  input.setHint("Название чата");
+                  new AlertDialog.Builder(this)
+                      .setTitle("Новый чат")
+                      .setView(input)
+                      .setPositiveButton("Создать", (d,w) -> {
+                          String t = input.getText().toString().trim();
+                          if(t.isEmpty()) t = "Чат";
+                          Storage.createChat(this, t);
+                          reloadChats();
+                      })
+                      .setNegativeButton("Отмена", null)
+                      .show();
+              }
+
+              @Override
+              public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                  int id = item.getItemId();
+
+                  if(id == R.id.nav_chats){
+                      // already here
+                  } else if(id == R.id.nav_profile){
+                      showProfile();
+                  } else if(id == R.id.nav_settings){
+                      toast("Настройки (заглушка)");
+                  } else if(id == R.id.nav_about){
+                      toast("D1m — офлайн мессенджер (демо)");
+                  } else if(id == R.id.nav_logout){
+                      Prefs.logout(this);
+                      startActivity(new Intent(this, LoginActivity.class));
+                      finish();
+                  }
+
+                  b.drawer.closeDrawers();
+                  return true;
+              }
+
+              private void showProfile(){
+                  String msg = "Имя: " + Prefs.name(this) + "\nТелефон: " + Prefs.phone(this);
+                  new AlertDialog.Builder(this)
+                      .setTitle("Профиль")
+                      .setMessage(msg)
+                      .setPositiveButton("ОК", null)
+                      .show();
+              }
+
+              private void toast(String s){
+                  android.widget.Toast.makeText(this, s, android.widget.Toast.LENGTH_SHORT).show();
+              }
+          }
+          JAVA
+
+          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/ChatActivity.java
+          package com.pocketlite.ru;
+
+          import android.os.Bundle;
+          import androidx.appcompat.app.AppCompatActivity;
+          import androidx.recyclerview.widget.LinearLayoutManager;
+          import com.pocketlite.ru.Models.Msg;
+          import com.pocketlite.ru.databinding.ActivityChatBinding;
+          import java.util.ArrayList;
+          import java.util.UUID;
+
+          public class ChatActivity extends AppCompatActivity {
+              private ActivityChatBinding b;
+              private MessagesAdapter adapter;
+              private String chatId;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+
+                  b = ActivityChatBinding.inflate(getLayoutInflater());
+                  setContentView(b.getRoot());
+
+                  chatId = getIntent().getStringExtra("chatId");
+                  String title = getIntent().getStringExtra("title");
+                  if(title == null) title = "Чат";
+
+                  setSupportActionBar(b.toolbar);
+                  getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                  getSupportActionBar().setTitle(title);
+                  b.toolbar.setNavigationOnClickListener(v -> finish());
+
+                  adapter = new MessagesAdapter();
+                  b.rvMessages.setLayoutManager(new LinearLayoutManager(this));
+                  b.rvMessages.setAdapter(adapter);
+
+                  load();
+
+                  b.btnSend.setOnClickListener(v -> send());
+              }
+
+              private void load(){
+                  ArrayList<Msg> msgs = Storage.loadMessages(this, chatId);
+                  adapter.setItems(msgs);
+                  if(adapter.getItemCount() > 0) b.rvMessages.scrollToPosition(adapter.getItemCount()-1);
+              }
+
+              private void send(){
+                  String t = b.edText.getText().toString().trim();
+                  if(t.isEmpty()) return;
+                  b.edText.setText("");
+
+                  Msg m = new Msg(UUID.randomUUID().toString(), chatId, t, true);
+                  Storage.addMessage(this, m);
+                  adapter.add(m);
+                  b.rvMessages.scrollToPosition(adapter.getItemCount()-1);
+              }
+          }
+          JAVA
+
+          cat <<EOF > app/src/main/java/com/pocketlite/ru/ProjectStoreDummy.java
+          package com.pocketlite.ru;
+          // заглушка, чтобы сохранить структуру "проекты/сцены/объекты" из предыдущих экспериментов.
+          // здесь не используется.
+          public class ProjectStoreDummy {}
+          EOF
+
+          # NOTE: For MessagesAdapter we referenced FrameLayout (android.widget.FrameLayout); import missing fix:
+          # Patch MessagesAdapter quickly:
+          sed -i 's/import android.view.Gravity;/import android.view.Gravity;\nimport android.widget.FrameLayout;/' app/src/main/java/com/pocketlite/ru/MessagesAdapter.java
+
       - name: Build APK
         run: |
           gradle wrapper --gradle-version 8.5
-          chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload GameScript Pro
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: GameScript-Pro-Full
+          name: D1m_APK
           path: app/build/outputs/apk/debug/app-debug.apk
