@@ -24,6 +24,11 @@ jobs:
         with:
           packages: 'platforms;android-34'
 
+      - name: Install NDK
+        run: |
+          sudo ${ANDROID_HOME}/tools/bin/sdkmanager "ndk;25.2.9519653"
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/25.2.9519653" >> $GITHUB_ENV
+
       - name: Create Android project structure
         run: |
           mkdir -p app/src/main/java/com/exploit/tester
@@ -252,6 +257,7 @@ jobs:
           cat > app/src/main/jni/Application.mk << 'EOF'
           APP_ABI := arm64-v8a armeabi-v7a
           APP_PLATFORM := android-34
+          APP_STL := c++_shared
           EOF
 
       - name: Generate build.gradle (app)
@@ -331,20 +337,15 @@ jobs:
           include ':app'
           EOF
 
-      - name: Generate Gradle Wrapper (Gradle 7.5)
+      - name: Generate Gradle Wrapper
         run: |
-          # Скачиваем Gradle 7.5 (совместим с Android Gradle Plugin 8.1.4)
           wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
           unzip -q gradle-7.5-bin.zip
-          
-          # Генерируем wrapper
           ./gradle-7.5/bin/gradle wrapper
-          
-          # Даём права на выполнение
           chmod +x gradlew
 
       - name: Build APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
