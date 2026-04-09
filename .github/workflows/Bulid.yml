@@ -22,12 +22,8 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-34'
-
-      - name: Install NDK
-        run: |
-          sudo ${ANDROID_HOME}/tools/bin/sdkmanager "ndk;25.2.9519653"
-          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/25.2.9519653" >> $GITHUB_ENV
+          packages: 'platforms;android-34 ndk;25.2.9519653'
+          # NDK устанавливается прямо здесь, отдельная команда не нужна
 
       - name: Create Android project structure
         run: |
@@ -339,7 +335,7 @@ jobs:
 
       - name: Generate Gradle Wrapper
         run: |
-          wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
+          wget -q https://services.gradle.org/distributions/gradle-7.5-bin.zip
           unzip -q gradle-7.5-bin.zip
           ./gradle-7.5/bin/gradle wrapper
           chmod +x gradlew
