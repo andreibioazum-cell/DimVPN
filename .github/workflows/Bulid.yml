@@ -331,17 +331,14 @@ jobs:
           include ':app'
           EOF
 
-      - name: Generate Gradle Wrapper
+      - name: Generate Gradle Wrapper (Gradle 7.5)
         run: |
-          # Устанавливаем Gradle (если не установлен)
-          if ! command -v gradle &> /dev/null; then
-              wget https://services.gradle.org/distributions/gradle-8.0-bin.zip
-              unzip gradle-8.0-bin.zip
-              export PATH=$PATH:$(pwd)/gradle-8.0/bin
-          fi
+          # Скачиваем Gradle 7.5 (совместим с Android Gradle Plugin 8.1.4)
+          wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
+          unzip -q gradle-7.5-bin.zip
           
           # Генерируем wrapper
-          gradle wrapper
+          ./gradle-7.5/bin/gradle wrapper
           
           # Даём права на выполнение
           chmod +x gradlew
