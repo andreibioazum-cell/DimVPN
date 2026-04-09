@@ -71,6 +71,7 @@ jobs:
               implementation 'com.google.android.material:material:1.12.0'
               implementation 'androidx.recyclerview:recyclerview:1.3.2'
               implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+              implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
           }
           EOF
 
@@ -173,21 +174,11 @@ jobs:
           cat <<EOF > app/src/main/res/menu/drawer_menu.xml
           <menu xmlns:android="http://schemas.android.com/apk/res/android">
               <group android:checkableBehavior="single">
-                  <item
-                      android:id="@+id/nav_chats"
-                      android:title="Чаты" />
-                  <item
-                      android:id="@+id/nav_profile"
-                      android:title="Профиль" />
-                  <item
-                      android:id="@+id/nav_settings"
-                      android:title="Настройки" />
-                  <item
-                      android:id="@+id/nav_about"
-                      android:title="О приложении" />
-                  <item
-                      android:id="@+id/nav_logout"
-                      android:title="Выйти" />
+                  <item android:id="@+id/nav_chats" android:title="Чаты" />
+                  <item android:id="@+id/nav_profile" android:title="Профиль" />
+                  <item android:id="@+id/nav_settings" android:title="Настройки" />
+                  <item android:id="@+id/nav_about" android:title="О приложении" />
+                  <item android:id="@+id/nav_logout" android:title="Выйти" />
               </group>
           </menu>
           EOF
@@ -218,7 +209,7 @@ jobs:
                   android:id="@+id/subtitle"
                   android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:text="Регистрация (заглушка, без онлайна)"
+                  android:text="Регистрация (офлайн-заглушка)"
                   android:textColor="@color/d1m_hint"
                   android:textSize="14sp"
                   app:layout_constraintTop_toBottomOf="@id/title"
@@ -282,7 +273,7 @@ jobs:
               <TextView
                   android:layout_width="0dp"
                   android:layout_height="wrap_content"
-                  android:text="Это офлайн-версия. Данные сохраняются только на телефоне."
+                  android:text="Данные сохраняются только на телефоне. Онлайна нет."
                   android:textColor="@color/d1m_hint"
                   android:textSize="12sp"
                   android:gravity="center"
@@ -291,72 +282,6 @@ jobs:
                   app:layout_constraintEnd_toEndOf="parent"
                   android:layout_marginBottom="16dp"/>
           </androidx.constraintlayout.widget.ConstraintLayout>
-          LAYOUT
-
-          cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:app="http://schemas.android.com/apk/res-auto"
-              android:id="@+id/drawer"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent">
-
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:orientation="vertical"
-                  android:background="@color/d1m_bg">
-
-                  <androidx.appcompat.widget.Toolbar
-                      android:id="@+id/toolbar"
-                      android:layout_width="match_parent"
-                      android:layout_height="56dp"
-                      android:background="@color/d1m_primary"
-                      app:titleTextColor="@android:color/white"
-                      app:popupTheme="@style/ThemeOverlay.MaterialComponents.Light"/>
-
-                  <LinearLayout
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:orientation="horizontal"
-                      android:padding="10dp">
-
-                      <TextView
-                          android:id="@+id/txt_header"
-                          android:layout_width="0dp"
-                          android:layout_height="wrap_content"
-                          android:layout_weight="1"
-                          android:text="Чаты"
-                          android:textStyle="bold"
-                          android:textSize="18sp"
-                          android:textColor="@color/d1m_primary_dark"/>
-
-                      <Button
-                          android:id="@+id/btn_new_chat"
-                          android:layout_width="wrap_content"
-                          android:layout_height="40dp"
-                          android:text="+"
-                          android:textSize="18sp"
-                          android:textColor="@android:color/white"
-                          android:background="@drawable/btn_primary"/>
-                  </LinearLayout>
-
-                  <androidx.recyclerview.widget.RecyclerView
-                      android:id="@+id/rv_chats"
-                      android:layout_width="match_parent"
-                      android:layout_height="0dp"
-                      android:layout_weight="1"
-                      android:padding="10dp"/>
-              </LinearLayout>
-
-              <com.google.android.material.navigation.NavigationView
-                  android:id="@+id/nav"
-                  android:layout_width="wrap_content"
-                  android:layout_height="match_parent"
-                  android:layout_gravity="start"
-                  app:menu="@menu/drawer_menu"
-                  app:headerLayout="@layout/drawer_header"/>
-          </androidx.drawerlayout.widget.DrawerLayout>
           LAYOUT
 
           cat <<'LAYOUT' > app/src/main/res/layout/drawer_header.xml
@@ -405,6 +330,71 @@ jobs:
                       android:textColor="#E9F4FF"/>
               </LinearLayout>
           </LinearLayout>
+          LAYOUT
+
+          cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:id="@+id/drawer"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+              <LinearLayout
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:orientation="vertical"
+                  android:background="@color/d1m_bg">
+
+                  <androidx.appcompat.widget.Toolbar
+                      android:id="@+id/toolbar"
+                      android:layout_width="match_parent"
+                      android:layout_height="56dp"
+                      android:background="@color/d1m_primary"
+                      app:titleTextColor="@android:color/white"/>
+
+                  <LinearLayout
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:orientation="horizontal"
+                      android:padding="10dp">
+
+                      <TextView
+                          android:id="@+id/txt_header"
+                          android:layout_width="0dp"
+                          android:layout_height="wrap_content"
+                          android:layout_weight="1"
+                          android:text="Чаты"
+                          android:textStyle="bold"
+                          android:textSize="18sp"
+                          android:textColor="@color/d1m_primary_dark"/>
+
+                      <Button
+                          android:id="@+id/btn_new_chat"
+                          android:layout_width="wrap_content"
+                          android:layout_height="40dp"
+                          android:text="+"
+                          android:textSize="18sp"
+                          android:textColor="@android:color/white"
+                          android:background="@drawable/btn_primary"/>
+                  </LinearLayout>
+
+                  <androidx.recyclerview.widget.RecyclerView
+                      android:id="@+id/rv_chats"
+                      android:layout_width="match_parent"
+                      android:layout_height="0dp"
+                      android:layout_weight="1"
+                      android:padding="10dp"/>
+              </LinearLayout>
+
+              <com.google.android.material.navigation.NavigationView
+                  android:id="@+id/nav"
+                  android:layout_width="wrap_content"
+                  android:layout_height="match_parent"
+                  android:layout_gravity="start"
+                  app:menu="@menu/drawer_menu"
+                  app:headerLayout="@layout/drawer_header"/>
+          </androidx.drawerlayout.widget.DrawerLayout>
           LAYOUT
 
           cat <<'LAYOUT' > app/src/main/res/layout/item_chat.xml
@@ -563,11 +553,10 @@ jobs:
           </FrameLayout>
           LAYOUT
 
-          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/Prefs.java
-          package com.pocketlite.ru;
+          cat <<'JAVA' > app/src/main/java/com/d1m/app/Prefs.java
+          package com.d1m.app;
 
           import android.content.Context;
-          import android.content.SharedPreferences;
 
           public class Prefs {
               private static final String SP = "d1m_prefs";
@@ -580,8 +569,7 @@ jobs:
               }
 
               public static void setProfile(Context c, String name, String phone){
-                  SharedPreferences sp = c.getSharedPreferences(SP, Context.MODE_PRIVATE);
-                  sp.edit()
+                  c.getSharedPreferences(SP, Context.MODE_PRIVATE).edit()
                       .putString(K_NAME, name)
                       .putString(K_PHONE, phone)
                       .putBoolean(K_LOGGED, true)
@@ -602,8 +590,8 @@ jobs:
           }
           JAVA
 
-          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/Models.java
-          package com.pocketlite.ru;
+          cat <<'JAVA' > app/src/main/java/com/d1m/app/Models.java
+          package com.d1m.app;
 
           public class Models {
               public static class Chat {
@@ -638,16 +626,14 @@ jobs:
           }
           JAVA
 
-          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/Storage.java
-          package com.pocketlite.ru;
+          cat <<'JAVA' > app/src/main/java/com/d1m/app/Storage.java
+          package com.d1m.app;
 
           import android.content.Context;
           import org.json.JSONArray;
           import org.json.JSONObject;
           import java.io.*;
           import java.util.ArrayList;
-          import java.util.HashMap;
-          import java.util.Map;
           import java.util.UUID;
 
           public class Storage {
@@ -665,25 +651,17 @@ jobs:
 
                       Models.Chat c1 = new Models.Chat(UUID.randomUUID().toString(), "Заметки");
                       c1.lastText = "Добро пожаловать в D1m!";
-                      c1.updatedAt = System.currentTimeMillis();
                       chats.put(chatToJson(c1));
 
                       Models.Chat c2 = new Models.Chat(UUID.randomUUID().toString(), "Алиса");
                       c2.lastText = "Привет!";
-                      c2.updatedAt = System.currentTimeMillis()-60000;
                       chats.put(chatToJson(c2));
-
-                      Models.Chat c3 = new Models.Chat(UUID.randomUUID().toString(), "Боб");
-                      c3.lastText = "Как дела?";
-                      c3.updatedAt = System.currentTimeMillis()-120000;
-                      chats.put(chatToJson(c3));
 
                       root.put("chats", chats);
 
                       JSONObject msgs = new JSONObject();
                       msgs.put(c1.id, new JSONArray().put(msgToJson(new Models.Msg(UUID.randomUUID().toString(), c1.id, "Добро пожаловать в D1m!", false))));
                       msgs.put(c2.id, new JSONArray().put(msgToJson(new Models.Msg(UUID.randomUUID().toString(), c2.id, "Привет!", false))));
-                      msgs.put(c3.id, new JSONArray().put(msgToJson(new Models.Msg(UUID.randomUUID().toString(), c3.id, "Как дела?", false))));
                       root.put("messages", msgs);
 
                       write(c, root.toString());
@@ -723,6 +701,7 @@ jobs:
                   try{
                       JSONObject root = new JSONObject(read(c));
                       JSONObject all = root.getJSONObject("messages");
+
                       JSONArray arr = all.optJSONArray(msg.chatId);
                       if(arr == null) arr = new JSONArray();
                       arr.put(msgToJson(msg));
@@ -802,8 +781,7 @@ jobs:
               }
 
               private static String read(Context c) throws Exception{
-                  File f = file(c);
-                  BufferedReader rd = new BufferedReader(new FileReader(f));
+                  BufferedReader rd = new BufferedReader(new FileReader(file(c)));
                   StringBuilder sb = new StringBuilder();
                   String line;
                   while((line = rd.readLine()) != null) sb.append(line);
@@ -812,22 +790,21 @@ jobs:
               }
 
               private static void write(Context c, String s) throws Exception{
-                  File f = file(c);
-                  FileWriter w = new FileWriter(f);
+                  FileWriter w = new FileWriter(file(c));
                   w.write(s);
                   w.close();
               }
           }
           JAVA
 
-          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/LoginActivity.java
-          package com.pocketlite.ru;
+          cat <<'JAVA' > app/src/main/java/com/d1m/app/LoginActivity.java
+          package com.d1m.app;
 
           import android.content.Intent;
           import android.os.Bundle;
           import android.widget.Toast;
           import androidx.appcompat.app.AppCompatActivity;
-          import com.pocketlite.ru.databinding.ActivityLoginBinding;
+          import com.d1m.app.databinding.ActivityLoginBinding;
 
           public class LoginActivity extends AppCompatActivity {
               private ActivityLoginBinding b;
@@ -858,17 +835,15 @@ jobs:
           }
           JAVA
 
-          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/ChatsAdapter.java
-          package com.pocketlite.ru;
+          cat <<'JAVA' > app/src/main/java/com/d1m/app/ChatsAdapter.java
+          package com.d1m.app;
 
           import android.view.LayoutInflater;
-          import android.view.View;
           import android.view.ViewGroup;
-          import android.widget.TextView;
           import androidx.annotation.NonNull;
           import androidx.recyclerview.widget.RecyclerView;
-          import com.pocketlite.ru.Models.Chat;
-          import com.pocketlite.ru.databinding.ItemChatBinding;
+          import com.d1m.app.Models.Chat;
+          import com.d1m.app.databinding.ItemChatBinding;
           import java.text.SimpleDateFormat;
           import java.util.ArrayList;
           import java.util.Date;
@@ -922,16 +897,17 @@ jobs:
           }
           JAVA
 
-          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/MessagesAdapter.java
-          package com.pocketlite.ru;
+          cat <<'JAVA' > app/src/main/java/com/d1m/app/MessagesAdapter.java
+          package com.d1m.app;
 
           import android.view.Gravity;
           import android.view.LayoutInflater;
           import android.view.ViewGroup;
+          import android.widget.FrameLayout;
           import androidx.annotation.NonNull;
           import androidx.recyclerview.widget.RecyclerView;
-          import com.pocketlite.ru.Models.Msg;
-          import com.pocketlite.ru.databinding.ItemMessageBinding;
+          import com.d1m.app.Models.Msg;
+          import com.d1m.app.databinding.ItemMessageBinding;
           import java.text.SimpleDateFormat;
           import java.util.ArrayList;
           import java.util.Date;
@@ -964,7 +940,15 @@ jobs:
                   h.b.text.setText(m.text);
                   h.b.time.setText(fmt.format(new Date(m.time)));
 
-                  FrameLayoutLayoutHelper.applyBubble(h.b, m.outgoing);
+                  FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) h.b.bubble.getLayoutParams();
+                  if(m.outgoing){
+                      lp.gravity = Gravity.END;
+                      h.b.bubble.setBackgroundResource(R.drawable.bubble_out);
+                  } else {
+                      lp.gravity = Gravity.START;
+                      h.b.bubble.setBackgroundResource(R.drawable.bubble_in);
+                  }
+                  h.b.bubble.setLayoutParams(lp);
               }
 
               @Override
@@ -977,25 +961,11 @@ jobs:
                       this.b = b;
                   }
               }
-
-              static class FrameLayoutLayoutHelper{
-                  static void applyBubble(ItemMessageBinding b, boolean outgoing){
-                      FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) b.bubble.getLayoutParams();
-                      if(outgoing){
-                          lp.gravity = Gravity.END;
-                          b.bubble.setBackgroundResource(R.drawable.bubble_out);
-                      } else {
-                          lp.gravity = Gravity.START;
-                          b.bubble.setBackgroundResource(R.drawable.bubble_in);
-                      }
-                      b.bubble.setLayoutParams(lp);
-                  }
-              }
           }
           JAVA
 
-          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/MainActivity.java
-          package com.pocketlite.ru;
+          cat <<'JAVA' > app/src/main/java/com/d1m/app/MainActivity.java
+          package com.d1m.app;
 
           import android.app.AlertDialog;
           import android.content.Intent;
@@ -1005,12 +975,10 @@ jobs:
           import androidx.annotation.NonNull;
           import androidx.appcompat.app.ActionBarDrawerToggle;
           import androidx.appcompat.app.AppCompatActivity;
-          import androidx.appcompat.widget.Toolbar;
-          import androidx.drawerlayout.widget.DrawerLayout;
           import androidx.recyclerview.widget.LinearLayoutManager;
           import com.google.android.material.navigation.NavigationView;
-          import com.pocketlite.ru.Models.Chat;
-          import com.pocketlite.ru.databinding.ActivityMainBinding;
+          import com.d1m.app.Models.Chat;
+          import com.d1m.app.databinding.ActivityMainBinding;
           import java.util.ArrayList;
 
           public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -1105,13 +1073,13 @@ jobs:
                   int id = item.getItemId();
 
                   if(id == R.id.nav_chats){
-                      // already here
+                      // уже тут
                   } else if(id == R.id.nav_profile){
                       showProfile();
                   } else if(id == R.id.nav_settings){
                       toast("Настройки (заглушка)");
                   } else if(id == R.id.nav_about){
-                      toast("D1m — офлайн мессенджер (демо)");
+                      toast("D1m — офлайн демо в стиле Telegram");
                   } else if(id == R.id.nav_logout){
                       Prefs.logout(this);
                       startActivity(new Intent(this, LoginActivity.class));
@@ -1137,14 +1105,14 @@ jobs:
           }
           JAVA
 
-          cat <<'JAVA' > app/src/main/java/com/pocketlite/ru/ChatActivity.java
-          package com.pocketlite.ru;
+          cat <<'JAVA' > app/src/main/java/com/d1m/app/ChatActivity.java
+          package com.d1m.app;
 
           import android.os.Bundle;
           import androidx.appcompat.app.AppCompatActivity;
           import androidx.recyclerview.widget.LinearLayoutManager;
-          import com.pocketlite.ru.Models.Msg;
-          import com.pocketlite.ru.databinding.ActivityChatBinding;
+          import com.d1m.app.Models.Msg;
+          import com.d1m.app.databinding.ActivityChatBinding;
           import java.util.ArrayList;
           import java.util.UUID;
 
@@ -1197,23 +1165,12 @@ jobs:
           }
           JAVA
 
-          cat <<EOF > app/src/main/java/com/pocketlite/ru/ProjectStoreDummy.java
-          package com.pocketlite.ru;
-          // заглушка, чтобы сохранить структуру "проекты/сцены/объекты" из предыдущих экспериментов.
-          // здесь не используется.
-          public class ProjectStoreDummy {}
-          EOF
-
-          # NOTE: For MessagesAdapter we referenced FrameLayout (android.widget.FrameLayout); import missing fix:
-          # Patch MessagesAdapter quickly:
-          sed -i 's/import android.view.Gravity;/import android.view.Gravity;\nimport android.widget.FrameLayout;/' app/src/main/java/com/pocketlite/ru/MessagesAdapter.java
-
       - name: Build APK
         run: |
           gradle wrapper --gradle-version 8.5
           ./gradlew assembleDebug
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: D1m_APK
