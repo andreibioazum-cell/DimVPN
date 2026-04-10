@@ -235,7 +235,7 @@ jobs:
           }
           EOF
 
-      - name: Generate ListeningService.java
+      - name: Generate ListeningService.java (исправленный)
         run: |
           cat > app/src/main/java/com/jarvis/google/ListeningService.java << 'EOF'
           package com.jarvis.google;
@@ -250,6 +250,7 @@ jobs:
           import android.content.Intent;
           import android.content.pm.PackageManager;
           import android.os.Build;
+          import android.os.Bundle;
           import android.os.IBinder;
           import android.os.Handler;
           import android.os.Looper;
@@ -310,7 +311,7 @@ jobs:
               
               private void startListening() {
                   Thread thread = new Thread(() -> {
-                      Intent intent = new Intent(RecognizerIntent.RECOGNIZE_SPEECH);
+                      Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
                       intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
                       intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
                       intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
@@ -413,7 +414,7 @@ jobs:
           }
           EOF
 
-      - name: Generate build.gradle (app) - с исключением конфликтных модулей
+      - name: Generate build.gradle (app)
         run: |
           cat > app/build.gradle << 'EOF'
           apply plugin: 'com.android.application'
