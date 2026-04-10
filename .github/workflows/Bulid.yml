@@ -30,13 +30,23 @@ jobs:
           mkdir -p app/src/main/assets/sync
           mkdir -p app/src/main/res/layout
 
+      - name: Create dummy grammar file
+        run: |
+          cat > app/src/main/assets/sync/commands.gram << 'EOF'
+          #JSGF V1.0;
+          grammar commands;
+          public <command> = open youtube | open telegram | open whatsapp | open instagram | open maps | open chrome | open spotify | open settings | time | weather | vibrate | type <anything> | stop;
+          <anything> = (hello world | test message | hi jarvis);
+          EOF
+
       - name: Download PocketSphinx model files
         run: |
           cd app/src/main/assets/sync
-          wget -q https://github.com/cmusphinx/pocketsphinx-android-demo/raw/master/app/src/main/assets/sync/en-us-ptm.lm
-          wget -q https://github.com/cmusphinx/pocketsphinx-android-demo/raw/master/app/src/main/assets/sync/en-us.dict
-          wget -q https://github.com/cmusphinx/pocketsphinx-android-demo/raw/master/app/src/main/assets/sync/zero_ru_cont_8k_v2.dict
-          echo "pocketsphinx model files downloaded"
+          # Скачиваем файлы с резервных URL (если основные недоступны)
+          wget --no-check-certificate -O en-us-ptm.lm https://raw.githubusercontent.com/cmusphinx/pocketsphinx-android-demo/master/app/src/main/assets/sync/en-us-ptm.lm
+          wget --no-check-certificate -O en-us.dict https://raw.githubusercontent.com/cmusphinx/pocketsphinx-android-demo/master/app/src/main/assets/sync/en-us.dict
+          wget --no-check-certificate -O zero_ru_cont_8k_v2.dict https://raw.githubusercontent.com/cmusphinx/pocketsphinx-android-demo/master/app/src/main/assets/sync/zero_ru_cont_8k_v2.dict
+          echo "PocketSphinx files downloaded"
 
       - name: Generate gradle.properties
         run: |
@@ -60,7 +70,8 @@ jobs:
               <application
                   android:label="J.A.R.V.I.S"
                   android:theme="@android:style/Theme.DeviceDefault.Light"
-                  android:allowBackup="false">
+                  android:allowBackup="false"
+                  android:usesCleartextTraffic="true">
                   
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
@@ -158,7 +169,7 @@ jobs:
                   stopBtn.setOnClickListener(v -> stopService());
                   
                   addLog("[*] J.A.R.V.I.S with PocketSphinx (offline)");
-                  addLog("[*] Commands: open youtube, open telegram, time, weather, vibrate, stop");
+                  addLog("[*] Commands: open youtube, open telegram, time, weather, vibrate, type, stop");
               }
               
               private void createNotificationChannel() {
@@ -229,7 +240,7 @@ jobs:
           }
           EOF
 
-      - name: Generate ListeningService.java (PocketSphinx)
+      - name: Generate ListeningService.java
         run: |
           cat > app/src/main/java/com/jarvis/sphinx/ListeningService.java << 'EOF'
           package com.jarvis.sphinx;
@@ -238,6 +249,8 @@ jobs:
           import android.app.NotificationManager;
           import android.app.PendingIntent;
           import android.app.Service;
+          import android.content.ClipboardManager;
+          import android.content.ClipData;
           import android.content.Context;
           import android.content.Intent;
           import android.content.pm.PackageManager;
@@ -250,7 +263,6 @@ jobs:
           import android.speech.tts.TextToSpeech;
           import androidx.core.app.NotificationCompat;
           import edu.cmu.pocketsphinx.Assets;
-          import edu.cmu.pocketsphinx.Hypothesis;
           import edu.cmu.pocketsphinx.Recognizer;
           import java.io.File;
           import java.io.IOException;
@@ -264,7 +276,6 @@ jobs:
               private Handler mainHandler;
               private Vibrator vibrator;
               private TextToSpeech tts;
-              private static final String KEYPHRASE = "ok google";
               
               @Override
               public void onCreate() {
@@ -272,7 +283,6 @@ jobs:
                   mainHandler = new Handler(Looper.getMainLooper());
                   vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
                   
-                  // TTS
                   tts = new TextToSpeech(this, status -> {
                       if (status == TextToSpeech.SUCCESS) {
                           tts.setLanguage(Locale.US);
@@ -280,52 +290,34 @@ jobs:
                       }
                   });
                   
-                  // PocketSphinx setup
                   try {
                       Assets assets = new Assets(this);
                       File assetDir = assets.syncAssets();
                       recognizer = new Recognizer(assetDir);
-                      
-                      // Add keywords
-                      recognizer.addKeyphraseSearch("wakeup", KEYPHRASE);
-                      recognizer.addGrammarSearch("commands", "commands.gram");
-                      
-                      recognizer.startListening("wakeup");
+                      recognizer.addKeywordSearch("commands", "open youtube|open telegram|open whatsapp|open instagram|open maps|open chrome|open spotify|open settings|time|weather|vibrate|type|stop");
+                      recognizer.startListening("commands");
                   } catch (IOException e) {
-                      speak("PocketSphinx initialization failed");
+                      speak("Init failed");
                   }
                   
                   startListening();
               }
               
               private void startListening() {
-                  Thread listenThread = new Thread(() -> {
+                  Thread thread = new Thread(() -> {
                       while (isListening) {
                           if (recognizer != null) {
-                              recognizer.stop();
-                              recognizer.startListening("wakeup");
-                              Hypothesis hypothesis = recognizer.getHypothesis();
-                              if (hypothesis != null) {
-                                  String text = hypothesis.getHypstr();
-                                  if (text != null && text.toLowerCase().contains("ok google")) {
-                                      mainHandler.post(() -> {
-                                          speak("Yes sir?");
-                                          vibrate(50);
-                                      });
-                                      recognizer.stop();
-                                      recognizer.startListening("commands");
-                                      Hypothesis cmdHyp = recognizer.getHypothesis();
-                                      if (cmdHyp != null) {
-                                          String command = cmdHyp.getHypstr();
-                                          mainHandler.post(() -> executeCommand(command));
-                                      }
-                                  }
+                              recognizer.startListening("commands");
+                              String hypothesis = recognizer.getHypothesis();
+                              if (hypothesis != null && !hypothesis.isEmpty()) {
+                                  String finalHyp = hypothesis;
+                                  mainHandler.post(() -> executeCommand(finalHyp));
                               }
                           }
                           try { Thread.sleep(100); } catch (Exception e) {}
                       }
                   });
-                  listenThread.start();
+                  thread.start();
               }
               
               private void speak(String text) {
@@ -334,59 +326,37 @@ jobs:
                   }
               }
               
+              private void copyToClipboard(String text) {
+                  ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                  ClipData clip = ClipData.newPlainText("Jarvis", text);
+                  clipboard.setPrimaryClip(clip);
+                  speak("Text copied to clipboard");
+              }
+              
               private void executeCommand(String command) {
                   String lower = command.toLowerCase();
                   
-                  if (lower.contains("open youtube")) {
-                      speak("Opening YouTube");
-                      openApp("com.google.android.youtube");
-                  }
-                  else if (lower.contains("open telegram")) {
-                      speak("Opening Telegram");
-                      openApp("org.telegram.messenger");
-                  }
-                  else if (lower.contains("open whatsapp")) {
-                      speak("Opening WhatsApp");
-                      openApp("com.whatsapp");
-                  }
-                  else if (lower.contains("open instagram")) {
-                      speak("Opening Instagram");
-                      openApp("com.instagram.android");
-                  }
-                  else if (lower.contains("open maps")) {
-                      speak("Opening Maps");
-                      openApp("com.google.android.apps.maps");
-                  }
-                  else if (lower.contains("open chrome")) {
-                      speak("Opening Chrome");
-                      openApp("com.android.chrome");
-                  }
-                  else if (lower.contains("open spotify")) {
-                      speak("Opening Spotify");
-                      openApp("com.spotify.music");
-                  }
-                  else if (lower.contains("open settings")) {
-                      speak("Opening Settings");
-                      openApp("com.android.settings");
-                  }
+                  if (lower.contains("open youtube")) { speak("Opening YouTube"); openApp("com.google.android.youtube"); }
+                  else if (lower.contains("open telegram")) { speak("Opening Telegram"); openApp("org.telegram.messenger"); }
+                  else if (lower.contains("open whatsapp")) { speak("Opening WhatsApp"); openApp("com.whatsapp"); }
+                  else if (lower.contains("open instagram")) { speak("Opening Instagram"); openApp("com.instagram.android"); }
+                  else if (lower.contains("open maps")) { speak("Opening Maps"); openApp("com.google.android.apps.maps"); }
+                  else if (lower.contains("open chrome")) { speak("Opening Chrome"); openApp("com.android.chrome"); }
+                  else if (lower.contains("open spotify")) { speak("Opening Spotify"); openApp("com.spotify.music"); }
+                  else if (lower.contains("open settings")) { speak("Opening Settings"); openApp("com.android.settings"); }
                   else if (lower.contains("time")) {
                       String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
                       speak("Current time is " + time);
                   }
-                  else if (lower.contains("weather")) {
-                      speak("Today is sunny, 22 degrees");
+                  else if (lower.contains("weather")) { speak("Today is sunny, 22 degrees"); }
+                  else if (lower.contains("vibrate")) { speak("Vibrating"); vibrate(300); }
+                  else if (lower.startsWith("type")) {
+                      String text = command.substring(4).trim();
+                      if (text.isEmpty()) text = "text from Jarvis";
+                      speak("Typing: " + text);
+                      copyToClipboard(text);
                   }
-                  else if (lower.contains("vibrate")) {
-                      speak("Vibrating");
-                      vibrate(300);
-                  }
-                  else if (lower.contains("stop")) {
-                      speak("Goodbye");
-                      stopSelf();
-                  }
-                  else {
-                      // Silent on unknown commands
-                  }
+                  else if (lower.contains("stop")) { speak("Goodbye"); stopSelf(); }
               }
               
               private void openApp(String packageName) {
@@ -411,15 +381,12 @@ jobs:
               
               private Notification createNotification() {
                   Intent intent = new Intent(this, MainActivity.class);
-                  PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 
-                      PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-                  
+                  PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
                   return new NotificationCompat.Builder(this, "jarvis_channel")
                       .setContentTitle("J.A.R.V.I.S")
-                      .setContentText("Listening for 'Ok Google'...")
+                      .setContentText("Listening...")
                       .setSmallIcon(android.R.drawable.ic_btn_speak_now)
                       .setContentIntent(pendingIntent)
-                      .setPriority(NotificationCompat.PRIORITY_LOW)
                       .build();
               }
               
@@ -449,7 +416,6 @@ jobs:
           
           android {
               compileSdk 34
-              
               defaultConfig {
                   applicationId "com.jarvis.sphinx"
                   minSdk 26
@@ -457,22 +423,11 @@ jobs:
                   versionCode 1
                   versionName "1.0"
               }
-              
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                  }
-                  debug {
-                      minifyEnabled false
-                  }
-              }
-              
               namespace 'com.jarvis.sphinx'
           }
           
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'androidx.core:core:1.12.0'
               implementation 'edu.cmu.pocketsphinx:pocketsphinx-android:5prealpha@aar'
           }
           EOF
@@ -481,20 +436,11 @@ jobs:
         run: |
           cat > build.gradle << 'EOF'
           buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.1.4'
-              }
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.1.4' }
           }
-          
           allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
+              repositories { google(); mavenCentral() }
           }
           EOF
 
