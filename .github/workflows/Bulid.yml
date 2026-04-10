@@ -23,7 +23,6 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           packages: 'platforms;android-34 ndk;25.2.9519653'
-          # NDK устанавливается прямо здесь, отдельная команда не нужна
 
       - name: Create project structure
         run: |
@@ -35,8 +34,16 @@ jobs:
       - name: Download Whisper model
         run: |
           cd app/src/main/assets
-          wget -q --no-check-certificate https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
-          echo "Whisper model downloaded"
+          wget -q --no-check-certificate https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin || true
+          echo "Whisper model download attempted"
+
+      - name: Generate gradle.properties
+        run: |
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOF
 
       - name: Generate AndroidManifest.xml
         run: |
@@ -235,7 +242,7 @@ jobs:
           }
           EOF
 
-      - name: Generate ListeningService.java (Whisper JNI)
+      - name: Generate ListeningService.java
         run: |
           cat > app/src/main/java/com/jarvis/whisper/ListeningService.java << 'EOF'
           package com.jarvis.whisper;
@@ -278,7 +285,7 @@ jobs:
                   System.loadLibrary("whisper");
               }
               
-              private native String transcribe(byte[] audioData, int length, String modelPath);
+              private native String transcribe(byte[] audioData, int length);
               
               @Override
               public void onCreate() {
@@ -313,8 +320,7 @@ jobs:
                               for (int i = 0; i < read; i++) energy += Math.abs(buffer[i]);
                               energy /= read;
                               if (energy > 8000) {
-                                  String modelPath = getFilesDir() + "/ggml-tiny.en.bin";
-                                  String result = transcribe(buffer, read, modelPath);
+                                  String result = transcribe(buffer, read);
                                   if (result != null && !result.isEmpty()) {
                                       mainHandler.post(() -> executeCommand(result.toLowerCase()));
                                   }
@@ -408,22 +414,20 @@ jobs:
           }
           EOF
 
-      - name: Generate native C code (whisper bridge)
+      - name: Generate native C code (Whisper bridge - demo)
         run: |
           cat > app/src/main/jni/whisper_bridge.c << 'EOF'
           #include <jni.h>
           #include <string.h>
           #include <stdlib.h>
           
-          // Эмуляция Whisper (для демонстрации)
-          // В реальном проекте нужно подключить whisper.cpp
-          
-          JNIEXPORT jstring JNICALL Java_com_jarvis_whisper_ListeningService_transcribe(JNIEnv *env, jobject thiz, jbyteArray audioData, jint length, jstring modelPath) {
-              // Демо-версия: возвращаем фиктивную команду
-              // В реальном проекте здесь был бы вызов whisper_full()
-              const char* demoCommands[] = {"open youtube", "time", "vibrate", "type hello world", "stop"};
-              int randomIndex = (int)(length % 5);
-              return (*env)->NewStringUTF(env, demoCommands[randomIndex]);
+          // Демо-версия распознавания (эмуляция)
+          // В реальном проекте здесь вызывается whisper_full()
+          JNIEXPORT jstring JNICALL Java_com_jarvis_whisper_ListeningService_transcribe(JNIEnv *env, jobject thiz, jbyteArray audioData, jint length) {
+              // Простая эмуляция: возвращаем команду на основе длины аудио
+              const char* demoCommands[] = {"open youtube", "time", "vibrate", "type hello world", "open telegram", "weather", "stop"};
+              int index = (int)(length % 7);
+              return (*env)->NewStringUTF(env, demoCommands[index]);
           }
           EOF
 
