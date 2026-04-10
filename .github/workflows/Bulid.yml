@@ -22,7 +22,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-34 ndk;25.2.9519653'
+          packages: 'platforms;android-34'
 
       - name: Create project structure
         run: |
@@ -257,7 +257,7 @@ jobs:
           }
           EOF
 
-      - name: Generate JarvisService.java (молчит на нераспознанные команды)
+      - name: Generate JarvisService.java (Vosk + молчание)
         run: |
           cat > app/src/main/java/com/jarvis/silent/JarvisService.java << 'EOF'
           package com.jarvis.silent;
@@ -431,7 +431,7 @@ jobs:
               private void executeCommand(String command) {
                   String lower = command.toLowerCase().trim();
                   
-                  // ===== ОТКРЫТИЕ ПРИЛОЖЕНИЙ =====
+                  // ОТКРЫТИЕ ПРИЛОЖЕНИЙ
                   if (lower.contains("ютуб") || lower.contains("youtube")) {
                       speak("Открываю YouTube");
                       openApp("com.google.android.youtube");
@@ -469,7 +469,7 @@ jobs:
                       openApp("com.google.android.calculator");
                   }
                   
-                  // ===== НАПИСАТЬ ТЕКСТ =====
+                  // НАПИСАТЬ ТЕКСТ
                   else if (lower.startsWith("напиши") || lower.startsWith("напечатай") || lower.startsWith("введи")) {
                       String textToType = command.replaceFirst("напиши|напечатай|введи", "").trim();
                       if (textToType.isEmpty()) textToType = "текст от Jarvis";
@@ -477,37 +477,37 @@ jobs:
                       typeText(textToType);
                   }
                   
-                  // ===== ВРЕМЯ =====
+                  // ВРЕМЯ
                   else if (lower.contains("время") || lower.contains("сколько времени") || lower.contains("который час")) {
                       String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
                       speak("Сейчас " + time);
                   }
                   
-                  // ===== ПОГОДА =====
+                  // ПОГОДА
                   else if (lower.contains("погода") || lower.contains("какая погода")) {
                       speak("Сегодня солнечно, 22 градуса");
                   }
                   
-                  // ===== ВИБРАЦИЯ =====
+                  // ВИБРАЦИЯ
                   else if (lower.contains("вибрация") || lower.contains("завибрируй")) {
                       speak("Вибрация");
                       vibrate(300);
                   }
                   
-                  // ===== ПОМОЩЬ =====
+                  // ПОМОЩЬ
                   else if (lower.contains("помощь") || lower.contains("команды")) {
                       speak("Я умею: открывать приложения, писать текст, показывать время и погоду, вибрировать. Скажите стоп чтобы выключить");
                   }
                   
-                  // ===== СТОП =====
+                  // СТОП
                   else if (lower.contains("стоп") || lower.contains("выключись") || lower.contains("деактивируй")) {
                       speak("До свидания");
                       stopSelf();
                   }
                   
-                  // ===== НЕРАСПОЗНАННЫЕ КОМАНДЫ - МОЛЧИМ =====
+                  // НЕРАСПОЗНАННЫЕ КОМАНДЫ - МОЛЧИМ
                   else {
-                      // Ничего не говорим, просто игнорируем
+                      // Ничего не говорим
                   }
               }
               
@@ -526,7 +526,7 @@ jobs:
           }
           EOF
 
-      - name: Generate build.gradle (app)
+      - name: Generate build.gradle (app) - с JitPack
         run: |
           cat > app/build.gradle << 'EOF'
           apply plugin: 'com.android.application'
@@ -561,22 +561,25 @@ jobs:
           }
           EOF
 
-      - name: Generate build.gradle (top level)
+      - name: Generate top-level build.gradle (с JitPack)
         run: |
           cat > build.gradle << 'EOF'
           buildscript {
               repositories {
                   google()
                   mavenCentral()
+                  maven { url 'https://jitpack.io' }
               }
               dependencies {
                   classpath 'com.android.tools.build:gradle:8.1.4'
               }
           }
+          
           allprojects {
               repositories {
                   google()
                   mavenCentral()
+                  maven { url 'https://jitpack.io' }
               }
           }
           EOF
