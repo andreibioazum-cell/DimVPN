@@ -1,4 +1,4 @@
-name: Build JARVIS with Whisper
+name: Build JARVIS with Google SpeechRecognizer
 
 on:
   push:
@@ -22,20 +22,13 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-34 ndk;25.2.9519653'
+          packages: 'platforms;android-34'
 
       - name: Create project structure
         run: |
-          mkdir -p app/src/main/java/com/jarvis/whisper
-          mkdir -p app/src/main/jni
-          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/java/com/jarvis/google
           mkdir -p app/src/main/res/layout
-
-      - name: Download Whisper model (optional)
-        run: |
-          cd app/src/main/assets
-          wget -q --no-check-certificate https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin || true
-          echo "Model download attempted"
+          mkdir -p app/src/main/res/values
 
       - name: Generate gradle.properties
         run: |
@@ -43,14 +36,13 @@ jobs:
           org.gradle.jvmargs=-Xmx2048m
           android.useAndroidX=true
           android.enableJetifier=true
-          kotlin.stdlib.default.dependency=false
           EOF
 
       - name: Generate AndroidManifest.xml
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.jarvis.whisper">
+              package="com.jarvis.google">
               
               <uses-permission android:name="android.permission.RECORD_AUDIO" />
               <uses-permission android:name="android.permission.INTERNET" />
@@ -60,7 +52,7 @@ jobs:
               <uses-permission android:name="android.permission.WAKE_LOCK" />
               
               <application
-                  android:label="J.A.R.V.I.S Whisper"
+                  android:label="J.A.R.V.I.S"
                   android:theme="@android:style/Theme.DeviceDefault.Light"
                   android:allowBackup="false">
                   
@@ -81,8 +73,8 @@ jobs:
 
       - name: Generate MainActivity.java
         run: |
-          cat > app/src/main/java/com/jarvis/whisper/MainActivity.java << 'EOF'
-          package com.jarvis.whisper;
+          cat > app/src/main/java/com/jarvis/google/MainActivity.java << 'EOF'
+          package com.jarvis.google;
           
           import android.app.Activity;
           import android.app.NotificationChannel;
@@ -116,7 +108,7 @@ jobs:
                   main.setPadding(40, 40, 40, 40);
                   
                   TextView title = new TextView(this);
-                  title.setText("=== J.A.R.V.I.S Whisper ===");
+                  title.setText("=== J.A.R.V.I.S ===");
                   title.setTextSize(24);
                   title.setTextColor(Color.rgb(0, 100, 200));
                   
@@ -159,7 +151,7 @@ jobs:
                   startBtn.setOnClickListener(v -> startService());
                   stopBtn.setOnClickListener(v -> stopService());
                   
-                  addLog("[*] J.A.R.V.I.S with Whisper (offline)");
+                  addLog("[*] J.A.R.V.I.S with Google SpeechRecognizer");
                   addLog("[*] Commands: open youtube, open telegram, time, weather, vibrate, type, stop");
               }
               
@@ -243,10 +235,10 @@ jobs:
           }
           EOF
 
-      - name: Generate ListeningService.java
+      - name: Generate ListeningService.java (Google SpeechRecognizer)
         run: |
-          cat > app/src/main/java/com/jarvis/whisper/ListeningService.java << 'EOF'
-          package com.jarvis.whisper;
+          cat > app/src/main/java/com/jarvis/google/ListeningService.java << 'EOF'
+          package com.jarvis.google;
           
           import android.app.Notification;
           import android.app.NotificationManager;
@@ -257,45 +249,36 @@ jobs:
           import android.content.Context;
           import android.content.Intent;
           import android.content.pm.PackageManager;
-          import android.media.AudioFormat;
-          import android.media.AudioRecord;
-          import android.media.MediaRecorder;
           import android.os.Build;
           import android.os.IBinder;
           import android.os.Handler;
           import android.os.Looper;
           import android.os.VibrationEffect;
           import android.os.Vibrator;
+          import android.speech.RecognitionListener;
+          import android.speech.RecognizerIntent;
+          import android.speech.SpeechRecognizer;
           import android.speech.tts.TextToSpeech;
           import androidx.core.app.NotificationCompat;
           import java.text.SimpleDateFormat;
+          import java.util.ArrayList;
           import java.util.Date;
           import java.util.Locale;
           
           public class ListeningService extends Service {
+              private SpeechRecognizer speechRecognizer;
               private boolean isListening = true;
               private Handler mainHandler;
               private Vibrator vibrator;
               private TextToSpeech tts;
-              private AudioRecord audioRecord;
-              private int sampleRate = 16000;
-              private int bufferSize;
-              
-              static {
-                  System.loadLibrary("whisper");
-              }
-              
-              private native String transcribe(byte[] audioData, int length);
               
               @Override
               public void onCreate() {
                   super.onCreate();
                   mainHandler = new Handler(Looper.getMainLooper());
                   vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                  bufferSize = AudioRecord.getMinBufferSize(sampleRate, 
-                      AudioFormat.CHANNEL_IN_MONO, 
-                      AudioFormat.ENCODING_PCM_16BIT) * 10;
                   
+                  // Text-to-Speech
                   tts = new TextToSpeech(this, status -> {
                       if (status == TextToSpeech.SUCCESS) {
                           tts.setLanguage(Locale.US);
@@ -303,37 +286,50 @@ jobs:
                       }
                   });
                   
+                  // SpeechRecognizer
+                  speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+                  speechRecognizer.setRecognitionListener(new RecognitionListener() {
+                      @Override public void onReadyForSpeech(Bundle params) {}
+                      @Override public void onBeginningOfSpeech() {}
+                      @Override public void onRmsChanged(float rmsdB) {}
+                      @Override public void onBufferReceived(byte[] buffer) {}
+                      @Override public void onEndOfSpeech() {}
+                      @Override public void onError(int error) {}
+                      @Override
+                      public void onResults(Bundle results) {
+                          ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                          if (matches != null && !matches.isEmpty()) {
+                              String command = matches.get(0).toLowerCase();
+                              mainHandler.post(() -> executeCommand(command));
+                          }
+                      }
+                      @Override public void onPartialResults(Bundle partialResults) {}
+                      @Override public void onEvent(int eventType, Bundle params) {}
+                  });
+                  
                   startListening();
               }
               
               private void startListening() {
-                  audioRecord = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, sampleRate,
-                      AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
-                  audioRecord.startRecording();
-                  
                   Thread thread = new Thread(() -> {
-                      byte[] buffer = new byte[bufferSize];
+                      Intent intent = new Intent(RecognizerIntent.RECOGNIZE_SPEECH);
+                      intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                      intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
+                      intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+                      intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
+                      
                       while (isListening) {
-                          int read = audioRecord.read(buffer, 0, bufferSize);
-                          if (read > 0) {
-                              long energy = 0;
-                              for (int i = 0; i < read; i++) energy += Math.abs(buffer[i]);
-                              energy /= read;
-                              if (energy > 8000) {
-                                  String result = transcribe(buffer, read);
-                                  if (result != null && !result.isEmpty()) {
-                                      mainHandler.post(() -> executeCommand(result.toLowerCase()));
-                                  }
-                              }
-                          }
-                          try { Thread.sleep(100); } catch (Exception e) {}
+                          speechRecognizer.startListening(intent);
+                          try { Thread.sleep(3000); } catch (InterruptedException e) { break; }
                       }
                   });
                   thread.start();
               }
               
               private void speak(String text) {
-                  if (tts != null && text != null) tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
+                  if (tts != null && text != null) {
+                      tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
+                  }
               }
               
               private void copyToClipboard(String text) {
@@ -367,20 +363,26 @@ jobs:
                       copyToClipboard(text);
                   }
                   else if (lower.contains("stop")) { speak("Goodbye"); stopSelf(); }
+                  else { /* unknown command — silent */ }
               }
               
               private void openApp(String packageName) {
                   try {
                       Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
-                      if (intent != null) { intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(intent); }
+                      if (intent != null) {
+                          intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                          startActivity(intent);
+                      }
                   } catch (Exception e) {}
               }
               
               private void vibrate(long ms) {
                   if (vibrator != null) {
-                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                           vibrator.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE));
-                      else vibrator.vibrate(ms);
+                      } else {
+                          vibrator.vibrate(ms);
+                      }
                   }
               }
               
@@ -404,7 +406,7 @@ jobs:
               @Override
               public void onDestroy() {
                   isListening = false;
-                  if (audioRecord != null) audioRecord.release();
+                  if (speechRecognizer != null) speechRecognizer.destroy();
                   if (tts != null) tts.shutdown();
                   super.onDestroy();
               }
@@ -414,39 +416,7 @@ jobs:
           }
           EOF
 
-      - name: Generate native C code (Whisper bridge - demo)
-        run: |
-          cat > app/src/main/jni/whisper_bridge.c << 'EOF'
-          #include <jni.h>
-          #include <string.h>
-          #include <stdlib.h>
-          
-          JNIEXPORT jstring JNICALL Java_com_jarvis_whisper_ListeningService_transcribe(JNIEnv *env, jobject thiz, jbyteArray audioData, jint length) {
-              const char* demoCommands[] = {"open youtube", "time", "vibrate", "type hello world", "open telegram", "weather", "stop"};
-              int index = (int)(length % 7);
-              return (*env)->NewStringUTF(env, demoCommands[index]);
-          }
-          EOF
-
-      - name: Generate Android.mk
-        run: |
-          cat > app/src/main/jni/Android.mk << 'EOF'
-          LOCAL_PATH := $(call my-dir)
-          include $(CLEAR_VARS)
-          LOCAL_MODULE := whisper
-          LOCAL_SRC_FILES := whisper_bridge.c
-          LOCAL_LDLIBS := -llog
-          include $(BUILD_SHARED_LIBRARY)
-          EOF
-
-      - name: Generate Application.mk
-        run: |
-          cat > app/src/main/jni/Application.mk << 'EOF'
-          APP_ABI := arm64-v8a
-          APP_PLATFORM := android-26
-          EOF
-
-      - name: Generate build.gradle (app) - с исключением конфликтных модулей
+      - name: Generate build.gradle (app)
         run: |
           cat > app/build.gradle << 'EOF'
           apply plugin: 'com.android.application'
@@ -454,33 +424,18 @@ jobs:
           android {
               compileSdk 34
               defaultConfig {
-                  applicationId "com.jarvis.whisper"
+                  applicationId "com.jarvis.google"
                   minSdk 26
                   targetSdk 34
                   versionCode 1
                   versionName "1.0"
-                  externalNativeBuild {
-                      ndkBuild {
-                          cFlags "-Wall"
-                      }
-                  }
               }
-              externalNativeBuild {
-                  ndkBuild {
-                      path "src/main/jni/Android.mk"
-                  }
-              }
-              namespace 'com.jarvis.whisper'
+              namespace 'com.jarvis.google'
           }
           
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'androidx.core:core:1.12.0'
-          }
-          
-          configurations.all {
-              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
-              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
           }
           EOF
 
@@ -512,5 +467,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: JARVIS-Whisper
+          name: JARVIS-Google
           path: app/build/outputs/apk/debug/app-debug.apk
