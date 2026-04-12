@@ -207,26 +207,11 @@ jobs:
 
           cat <<EOF > app/src/main/res/drawable/crosshair.xml
           <?xml version="1.0" encoding="utf-8"?>
-          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-              <item android:gravity="center">
-                  <shape android:shape="rectangle">
-                      <size android:width="22dp" android:height="2dp"/>
-                      <solid android:color="#FF00BFFF"/>
-                  </shape>
-              </item>
-              <item android:gravity="center">
-                  <shape android:shape="rectangle">
-                      <size android:width="2dp" android:height="22dp"/>
-                      <solid android:color="#FF00BFFF"/>
-                  </shape>
-              </item>
-              <item android:gravity="center">
-                  <shape android:shape="oval">
-                      <size android:width="4dp" android:height="4dp"/>
-                      <solid android:color="#FF7FDBFF"/>
-                  </shape>
-              </item>
-          </layer-list>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+              <size android:width="12dp" android:height="12dp"/>
+              <stroke android:width="2dp" android:color="#FF00BFFF"/>
+              <solid android:color="#00000000"/>
+          </shape>
           EOF
 
       - name: Create Block.java
@@ -460,6 +445,7 @@ jobs:
 
               private final float[] proj=new float[16], view=new float[16], model=new float[16], vp=new float[16];
               public float pX=0, pY=6, pZ=15, rY=0, rX=0, jX=0, jY=0, vY=0;
+              public float playerAngle = 0f;
               public boolean isEngineMode=false, isPlayingLevel=false;
               public boolean gridEnabled=true;
               private int prog, skyProg;
@@ -471,7 +457,7 @@ jobs:
               public int selectedIndex = -1;
               public float screenW=1, screenH=1;
               public EventHost eventHost;
-              private static final float FLOOR_Y=0f, PLAYER_HEIGHT=3.2f, PLAYER_RADIUS=0.5f;
+              private static final float FLOOR_Y=0f, PLAYER_HEIGHT=3.8f, PLAYER_RADIUS=0.6f;
 
               private float camX=0, camY=0, camZ=0;
               private long lastTimeNs = 0L;
@@ -630,15 +616,22 @@ jobs:
                       "vec3 col=vec3(0.005,0.008,0.02);"+
                       "if(d.y>0.0){"+
                       "float t=clamp(d.y,0.0,1.0);"+
-                      "col=mix(vec3(0.005,0.008,0.02), vec3(0.03,0.16,0.36), t*0.6);}"+
-                      "if(d.y>0.25){"+
-                      "vec2 uv=d.xz/(d.y+0.25);uv*=80.0;vec2 id=floor(uv);vec2 gv=fract(uv)-0.5;"+
-                      "float rnd=hash(id);float star=step(0.985,rnd);float dist=length(gv);"+
-                      "float tw=0.65+0.35*sin(rnd*500.0);"+
-                      "float s=smoothstep(0.12,0.0,dist)*star*tw*2.2;"+
-                      "float glow=smoothstep(0.32,0.0,dist)*star*0.6;"+
-                      "vec3 scol=mix(vec3(1.0,0.95,0.85),vec3(0.8,0.9,1.0),hash(id+4.3));"+
-                      "col += scol*(s+glow);}fC=vec4(col,1.0);}";
+                      "col=mix(vec3(0.005,0.008,0.02), vec3(0.02,0.1,0.25), t*0.5);}"+
+                      "if(d.y>0.15){"+
+                      "vec2 uv=d.xz/(d.y+0.2);uv*=70.0;vec2 id=floor(uv);vec2 gv=fract(uv)-0.5;"+
+                      "float rnd=hash(id);float star=step(0.99,rnd);float dist=length(gv);"+
+                      "float tw=0.7+0.3*sin(rnd*500.0);"+
+                      "float s=smoothstep(0.15,0.0,dist)*star*tw*1.8;"+
+                      "float glow=smoothstep(0.35,0.0,dist)*star*0.5;"+
+                      "vec3 scol=mix(vec3(1.0,0.95,0.85),vec3(0.7,0.8,1.0),hash(id+4.3));"+
+                      "col += scol*(s+glow);}"+
+                      "if(d.y>0.05&&d.y<0.12){"+
+                      "vec2 uv=d.xz/(d.y+0.05);uv*=100.0;vec2 id=floor(uv);vec2 gv=fract(uv)-0.5;"+
+                      "float rnd=hash(id+1000.0);float star=step(0.998,rnd);float dist=length(gv);"+
+                      "float s=smoothstep(0.08,0.0,dist)*star*1.2;"+
+                      "vec3 scol=vec3(0.9,0.85,1.0);"+
+                      "col += scol*s;}"+
+                      "fC=vec4(col,1.0);}";
 
                   prog=mkProg(vs,fs);
                   skyProg=mkProg(skyVs,skyFs);
@@ -778,15 +771,15 @@ jobs:
 
               private void drawPlayerCharacter(int uM, int uMVP, int uC){
                   boolean onGround = isOnGround();
-                  final float legH = 1.1f, legW = 0.45f, legD = 0.45f;
-                  final float torsoH = 1.2f, torsoW = 0.9f, torsoD = 0.55f;
-                  final float headS = 0.8f;
-                  final float armH = 1.05f, armW = 0.35f, armD = 0.35f;
+                  final float legH = 1.3f, legW = 0.55f, legD = 0.55f;
+                  final float torsoH = 1.4f, torsoW = 1.0f, torsoD = 0.65f;
+                  final float headS = 0.95f;
+                  final float armH = 1.25f, armW = 0.45f, armD = 0.45f;
                   float footY = pY - PLAYER_HEIGHT;
-                  float swing = (float)Math.sin(walkPhase) * 45f * moveMag * (onGround ? 1f : 0.2f);
+                  float swing = (float)Math.sin(walkPhase) * 55f * moveMag * (onGround ? 1f : 0.2f);
                   float armAngle = onGround ? swing : -70f;
                   float legAngle = onGround ? -swing : 25f;
-                  float bob = onGround ? (float)Math.sin(walkPhase * 2.0f) * 0.05f * moveMag : 0.08f;
+                  float bob = onGround ? (float)Math.sin(walkPhase * 2.0f) * 0.06f * moveMag : 0.1f;
 
                   float skinR=1.0f, skinG=0.9f, skinB=0.2f;
                   float torsoR=0.15f, torsoG=0.45f, torsoB=1.0f;
@@ -825,7 +818,7 @@ jobs:
 
                   Matrix.setIdentityM(model,0);
                   Matrix.translateM(model,0, pX, footY, pZ);
-                  float hipX = -0.25f;
+                  float hipX = -0.3f;
                   Matrix.translateM(model,0, hipX, legH, 0f);
                   Matrix.rotateM(model,0, legAngle, 1,0,0);
                   Matrix.translateM(model,0, 0f, -legH/2f, 0f);
@@ -834,7 +827,7 @@ jobs:
 
                   Matrix.setIdentityM(model,0);
                   Matrix.translateM(model,0, pX, footY, pZ);
-                  hipX = 0.25f;
+                  hipX = 0.3f;
                   Matrix.translateM(model,0, hipX, legH, 0f);
                   Matrix.rotateM(model,0, -legAngle, 1,0,0);
                   Matrix.translateM(model,0, 0f, -legH/2f, 0f);
@@ -861,6 +854,14 @@ jobs:
                   timeSec += dt;
 
                   moveMag = (float)Math.min(1.0, Math.sqrt(jX*jX + jY*jY));
+                  
+                  if(moveMag > 0.05f && !isEngineMode){
+                      float targetAngle = (float)Math.toDegrees(Math.atan2(jX, jY));
+                      float angleDiff = targetAngle - playerAngle;
+                      while(angleDiff > 180) angleDiff -= 360;
+                      while(angleDiff < -180) angleDiff += 360;
+                      playerAngle += angleDiff * dt * 8f;
+                  }
 
                   float s=.35f,rad=(float)Math.toRadians(rY),pitch=(float)Math.toRadians(rX);
                   if(isEngineMode&&!isPlayingLevel){
@@ -869,8 +870,9 @@ jobs:
                       pZ+=(fz*-jY+(float)Math.sin(rad)*jX)*s;
                       pY+=(fy*-jY)*s;
                   } else {
-                      float mX=((float)Math.sin(rad)*-jY+(float)Math.cos(rad)*jX)*s;
-                      float mZ=((float)-Math.cos(rad)*-jY+(float)Math.sin(rad)*jX)*s;
+                      float moveRad = (float)Math.toRadians(playerAngle);
+                      float mX = (float)Math.sin(moveRad) * moveMag * s;
+                      float mZ = (float)Math.cos(moveRad) * moveMag * s;
                       vY-=.025f;
                       float nX=pX+mX,nY=pY+vY,nZ=pZ+mZ,fY=nY-PLAYER_HEIGHT,hY=nY;
                       if(fY<FLOOR_Y){nY=FLOOR_Y+PLAYER_HEIGHT;vY=0;}
@@ -906,7 +908,7 @@ jobs:
 
                       boolean onGround = isOnGround();
                       if(onGround && moveMag > 0.05f){
-                          walkPhase += dt * 8.0f * moveMag;
+                          walkPhase += dt * 10.0f * moveMag;
                       }
                   }
               }
@@ -1554,8 +1556,8 @@ jobs:
 
                   <View
                       android:id="@+id/crosshair_game"
-                      android:layout_width="22dp"
-                      android:layout_height="22dp"
+                      android:layout_width="12dp"
+                      android:layout_height="12dp"
                       android:layout_centerInParent="true"
                       android:background="@drawable/crosshair"/>
               </RelativeLayout>
@@ -2036,8 +2038,8 @@ jobs:
 
                   <View
                       android:id="@+id/crosshair_engine"
-                      android:layout_width="22dp"
-                      android:layout_height="22dp"
+                      android:layout_width="12dp"
+                      android:layout_height="12dp"
                       android:layout_centerInParent="true"
                       android:background="@drawable/crosshair"/>
               </RelativeLayout>
@@ -2098,8 +2100,8 @@ jobs:
 
                   <View
                       android:id="@+id/crosshair_playtest"
-                      android:layout_width="22dp"
-                      android:layout_height="22dp"
+                      android:layout_width="12dp"
+                      android:layout_height="12dp"
                       android:layout_centerInParent="true"
                       android:background="@drawable/crosshair"/>
               </RelativeLayout>
