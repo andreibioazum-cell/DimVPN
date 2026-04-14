@@ -1,4 +1,4 @@
-name: Enjoer_6.1_Stars
+name: Enjoer_6.1_Stars_Fixed
 on: [push, workflow_dispatch]
 
 jobs:
@@ -17,206 +17,780 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Project Structure
+      - name: Create Project
         run: |
           mkdir -p app/src/main/java/com/enjoer/game
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-      - name: Create Gradle Properties
-        run: |
-          cat <<EOF > gradle.properties
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          android.useAndroidX=true
-          android.enableJetifier=true
-          EOF
+          echo "android.useAndroidX=true" > gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
 
-      - name: Create Settings Gradle
-        run: |
-          cat <<EOF > settings.gradle
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "Enjoer"
-          include ':app'
-          EOF
-
-      - name: Create Root Build Gradle
-        run: |
-          cat <<EOF > build.gradle
-          plugins {
-              id 'com.android.application' version '8.2.2' apply false
-          }
-          EOF
-
-      - name: Create App Build Gradle
-        run: |
-          cat <<EOF > app/build.gradle
-          plugins {
-              id 'com.android.application'
-          }
-
-          android {
-              namespace 'com.enjoer.game'
-              compileSdk 34
-
-              defaultConfig {
-                  applicationId 'com.enjoer.game'
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName "6.1"
-              }
-
-              buildFeatures {
-                  buildConfig true
-              }
-
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-          }
-          EOF
-
-      - name: Create Manifest
-        run: |
-          cat <<EOF > app/src/main/AndroidManifest.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-feature android:glEsVersion="0x00030000" android:required="true" />
-              
-              <application
-                  android:allowBackup="true"
-                  android:label="Enjoer 6.1"
-                  android:theme="@style/AppTheme"
-                  android:icon="@android:drawable/ic_dialog_info">
-                  <activity
-                      android:name="com.enjoer.game.MainActivity"
-                      android:exported="true"
-                      android:configChanges="orientation|screenSize|keyboardHidden"
-                      android:screenOrientation="sensorLandscape">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-      - name: Create Themes XML
-        run: |
           cat <<EOF > app/src/main/res/values/themes.xml
-          <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-                  <item name="android:windowFullscreen">true</item>
-                  <item name="android:windowBackground">@android:color/black</item>
-              </style>
+            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+              <item name="android:windowFullscreen">true</item>
+            </style>
           </resources>
           EOF
 
-      - name: Create Drawable Resources
-        run: |
           cat <<EOF > app/src/main/res/drawable/btn_blue.xml
-          <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <corners android:radius="12dp"/>
-              <solid android:color="#101820"/>
-              <stroke android:width="2dp" android:color="#00BFFF"/>
+            <corners android:radius="12dp"/>
+            <solid android:color="#101820"/>
+            <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
           EOF
 
           cat <<EOF > app/src/main/res/drawable/btn_blue_filled.xml
-          <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <corners android:radius="12dp"/>
-              <solid android:color="#00BFFF"/>
+            <corners android:radius="12dp"/>
+            <solid android:color="#00BFFF"/>
           </shape>
           EOF
 
           cat <<EOF > app/src/main/res/drawable/btn_red.xml
-          <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <corners android:radius="12dp"/>
-              <solid android:color="#101820"/>
-              <stroke android:width="2dp" android:color="#FF4444"/>
+            <corners android:radius="12dp"/>
+            <solid android:color="#101820"/>
+            <stroke android:width="2dp" android:color="#FF4444"/>
           </shape>
           EOF
 
           cat <<EOF > app/src/main/res/drawable/btn_green.xml
-          <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <corners android:radius="12dp"/>
-              <solid android:color="#44FF44"/>
+            <corners android:radius="12dp"/>
+            <solid android:color="#44FF44"/>
           </shape>
           EOF
 
           cat <<EOF > app/src/main/res/drawable/joy_base.xml
-          <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-              <solid android:color="#CC101820"/>
-              <stroke android:width="2dp" android:color="#00BFFF"/>
+            <solid android:color="#CC101820"/>
+            <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
           EOF
 
           cat <<EOF > app/src/main/res/drawable/joy_stick.xml
-          <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-              <solid android:color="#00BFFF"/>
+            <solid android:color="#00BFFF"/>
           </shape>
           EOF
 
           cat <<EOF > app/src/main/res/drawable/panel_bg.xml
-          <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <corners android:radius="8dp"/>
-              <solid android:color="#E6101820"/>
-              <stroke android:width="1dp" android:color="#00BFFF"/>
+            <corners android:radius="8dp"/>
+            <solid android:color="#E6101820"/>
+            <stroke android:width="1dp" android:color="#00BFFF"/>
           </shape>
           EOF
 
           cat <<EOF > app/src/main/res/drawable/color_btn.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <selector xmlns:android="http://schemas.android.com/apk/res/android">
-              <item>
-                  <shape android:shape="oval">
-                      <size android:width="26dp" android:height="26dp"/>
-                      <stroke android:width="2dp" android:color="#00BFFF"/>
-                  </shape>
-              </item>
-          </selector>
-          EOF
-
-          cat <<EOF > app/src/main/res/drawable/crosshair.xml
-          <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-              <size android:width="12dp" android:height="12dp"/>
-              <stroke android:width="2dp" android:color="#FF00BFFF"/>
-              <solid android:color="#00000000"/>
+            <solid android:color="#FFF"/>
+            <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
           EOF
 
-      - name: Create Block.java
-        run: |
-          cat <<'EOF' > app/src/main/java/com/enjoer/game/Block.java
+          cat <<EOF > app/src/main/res/drawable/crosshair.xml
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+            <item android:gravity="center">
+              <shape android:shape="rectangle">
+                <size android:width="22dp" android:height="2dp"/>
+                <solid android:color="#FF00BFFF"/>
+              </shape>
+            </item>
+            <item android:gravity="center">
+              <shape android:shape="rectangle">
+                <size android:width="2dp" android:height="22dp"/>
+                <solid android:color="#FF00BFFF"/>
+              </shape>
+            </item>
+            <item android:gravity="center">
+              <shape android:shape="oval">
+                <size android:width="4dp" android:height="4dp"/>
+                <solid android:color="#FF7FDBFF"/>
+              </shape>
+            </item>
+          </layer-list>
+          EOF
+
+          cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="#02050A">
+
+              <android.opengl.GLSurfaceView
+                  android:id="@+id/gl_view"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"/>
+
+              <RelativeLayout
+                  android:id="@+id/game_ui"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:visibility="gone">
+
+                  <View
+                      android:id="@+id/look_zone"
+                      android:layout_width="match_parent"
+                      android:layout_height="match_parent"/>
+
+                  <Button
+                      android:id="@+id/btn_menu"
+                      android:layout_width="50dp"
+                      android:layout_height="50dp"
+                      android:layout_margin="10dp"
+                      android:text="≡"
+                      android:textSize="24sp"
+                      android:background="@drawable/btn_blue"
+                      android:textColor="#00BFFF"/>
+
+                  <FrameLayout
+                      android:id="@+id/joy_base"
+                      android:layout_width="140dp"
+                      android:layout_height="140dp"
+                      android:layout_alignParentBottom="true"
+                      android:layout_alignParentLeft="true"
+                      android:layout_marginLeft="40dp"
+                      android:layout_marginBottom="40dp"
+                      android:background="@drawable/joy_base"/>
+
+                  <View
+                      android:id="@+id/joy_stick"
+                      android:layout_width="60dp"
+                      android:layout_height="60dp"
+                      android:layout_alignLeft="@id/joy_base"
+                      android:layout_alignTop="@id/joy_base"
+                      android:layout_marginLeft="40dp"
+                      android:layout_marginTop="40dp"
+                      android:background="@drawable/joy_stick"/>
+
+                  <Button
+                      android:id="@+id/btn_jump"
+                      android:layout_width="90dp"
+                      android:layout_height="90dp"
+                      android:layout_alignParentRight="true"
+                      android:layout_alignParentBottom="true"
+                      android:layout_marginRight="40dp"
+                      android:layout_marginBottom="40dp"
+                      android:text="▲"
+                      android:textSize="28sp"
+                      android:background="@drawable/btn_blue"
+                      android:textColor="#FFF"/>
+
+                  <View
+                      android:id="@+id/crosshair_game"
+                      android:layout_width="22dp"
+                      android:layout_height="22dp"
+                      android:layout_centerInParent="true"
+                      android:background="@drawable/crosshair"/>
+              </RelativeLayout>
+
+              <RelativeLayout
+                  android:id="@+id/engine_ui"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:visibility="gone">
+
+                  <View
+                      android:id="@+id/engine_touch_zone"
+                      android:layout_width="match_parent"
+                      android:layout_height="match_parent"/>
+
+                  <LinearLayout
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:layout_alignParentTop="true"
+                      android:orientation="horizontal"
+                      android:padding="10dp">
+
+                      <Button
+                          android:id="@+id/btn_engine_menu"
+                          android:layout_width="50dp"
+                          android:layout_height="50dp"
+                          android:text="≡"
+                          android:textSize="24sp"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#00BFFF"/>
+
+                      <View
+                          android:layout_width="0dp"
+                          android:layout_height="1dp"
+                          android:layout_weight="1"/>
+
+                      <Button
+                          android:id="@+id/btn_run_script"
+                          android:layout_width="90dp"
+                          android:layout_height="50dp"
+                          android:text="Script"
+                          android:textSize="12sp"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#00BFFF"/>
+
+                      <Button
+                          android:id="@+id/btn_save"
+                          android:layout_width="90dp"
+                          android:layout_height="50dp"
+                          android:text="Export"
+                          android:textSize="12sp"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#00BFFF"
+                          android:layout_marginLeft="8dp"/>
+
+                      <Button
+                          android:id="@+id/btn_play_level"
+                          android:layout_width="50dp"
+                          android:layout_height="50dp"
+                          android:text="▶"
+                          android:textSize="20sp"
+                          android:background="@drawable/btn_green"
+                          android:textColor="#000"
+                          android:layout_marginLeft="10dp"/>
+                  </LinearLayout>
+
+                  <FrameLayout
+                      android:id="@+id/engine_joy_base"
+                      android:layout_width="120dp"
+                      android:layout_height="120dp"
+                      android:layout_alignParentBottom="true"
+                      android:layout_alignParentLeft="true"
+                      android:layout_marginLeft="30dp"
+                      android:layout_marginBottom="30dp"
+                      android:background="@drawable/joy_base"/>
+
+                  <View
+                      android:id="@+id/engine_joy_stick"
+                      android:layout_width="50dp"
+                      android:layout_height="50dp"
+                      android:layout_alignLeft="@id/engine_joy_base"
+                      android:layout_alignTop="@id/engine_joy_base"
+                      android:layout_marginLeft="35dp"
+                      android:layout_marginTop="35dp"
+                      android:background="@drawable/joy_stick"/>
+
+                  <ScrollView
+                      android:id="@+id/tools_scroll"
+                      android:layout_width="210dp"
+                      android:layout_height="match_parent"
+                      android:layout_alignParentRight="true"
+                      android:layout_marginRight="10dp"
+                      android:layout_marginTop="70dp"
+                      android:layout_marginBottom="10dp">
+
+                      <LinearLayout
+                          android:layout_width="match_parent"
+                          android:layout_height="wrap_content"
+                          android:orientation="vertical"
+                          android:background="@drawable/panel_bg"
+                          android:padding="10dp">
+
+                          <TextView
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:text="Shape"
+                              android:textColor="#FFFFFF"
+                              android:textStyle="bold"/>
+
+                          <LinearLayout
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:orientation="horizontal"
+                              android:layout_marginTop="6dp">
+
+                              <Button
+                                  android:id="@+id/shape_square"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="Square"
+                                  android:background="@drawable/btn_blue_filled"
+                                  android:textColor="#000"/>
+
+                              <Button
+                                  android:id="@+id/shape_rectangle"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="Rectangle"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"
+                                  android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+
+                          <LinearLayout
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:orientation="horizontal"
+                              android:layout_marginTop="4dp">
+
+                              <Button
+                                  android:id="@+id/shape_circle"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="Circle"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"/>
+
+                              <Button
+                                  android:id="@+id/shape_triangle"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="Triangle"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"
+                                  android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+
+                          <TextView
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:text="Size X / Y / Z"
+                              android:textColor="#FFFFFF"
+                              android:textStyle="bold"
+                              android:layout_marginTop="10dp"/>
+
+                          <LinearLayout
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:orientation="horizontal"
+                              android:layout_marginTop="6dp">
+
+                              <Button
+                                  android:id="@+id/size_x_minus"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="X-"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"/>
+
+                              <Button
+                                  android:id="@+id/size_x_plus"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="X+"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"
+                                  android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+
+                          <LinearLayout
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:orientation="horizontal"
+                              android:layout_marginTop="4dp">
+
+                              <Button
+                                  android:id="@+id/size_y_minus"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="Y-"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"/>
+
+                              <Button
+                                  android:id="@+id/size_y_plus"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="Y+"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"
+                                  android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+
+                          <LinearLayout
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:orientation="horizontal"
+                              android:layout_marginTop="4dp">
+
+                              <Button
+                                  android:id="@+id/size_z_minus"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="Z-"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"/>
+
+                              <Button
+                                  android:id="@+id/size_z_plus"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="Z+"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"
+                                  android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+
+                          <TextView
+                              android:id="@+id/txt_size_info"
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:text="4 x 4 x 4"
+                              android:textColor="#AEEBFF"
+                              android:layout_marginTop="6dp"/>
+
+                          <Button
+                              android:id="@+id/btn_grid"
+                              android:layout_width="match_parent"
+                              android:layout_height="36dp"
+                              android:text="Grid: On"
+                              android:background="@drawable/btn_blue_filled"
+                              android:textColor="#000"
+                              android:layout_marginTop="8dp"/>
+
+                          <LinearLayout
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:orientation="horizontal"
+                              android:gravity="center"
+                              android:layout_marginTop="8dp">
+
+                              <View
+                                  android:id="@+id/color_red"
+                                  android:layout_width="26dp"
+                                  android:layout_height="26dp"
+                                  android:background="@drawable/color_btn"
+                                  android:backgroundTint="#FF2222"/>
+
+                              <View
+                                  android:id="@+id/color_green"
+                                  android:layout_width="26dp"
+                                  android:layout_height="26dp"
+                                  android:background="@drawable/color_btn"
+                                  android:backgroundTint="#22FF22"
+                                  android:layout_marginLeft="5dp"/>
+
+                              <View
+                                  android:id="@+id/color_blue"
+                                  android:layout_width="26dp"
+                                  android:layout_height="26dp"
+                                  android:background="@drawable/color_btn"
+                                  android:backgroundTint="#2288FF"
+                                  android:layout_marginLeft="5dp"/>
+
+                              <View
+                                  android:id="@+id/color_yellow"
+                                  android:layout_width="26dp"
+                                  android:layout_height="26dp"
+                                  android:background="@drawable/color_btn"
+                                  android:backgroundTint="#FFFF22"
+                                  android:layout_marginLeft="5dp"/>
+
+                              <View
+                                  android:id="@+id/color_white"
+                                  android:layout_width="26dp"
+                                  android:layout_height="26dp"
+                                  android:background="@drawable/color_btn"
+                                  android:backgroundTint="#FFFFFF"
+                                  android:layout_marginLeft="5dp"/>
+
+                              <View
+                                  android:id="@+id/color_black"
+                                  android:layout_width="26dp"
+                                  android:layout_height="26dp"
+                                  android:background="@drawable/color_btn"
+                                  android:backgroundTint="#000000"
+                                  android:layout_marginLeft="5dp"/>
+                          </LinearLayout>
+
+                          <LinearLayout
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:orientation="horizontal"
+                              android:layout_marginTop="8dp">
+
+                              <Button
+                                  android:id="@+id/dist_near"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="3"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"/>
+
+                              <Button
+                                  android:id="@+id/dist_mid"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="6"
+                                  android:background="@drawable/btn_blue_filled"
+                                  android:textColor="#000"
+                                  android:layout_marginLeft="4dp"/>
+
+                              <Button
+                                  android:id="@+id/dist_far"
+                                  android:layout_width="0dp"
+                                  android:layout_height="36dp"
+                                  android:layout_weight="1"
+                                  android:text="12"
+                                  android:background="@drawable/btn_blue"
+                                  android:textColor="#00BFFF"
+                                  android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+
+                          <Button
+                              android:id="@+id/btn_place"
+                              android:layout_width="match_parent"
+                              android:layout_height="44dp"
+                              android:text="+ Place"
+                              android:background="@drawable/btn_blue_filled"
+                              android:textColor="#000"
+                              android:layout_marginTop="12dp"/>
+
+                          <Button
+                              android:id="@+id/btn_block_events"
+                              android:layout_width="match_parent"
+                              android:layout_height="36dp"
+                              android:text="Events"
+                              android:background="@drawable/btn_blue"
+                              android:textColor="#00BFFF"
+                              android:layout_marginTop="8dp"
+                              android:visibility="gone"/>
+
+                          <Button
+                              android:id="@+id/btn_hide"
+                              android:layout_width="match_parent"
+                              android:layout_height="36dp"
+                              android:text="Hide"
+                              android:background="@drawable/btn_blue"
+                              android:textColor="#00BFFF"
+                              android:layout_marginTop="8dp"
+                              android:visibility="gone"/>
+
+                          <Button
+                              android:id="@+id/btn_delete"
+                              android:layout_width="match_parent"
+                              android:layout_height="36dp"
+                              android:text="Delete"
+                              android:background="@drawable/btn_red"
+                              android:textColor="#FF4444"
+                              android:layout_marginTop="8dp"
+                              android:visibility="gone"/>
+
+                          <Button
+                              android:id="@+id/btn_deselect"
+                              android:layout_width="match_parent"
+                              android:layout_height="36dp"
+                              android:text="Deselect"
+                              android:background="@drawable/btn_blue"
+                              android:textColor="#00BFFF"
+                              android:layout_marginTop="8dp"
+                              android:visibility="gone"/>
+                      </LinearLayout>
+                  </ScrollView>
+
+                  <LinearLayout
+                      android:id="@+id/axis_panel"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:layout_alignParentBottom="true"
+                      android:layout_centerHorizontal="true"
+                      android:layout_marginBottom="20dp"
+                      android:orientation="horizontal"
+                      android:background="@drawable/panel_bg"
+                      android:padding="6dp"
+                      android:visibility="gone">
+
+                      <Button
+                          android:id="@+id/axis_x_minus"
+                          android:layout_width="44dp"
+                          android:layout_height="44dp"
+                          android:text="X-"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#FF4444"
+                          android:textSize="12sp"/>
+
+                      <Button
+                          android:id="@+id/axis_x_plus"
+                          android:layout_width="44dp"
+                          android:layout_height="44dp"
+                          android:text="X+"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#FF4444"
+                          android:textSize="12sp"
+                          android:layout_marginLeft="4dp"/>
+
+                      <Button
+                          android:id="@+id/axis_y_minus"
+                          android:layout_width="44dp"
+                          android:layout_height="44dp"
+                          android:text="Y-"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#44FF44"
+                          android:textSize="12sp"
+                          android:layout_marginLeft="10dp"/>
+
+                      <Button
+                          android:id="@+id/axis_y_plus"
+                          android:layout_width="44dp"
+                          android:layout_height="44dp"
+                          android:text="Y+"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#44FF44"
+                          android:textSize="12sp"
+                          android:layout_marginLeft="4dp"/>
+
+                      <Button
+                          android:id="@+id/axis_z_minus"
+                          android:layout_width="44dp"
+                          android:layout_height="44dp"
+                          android:text="Z-"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#4488FF"
+                          android:textSize="12sp"
+                          android:layout_marginLeft="10dp"/>
+
+                      <Button
+                          android:id="@+id/axis_z_plus"
+                          android:layout_width="44dp"
+                          android:layout_height="44dp"
+                          android:text="Z+"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#4488FF"
+                          android:textSize="12sp"
+                          android:layout_marginLeft="4dp"/>
+                  </LinearLayout>
+
+                  <View
+                      android:id="@+id/crosshair_engine"
+                      android:layout_width="22dp"
+                      android:layout_height="22dp"
+                      android:layout_centerInParent="true"
+                      android:background="@drawable/crosshair"/>
+              </RelativeLayout>
+
+              <RelativeLayout
+                  android:id="@+id/playtest_ui"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:visibility="gone">
+
+                  <View
+                      android:id="@+id/playtest_look_zone"
+                      android:layout_width="match_parent"
+                      android:layout_height="match_parent"/>
+
+                  <Button
+                      android:id="@+id/btn_stop_playtest"
+                      android:layout_width="50dp"
+                      android:layout_height="50dp"
+                      android:layout_margin="10dp"
+                      android:text="■"
+                      android:textSize="20sp"
+                      android:background="@drawable/btn_red"
+                      android:textColor="#FFF"/>
+
+                  <FrameLayout
+                      android:id="@+id/playtest_joy_base"
+                      android:layout_width="140dp"
+                      android:layout_height="140dp"
+                      android:layout_alignParentBottom="true"
+                      android:layout_alignParentLeft="true"
+                      android:layout_marginLeft="40dp"
+                      android:layout_marginBottom="40dp"
+                      android:background="@drawable/joy_base"/>
+
+                  <View
+                      android:id="@+id/playtest_joy_stick"
+                      android:layout_width="60dp"
+                      android:layout_height="60dp"
+                      android:layout_alignLeft="@id/playtest_joy_base"
+                      android:layout_alignTop="@id/playtest_joy_base"
+                      android:layout_marginLeft="40dp"
+                      android:layout_marginTop="40dp"
+                      android:background="@drawable/joy_stick"/>
+
+                  <Button
+                      android:id="@+id/btn_playtest_jump"
+                      android:layout_width="90dp"
+                      android:layout_height="90dp"
+                      android:layout_alignParentRight="true"
+                      android:layout_alignParentBottom="true"
+                      android:layout_marginRight="40dp"
+                      android:layout_marginBottom="40dp"
+                      android:text="▲"
+                      android:textSize="28sp"
+                      android:background="@drawable/btn_blue"
+                      android:textColor="#FFF"/>
+
+                  <View
+                      android:id="@+id/crosshair_playtest"
+                      android:layout_width="22dp"
+                      android:layout_height="22dp"
+                      android:layout_centerInParent="true"
+                      android:background="@drawable/crosshair"/>
+              </RelativeLayout>
+
+              <LinearLayout
+                  android:id="@+id/menu_ui"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:orientation="vertical"
+                  android:gravity="center"
+                  android:background="#02050A">
+
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="ENJOER"
+                      android:textSize="52sp"
+                      android:textColor="#00BFFF"
+                      android:textStyle="bold"/>
+
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="ENGINE 6.1"
+                      android:textSize="18sp"
+                      android:textColor="#0088CC"
+                      android:layout_marginBottom="80dp"/>
+
+                  <Button
+                      android:id="@+id/btn_play"
+                      android:layout_width="240dp"
+                      android:layout_height="60dp"
+                      android:text="Play"
+                      android:textSize="18sp"
+                      android:textColor="#000"
+                      android:background="@drawable/btn_blue_filled"
+                      android:layout_marginBottom="16dp"/>
+
+                  <Button
+                      android:id="@+id/btn_engine"
+                      android:layout_width="240dp"
+                      android:layout_height="60dp"
+                      android:text="Editor"
+                      android:textSize="18sp"
+                      android:textColor="#00BFFF"
+                      android:background="@drawable/btn_blue"
+                      android:layout_marginBottom="16dp"/>
+
+                  <Button
+                      android:id="@+id/btn_load_file"
+                      android:layout_width="240dp"
+                      android:layout_height="60dp"
+                      android:text="Import .json"
+                      android:textSize="16sp"
+                      android:textColor="#00BFFF"
+                      android:background="@drawable/btn_blue"/>
+              </LinearLayout>
+          </FrameLayout>
+          LAYOUT
+
+          cat <<EOF > app/src/main/java/com/enjoer/game/Block.java
           package com.enjoer.game;
 
           public class Block {
@@ -243,9 +817,7 @@ jobs:
           }
           EOF
 
-      - name: Create ScriptEngine.java
-        run: |
-          cat <<'EOF' > app/src/main/java/com/enjoer/game/ScriptEngine.java
+          cat <<'SCRIPT' > app/src/main/java/com/enjoer/game/ScriptEngine.java
           package com.enjoer.game;
 
           import java.util.Locale;
@@ -257,11 +829,12 @@ jobs:
               }
 
               public static void run(Host host, String script) throws Exception {
-                  if(script == null || script.trim().isEmpty()) return;
+                  if(script == null) return;
                   String[] lines = script.split("\\r?\\n");
                   for(String raw : lines){
                       String line = raw.trim();
-                      if(line.isEmpty() || line.startsWith("//") || line.startsWith("#")) continue;
+                      if(line.isEmpty()) continue;
+                      if(line.startsWith("//") || line.startsWith("#")) continue;
                       exec(host, line);
                   }
               }
@@ -310,8 +883,9 @@ jobs:
                   }
 
                   if(line.startsWith("phone.toast(") && line.endsWith(")")){
-                      String msg = extractString(line);
-                      host.toast(msg);
+                      String[] a = argsText(line);
+                      if(a.length != 1) throw new Exception("phone.toast requires 1 arg");
+                      host.toast(stripQuotes(a[0]));
                       return;
                   }
 
@@ -365,10 +939,11 @@ jobs:
                   }
 
                   if(line.startsWith("block.shape(") && line.endsWith(")")){
-                      String shape = extractString(line);
+                      String[] a = argsText(line);
+                      if(a.length != 1) throw new Exception("block.shape requires 1 arg");
                       Block b = ren.getSelectedBlock();
                       if(b == null) throw new Exception("No selected block");
-                      b.shape = shape.toLowerCase(Locale.US);
+                      b.shape = stripQuotes(a[0]).toLowerCase(Locale.US);
                       return;
                   }
 
@@ -402,15 +977,20 @@ jobs:
                   return arr;
               }
 
-              private static String extractString(String line){
+              private static String[] argsText(String line){
                   int s = line.indexOf('(');
                   int e = line.lastIndexOf(')');
                   String body = line.substring(s + 1, e).trim();
-                  body = body.trim();
-                  if((body.startsWith("\"") && body.endsWith("\"")) || (body.startsWith("'") && body.endsWith("'"))){
-                      return body.substring(1, body.length()-1);
+                  if(body.isEmpty()) return new String[0];
+                  return new String[]{body};
+              }
+
+              private static String stripQuotes(String s){
+                  s = s.trim();
+                  if((s.startsWith("\"") && s.endsWith("\"")) || (s.startsWith("'") && s.endsWith("'"))){
+                      return s.substring(1, s.length()-1);
                   }
-                  return body;
+                  return s;
               }
 
               private static float f(String s){
@@ -421,19 +1001,15 @@ jobs:
                   return Math.max(0f, Math.min(1f, v));
               }
           }
-          EOF
+          SCRIPT
 
-      - name: Create GameRenderer.java (Part 1)
-        run: |
-          cat <<'EOF' > app/src/main/java/com/enjoer/game/GameRenderer.java
+          cat <<'RENDERER' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
 
           import android.opengl.GLES30;
           import android.opengl.GLSurfaceView;
           import android.opengl.Matrix;
-          import java.nio.ByteBuffer;
-          import java.nio.ByteOrder;
-          import java.nio.FloatBuffer;
+          import java.nio.*;
           import java.util.concurrent.CopyOnWriteArrayList;
           import javax.microedition.khronos.egl.EGLConfig;
           import javax.microedition.khronos.opengles.GL10;
@@ -445,7 +1021,6 @@ jobs:
 
               private final float[] proj=new float[16], view=new float[16], model=new float[16], vp=new float[16];
               public float pX=0, pY=6, pZ=15, rY=0, rX=0, jX=0, jY=0, vY=0;
-              public float playerAngle = 0f;
               public boolean isEngineMode=false, isPlayingLevel=false;
               public boolean gridEnabled=true;
               private int prog, skyProg;
@@ -457,7 +1032,7 @@ jobs:
               public int selectedIndex = -1;
               public float screenW=1, screenH=1;
               public EventHost eventHost;
-              private static final float FLOOR_Y=0f, PLAYER_HEIGHT=3.8f, PLAYER_RADIUS=0.6f;
+              private static final float FLOOR_Y=0f, PLAYER_HEIGHT=4.0f, PLAYER_RADIUS=0.7f;
 
               private float camX=0, camY=0, camZ=0;
               private long lastTimeNs = 0L;
@@ -581,8 +1156,6 @@ jobs:
               public void onSurfaceCreated(GL10 gl, EGLConfig cfg) {
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
                   GLES30.glDepthFunc(GLES30.GL_LEQUAL);
-                  GLES30.glEnable(GLES30.GL_BLEND);
-                  GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA);
 
                   String vs="#version 300 es\n"+
                       "layout(location=0)in vec4 aP;layout(location=1)in vec3 aN;"+
@@ -613,25 +1186,16 @@ jobs:
                       "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}"+
                       "void main(){"+
                       "vec3 d=normalize(vDir);"+
-                      "vec3 col=vec3(0.005,0.008,0.02);"+
-                      "if(d.y>0.0){"+
-                      "float t=clamp(d.y,0.0,1.0);"+
-                      "col=mix(vec3(0.005,0.008,0.02), vec3(0.02,0.1,0.25), t*0.5);}"+
-                      "if(d.y>0.15){"+
-                      "vec2 uv=d.xz/(d.y+0.2);uv*=70.0;vec2 id=floor(uv);vec2 gv=fract(uv)-0.5;"+
-                      "float rnd=hash(id);float star=step(0.99,rnd);float dist=length(gv);"+
-                      "float tw=0.7+0.3*sin(rnd*500.0);"+
-                      "float s=smoothstep(0.15,0.0,dist)*star*tw*1.8;"+
-                      "float glow=smoothstep(0.35,0.0,dist)*star*0.5;"+
-                      "vec3 scol=mix(vec3(1.0,0.95,0.85),vec3(0.7,0.8,1.0),hash(id+4.3));"+
-                      "col += scol*(s+glow);}"+
-                      "if(d.y>0.05&&d.y<0.12){"+
-                      "vec2 uv=d.xz/(d.y+0.05);uv*=100.0;vec2 id=floor(uv);vec2 gv=fract(uv)-0.5;"+
-                      "float rnd=hash(id+1000.0);float star=step(0.998,rnd);float dist=length(gv);"+
-                      "float s=smoothstep(0.08,0.0,dist)*star*1.2;"+
-                      "vec3 scol=vec3(0.9,0.85,1.0);"+
-                      "col += scol*s;}"+
-                      "fC=vec4(col,1.0);}";
+                      "float t=clamp(d.y*0.5+0.5,0.0,1.0);"+
+                      "vec3 col=mix(vec3(0.005,0.008,0.02), vec3(0.03,0.16,0.36), t);"+
+                      "if(d.y>-0.05){"+
+                      "vec2 uv=d.xz/(abs(d.y)+0.15);uv*=90.0;vec2 id=floor(uv);vec2 gv=fract(uv)-0.5;"+
+                      "float rnd=hash(id);float star=step(0.9915,rnd);float dist=length(gv);"+
+                      "float tw=0.7+0.3*sin(rnd*600.0);"+
+                      "float s=smoothstep(0.14,0.0,dist)*star*tw*3.2;"+
+                      "float glow=smoothstep(0.38,0.0,dist)*star*1.1;"+
+                      "vec3 scol=mix(vec3(1.0,0.95,0.85),vec3(0.8,0.9,1.0),hash(id+5.7));"+
+                      "col += scol*(s+glow);}fC=vec4(col,1.0);}";
 
                   prog=mkProg(vs,fs);
                   skyProg=mkProg(skyVs,skyFs);
@@ -654,21 +1218,13 @@ jobs:
                   };
                   float[] skyQuad={-1f,-1f,1f, 1f,-1f,1f, -1f,1f,1f, 1f,1f,1f};
 
-                  vBuf=ByteBuffer.allocateDirect(vc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-                  vBuf.put(vc).position(0);
-                  nBuf=ByteBuffer.allocateDirect(nc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-                  nBuf.put(nc).position(0);
-                  skyBuf=ByteBuffer.allocateDirect(skyQuad.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-                  skyBuf.put(skyQuad).position(0);
+                  vBuf=ByteBuffer.allocateDirect(vc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vc);vBuf.position(0);
+                  nBuf=ByteBuffer.allocateDirect(nc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(nc);nBuf.position(0);
+                  skyBuf=ByteBuffer.allocateDirect(skyQuad.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(skyQuad);skyBuf.position(0);
 
                   loadBuiltInLevel();
                   lastTimeNs = System.nanoTime();
               }
-          EOF
-
-      - name: Create GameRenderer.java (Part 2)
-        run: |
-          cat <<'EOF' >> app/src/main/java/com/enjoer/game/GameRenderer.java
 
               @Override
               public void onSurfaceChanged(GL10 gl,int w,int h){
@@ -691,19 +1247,20 @@ jobs:
                       camX = pX; camY = pY; camZ = pZ;
                       Matrix.setLookAtM(view,0, camX,camY,camZ, pX+vx,pY+vy,pZ+vz, 0,1,0);
                   } else {
-                      float dist = 10.0f;
-                      float up   = 3.8f;
+                      float dist = 11.5f;
+                      float up   = 4.2f;
+
                       camX = pX - vx*dist;
-                      camY = pY - vy*dist + up;
+                      camY = Math.max(FLOOR_Y + 2.0f, pY - vy*dist + up);
                       camZ = pZ - vz*dist;
-                      float lookY = pY - 1.2f;
-                      if(lookY < 0.5f) lookY = 0.5f;
-                      Matrix.setLookAtM(view,0, camX,camY,camZ, pX, lookY, pZ, 0,1,0);
+
+                      Matrix.setLookAtM(view,0, camX,camY,camZ, pX, pY-1.4f, pZ, 0,1,0);
                   }
 
                   Matrix.multiplyMM(vp,0,proj,0,view,0);
+
                   drawSky();
-                  drawWorld();
+                  drawWorld(vx,vy,vz);
               }
 
               private void drawSky(){
@@ -719,25 +1276,20 @@ jobs:
                   GLES30.glDepthMask(true);
               }
 
-              private void drawWorld(){
+              private void drawWorld(float vx,float vy,float vz){
                   GLES30.glUseProgram(prog);
-                  int uMVP=GLES30.glGetUniformLocation(prog,"uMVP");
-                  int uM=GLES30.glGetUniformLocation(prog,"uM");
-                  int uC=GLES30.glGetUniformLocation(prog,"uC");
-                  int uSel=GLES30.glGetUniformLocation(prog,"uSel");
-                  int uFloor=GLES30.glGetUniformLocation(prog,"isFloor");
+                  int uMVP=GLES30.glGetUniformLocation(prog,"uMVP"),uM=GLES30.glGetUniformLocation(prog,"uM"),uC=GLES30.glGetUniformLocation(prog,"uC");
+                  int uSel=GLES30.glGetUniformLocation(prog,"uSel"),uFloor=GLES30.glGetUniformLocation(prog,"isFloor");
                   GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"camP"),camX,camY,camZ);
-                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);
-                  GLES30.glEnableVertexAttribArray(0);
-                  GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,0,nBuf);
-                  GLES30.glEnableVertexAttribArray(1);
+                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);GLES30.glEnableVertexAttribArray(0);
+                  GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,0,nBuf);GLES30.glEnableVertexAttribArray(1);
 
                   Matrix.setIdentityM(model,0);
                   Matrix.translateM(model,0,0,-.05f,0);
                   Matrix.scaleM(model,0,800,.1f,800);
                   GLES30.glUniform1f(uSel,0f);
                   GLES30.glUniform1f(uFloor,1f);
-                  drawCube(uM,uMVP,uC,.05f,.07f,.11f,1f);
+                  draw(uM,uMVP,uC,.05f,.07f,.11f,1f);
 
                   GLES30.glUniform1f(uFloor,0f);
                   for(int i=0;i<blocks.size();i++){
@@ -747,121 +1299,36 @@ jobs:
                       Matrix.translateM(model,0,b.x,b.y,b.z);
                       Matrix.scaleM(model,0,b.sx,b.sy,b.sz);
                       GLES30.glUniform1f(uSel,(i==selectedIndex&&isEngineMode&&!isPlayingLevel)?1f:0f);
-                      drawCube(uM,uMVP,uC,b.r,b.g,b.b,1f);
+                      draw(uM,uMVP,uC,b.r,b.g,b.b,1f);
                   }
 
                   if(isEngineMode&&!isPlayingLevel&&selectedIndex<0){
-                      float vx=(float)(Math.sin(Math.toRadians(rY))*Math.cos(Math.toRadians(rX)));
-                      float vy=(float)Math.sin(Math.toRadians(rX));
-                      float vz=(float)(-Math.cos(Math.toRadians(rY))*Math.cos(Math.toRadians(rX)));
                       float px=pX+vx*placeDist,py=pY+vy*placeDist,pz=pZ+vz*placeDist;
                       px=snap(px); py=snap(py); pz=snap(pz);
                       if(py-blockSY/2f<FLOOR_Y)py=FLOOR_Y+blockSY/2f;
                       Matrix.setIdentityM(model,0);
                       Matrix.translateM(model,0,px,py,pz);
                       Matrix.scaleM(model,0,blockSX,blockSY,blockSZ);
+                      GLES30.glEnable(GLES30.GL_BLEND);
+                      GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
                       GLES30.glUniform1f(uSel,0f);
-                      drawCube(uM,uMVP,uC,blockR,blockG,blockB,.4f);
+                      draw(uM,uMVP,uC,blockR,blockG,blockB,.4f);
+                      GLES30.glDisable(GLES30.GL_BLEND);
                   }
 
                   if(!(isEngineMode && !isPlayingLevel)){
-                      drawPlayerCharacter(uM, uMVP, uC);
+                      drawPlayerCharacter(uM, uMVP, uC, uSel);
                   }
-              }
-
-              private void drawPlayerCharacter(int uM, int uMVP, int uC){
-                  boolean onGround = isOnGround();
-                  final float legH = 1.3f, legW = 0.55f, legD = 0.55f;
-                  final float torsoH = 1.4f, torsoW = 1.0f, torsoD = 0.65f;
-                  final float headS = 0.95f;
-                  final float armH = 1.25f, armW = 0.45f, armD = 0.45f;
-                  float footY = pY - PLAYER_HEIGHT;
-                  float swing = (float)Math.sin(walkPhase) * 55f * moveMag * (onGround ? 1f : 0.2f);
-                  float armAngle = onGround ? swing : -70f;
-                  float legAngle = onGround ? -swing : 25f;
-                  float bob = onGround ? (float)Math.sin(walkPhase * 2.0f) * 0.06f * moveMag : 0.1f;
-
-                  float skinR=1.0f, skinG=0.9f, skinB=0.2f;
-                  float torsoR=0.15f, torsoG=0.45f, torsoB=1.0f;
-                  float legsR=0.15f, legsG=0.85f, legsB=0.25f;
-
-                  Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  Matrix.translateM(model,0, 0f, legH + torsoH/2f + bob, 0f);
-                  Matrix.scaleM(model,0, torsoW, torsoH, torsoD);
-                  drawCube(uM,uMVP,uC, torsoR,torsoG,torsoB, 1f);
-
-                  Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  Matrix.translateM(model,0, 0f, legH + torsoH + headS/2f + bob, 0f);
-                  Matrix.scaleM(model,0, headS, headS, headS);
-                  drawCube(uM,uMVP,uC, skinR,skinG,skinB, 1f);
-
-                  Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  float shoulderY = legH + torsoH - 0.1f + bob;
-                  float shoulderX = -(torsoW/2f + armW/2f);
-                  Matrix.translateM(model,0, shoulderX, shoulderY, 0f);
-                  Matrix.rotateM(model,0, armAngle, 1,0,0);
-                  Matrix.translateM(model,0, 0f, -armH/2f, 0f);
-                  Matrix.scaleM(model,0, armW, armH, armD);
-                  drawCube(uM,uMVP,uC, skinR,skinG,skinB, 1f);
-
-                  Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  shoulderX = (torsoW/2f + armW/2f);
-                  Matrix.translateM(model,0, shoulderX, shoulderY, 0f);
-                  Matrix.rotateM(model,0, -armAngle, 1,0,0);
-                  Matrix.translateM(model,0, 0f, -armH/2f, 0f);
-                  Matrix.scaleM(model,0, armW, armH, armD);
-                  drawCube(uM,uMVP,uC, skinR,skinG,skinB, 1f);
-
-                  Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  float hipX = -0.3f;
-                  Matrix.translateM(model,0, hipX, legH, 0f);
-                  Matrix.rotateM(model,0, legAngle, 1,0,0);
-                  Matrix.translateM(model,0, 0f, -legH/2f, 0f);
-                  Matrix.scaleM(model,0, legW, legH, legD);
-                  drawCube(uM,uMVP,uC, legsR,legsG,legsB, 1f);
-
-                  Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  hipX = 0.3f;
-                  Matrix.translateM(model,0, hipX, legH, 0f);
-                  Matrix.rotateM(model,0, -legAngle, 1,0,0);
-                  Matrix.translateM(model,0, 0f, -legH/2f, 0f);
-                  Matrix.scaleM(model,0, legW, legH, legD);
-                  drawCube(uM,uMVP,uC, legsR,legsG,legsB, 1f);
-              }
-
-              private void drawCube(int uM,int uMVP,int uC,float r,float g,float b,float a){
-                  GLES30.glUniformMatrix4fv(uM,1,false,model,0);
-                  float[] res=new float[16];
-                  Matrix.multiplyMM(res,0,proj,0,view,0);
-                  Matrix.multiplyMM(res,0,res,0,model,0);
-                  GLES30.glUniformMatrix4fv(uMVP,1,false,res,0);
-                  GLES30.glUniform4f(uC,r,g,b,a);
-                  for(int i=0;i<6;i++) GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
               }
 
               private void update(){
                   long now = System.nanoTime();
                   if(lastTimeNs == 0L) lastTimeNs = now;
                   float dt = (now - lastTimeNs) / 1_000_000_000f;
-                  if(dt > 0.1f) dt = 0.1f;
                   lastTimeNs = now;
                   timeSec += dt;
 
                   moveMag = (float)Math.min(1.0, Math.sqrt(jX*jX + jY*jY));
-                  
-                  if(moveMag > 0.05f && !isEngineMode){
-                      float targetAngle = (float)Math.toDegrees(Math.atan2(jX, jY));
-                      float angleDiff = targetAngle - playerAngle;
-                      while(angleDiff > 180) angleDiff -= 360;
-                      while(angleDiff < -180) angleDiff += 360;
-                      playerAngle += angleDiff * dt * 8f;
-                  }
 
                   float s=.35f,rad=(float)Math.toRadians(rY),pitch=(float)Math.toRadians(rX);
                   if(isEngineMode&&!isPlayingLevel){
@@ -870,9 +1337,14 @@ jobs:
                       pZ+=(fz*-jY+(float)Math.sin(rad)*jX)*s;
                       pY+=(fy*-jY)*s;
                   } else {
-                      float moveRad = (float)Math.toRadians(playerAngle);
-                      float mX = (float)Math.sin(moveRad) * moveMag * s;
-                      float mZ = (float)Math.cos(moveRad) * moveMag * s;
+                      float forwardX = (float)Math.sin(rad);
+                      float forwardZ = (float)-Math.cos(rad);
+                      float rightX = (float)Math.cos(rad);
+                      float rightZ = (float)Math.sin(rad);
+
+                      float mX = (forwardX * -jY + rightX * jX) * s;
+                      float mZ = (forwardZ * -jY + rightZ * jX) * s;
+
                       vY-=.025f;
                       float nX=pX+mX,nY=pY+vY,nZ=pZ+mZ,fY=nY-PLAYER_HEIGHT,hY=nY;
                       if(fY<FLOOR_Y){nY=FLOOR_Y+PLAYER_HEIGHT;vY=0;}
@@ -908,7 +1380,7 @@ jobs:
 
                       boolean onGround = isOnGround();
                       if(onGround && moveMag > 0.05f){
-                          walkPhase += dt * 10.0f * moveMag;
+                          walkPhase += dt * 8.0f * moveMag;
                       }
                   }
               }
@@ -920,6 +1392,93 @@ jobs:
                           return true;
                   }
                   return false;
+              }
+
+              private void drawPlayerCharacter(int uM, int uMVP, int uC, int uSel){
+                  boolean onGround = isOnGround();
+
+                  final float legH = 1.3f, legW = 0.55f, legD = 0.55f;
+                  final float torsoH = 1.45f, torsoW = 1.1f, torsoD = 0.65f;
+                  final float headS = 0.95f;
+                  final float armH = 1.25f, armW = 0.42f, armD = 0.42f;
+
+                  float footY = pY - PLAYER_HEIGHT;
+
+                  float swing = (float)Math.sin(walkPhase) * 45f * moveMag * (onGround ? 1f : 0.2f);
+                  float armAngle = onGround ? swing : -70f;
+                  float legAngle = onGround ? -swing : 25f;
+                  float bob = onGround ? (float)Math.sin(walkPhase * 2.0f) * 0.05f * moveMag : 0.08f;
+
+                  GLES30.glUniform1f(uSel, 0f);
+
+                  float skinR=1.0f, skinG=0.9f, skinB=0.2f;
+                  float torsoR=0.15f, torsoG=0.45f, torsoB=1.0f;
+                  float legsR=0.15f, legsG=0.85f, legsB=0.25f;
+
+                  Matrix.setIdentityM(model,0);
+                  Matrix.translateM(model,0, pX, footY, pZ);
+                  Matrix.rotateM(model,0, rY, 0,1,0);
+                  Matrix.translateM(model,0, 0f, legH + torsoH/2f + bob, 0f);
+                  Matrix.scaleM(model,0, torsoW, torsoH, torsoD);
+                  draw(uM,uMVP,uC, torsoR,torsoG,torsoB, 1f);
+
+                  Matrix.setIdentityM(model,0);
+                  Matrix.translateM(model,0, pX, footY, pZ);
+                  Matrix.rotateM(model,0, rY, 0,1,0);
+                  Matrix.translateM(model,0, 0f, legH + torsoH + headS/2f + bob, 0f);
+                  Matrix.scaleM(model,0, headS, headS, headS);
+                  draw(uM,uMVP,uC, skinR,skinG,skinB, 1f);
+
+                  Matrix.setIdentityM(model,0);
+                  Matrix.translateM(model,0, pX, footY, pZ);
+                  Matrix.rotateM(model,0, rY, 0,1,0);
+                  float shoulderY = legH + torsoH - 0.1f + bob;
+                  float shoulderX = -(torsoW/2f + armW/2f);
+                  Matrix.translateM(model,0, shoulderX, shoulderY, 0f);
+                  Matrix.rotateM(model,0, armAngle, 1,0,0);
+                  Matrix.translateM(model,0, 0f, -armH/2f, 0f);
+                  Matrix.scaleM(model,0, armW, armH, armD);
+                  draw(uM,uMVP,uC, skinR,skinG,skinB, 1f);
+
+                  Matrix.setIdentityM(model,0);
+                  Matrix.translateM(model,0, pX, footY, pZ);
+                  Matrix.rotateM(model,0, rY, 0,1,0);
+                  shoulderX = (torsoW/2f + armW/2f);
+                  Matrix.translateM(model,0, shoulderX, shoulderY, 0f);
+                  Matrix.rotateM(model,0, -armAngle, 1,0,0);
+                  Matrix.translateM(model,0, 0f, -armH/2f, 0f);
+                  Matrix.scaleM(model,0, armW, armH, armD);
+                  draw(uM,uMVP,uC, skinR,skinG,skinB, 1f);
+
+                  Matrix.setIdentityM(model,0);
+                  Matrix.translateM(model,0, pX, footY, pZ);
+                  Matrix.rotateM(model,0, rY, 0,1,0);
+                  float hipX = -0.28f;
+                  Matrix.translateM(model,0, hipX, legH, 0f);
+                  Matrix.rotateM(model,0, legAngle, 1,0,0);
+                  Matrix.translateM(model,0, 0f, -legH/2f, 0f);
+                  Matrix.scaleM(model,0, legW, legH, legD);
+                  draw(uM,uMVP,uC, legsR,legsG,legsB, 1f);
+
+                  Matrix.setIdentityM(model,0);
+                  Matrix.translateM(model,0, pX, footY, pZ);
+                  Matrix.rotateM(model,0, rY, 0,1,0);
+                  hipX = 0.28f;
+                  Matrix.translateM(model,0, hipX, legH, 0f);
+                  Matrix.rotateM(model,0, -legAngle, 1,0,0);
+                  Matrix.translateM(model,0, 0f, -legH/2f, 0f);
+                  Matrix.scaleM(model,0, legW, legH, legD);
+                  draw(uM,uMVP,uC, legsR,legsG,legsB, 1f);
+              }
+
+              private void draw(int uM,int uMVP,int uC,float r,float g,float b,float a){
+                  GLES30.glUniformMatrix4fv(uM,1,false,model,0);
+                  float[] res=new float[16];
+                  Matrix.multiplyMM(res,0,proj,0,view,0);
+                  Matrix.multiplyMM(res,0,res,0,model,0);
+                  GLES30.glUniformMatrix4fv(uMVP,1,false,res,0);
+                  GLES30.glUniform4f(uC,r,g,b,a);
+                  for(int i=0;i<6;i++) GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
               }
 
               private int mkProg(String v,String f){
@@ -937,11 +1496,9 @@ jobs:
                   return sh;
               }
           }
-          EOF
+          RENDERER
 
-      - name: Create MainActivity.java
-        run: |
-          cat <<'EOF' > app/src/main/java/com/enjoer/game/MainActivity.java
+          cat <<'MAINACT' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
 
           import android.annotation.SuppressLint;
@@ -1434,10 +1991,8 @@ jobs:
               private void setupJoy(View base,View stick){
                   base.setOnTouchListener((v,e)->{
                       float cx=v.getWidth()/2f,cy=v.getHeight()/2f;
-                      if(cx==0||cy==0) return true;
                       if(e.getAction()==MotionEvent.ACTION_MOVE||e.getAction()==MotionEvent.ACTION_DOWN){
                           float dx=e.getX()-cx,dy=e.getY()-cy,d=(float)Math.sqrt(dx*dx+dy*dy),lim=cx-stick.getWidth()/2f;
-                          if(lim<=0) lim=40;
                           if(d>lim){dx*=lim/d;dy*=lim/d;}
                           stick.setTranslationX(dx);stick.setTranslationY(dy);
                           ren.jX=dx/lim;ren.jY=dy/lim;
@@ -1484,700 +2039,75 @@ jobs:
                   }
               }
           }
+          MAINACT
+
+          cat <<EOF > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:label="Enjoer 6.1"
+                  android:theme="@style/AppTheme">
+                  <activity
+                      android:name="com.enjoer.game.MainActivity"
+                      android:exported="true"
+                      android:configChanges="orientation|screenSize|keyboardHidden">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
           EOF
 
-      - name: Create Layout XML
-        run: |
-          cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:background="#02050A">
-
-              <android.opengl.GLSurfaceView
-                  android:id="@+id/gl_view"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"/>
-
-              <RelativeLayout
-                  android:id="@+id/game_ui"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:visibility="gone">
-
-                  <View
-                      android:id="@+id/look_zone"
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent"/>
-
-                  <Button
-                      android:id="@+id/btn_menu"
-                      android:layout_width="50dp"
-                      android:layout_height="50dp"
-                      android:layout_margin="10dp"
-                      android:text="≡"
-                      android:textSize="24sp"
-                      android:background="@drawable/btn_blue"
-                      android:textColor="#00BFFF"/>
-
-                  <FrameLayout
-                      android:id="@+id/joy_base"
-                      android:layout_width="140dp"
-                      android:layout_height="140dp"
-                      android:layout_alignParentBottom="true"
-                      android:layout_alignParentLeft="true"
-                      android:layout_marginLeft="40dp"
-                      android:layout_marginBottom="40dp"
-                      android:background="@drawable/joy_base"/>
-
-                  <View
-                      android:id="@+id/joy_stick"
-                      android:layout_width="60dp"
-                      android:layout_height="60dp"
-                      android:layout_alignLeft="@id/joy_base"
-                      android:layout_alignTop="@id/joy_base"
-                      android:layout_marginLeft="40dp"
-                      android:layout_marginTop="40dp"
-                      android:background="@drawable/joy_stick"/>
-
-                  <Button
-                      android:id="@+id/btn_jump"
-                      android:layout_width="90dp"
-                      android:layout_height="90dp"
-                      android:layout_alignParentRight="true"
-                      android:layout_alignParentBottom="true"
-                      android:layout_marginRight="40dp"
-                      android:layout_marginBottom="40dp"
-                      android:text="▲"
-                      android:textSize="28sp"
-                      android:background="@drawable/btn_blue"
-                      android:textColor="#FFF"/>
-
-                  <View
-                      android:id="@+id/crosshair_game"
-                      android:layout_width="12dp"
-                      android:layout_height="12dp"
-                      android:layout_centerInParent="true"
-                      android:background="@drawable/crosshair"/>
-              </RelativeLayout>
-
-              <RelativeLayout
-                  android:id="@+id/engine_ui"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:visibility="gone">
-
-                  <View
-                      android:id="@+id/engine_touch_zone"
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent"/>
-
-                  <LinearLayout
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:layout_alignParentTop="true"
-                      android:orientation="horizontal"
-                      android:padding="10dp">
-
-                      <Button
-                          android:id="@+id/btn_engine_menu"
-                          android:layout_width="50dp"
-                          android:layout_height="50dp"
-                          android:text="≡"
-                          android:textSize="24sp"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#00BFFF"/>
-
-                      <View
-                          android:layout_width="0dp"
-                          android:layout_height="1dp"
-                          android:layout_weight="1"/>
-
-                      <Button
-                          android:id="@+id/btn_run_script"
-                          android:layout_width="90dp"
-                          android:layout_height="50dp"
-                          android:text="Script"
-                          android:textSize="12sp"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#00BFFF"/>
-
-                      <Button
-                          android:id="@+id/btn_save"
-                          android:layout_width="90dp"
-                          android:layout_height="50dp"
-                          android:text="Export"
-                          android:textSize="12sp"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#00BFFF"
-                          android:layout_marginLeft="8dp"/>
-
-                      <Button
-                          android:id="@+id/btn_play_level"
-                          android:layout_width="50dp"
-                          android:layout_height="50dp"
-                          android:text="▶"
-                          android:textSize="20sp"
-                          android:background="@drawable/btn_green"
-                          android:textColor="#000"
-                          android:layout_marginLeft="10dp"/>
-                  </LinearLayout>
-
-                  <FrameLayout
-                      android:id="@+id/engine_joy_base"
-                      android:layout_width="120dp"
-                      android:layout_height="120dp"
-                      android:layout_alignParentBottom="true"
-                      android:layout_alignParentLeft="true"
-                      android:layout_marginLeft="30dp"
-                      android:layout_marginBottom="30dp"
-                      android:background="@drawable/joy_base"/>
-
-                  <View
-                      android:id="@+id/engine_joy_stick"
-                      android:layout_width="50dp"
-                      android:layout_height="50dp"
-                      android:layout_alignLeft="@id/engine_joy_base"
-                      android:layout_alignTop="@id/engine_joy_base"
-                      android:layout_marginLeft="35dp"
-                      android:layout_marginTop="35dp"
-                      android:background="@drawable/joy_stick"/>
-
-                  <ScrollView
-                      android:id="@+id/tools_scroll"
-                      android:layout_width="210dp"
-                      android:layout_height="match_parent"
-                      android:layout_alignParentRight="true"
-                      android:layout_marginRight="10dp"
-                      android:layout_marginTop="70dp"
-                      android:layout_marginBottom="10dp">
-
-                      <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:orientation="vertical"
-                          android:background="@drawable/panel_bg"
-                          android:padding="10dp">
-
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="Shape"
-                              android:textColor="#FFFFFF"
-                              android:textStyle="bold"/>
-
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="6dp">
-
-                              <Button
-                                  android:id="@+id/shape_square"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Square"
-                                  android:background="@drawable/btn_blue_filled"
-                                  android:textColor="#000"/>
-
-                              <Button
-                                  android:id="@+id/shape_rectangle"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Rectangle"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
-                          </LinearLayout>
-
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="4dp">
-
-                              <Button
-                                  android:id="@+id/shape_circle"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Circle"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
-
-                              <Button
-                                  android:id="@+id/shape_triangle"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Triangle"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
-                          </LinearLayout>
-
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="Size X / Y / Z"
-                              android:textColor="#FFFFFF"
-                              android:textStyle="bold"
-                              android:layout_marginTop="10dp"/>
-
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="6dp">
-
-                              <Button
-                                  android:id="@+id/size_x_minus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="X-"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
-
-                              <Button
-                                  android:id="@+id/size_x_plus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="X+"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
-                          </LinearLayout>
-
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="4dp">
-
-                              <Button
-                                  android:id="@+id/size_y_minus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Y-"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
-
-                              <Button
-                                  android:id="@+id/size_y_plus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Y+"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
-                          </LinearLayout>
-
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="4dp">
-
-                              <Button
-                                  android:id="@+id/size_z_minus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Z-"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
-
-                              <Button
-                                  android:id="@+id/size_z_plus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Z+"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
-                          </LinearLayout>
-
-                          <TextView
-                              android:id="@+id/txt_size_info"
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="4 x 4 x 4"
-                              android:textColor="#AEEBFF"
-                              android:layout_marginTop="6dp"/>
-
-                          <Button
-                              android:id="@+id/btn_grid"
-                              android:layout_width="match_parent"
-                              android:layout_height="36dp"
-                              android:text="Grid: On"
-                              android:background="@drawable/btn_blue_filled"
-                              android:textColor="#000"
-                              android:layout_marginTop="8dp"/>
-
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:gravity="center"
-                              android:layout_marginTop="8dp">
-
-                              <View
-                                  android:id="@+id/color_red"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#FF2222"/>
-
-                              <View
-                                  android:id="@+id/color_green"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#22FF22"
-                                  android:layout_marginLeft="5dp"/>
-
-                              <View
-                                  android:id="@+id/color_blue"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#2288FF"
-                                  android:layout_marginLeft="5dp"/>
-
-                              <View
-                                  android:id="@+id/color_yellow"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#FFFF22"
-                                  android:layout_marginLeft="5dp"/>
-
-                              <View
-                                  android:id="@+id/color_white"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#FFFFFF"
-                                  android:layout_marginLeft="5dp"/>
-
-                              <View
-                                  android:id="@+id/color_black"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#000000"
-                                  android:layout_marginLeft="5dp"/>
-                          </LinearLayout>
-
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="8dp">
-
-                              <Button
-                                  android:id="@+id/dist_near"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="3"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
-
-                              <Button
-                                  android:id="@+id/dist_mid"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="6"
-                                  android:background="@drawable/btn_blue_filled"
-                                  android:textColor="#000"
-                                  android:layout_marginLeft="4dp"/>
-
-                              <Button
-                                  android:id="@+id/dist_far"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="12"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
-                          </LinearLayout>
-
-                          <Button
-                              android:id="@+id/btn_place"
-                              android:layout_width="match_parent"
-                              android:layout_height="44dp"
-                              android:text="+ Place"
-                              android:background="@drawable/btn_blue_filled"
-                              android:textColor="#000"
-                              android:layout_marginTop="12dp"/>
-
-                          <Button
-                              android:id="@+id/btn_block_events"
-                              android:layout_width="match_parent"
-                              android:layout_height="36dp"
-                              android:text="Events"
-                              android:background="@drawable/btn_blue"
-                              android:textColor="#00BFFF"
-                              android:layout_marginTop="8dp"
-                              android:visibility="gone"/>
-
-                          <Button
-                              android:id="@+id/btn_hide"
-                              android:layout_width="match_parent"
-                              android:layout_height="36dp"
-                              android:text="Hide"
-                              android:background="@drawable/btn_blue"
-                              android:textColor="#00BFFF"
-                              android:layout_marginTop="8dp"
-                              android:visibility="gone"/>
-
-                          <Button
-                              android:id="@+id/btn_delete"
-                              android:layout_width="match_parent"
-                              android:layout_height="36dp"
-                              android:text="Delete"
-                              android:background="@drawable/btn_red"
-                              android:textColor="#FF4444"
-                              android:layout_marginTop="8dp"
-                              android:visibility="gone"/>
-
-                          <Button
-                              android:id="@+id/btn_deselect"
-                              android:layout_width="match_parent"
-                              android:layout_height="36dp"
-                              android:text="Deselect"
-                              android:background="@drawable/btn_blue"
-                              android:textColor="#00BFFF"
-                              android:layout_marginTop="8dp"
-                              android:visibility="gone"/>
-                      </LinearLayout>
-                  </ScrollView>
-
-                  <LinearLayout
-                      android:id="@+id/axis_panel"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:layout_alignParentBottom="true"
-                      android:layout_centerHorizontal="true"
-                      android:layout_marginBottom="20dp"
-                      android:orientation="horizontal"
-                      android:background="@drawable/panel_bg"
-                      android:padding="6dp"
-                      android:visibility="gone">
-
-                      <Button
-                          android:id="@+id/axis_x_minus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="X-"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#FF4444"
-                          android:textSize="12sp"/>
-
-                      <Button
-                          android:id="@+id/axis_x_plus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="X+"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#FF4444"
-                          android:textSize="12sp"
-                          android:layout_marginLeft="4dp"/>
-
-                      <Button
-                          android:id="@+id/axis_y_minus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="Y-"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#44FF44"
-                          android:textSize="12sp"
-                          android:layout_marginLeft="10dp"/>
-
-                      <Button
-                          android:id="@+id/axis_y_plus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="Y+"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#44FF44"
-                          android:textSize="12sp"
-                          android:layout_marginLeft="4dp"/>
-
-                      <Button
-                          android:id="@+id/axis_z_minus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="Z-"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#4488FF"
-                          android:textSize="12sp"
-                          android:layout_marginLeft="10dp"/>
-
-                      <Button
-                          android:id="@+id/axis_z_plus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="Z+"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#4488FF"
-                          android:textSize="12sp"
-                          android:layout_marginLeft="4dp"/>
-                  </LinearLayout>
-
-                  <View
-                      android:id="@+id/crosshair_engine"
-                      android:layout_width="12dp"
-                      android:layout_height="12dp"
-                      android:layout_centerInParent="true"
-                      android:background="@drawable/crosshair"/>
-              </RelativeLayout>
-
-              <RelativeLayout
-                  android:id="@+id/playtest_ui"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:visibility="gone">
-
-                  <View
-                      android:id="@+id/playtest_look_zone"
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent"/>
-
-                  <Button
-                      android:id="@+id/btn_stop_playtest"
-                      android:layout_width="50dp"
-                      android:layout_height="50dp"
-                      android:layout_margin="10dp"
-                      android:text="■"
-                      android:textSize="20sp"
-                      android:background="@drawable/btn_red"
-                      android:textColor="#FFF"/>
-
-                  <FrameLayout
-                      android:id="@+id/playtest_joy_base"
-                      android:layout_width="140dp"
-                      android:layout_height="140dp"
-                      android:layout_alignParentBottom="true"
-                      android:layout_alignParentLeft="true"
-                      android:layout_marginLeft="40dp"
-                      android:layout_marginBottom="40dp"
-                      android:background="@drawable/joy_base"/>
-
-                  <View
-                      android:id="@+id/playtest_joy_stick"
-                      android:layout_width="60dp"
-                      android:layout_height="60dp"
-                      android:layout_alignLeft="@id/playtest_joy_base"
-                      android:layout_alignTop="@id/playtest_joy_base"
-                      android:layout_marginLeft="40dp"
-                      android:layout_marginTop="40dp"
-                      android:background="@drawable/joy_stick"/>
-
-                  <Button
-                      android:id="@+id/btn_playtest_jump"
-                      android:layout_width="90dp"
-                      android:layout_height="90dp"
-                      android:layout_alignParentRight="true"
-                      android:layout_alignParentBottom="true"
-                      android:layout_marginRight="40dp"
-                      android:layout_marginBottom="40dp"
-                      android:text="▲"
-                      android:textSize="28sp"
-                      android:background="@drawable/btn_blue"
-                      android:textColor="#FFF"/>
-
-                  <View
-                      android:id="@+id/crosshair_playtest"
-                      android:layout_width="12dp"
-                      android:layout_height="12dp"
-                      android:layout_centerInParent="true"
-                      android:background="@drawable/crosshair"/>
-              </RelativeLayout>
-
-              <LinearLayout
-                  android:id="@+id/menu_ui"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:orientation="vertical"
-                  android:gravity="center"
-                  android:background="#02050A">
-
-                  <TextView
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="ENJOER"
-                      android:textSize="52sp"
-                      android:textColor="#00BFFF"
-                      android:textStyle="bold"/>
-
-                  <TextView
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="ENGINE 6.1"
-                      android:textSize="18sp"
-                      android:textColor="#0088CC"
-                      android:layout_marginBottom="80dp"/>
-
-                  <Button
-                      android:id="@+id/btn_play"
-                      android:layout_width="240dp"
-                      android:layout_height="60dp"
-                      android:text="Play"
-                      android:textSize="18sp"
-                      android:textColor="#000"
-                      android:background="@drawable/btn_blue_filled"
-                      android:layout_marginBottom="16dp"/>
-
-                  <Button
-                      android:id="@+id/btn_engine"
-                      android:layout_width="240dp"
-                      android:layout_height="60dp"
-                      android:text="Editor"
-                      android:textSize="18sp"
-                      android:textColor="#00BFFF"
-                      android:background="@drawable/btn_blue"
-                      android:layout_marginBottom="16dp"/>
-
-                  <Button
-                      android:id="@+id/btn_load_file"
-                      android:layout_width="240dp"
-                      android:layout_height="60dp"
-                      android:text="Import .json"
-                      android:textSize="16sp"
-                      android:textColor="#00BFFF"
-                      android:background="@drawable/btn_blue"/>
-              </LinearLayout>
-          </FrameLayout>
-          LAYOUT
-
-      - name: Setup Gradle Wrapper
-        run: |
-          chmod +x gradlew 2>/dev/null || true
-          if [ ! -f gradlew ]; then
-            gradle wrapper --gradle-version 8.5 --distribution-type bin
-          fi
-          chmod +x gradlew
-
-      - name: Grant Execute Permission
-        run: chmod +x gradlew
+          echo "include ':app'" > settings.gradle
+
+          cat <<EOF > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects {
+              repositories { google(); mavenCentral() }
+          }
+          EOF
+
+          cat <<EOF > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.enjoer.game'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId 'com.enjoer.game'
+                  minSdk 24
+                  targetSdk 34
+              }
+
+              buildFeatures {
+                  buildConfig true
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+          }
+          EOF
 
       - name: Build APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle-8.5-bin.zip
+          export PATH="$PWD/gradle-8.5/bin:$PATH"
+          gradle --version
+          gradle wrapper --gradle-version 8.5
+          ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_6.1_Stars
-          path: app/build/outputs/apk/debug/*.apk
+          name: Enjoer_6.1_Stars_Fixed
+          path: app/build/outputs/apk/debug/app-debug.apk
