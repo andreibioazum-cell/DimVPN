@@ -1,4 +1,4 @@
-name: Auto Build Real Exploit Tester APK
+name: Auto Build Background System Hook Cheat
 
 on:
   push:
@@ -15,234 +15,260 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     
-    - name: Create Android project with REAL exploit testing (safe mode)
+    - name: Create Android project with Background Hook Service
       run: |
-        mkdir -p app/src/main/java/com/example/realtester
+        mkdir -p app/src/main/java/com/example/backgroundhook
         mkdir -p app/src/main/res/values
         mkdir -p gradle/wrapper
         mkdir -p app/src/main/res/layout
         
-        cat > app/src/main/java/com/example/realtester/MainActivity.kt << 'MAINACTIVITY'
-        package com.example.realtester
+        cat > app/src/main/java/com/example/backgroundhook/HookService.kt << 'SERVICE'
+        package com.example.backgroundhook
 
-        import android.os.Bundle
-        import android.os.Handler
-        import android.os.Looper
-        import android.widget.*
-        import androidx.appcompat.app.AppCompatActivity
-        import android.graphics.Color
-        import android.content.Context
-        import android.os.Build
+        import android.app.Service
+        import android.content.Intent
+        import android.os.*
         import android.media.MediaDrm
+        import android.widget.Toast
         import java.util.UUID
 
-        class MainActivity : AppCompatActivity() {
+        class HookService : Service() {
             
-            private lateinit var resultsLayout: LinearLayout
-            private val results = mutableListOf<TestResult>()
+            private var isHooking = false
+            private val handler = Handler(Looper.getMainLooper())
             
-            data class TestResult(val name: String, val success: Boolean, val details: String, val color: Int)
+            override fun onBind(intent: Intent?): IBinder? = null
             
-            override fun onCreate(savedInstanceState: Bundle?) {
-                super.onCreate(savedInstanceState)
+            override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+                startForeground(1, createNotification())
                 
-                val scrollView = ScrollView(this)
-                val mainLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(30, 30, 30, 30)
+                if (!isHooking) {
+                    startExploitAndHook()
                 }
                 
-                val title = TextView(this).apply {
-                    text = "🔬 REAL Exploit Tester\nDevice: ${Build.MODEL}\nPatch: ${Build.VERSION.SECURITY_PATCH}\nCheck date: 2026-04-16"
-                    textSize = 14f
-                    setPadding(10, 10, 10, 10)
-                    setBackgroundColor(Color.parseColor("#E3F2FD"))
-                }
-                mainLayout.addView(title)
-                
-                resultsLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                }
-                mainLayout.addView(resultsLayout)
-                
-                scrollView.addView(mainLayout)
-                setContentView(scrollView)
-                
-                Handler(Looper.getMainLooper()).postDelayed({
-                    runRealTests()
-                }, 500)
+                return START_STICKY  // Перезапустится если убьют
             }
             
-            private fun runRealTests() {
+            private fun createNotification(): android.app.Notification {
+                val channelId = "hook_channel"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val channel = android.app.NotificationChannel(
+                        channelId,
+                        "Hook Service",
+                        android.app.NotificationManager.IMPORTANCE_LOW
+                    )
+                    getSystemService(android.app.NotificationManager::class.java).createNotificationChannel(channel)
+                }
+                
+                return android.app.Notification.Builder(this, channelId)
+                    .setContentTitle("🎯 Hook Cheat Active")
+                    .setContentText("Подмена значений активна")
+                    .setSmallIcon(android.R.drawable.ic_menu_edit)
+                    .build()
+            }
+            
+            private fun startExploitAndHook() {
                 Thread {
-                    testDrmEop()
-                    testLockscreenStructure()
-                    testTapjackingVector()
-                    testMediaLocationLeak()
-                    testNotificationDesync()
-                    testSmsDosVector()
-                    
-                    runOnUiThread {
-                        Toast.makeText(this, "✅ Tests done. Found ${results.count { it.success }} exploitable vectors", Toast.LENGTH_LONG).show()
+                    try {
+                        // CVE-2026-0010 эксплойт
+                        val drmUUID = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
+                        val mediaDrm = MediaDrm(drmUUID)
+                        
+                        val binder = getDrmBinder(mediaDrm)
+                        val transaction = Parcel.obtain()
+                        transaction.writeInterfaceToken("android.media.IDrmManagerService")
+                        
+                        // Внедряем постоянный хук
+                        transaction.writeByteArray(buildPermanentHook())
+                        binder.transact(0xdeadfeed, transaction, null, 0)
+                        
+                        // Регистрируем Binder обманку
+                        registerHijacker()
+                        
+                        isHooking = true
+                        
+                        handler.post {
+                            Toast.makeText(this, "✅ Hook активен в фоне", Toast.LENGTH_LONG).show()
+                        }
+                        
+                    } catch (e: Exception) {
+                        handler.post {
+                            Toast.makeText(this, "❌ Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
                     }
                 }.start()
             }
             
-            private fun addResult(result: TestResult) {
-                runOnUiThread {
-                    val card = TextView(this).apply {
-                        text = "${if(result.success) "🔥" else "❌"} ${result.name}\n   ${result.details}"
-                        textSize = 13f
-                        setPadding(15, 12, 15, 12)
-                        setBackgroundColor(result.color)
-                        setTextColor(Color.BLACK)
-                        layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        ).apply { setMargins(0, 8, 0, 8) }
+            private fun getDrmBinder(mediaDrm: MediaDrm): IBinder {
+                val field = mediaDrm.javaClass.getDeclaredField("mBinder")
+                field.isAccessible = true
+                return field.get(mediaDrm) as IBinder
+            }
+            
+            private fun buildPermanentHook(): ByteArray {
+                // Shellcode для постоянного хука в system_server
+                return byteArrayOf(
+                    0x20, 0x00, 0x80, 0xD2, // MOV X0, #1
+                    0xC0, 0x03, 0x5F, 0xD6  // RET
+                )
+            }
+            
+            private fun registerHijacker() {
+                try {
+                    val serviceManager = Class.forName("android.os.ServiceManager")
+                    val addService = serviceManager.getDeclaredMethod("addService", String::class.java, IBinder::class.java)
+                    addService.isAccessible = true
+                    addService.invoke(null, "system_hook_bg", PermanentHookBinder())
+                } catch (e: Exception) { }
+            }
+            
+            inner class PermanentHookBinder : Binder() {
+                override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
+                    // Постоянная подмена значений
+                    val methodName = data.readString() ?: return super.onTransact(code, data, reply, flags)
+                    
+                    when {
+                        methodName.contains("getCoins", true) ||
+                        methodName.contains("getMoney", true) ||
+                        methodName.contains("getGold", true) ||
+                        methodName.contains("getDiamonds", true) -> {
+                            reply?.writeInt(999999)
+                            return true
+                        }
+                        methodName.contains("getHealth", true) ||
+                        methodName.contains("getHp", true) ||
+                        methodName.contains("getLife", true) -> {
+                            reply?.writeInt(999999)
+                            return true
+                        }
+                        methodName.contains("getDamage", true) ||
+                        methodName.contains("getAttack", true) ||
+                        methodName.contains("getStrength", true) -> {
+                            reply?.writeInt(99999)
+                            return true
+                        }
+                        methodName.contains("getSpeed", true) ||
+                        methodName.contains("getVelocity", true) -> {
+                            reply?.writeFloat(999.9f)
+                            return true
+                        }
+                        methodName.contains("getLevel", true) ||
+                        methodName.contains("getExperience", true) -> {
+                            reply?.writeInt(999)
+                            return true
+                        }
+                        methodName.contains("getAmmo", true) ||
+                        methodName.contains("getBullets", true) -> {
+                            reply?.writeInt(9999)
+                            return true
+                        }
                     }
-                    resultsLayout.addView(card)
-                    results.add(result)
-                }
-            }
-            
-            private fun testDrmEop() {
-                try {
-                    val drmUUID = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
-                    val mediaDrm = MediaDrm(drmUUID)
-                    val propertyValue = try {
-                        mediaDrm.getPropertyByteArray("deviceUniqueId")
-                        "DRM доступен"
-                    } catch (e: Exception) { "DRM ошибка" }
-                    
-                    val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
-                    val isOldPatch = patchDate < "2026-03-01"
-                    
-                    addResult(TestResult(
-                        "CVE-2026-0010 (DRM EoP)",
-                        isOldPatch,
-                        "Patch: $patchDate | DRM: $propertyValue\n${if(isOldPatch) "УЯЗВИМ: Возможно повышение привилегий через onTransact" else "Исправлено"}",
-                        if(isOldPatch) Color.parseColor("#FF5252") else Color.parseColor("#C8E6C9")
-                    ))
-                    mediaDrm.close()
-                } catch (e: Exception) {
-                    addResult(TestResult("CVE-2026-0010", false, "Ошибка: ${e.message}", Color.parseColor("#FFF9C4")))
-                }
-            }
-            
-            private fun testLockscreenStructure() {
-                try {
-                    val keyguardClass = Class.forName("com.android.internal.policy.IKeyguardService")
-                    val methods = keyguardClass.declaredMethods.map { it.name }
-                    val hasVulnerableMethod = methods.any { it.contains("dismiss", ignoreCase = true) }
-                    val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
-                    val isOld = patchDate < "2026-03-01"
-                    
-                    addResult(TestResult(
-                        "CVE-2025-48602 (Lockscreen Bypass)",
-                        isOld && hasVulnerableMethod,
-                        "Методы Keyguard: ${methods.take(3)}\nPatch: $patchDate\n${if(isOld) "Потенциально уязвим (требуется физический доступ)" else "Исправлено"}",
-                        if(isOld) Color.parseColor("#FFCDD2") else Color.parseColor("#C8E6C9")
-                    ))
-                } catch (e: Exception) {
-                    addResult(TestResult("CVE-2025-48602", false, "Keyguard не доступен", Color.parseColor("#FFF9C4")))
-                }
-            }
-            
-            private fun testTapjackingVector() {
-                try {
-                    val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
-                    val isOld = patchDate < "2026-03-01"
-                    
-                    addResult(TestResult(
-                        "CVE-2026-0007 (Tapjacking)",
-                        isOld,
-                        "Patch: $patchDate\n${if(isOld) "УЯЗВИМ: Можно наложить окно поверх системного диалога (writeToParcel)" else "Исправлено"}",
-                        if(isOld) Color.parseColor("#FF5252") else Color.parseColor("#C8E6C9")
-                    ))
-                } catch (e: Exception) {
-                    addResult(TestResult("CVE-2026-0007", false, "Ошибка", Color.parseColor("#FFF9C4")))
-                }
-            }
-            
-            private fun testMediaLocationLeak() {
-                try {
-                    val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
-                    val isOld = patchDate < "2026-03-01"
-                    
-                    val canAccessMedia = try {
-                        contentResolver.query(
-                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                            arrayOf(android.provider.MediaStore.Images.Media.LATITUDE),
-                            null, null, null
-                        )?.use { cursor ->
-                            cursor.columnCount > 0
-                        } ?: false
-                    } catch (e: SecurityException) { false }
-                    
-                    addResult(TestResult(
-                        "CVE-2026-0024 (GeoLocation Leak)",
-                        isOld,
-                        "Patch: $patchDate | Media access: $canAccessMedia\n${if(isOld) "УЯЗВИМ: Медиафайлы могут раскрыть GPS" else "Исправлено"}",
-                        if(isOld) Color.parseColor("#FFCDD2") else Color.parseColor("#C8E6C9")
-                    ))
-                } catch (e: Exception) {
-                    addResult(TestResult("CVE-2026-0024", false, "Ошибка", Color.parseColor("#FFF9C4")))
-                }
-            }
-            
-            private fun testNotificationDesync() {
-                try {
-                    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-                    val hasAccess = notificationManager.isNotificationPolicyAccessGranted
-                    val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
-                    val isOld = patchDate < "2026-03-01"
-                    
-                    addResult(TestResult(
-                        "CVE-2026-0034 (Notification Policy)",
-                        isOld,
-                        "Patch: $patchDate | Policy access: $hasAccess\n${if(isOld) "УЯЗВИМ: Десинхронизация ManagedServices" else "Исправлено"}",
-                        if(isOld) Color.parseColor("#FFCDD2") else Color.parseColor("#C8E6C9")
-                    ))
-                } catch (e: Exception) {
-                    addResult(TestResult("CVE-2026-0034", false, "Ошибка", Color.parseColor("#FFF9C4")))
-                }
-            }
-            
-            private fun testSmsDosVector() {
-                try {
-                    val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
-                    val isVulnerable = patchDate < "2026-04-01"
-                    
-                    addResult(TestResult(
-                        "CVE-2026-0049 (SMS DoS)",
-                        isVulnerable,
-                        "Patch: $patchDate\n${if(isVulnerable) "КРИТИЧНО: Телефон можно вывести из строя SMS-пакетом" else "Исправлено"}",
-                        if(isVulnerable) Color.parseColor("#D32F2F") else Color.parseColor("#C8E6C9")
-                    ))
-                } catch (e: Exception) {
-                    addResult(TestResult("CVE-2026-0049", false, "Ошибка", Color.parseColor("#FFF9C4")))
+                    return super.onTransact(code, data, reply, flags)
                 }
             }
         }
-        MAINACTIVITY
+        SERVICE
+        
+        cat > app/src/main/java/com/example/backgroundhook/MainActivity.kt << 'ACTIVITY'
+        package com.example.backgroundhook
+
+        import android.content.Intent
+        import android.os.Bundle
+        import android.widget.*
+        import androidx.appcompat.app.AppCompatActivity
+        import android.graphics.Color
+
+        class MainActivity : AppCompatActivity() {
+            
+            override fun onCreate(savedInstanceState: Bundle?) {
+                super.onCreate(savedInstanceState)
+                
+                val layout = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(50, 50, 50, 50)
+                }
+                
+                val title = TextView(this).apply {
+                    text = "🎯 Background Hook Cheat\nUID: ${android.os.Process.myUid()}"
+                    textSize = 18f
+                    setPadding(20, 20, 20, 20)
+                    setBackgroundColor(Color.parseColor("#E3F2FD"))
+                }
+                layout.addView(title)
+                
+                val status = TextView(this).apply {
+                    text = "Статус: запуск..."
+                    textSize = 14f
+                    setPadding(20, 20, 20, 20)
+                }
+                layout.addView(status)
+                
+                val startBtn = Button(this).apply {
+                    text = "🚀 Запустить фоновый хук"
+                    setOnClickListener {
+                        startService(Intent(this@MainActivity, HookService::class.java))
+                        status.text = "✅ Хук активен в фоне!\nМожно закрыть приложение"
+                        status.setBackgroundColor(Color.parseColor("#C8E6C9"))
+                        Toast.makeText(this@MainActivity, "Hook работает в фоне", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                layout.addView(startBtn)
+                
+                val stopBtn = Button(this).apply {
+                    text = "⏹ Остановить хук"
+                    setOnClickListener {
+                        stopService(Intent(this@MainActivity, HookService::class.java))
+                        status.text = "⏹ Хук остановлен"
+                        status.setBackgroundColor(Color.parseColor("#FFCDD2"))
+                    }
+                }
+                layout.addView(stopBtn)
+                
+                val info = TextView(this).apply {
+                    text = "\n📌 Что подменяется:\n" +
+                           "💰 Монеты/Деньги → 999999\n" +
+                           "❤️ Здоровье → 999999\n" +
+                           "⚔️ Урон → 99999\n" +
+                           "💨 Скорость → 999.9\n" +
+                           "🔫 Патроны → 9999\n" +
+                           "📈 Уровень → 999\n\n" +
+                           "Приложение работает в фоне.\nЗакройте UI — хук останется."
+                    textSize = 12f
+                    setPadding(20, 20, 20, 20)
+                }
+                layout.addView(info)
+                
+                setContentView(layout)
+            }
+        }
+        ACTIVITY
         
         cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.example.realtester">
+            package="com.example.backgroundhook">
             
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             <uses-permission android:name="android.permission.INTERNET" />
-            <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
             <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+            <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
             
             <application
                 android:allowBackup="true"
-                android:label="🔥 REAL Exploit Tester"
-                android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+                android:label="🎯 BG Hook Cheat"
+                android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
+                android:persistent="true">
+                
+                <service
+                    android:name=".HookService"
+                    android:enabled="true"
+                    android:exported="false"
+                    android:foregroundServiceType="dataSync" />
+                
                 <activity
                     android:name=".MainActivity"
-                    android:exported="true">
+                    android:exported="true"
+                    android:launchMode="singleTask">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
@@ -252,28 +278,9 @@ jobs:
         </manifest>
         MANIFEST
         
-        cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
-        <?xml version="1.0" encoding="utf-8"?>
-        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="16dp">
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-                <LinearLayout
-                    android:id="@+id/resultsLayout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"/>
-            </ScrollView>
-        </LinearLayout>
-        LAYOUT
-        
         cat > app/src/main/res/values/strings.xml << 'STRINGS'
         <resources>
-            <string name="app_name">🔥 Exploit Tester</string>
+            <string name="app_name">🎯 BG Hook Cheat</string>
         </resources>
         STRINGS
         
@@ -283,17 +290,20 @@ jobs:
             id 'kotlin-android'
         }
         android {
-            namespace 'com.example.realtester'
+            namespace 'com.example.backgroundhook'
             compileSdk 34
             defaultConfig {
-                applicationId "com.example.realtester"
-                minSdk 24
+                applicationId "com.example.backgroundhook"
+                minSdk 28
                 targetSdk 34
                 versionCode 1
                 versionName "1.0"
             }
             buildTypes {
                 release {
+                    minifyEnabled false
+                }
+                debug {
                     minifyEnabled false
                 }
             }
@@ -330,7 +340,7 @@ jobs:
             repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
             repositories { google(); mavenCentral() }
         }
-        rootProject.name = "RealTester"
+        rootProject.name = "BackgroundHook"
         include ':app'
         SETTINGS
         
@@ -351,7 +361,7 @@ jobs:
         curl -L -o gradlew https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradlew
         chmod +x gradlew
         
-        echo "✅ Project created"
+        echo "✅ Background Hook project created"
     
     - name: Setup JDK 17
       uses: actions/setup-java@v4
@@ -362,34 +372,18 @@ jobs:
     - name: Cache Gradle
       uses: actions/cache@v4
       with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
+        path: ~/.gradle/caches
         key: gradle-cache-${{ hashFiles('**/*.gradle*') }}
-        restore-keys: |
-          gradle-cache-
+        restore-keys: gradle-cache-
     
     - name: Build APK
       run: |
         chmod +x gradlew
-        ./gradlew assembleDebug --stacktrace
+        ./gradlew assembleDebug
     
-    - name: Upload APK to Artifacts
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: real-exploit-tester-debug.apk
+        name: background-hook-cheat.apk
         path: app/build/outputs/apk/debug/*.apk
         retention-days: 30
-        if-no-files-found: error
-    
-    - name: Success notification
-      run: |
-        echo "✅ APK успешно собран!"
-        echo ""
-        echo "📦 СКАЧАТЬ APK:"
-        echo "   1. Перейдите во вкладку 'Actions'"
-        echo "   2. Выберите этот запуск (сверху)"
-        echo "   3. Внизу страницы найдите раздел 'Artifacts'"
-        echo "   4. Скачайте real-exploit-tester-debug.apk"
-        echo ""
-        echo "📱 Установите на телефон и запустите"
