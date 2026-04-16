@@ -27,14 +27,12 @@ jobs:
 
         import android.app.ActivityManager
         import android.content.Context
-        import android.content.pm.PackageManager
         import android.media.MediaDrm
         import android.os.*
         import android.widget.*
         import androidx.appcompat.app.AppCompatActivity
         import android.graphics.Color
         import android.view.View
-        import android.view.ViewGroup
         import java.io.RandomAccessFile
         import java.util.*
 
@@ -113,7 +111,6 @@ jobs:
                     text = "🔌 Connect to process"
                     setBackgroundColor(Color.parseColor("#2196F3"))
                     setTextColor(Color.WHITE)
-                    setPadding(15, 15, 15, 15)
                     setOnClickListener {
                         if (selectedPid != 0) {
                             connectToProcess(selectedPid)
@@ -252,19 +249,18 @@ jobs:
                 
                 runOnUiThread {
                     progressBar.visibility = View.VISIBLE
-                    statusText.text = "🔍 Searching... (10-30 seconds)"
+                    statusText.text = "🔍 Searching..."
                 }
                 
                 Thread {
                     try {
                         val value = valueStr.toLongOrNull()
                         val floatValue = valueStr.toFloatOrNull()
-                        val doubleValue = valueStr.toDoubleOrNull()
                         
                         val results = when (typeIndex) {
                             0 -> memoryAccessor?.searchInt(value ?: 0) ?: emptyList()
                             1 -> memoryAccessor?.searchFloat(floatValue ?: 0f) ?: emptyList()
-                            2 -> memoryAccessor?.searchDouble(doubleValue ?: 0.0) ?: emptyList()
+                            2 -> memoryAccessor?.searchDouble(valueStr.toDoubleOrNull() ?: 0.0) ?: emptyList()
                             3 -> memoryAccessor?.searchShort((value ?: 0).toInt()) ?: emptyList()
                             else -> emptyList()
                         }
@@ -281,14 +277,13 @@ jobs:
                         
                         runOnUiThread {
                             displayResults(sortedResults, typeName)
-                            statusText.text = "✅ Found ${sortedResults.size} values (newest first)"
+                            statusText.text = "✅ Found ${sortedResults.size} values"
                             progressBar.visibility = View.GONE
-                            Toast.makeText(this@MainActivity, "Found ${sortedResults.size} matches", Toast.LENGTH_SHORT).show()
                         }
                         
                     } catch (e: Exception) {
                         runOnUiThread {
-                            statusText.text = "❌ Search error: ${e.message}"
+                            statusText.text = "❌ Error: ${e.message}"
                             progressBar.visibility = View.GONE
                         }
                     }
@@ -327,18 +322,17 @@ jobs:
                     }
                     
                     val infoText = TextView(this).apply {
-                        text = "📍 Address: 0x${result.address.toString(16)}\n📊 Value: ${result.value} ($valueType)"
+                        text = "📍 0x${result.address.toString(16)}\n📊 ${result.value} ($valueType)"
                         textSize = 13f
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     }
                     topRow.addView(infoText)
                     
                     val editButton = Button(this).apply {
-                        text = "✏️ Edit"
+                        text = "Edit"
                         textSize = 11f
                         setBackgroundColor(Color.parseColor("#FF9800"))
                         setTextColor(Color.WHITE)
-                        setPadding(20, 8, 20, 8)
                         setOnClickListener {
                             showEditDialog(result.address, result.value, valueType)
                         }
@@ -346,74 +340,39 @@ jobs:
                     topRow.addView(editButton)
                     
                     card.addView(topRow)
-                    
-                    val date = Date(result.timestamp)
-                    val timeStr = android.text.format.DateFormat.format("HH:mm:ss", date)
-                    val timeText = TextView(this).apply {
-                        text = "🕐 Found: $timeStr"
-                        textSize = 10f
-                        setTextColor(Color.GRAY)
-                        setPadding(0, 8, 0, 0)
-                    }
-                    card.addView(timeText)
-                    
                     resultsContainer.addView(card)
                 }
             }
             
             private fun showEditDialog(address: Long, currentValue: Long, valueType: String) {
-                val dialog = android.app.AlertDialog.Builder(this)
-                val input = EditText(this).apply {
-                    hint = "New value"
-                    inputType = android.text.InputType.TYPE_CLASS_NUMBER
-                }
-                dialog.setTitle("Edit value at 0x${address.toString(16)}")
-                dialog.setMessage("Current: $currentValue\nType: $valueType")
-                dialog.setView(input)
-                dialog.setPositiveButton("Edit") { _, _ ->
-                    val newValue = input.text.toString().toLongOrNull()
-                    if (newValue != null) {
-                        writeMemory(address, newValue, valueType)
-                    } else {
-                        Toast.makeText(this, "Invalid value", Toast.LENGTH_SHORT).show()
+                val input = EditText(this)
+                input.hint = "New value"
+                
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("Edit at 0x${address.toString(16)}")
+                    .setMessage("Current: $currentValue\nType: $valueType")
+                    .setView(input)
+                    .setPositiveButton("Save") { _, _ ->
+                        val newValue = input.text.toString().toLongOrNull()
+                        if (newValue != null) {
+                            writeMemory(address, newValue, valueType)
+                        }
                     }
-                }
-                dialog.setNegativeButton("Cancel", null)
-                dialog.show()
+                    .setNegativeButton("Cancel", null)
+                    .show()
             }
             
             private fun writeMemory(address: Long, newValue: Long, valueType: String) {
                 Thread {
-                    try {
-                        val success = memoryAccessor?.writeValue(address, newValue, valueType) ?: false
-                        runOnUiThread {
-                            if (success) {
-                                Toast.makeText(this@MainActivity, "✅ Value changed to $newValue", Toast.LENGTH_SHORT).show()
-                                updateResultValue(address, newValue)
-                            } else {
-                                Toast.makeText(this@MainActivity, "❌ Failed to change", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    } catch (e: Exception) {
-                        runOnUiThread {
-                            Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    val success = memoryAccessor?.writeValue(address, newValue, valueType) ?: false
+                    runOnUiThread {
+                        if (success) {
+                            Toast.makeText(this, "✅ Changed to $newValue", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this, "❌ Failed", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }.start()
-            }
-            
-            private fun updateResultValue(address: Long, newValue: Long) {
-                for (i in 0 until resultsContainer.childCount) {
-                    val card = resultsContainer.getChildAt(i) as? LinearLayout
-                    val topRow = card?.getChildAt(0) as? LinearLayout
-                    val textView = topRow?.getChildAt(0) as? TextView
-                    if (textView?.text?.contains("0x${address.toString(16)}") == true) {
-                        val oldText = textView.text.toString()
-                        val newText = oldText.replace(Regex("Value: \\d+"), "Value: $newValue")
-                        textView.text = newText
-                        break
-                    }
-                }
             }
             
             inner class MemoryAccessor(private val targetPid: Int) {
@@ -428,7 +387,7 @@ jobs:
                         val endAddress = 0x80000000L
                         val buffer = ByteArray(4)
                         
-                        while (address < endAddress && !Thread.interrupted()) {
+                        while (address < endAddress) {
                             try {
                                 raf.seek(address)
                                 if (raf.read(buffer) == 4) {
@@ -460,7 +419,7 @@ jobs:
                         val endAddress = 0x80000000L
                         val buffer = ByteArray(4)
                         
-                        while (address < endAddress && !Thread.interrupted()) {
+                        while (address < endAddress) {
                             try {
                                 raf.seek(address)
                                 if (raf.read(buffer) == 4) {
@@ -493,7 +452,7 @@ jobs:
                         val endAddress = 0x80000000L
                         val buffer = ByteArray(8)
                         
-                        while (address < endAddress && !Thread.interrupted()) {
+                        while (address < endAddress) {
                             try {
                                 raf.seek(address)
                                 if (raf.read(buffer) == 8) {
@@ -530,7 +489,7 @@ jobs:
                         val endAddress = 0x80000000L
                         val buffer = ByteArray(2)
                         
-                        while (address < endAddress && !Thread.interrupted()) {
+                        while (address < endAddress) {
                             try {
                                 raf.seek(address)
                                 if (raf.read(buffer) == 2) {
@@ -579,8 +538,7 @@ jobs:
         
         cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
         <?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.example.memoryedit">
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
@@ -685,7 +643,7 @@ jobs:
         curl -L -o gradlew https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradlew
         chmod +x gradlew
         
-        echo "✅ Memory Search Edit project created"
+        echo "✅ Project created"
     
     - name: Setup JDK 17
       uses: actions/setup-java@v4
