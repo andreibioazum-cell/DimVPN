@@ -15,442 +15,219 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     
-    - name: Create Android project with Memory Search & Edit
+    - name: Create Android project
       run: |
-        mkdir -p app/src/main/java/com/example/memoryedit
+        mkdir -p app/src/main/java/com/example/memsearch
         mkdir -p app/src/main/res/values
         mkdir -p gradle/wrapper
-        mkdir -p app/src/main/res/layout
         
-        cat > app/src/main/java/com/example/memoryedit/MainActivity.kt << 'MAINACTIVITY'
-        package com.example.memoryedit
+        cat > app/src/main/java/com/example/memsearch/MainActivity.kt << 'MAINACTIVITY'
+        package com.example.memsearch
 
         import android.app.ActivityManager
         import android.content.Context
-        import android.media.MediaDrm
         import android.os.*
         import android.widget.*
         import androidx.appcompat.app.AppCompatActivity
         import android.graphics.Color
         import android.view.View
         import java.io.RandomAccessFile
-        import java.util.*
 
         class MainActivity : AppCompatActivity() {
             
-            private lateinit var resultsContainer: LinearLayout
-            private lateinit var searchInput: EditText
-            private lateinit var statusText: TextView
-            private lateinit var progressBar: ProgressBar
-            
+            private lateinit var resultsLayout: LinearLayout
+            private lateinit var pidText: TextView
             private var targetPid = 0
-            private var memoryAccessor: MemoryAccessor? = null
-            private var isSearching = false
-            
-            data class SearchResult(
-                val address: Long,
-                val value: Long,
-                val valueType: String
-            )
             
             override fun onCreate(savedInstanceState: Bundle?) {
                 super.onCreate(savedInstanceState)
                 
-                val scrollView = ScrollView(this)
-                val mainLayout = LinearLayout(this).apply {
+                val layout = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
-                    setPadding(20, 20, 20, 20)
+                    setPadding(30, 30, 30, 30)
                 }
                 
                 val title = TextView(this).apply {
-                    text = "🔍 Memory Search & Edit\nUID: ${android.os.Process.myUid()}"
-                    textSize = 16f
-                    setPadding(15, 15, 15, 15)
+                    text = "Memory Search Tool"
+                    textSize = 18f
+                    setPadding(10, 10, 10, 10)
                     setBackgroundColor(Color.parseColor("#E3F2FD"))
                 }
-                mainLayout.addView(title)
+                layout.addView(title)
                 
-                statusText = TextView(this).apply {
-                    text = "Status: not connected"
+                pidText = TextView(this).apply {
+                    text = "Not connected"
                     textSize = 14f
-                    setPadding(15, 10, 15, 10)
+                    setPadding(10, 10, 10, 10)
                 }
-                mainLayout.addView(statusText)
+                layout.addView(pidText)
                 
-                progressBar = ProgressBar(this).apply {
-                    visibility = View.GONE
-                }
-                mainLayout.addView(progressBar)
+                val spinner = Spinner(this)
+                val processList = getProcesses()
+                val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, processList)
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                spinner.adapter = adapter
+                layout.addView(spinner)
                 
-                val appLabel = TextView(this).apply {
-                    text = "Select process:"
-                    textSize = 14f
-                    setPadding(15, 20, 15, 5)
-                }
-                mainLayout.addView(appLabel)
-                
-                val appSpinner = Spinner(this)
-                mainLayout.addView(appSpinner)
-                
-                val processList = getRunningProcesses()
-                val processNames = processList.map { "${it.name} (PID: ${it.pid})" }.toTypedArray()
-                val appAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, processNames)
-                appAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                appSpinner.adapter = appAdapter
-                
-                var selectedPid = 0
-                appSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                    override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
-                        selectedPid = processList[pos].pid
-                    }
-                    override fun onNothingSelected(parent: AdapterView<*>) {}
-                }
-                
-                val connectButton = Button(this).apply {
-                    text = "Connect to process"
-                    setBackgroundColor(Color.parseColor("#2196F3"))
-                    setTextColor(Color.WHITE)
+                val connectBtn = Button(this).apply {
+                    text = "Connect"
                     setOnClickListener {
-                        if (selectedPid != 0) {
-                            connectToProcess(selectedPid)
-                        } else {
-                            Toast.makeText(this@MainActivity, "Select a process", Toast.LENGTH_SHORT).show()
+                        val selected = spinner.selectedItem.toString()
+                        val pid = selected.substringAfter("PID:").substringBefore(")").trim().toIntOrNull()
+                        if (pid != null) {
+                            targetPid = pid
+                            pidText.text = "Connected to PID: $pid"
+                            pidText.setBackgroundColor(Color.parseColor("#C8E6C9"))
                         }
                     }
                 }
-                mainLayout.addView(connectButton)
-                
-                val divider = View(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 2)
-                    setBackgroundColor(Color.parseColor("#CCCCCC"))
-                }
-                mainLayout.addView(divider)
+                layout.addView(connectBtn)
                 
                 val searchLabel = TextView(this).apply {
-                    text = "Search values:"
-                    textSize = 14f
-                    setPadding(15, 20, 15, 5)
+                    text = "Search value:"
+                    setPadding(10, 20, 10, 5)
                 }
-                mainLayout.addView(searchLabel)
+                layout.addView(searchLabel)
                 
-                val searchLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                }
+                val searchInput = EditText(this)
+                layout.addView(searchInput)
                 
-                searchInput = EditText(this).apply {
-                    hint = "Number to search"
-                    textSize = 14f
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                }
-                searchLayout.addView(searchInput)
-                
-                val searchTypeSpinner = Spinner(this)
-                val searchTypes = arrayOf("int", "float")
-                val typeAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, searchTypes)
-                typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                searchTypeSpinner.adapter = typeAdapter
-                searchLayout.addView(searchTypeSpinner)
-                
-                mainLayout.addView(searchLayout)
-                
-                val searchButton = Button(this).apply {
-                    text = "Start search"
-                    setBackgroundColor(Color.parseColor("#4CAF50"))
-                    setTextColor(Color.WHITE)
+                val searchBtn = Button(this).apply {
+                    text = "Search"
                     setOnClickListener {
-                        if (memoryAccessor != null && targetPid != 0) {
-                            val valueStr = searchInput.text.toString()
-                            if (valueStr.isNotBlank()) {
-                                startSearch(valueStr, searchTypeSpinner.selectedItemPosition)
-                            } else {
-                                Toast.makeText(this@MainActivity, "Enter a number", Toast.LENGTH_SHORT).show()
-                            }
+                        val value = searchInput.text.toString().toLongOrNull()
+                        if (value != null && targetPid != 0) {
+                            searchMemory(value)
                         } else {
-                            Toast.makeText(this@MainActivity, "Connect first", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, "Connect and enter a number", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
-                mainLayout.addView(searchButton)
+                layout.addView(searchBtn)
                 
-                val resultsLabel = TextView(this).apply {
-                    text = "Found values:"
-                    textSize = 14f
-                    setPadding(15, 25, 15, 5)
-                }
-                mainLayout.addView(resultsLabel)
-                
-                resultsContainer = LinearLayout(this).apply {
+                resultsLayout = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                 }
-                mainLayout.addView(resultsContainer)
+                layout.addView(resultsLayout)
                 
-                scrollView.addView(mainLayout)
-                setContentView(scrollView)
+                setContentView(layout)
             }
             
-            data class ProcessInfo(val name: String, val pid: Int)
-            
-            private fun getRunningProcesses(): List<ProcessInfo> {
-                val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-                val processes = mutableListOf<ProcessInfo>()
+            private fun getProcesses(): List<String> {
+                val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                val list = mutableListOf<String>()
                 try {
-                    val runningProcesses = activityManager.runningAppProcesses
-                    runningProcesses?.forEach { process ->
-                        if (!process.processName.contains(packageName)) {
-                            processes.add(ProcessInfo(process.processName, process.pid))
+                    am.runningAppProcesses?.forEach { proc ->
+                        if (!proc.processName.contains(packageName)) {
+                            list.add("${proc.processName} (PID:${proc.pid})")
                         }
                     }
                 } catch (e: Exception) { }
-                return processes.sortedBy { it.name }
+                return list.sorted()
             }
             
-            private fun connectToProcess(pid: Int) {
+            private fun searchMemory(target: Long) {
                 Thread {
-                    try {
-                        val drmUUID = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
-                        val mediaDrm = MediaDrm(drmUUID)
-                        
-                        val binder = getDrmBinder(mediaDrm)
-                        val transaction = Parcel.obtain()
-                        transaction.writeInterfaceToken("android.media.IDrmManagerService")
-                        transaction.writeInt(pid)
-                        
-                        try {
-                            binder.transact(0xdeadfeed, transaction, null, 0)
-                        } catch (e: Exception) { }
-                        
-                        targetPid = pid
-                        memoryAccessor = MemoryAccessor(pid)
-                        
-                        runOnUiThread {
-                            statusText.text = "Connected to PID: $pid"
-                            statusText.setBackgroundColor(Color.parseColor("#C8E6C9"))
-                            Toast.makeText(this@MainActivity, "Connected", Toast.LENGTH_SHORT).show()
-                        }
-                        
-                    } catch (e: Exception) {
-                        runOnUiThread {
-                            Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }.start()
-            }
-            
-            private fun getDrmBinder(mediaDrm: MediaDrm): IBinder {
-                val field = mediaDrm.javaClass.getDeclaredField("mBinder")
-                field.isAccessible = true
-                return field.get(mediaDrm) as IBinder
-            }
-            
-            private fun startSearch(valueStr: String, typeIndex: Int) {
-                if (isSearching) return
-                isSearching = true
-                
-                runOnUiThread {
-                    progressBar.visibility = View.VISIBLE
-                    statusText.text = "Searching..."
-                }
-                
-                Thread {
-                    try {
-                        val value = valueStr.toLongOrNull()
-                        
-                        val results = if (typeIndex == 0 && value != null) {
-                            memoryAccessor?.searchInt(value) ?: emptyList()
-                        } else {
-                            val floatValue = valueStr.toFloatOrNull()
-                            if (floatValue != null) {
-                                memoryAccessor?.searchFloat(floatValue) ?: emptyList()
-                            } else {
-                                emptyList()
+                    val results = mutableListOf<Pair<Long, Long>>()
+                    val memFile = java.io.File("/proc/$targetPid/mem")
+                    
+                    if (memFile.canRead()) {
+                        RandomAccessFile(memFile, "r").use { raf ->
+                            var addr = 0x70000000L
+                            val end = 0x80000000L
+                            val buf = ByteArray(4)
+                            
+                            while (addr < end) {
+                                try {
+                                    raf.seek(addr)
+                                    if (raf.read(buf) == 4) {
+                                        val v = ((buf[0].toLong() and 0xFF) or
+                                                ((buf[1].toLong() and 0xFF) shl 8) or
+                                                ((buf[2].toLong() and 0xFF) shl 16) or
+                                                ((buf[3].toLong() and 0xFF) shl 24))
+                                        if (v == target) {
+                                            results.add(Pair(addr, v))
+                                        }
+                                    }
+                                    addr += 4
+                                } catch (e: Exception) {
+                                    addr += 4096
+                                }
                             }
                         }
-                        
-                        val typeName = if (typeIndex == 0) "int" else "float"
-                        
-                        runOnUiThread {
-                            displayResults(results, typeName)
-                            statusText.text = "Found ${results.size} values"
-                            progressBar.visibility = View.GONE
-                        }
-                        
-                    } catch (e: Exception) {
-                        runOnUiThread {
-                            statusText.text = "Error: ${e.message}"
-                            progressBar.visibility = View.GONE
-                        }
                     }
-                    isSearching = false
+                    
+                    runOnUiThread {
+                        showResults(results)
+                    }
                 }.start()
             }
             
-            private fun displayResults(results: List<SearchResult>, valueType: String) {
-                resultsContainer.removeAllViews()
+            private fun showResults(results: List<Pair<Long, Long>>) {
+                resultsLayout.removeAllViews()
                 
                 if (results.isEmpty()) {
-                    val emptyText = TextView(this).apply {
-                        text = "Nothing found."
-                        textSize = 14f
-                        setPadding(20, 30, 20, 30)
-                        setTextColor(Color.GRAY)
-                        gravity = android.view.Gravity.CENTER
-                    }
-                    resultsContainer.addView(emptyText)
+                    resultsLayout.addView(TextView(this).apply {
+                        text = "No results found"
+                        setPadding(10, 10, 10, 10)
+                    })
                     return
                 }
                 
-                for (result in results) {
+                for ((addr, value) in results) {
                     val card = LinearLayout(this).apply {
-                        orientation = LinearLayout.VERTICAL
-                        setPadding(15, 12, 15, 12)
-                        setBackgroundColor(Color.parseColor("#FAFAFA"))
-                        layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        ).apply { setMargins(0, 5, 0, 5) }
-                    }
-                    
-                    val topRow = LinearLayout(this).apply {
                         orientation = LinearLayout.HORIZONTAL
+                        setPadding(10, 10, 10, 10)
+                        setBackgroundColor(Color.parseColor("#F0F0F0"))
                     }
                     
-                    val infoText = TextView(this).apply {
-                        text = "0x${result.address.toString(16)} = ${result.value} ($valueType)"
-                        textSize = 13f
+                    val text = TextView(this).apply {
+                        text = "0x${addr.toString(16)} = $value"
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     }
-                    topRow.addView(infoText)
+                    card.addView(text)
                     
-                    val editButton = Button(this).apply {
+                    val editBtn = Button(this).apply {
                         text = "Edit"
-                        textSize = 11f
-                        setBackgroundColor(Color.parseColor("#FF9800"))
-                        setTextColor(Color.WHITE)
                         setOnClickListener {
-                            showEditDialog(result.address, result.value, valueType)
+                            val input = EditText(this@MainActivity)
+                            android.app.AlertDialog.Builder(this@MainActivity)
+                                .setTitle("Edit at 0x${addr.toString(16)}")
+                                .setView(input)
+                                .setPositiveButton("Save") { _, _ ->
+                                    val newVal = input.text.toString().toLongOrNull()
+                                    if (newVal != null) {
+                                        writeMemory(addr, newVal)
+                                    }
+                                }
+                                .show()
                         }
                     }
-                    topRow.addView(editButton)
-                    
-                    card.addView(topRow)
-                    resultsContainer.addView(card)
+                    card.addView(editBtn)
+                    resultsLayout.addView(card)
                 }
             }
             
-            private fun showEditDialog(address: Long, currentValue: Long, valueType: String) {
-                val input = EditText(this)
-                input.hint = "New value"
-                
-                android.app.AlertDialog.Builder(this)
-                    .setTitle("Edit at 0x${address.toString(16)}")
-                    .setMessage("Current: $currentValue\nType: $valueType")
-                    .setView(input)
-                    .setPositiveButton("Save") { _, _ ->
-                        val newValue = input.text.toString().toLongOrNull()
-                        if (newValue != null) {
-                            writeMemory(address, newValue, valueType)
+            private fun writeMemory(address: Long, newValue: Long) {
+                Thread {
+                    var success = false
+                    val memFile = java.io.File("/proc/$targetPid/mem")
+                    if (memFile.canWrite()) {
+                        RandomAccessFile(memFile, "rw").use { raf ->
+                            raf.seek(address)
+                            raf.write(byteArrayOf(
+                                (newValue and 0xFF).toByte(),
+                                ((newValue shr 8) and 0xFF).toByte(),
+                                ((newValue shr 16) and 0xFF).toByte(),
+                                ((newValue shr 24) and 0xFF).toByte()
+                            ))
+                            success = true
                         }
                     }
-                    .setNegativeButton("Cancel", null)
-                    .show()
-            }
-            
-            private fun writeMemory(address: Long, newValue: Long, valueType: String) {
-                Thread {
-                    val success = memoryAccessor?.writeValue(address, newValue, valueType) ?: false
                     runOnUiThread {
-                        if (success) {
-                            Toast.makeText(this, "Changed to $newValue", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
-                        }
+                        Toast.makeText(this, if (success) "Changed!" else "Failed", Toast.LENGTH_SHORT).show()
                     }
                 }.start()
-            }
-            
-            inner class MemoryAccessor(private val targetPid: Int) {
-                
-                fun searchInt(target: Long): List<SearchResult> {
-                    val results = mutableListOf<SearchResult>()
-                    val memFile = java.io.File("/proc/$targetPid/mem")
-                    if (!memFile.canRead()) return results
-                    
-                    RandomAccessFile(memFile, "r").use { raf ->
-                        var address = 0x70000000L
-                        val endAddress = 0x80000000L
-                        val buffer = ByteArray(4)
-                        
-                        while (address < endAddress) {
-                            try {
-                                raf.seek(address)
-                                if (raf.read(buffer) == 4) {
-                                    val value = ((buffer[0].toLong() and 0xFF) or
-                                            ((buffer[1].toLong() and 0xFF) shl 8) or
-                                            ((buffer[2].toLong() and 0xFF) shl 16) or
-                                            ((buffer[3].toLong() and 0xFF) shl 24))
-                                    
-                                    if (value == target) {
-                                        results.add(SearchResult(address, value, "int"))
-                                    }
-                                }
-                                address += 4
-                            } catch (e: Exception) {
-                                address += 4096
-                            }
-                        }
-                    }
-                    return results
-                }
-                
-                fun searchFloat(target: Float): List<SearchResult> {
-                    val results = mutableListOf<SearchResult>()
-                    val memFile = java.io.File("/proc/$targetPid/mem")
-                    if (!memFile.canRead()) return results
-                    
-                    RandomAccessFile(memFile, "r").use { raf ->
-                        var address = 0x70000000L
-                        val endAddress = 0x80000000L
-                        val buffer = ByteArray(4)
-                        
-                        while (address < endAddress) {
-                            try {
-                                raf.seek(address)
-                                if (raf.read(buffer) == 4) {
-                                    val intBits = ((buffer[0].toInt() and 0xFF) or
-                                                  ((buffer[1].toInt() and 0xFF) shl 8) or
-                                                  ((buffer[2].toInt() and 0xFF) shl 16) or
-                                                  ((buffer[3].toInt() and 0xFF) shl 24))
-                                    val value = java.lang.Float.intBitsToFloat(intBits)
-                                    
-                                    if (kotlin.math.abs(value - target) < 0.001f) {
-                                        results.add(SearchResult(address, value.toLong(), "float"))
-                                    }
-                                }
-                                address += 4
-                            } catch (e: Exception) {
-                                address += 4096
-                            }
-                        }
-                    }
-                    return results
-                }
-                
-                fun writeValue(address: Long, newValue: Long, valueType: String): Boolean {
-                    val memFile = java.io.File("/proc/$targetPid/mem")
-                    if (!memFile.canWrite()) return false
-                    
-                    RandomAccessFile(memFile, "rw").use { raf ->
-                        raf.seek(address)
-                        val bytes = byteArrayOf(
-                            (newValue and 0xFF).toByte(),
-                            ((newValue shr 8) and 0xFF).toByte(),
-                            ((newValue shr 16) and 0xFF).toByte(),
-                            ((newValue shr 24) and 0xFF).toByte()
-                        )
-                        raf.write(bytes)
-                        return true
-                    }
-                }
             }
         }
         MAINACTIVITY
@@ -458,18 +235,12 @@ jobs:
         cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            
-            <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-            
             <application
                 android:allowBackup="true"
                 android:label="MemSearch"
                 android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
-                <activity
-                    android:name=".MainActivity"
-                    android:exported="true"
-                    android:launchMode="singleTask">
+                <activity android:name=".MainActivity" android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
@@ -491,10 +262,10 @@ jobs:
             id 'kotlin-android'
         }
         android {
-            namespace 'com.example.memoryedit'
+            namespace 'com.example.memsearch'
             compileSdk 34
             defaultConfig {
-                applicationId "com.example.memoryedit"
+                applicationId "com.example.memsearch"
                 minSdk 28
                 targetSdk 34
                 versionCode 1
@@ -541,7 +312,7 @@ jobs:
             repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
             repositories { google(); mavenCentral() }
         }
-        rootProject.name = "MemoryEdit"
+        rootProject.name = "MemSearch"
         include ':app'
         SETTINGS
         
@@ -561,8 +332,6 @@ jobs:
         curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar
         curl -L -o gradlew https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradlew
         chmod +x gradlew
-        
-        echo "Project created"
     
     - name: Setup JDK 17
       uses: actions/setup-java@v4
@@ -574,8 +343,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.gradle/caches
-        key: gradle-cache-${{ hashFiles('**/*.gradle*') }}
-        restore-keys: gradle-cache-
+        key: gradle-cache
     
     - name: Build APK
       run: |
