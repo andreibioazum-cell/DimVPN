@@ -376,8 +376,8 @@ jobs:
                     if (!memFile.canRead()) return results
                     
                     RandomAccessFile(memFile, "r").use { raf ->
-                        var address: Long = 0x70000000
-                        val endAddress: Long = 0x80000000
+                        var address = 0x70000000L
+                        val endAddress = 0x80000000L
                         val buffer = ByteArray(4)
                         
                         while (address < endAddress) {
@@ -408,8 +408,8 @@ jobs:
                     if (!memFile.canRead()) return results
                     
                     RandomAccessFile(memFile, "r").use { raf ->
-                        var address: Long = 0x70000000
-                        val endAddress: Long = 0x80000000
+                        var address = 0x70000000L
+                        val endAddress = 0x80000000L
                         val buffer = ByteArray(4)
                         
                         while (address < endAddress) {
