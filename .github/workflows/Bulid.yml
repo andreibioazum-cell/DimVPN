@@ -26,7 +26,7 @@ jobs:
 
         import android.app.ActivityManager
         import android.content.Context
-        import android.os.*
+        android.os.*
         import android.widget.*
         import androidx.appcompat.app.AppCompatActivity
         import android.graphics.Color
@@ -36,30 +36,26 @@ jobs:
         class MainActivity : AppCompatActivity() {
             
             private lateinit var resultsLayout: LinearLayout
-            private lateinit var pidText: TextView
             private var targetPid = 0
             
             override fun onCreate(savedInstanceState: Bundle?) {
                 super.onCreate(savedInstanceState)
                 
-                val layout = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(30, 30, 30, 30)
-                }
+                val layout = LinearLayout(this)
+                layout.orientation = LinearLayout.VERTICAL
+                layout.setPadding(30, 30, 30, 30)
                 
-                val title = TextView(this).apply {
-                    text = "Memory Search Tool"
-                    textSize = 18f
-                    setPadding(10, 10, 10, 10)
-                    setBackgroundColor(Color.parseColor("#E3F2FD"))
-                }
+                val title = TextView(this)
+                title.text = "Memory Search Tool"
+                title.textSize = 18f
+                title.setPadding(10, 10, 10, 10)
+                title.setBackgroundColor(Color.parseColor("#E3F2FD"))
                 layout.addView(title)
                 
-                pidText = TextView(this).apply {
-                    text = "Not connected"
-                    textSize = 14f
-                    setPadding(10, 10, 10, 10)
-                }
+                val pidText = TextView(this)
+                pidText.text = "Not connected"
+                pidText.textSize = 14f
+                pidText.setPadding(10, 10, 10, 10)
                 layout.addView(pidText)
                 
                 val spinner = Spinner(this)
@@ -69,45 +65,41 @@ jobs:
                 spinner.adapter = adapter
                 layout.addView(spinner)
                 
-                val connectBtn = Button(this).apply {
-                    text = "Connect"
-                    setOnClickListener {
-                        val selected = spinner.selectedItem.toString()
-                        val pid = selected.substringAfter("PID:").substringBefore(")").trim().toIntOrNull()
-                        if (pid != null) {
-                            targetPid = pid
-                            pidText.text = "Connected to PID: $pid"
-                            pidText.setBackgroundColor(Color.parseColor("#C8E6C9"))
-                        }
+                val connectBtn = Button(this)
+                connectBtn.text = "Connect"
+                connectBtn.setOnClickListener {
+                    val selected = spinner.selectedItem.toString()
+                    val pid = selected.substringAfter("PID:").substringBefore(")").trim().toIntOrNull()
+                    if (pid != null) {
+                        targetPid = pid
+                        pidText.text = "Connected to PID: $pid"
+                        pidText.setBackgroundColor(Color.parseColor("#C8E6C9"))
                     }
                 }
                 layout.addView(connectBtn)
                 
-                val searchLabel = TextView(this).apply {
-                    text = "Search value:"
-                    setPadding(10, 20, 10, 5)
-                }
+                val searchLabel = TextView(this)
+                searchLabel.text = "Search value:"
+                searchLabel.setPadding(10, 20, 10, 5)
                 layout.addView(searchLabel)
                 
                 val searchInput = EditText(this)
                 layout.addView(searchInput)
                 
-                val searchBtn = Button(this).apply {
-                    text = "Search"
-                    setOnClickListener {
-                        val value = searchInput.text.toString().toLongOrNull()
-                        if (value != null && targetPid != 0) {
-                            searchMemory(value)
-                        } else {
-                            Toast.makeText(this@MainActivity, "Connect and enter a number", Toast.LENGTH_SHORT).show()
-                        }
+                val searchBtn = Button(this)
+                searchBtn.text = "Search"
+                searchBtn.setOnClickListener {
+                    val value = searchInput.text.toString().toLongOrNull()
+                    if (value != null && targetPid != 0) {
+                        searchMemory(value)
+                    } else {
+                        Toast.makeText(this@MainActivity, "Connect and enter a number", Toast.LENGTH_SHORT).show()
                     }
                 }
                 layout.addView(searchBtn)
                 
-                resultsLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                }
+                resultsLayout = LinearLayout(this)
+                resultsLayout.orientation = LinearLayout.VERTICAL
                 layout.addView(resultsLayout)
                 
                 setContentView(layout)
@@ -117,9 +109,12 @@ jobs:
                 val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
                 val list = mutableListOf<String>()
                 try {
-                    am.runningAppProcesses?.forEach { proc ->
-                        if (!proc.processName.contains(packageName)) {
-                            list.add("${proc.processName} (PID:${proc.pid})")
+                    val procs = am.runningAppProcesses
+                    if (procs != null) {
+                        for (proc in procs) {
+                            if (!proc.processName.contains(packageName)) {
+                                list.add("${proc.processName} (PID:${proc.pid})")
+                            }
                         }
                     }
                 } catch (e: Exception) { }
@@ -132,29 +127,29 @@ jobs:
                     val memFile = java.io.File("/proc/$targetPid/mem")
                     
                     if (memFile.canRead()) {
-                        RandomAccessFile(memFile, "r").use { raf ->
-                            var addr = 0x70000000L
-                            val end = 0x80000000L
-                            val buf = ByteArray(4)
-                            
-                            while (addr < end) {
-                                try {
-                                    raf.seek(addr)
-                                    if (raf.read(buf) == 4) {
-                                        val v = ((buf[0].toLong() and 0xFF) or
-                                                ((buf[1].toLong() and 0xFF) shl 8) or
-                                                ((buf[2].toLong() and 0xFF) shl 16) or
-                                                ((buf[3].toLong() and 0xFF) shl 24))
-                                        if (v == target) {
-                                            results.add(Pair(addr, v))
-                                        }
+                        val raf = RandomAccessFile(memFile, "r")
+                        var addr: Long = 0x70000000
+                        val end: Long = 0x80000000
+                        val buf = ByteArray(4)
+                        
+                        while (addr < end) {
+                            try {
+                                raf.seek(addr)
+                                if (raf.read(buf) == 4) {
+                                    val v = ((buf[0].toLong() and 0xFF) or
+                                            ((buf[1].toLong() and 0xFF) shl 8) or
+                                            ((buf[2].toLong() and 0xFF) shl 16) or
+                                            ((buf[3].toLong() and 0xFF) shl 24))
+                                    if (v == target) {
+                                        results.add(Pair(addr, v))
                                     }
-                                    addr += 4
-                                } catch (e: Exception) {
-                                    addr += 4096
                                 }
+                                addr += 4
+                            } catch (e: Exception) {
+                                addr += 4096
                             }
                         }
+                        raf.close()
                     }
                     
                     runOnUiThread {
@@ -174,35 +169,36 @@ jobs:
                     return
                 }
                 
-                for ((addr, value) in results) {
-                    val card = LinearLayout(this).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        setPadding(10, 10, 10, 10)
-                        setBackgroundColor(Color.parseColor("#F0F0F0"))
-                    }
+                for (i in 0 until results.size) {
+                    val addr = results[i].first
+                    val value = results[i].second
                     
-                    val text = TextView(this).apply {
-                        text = "0x${addr.toString(16)} = $value"
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    }
+                    val card = LinearLayout(this)
+                    card.orientation = LinearLayout.HORIZONTAL
+                    card.setPadding(10, 10, 10, 10)
+                    card.setBackgroundColor(Color.parseColor("#F0F0F0"))
+                    
+                    val text = TextView(this)
+                    text.text = "0x${addr.toString(16)} = $value"
+                    val params = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    text.layoutParams = params
                     card.addView(text)
                     
-                    val editBtn = Button(this).apply {
-                        text = "Edit"
-                        setOnClickListener {
-                            val input = EditText(this@MainActivity)
-                            val dialog = android.app.AlertDialog.Builder(this@MainActivity)
-                            dialog.setTitle("Edit at 0x${addr.toString(16)}")
-                            dialog.setView(input)
-                            dialog.setPositiveButton("Save") { _, _ ->
-                                val newVal = input.text.toString().toLongOrNull()
-                                if (newVal != null) {
-                                    writeMemory(addr, newVal)
-                                }
+                    val editBtn = Button(this)
+                    editBtn.text = "Edit"
+                    editBtn.setOnClickListener {
+                        val input = EditText(this@MainActivity)
+                        val builder = android.app.AlertDialog.Builder(this@MainActivity)
+                        builder.setTitle("Edit at 0x${addr.toString(16)}")
+                        builder.setView(input)
+                        builder.setPositiveButton("Save") { _, _ ->
+                            val newVal = input.text.toString().toLongOrNull()
+                            if (newVal != null) {
+                                writeMemory(addr, newVal)
                             }
-                            dialog.setNegativeButton("Cancel", null)
-                            dialog.show()
                         }
+                        builder.setNegativeButton("Cancel", null)
+                        builder.show()
                     }
                     card.addView(editBtn)
                     resultsLayout.addView(card)
@@ -215,21 +211,22 @@ jobs:
                     val memFile = java.io.File("/proc/$targetPid/mem")
                     if (memFile.canWrite()) {
                         try {
-                            RandomAccessFile(memFile, "rw").use { raf ->
-                                raf.seek(address)
-                                raf.write(byteArrayOf(
-                                    (newValue and 0xFF).toByte(),
-                                    ((newValue shr 8) and 0xFF).toByte(),
-                                    ((newValue shr 16) and 0xFF).toByte(),
-                                    ((newValue shr 24) and 0xFF).toByte()
-                                ))
-                                success = true
-                            }
+                            val raf = RandomAccessFile(memFile, "rw")
+                            raf.seek(address)
+                            val bytes = byteArrayOf(
+                                (newValue and 0xFF).toByte(),
+                                ((newValue shr 8) and 0xFF).toByte(),
+                                ((newValue shr 16) and 0xFF).toByte(),
+                                ((newValue shr 24) and 0xFF).toByte()
+                            )
+                            raf.write(bytes)
+                            raf.close()
+                            success = true
                         } catch (e: Exception) {
                             success = false
                         }
                     }
-                    val msg = if (success) "Changed to $newValue" else "Failed to write"
+                    val msg = if (success) "Changed to $newValue" else "Failed"
                     runOnUiThread {
                         Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
                     }
