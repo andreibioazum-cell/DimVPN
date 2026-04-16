@@ -26,11 +26,19 @@ jobs:
 
         import android.app.ActivityManager
         import android.content.Context
-        android.os.*
+        import android.os.Bundle
         import android.widget.*
         import androidx.appcompat.app.AppCompatActivity
         import android.graphics.Color
         import android.view.View
+        import android.widget.LinearLayout
+        import android.widget.TextView
+        import android.widget.Button
+        import android.widget.EditText
+        import android.widget.Spinner
+        import android.widget.ArrayAdapter
+        import android.widget.AdapterView
+        import android.widget.Toast
         import java.io.RandomAccessFile
 
         class MainActivity : AppCompatActivity() {
