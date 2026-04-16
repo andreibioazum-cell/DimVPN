@@ -167,10 +167,10 @@ jobs:
                 resultsLayout.removeAllViews()
                 
                 if (results.isEmpty()) {
-                    resultsLayout.addView(TextView(this).apply {
-                        text = "No results found"
-                        setPadding(10, 10, 10, 10)
-                    })
+                    val tv = TextView(this)
+                    tv.text = "No results found"
+                    tv.setPadding(10, 10, 10, 10)
+                    resultsLayout.addView(tv)
                     return
                 }
                 
@@ -191,16 +191,17 @@ jobs:
                         text = "Edit"
                         setOnClickListener {
                             val input = EditText(this@MainActivity)
-                            android.app.AlertDialog.Builder(this@MainActivity)
-                                .setTitle("Edit at 0x${addr.toString(16)}")
-                                .setView(input)
-                                .setPositiveButton("Save") { _, _ ->
-                                    val newVal = input.text.toString().toLongOrNull()
-                                    if (newVal != null) {
-                                        writeMemory(addr, newVal)
-                                    }
+                            val dialog = android.app.AlertDialog.Builder(this@MainActivity)
+                            dialog.setTitle("Edit at 0x${addr.toString(16)}")
+                            dialog.setView(input)
+                            dialog.setPositiveButton("Save") { _, _ ->
+                                val newVal = input.text.toString().toLongOrNull()
+                                if (newVal != null) {
+                                    writeMemory(addr, newVal)
                                 }
-                                .show()
+                            }
+                            dialog.setNegativeButton("Cancel", null)
+                            dialog.show()
                         }
                     }
                     card.addView(editBtn)
@@ -213,19 +214,24 @@ jobs:
                     var success = false
                     val memFile = java.io.File("/proc/$targetPid/mem")
                     if (memFile.canWrite()) {
-                        RandomAccessFile(memFile, "rw").use { raf ->
-                            raf.seek(address)
-                            raf.write(byteArrayOf(
-                                (newValue and 0xFF).toByte(),
-                                ((newValue shr 8) and 0xFF).toByte(),
-                                ((newValue shr 16) and 0xFF).toByte(),
-                                ((newValue shr 24) and 0xFF).toByte()
-                            ))
-                            success = true
+                        try {
+                            RandomAccessFile(memFile, "rw").use { raf ->
+                                raf.seek(address)
+                                raf.write(byteArrayOf(
+                                    (newValue and 0xFF).toByte(),
+                                    ((newValue shr 8) and 0xFF).toByte(),
+                                    ((newValue shr 16) and 0xFF).toByte(),
+                                    ((newValue shr 24) and 0xFF).toByte()
+                                ))
+                                success = true
+                            }
+                        } catch (e: Exception) {
+                            success = false
                         }
                     }
+                    val msg = if (success) "Changed to $newValue" else "Failed to write"
                     runOnUiThread {
-                        Toast.makeText(this, if (success) "Changed!" else "Failed", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
                     }
                 }.start()
             }
