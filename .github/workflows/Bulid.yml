@@ -47,7 +47,7 @@ jobs:
             private var memoryAccessor: MemoryAccessor? = null
             private var isSearching = false
             
-            private data class SearchResult(
+            data class SearchResult(
                 val address: Long,
                 val value: Long,
                 val valueType: String,
@@ -257,7 +257,7 @@ jobs:
                         val value = valueStr.toLongOrNull()
                         val floatValue = valueStr.toFloatOrNull()
                         
-                        val results = when (typeIndex) {
+                        val results: List<SearchResult> = when (typeIndex) {
                             0 -> memoryAccessor?.searchInt(value ?: 0) ?: emptyList()
                             1 -> memoryAccessor?.searchFloat(floatValue ?: 0f) ?: emptyList()
                             2 -> memoryAccessor?.searchDouble(valueStr.toDoubleOrNull() ?: 0.0) ?: emptyList()
@@ -306,7 +306,7 @@ jobs:
                     return
                 }
                 
-                results.forEach { result ->
+                for (result in results) {
                     val card = LinearLayout(this).apply {
                         orientation = LinearLayout.VERTICAL
                         setPadding(15, 12, 15, 12)
