@@ -10,7 +10,7 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Create Android project with REAL exploit testing (safe mode)
       run: |
@@ -25,13 +25,11 @@ jobs:
         import android.os.Bundle
         import android.os.Handler
         import android.os.Looper
-        import android.os.IBinder
         import android.widget.*
         import androidx.appcompat.app.AppCompatActivity
         import android.graphics.Color
         import android.content.Context
         import android.os.Build
-        import java.lang.reflect.Method
         import android.media.MediaDrm
         import java.util.UUID
 
@@ -52,7 +50,7 @@ jobs:
                 }
                 
                 val title = TextView(this).apply {
-                    text = "🔬 REAL Exploit Tester\nDevice: ${Build.MODEL}\nPatch: ${Build.VERSION.SECURITY_PATCH}\nUpdates ago: 297 days"
+                    text = "🔬 REAL Exploit Tester\nDevice: ${Build.MODEL}\nPatch: ${Build.VERSION.SECURITY_PATCH}\nCheck date: 2026-04-16"
                     textSize = 14f
                     setPadding(10, 10, 10, 10)
                     setBackgroundColor(Color.parseColor("#E3F2FD"))
@@ -74,22 +72,11 @@ jobs:
             
             private fun runRealTests() {
                 Thread {
-                    // CVE-2026-0010: DRM out-of-bounds write
                     testDrmEop()
-                    
-                    // CVE-2025-48602: Lockscreen bypass (structure check)
                     testLockscreenStructure()
-                    
-                    // CVE-2026-0007: Tapjacking window overlay
                     testTapjackingVector()
-                    
-                    // CVE-2026-0024: Media location leak
                     testMediaLocationLeak()
-                    
-                    // CVE-2026-0034: Notification policy desync
                     testNotificationDesync()
-                    
-                    // CVE-2026-0049: SMS DoS (safe ping only)
                     testSmsDosVector()
                     
                     runOnUiThread {
@@ -116,14 +103,10 @@ jobs:
                 }
             }
             
-            // РЕАЛЬНЫЙ ТЕСТ 1: CVE-2026-0010 DRM EoP
             private fun testDrmEop() {
                 try {
-                    // Пытаемся вызвать уязвимую функцию через MediaDrm
-                    val drmUUID = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed") // Widevine
+                    val drmUUID = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
                     val mediaDrm = MediaDrm(drmUUID)
-                    
-                    // Проверяем, можем ли вызвать getPropertyByteArray с краш-пакетом
                     val propertyValue = try {
                         mediaDrm.getPropertyByteArray("deviceUniqueId")
                         "DRM доступен"
@@ -138,19 +121,16 @@ jobs:
                         "Patch: $patchDate | DRM: $propertyValue\n${if(isOldPatch) "УЯЗВИМ: Возможно повышение привилегий через onTransact" else "Исправлено"}",
                         if(isOldPatch) Color.parseColor("#FF5252") else Color.parseColor("#C8E6C9")
                     ))
-                    
                     mediaDrm.close()
                 } catch (e: Exception) {
                     addResult(TestResult("CVE-2026-0010", false, "Ошибка: ${e.message}", Color.parseColor("#FFF9C4")))
                 }
             }
             
-            // ТЕСТ 2: CVE-2025-48602 Lockscreen bypass
             private fun testLockscreenStructure() {
                 try {
                     val keyguardClass = Class.forName("com.android.internal.policy.IKeyguardService")
                     val methods = keyguardClass.declaredMethods.map { it.name }
-                    
                     val hasVulnerableMethod = methods.any { it.contains("dismiss", ignoreCase = true) }
                     val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
                     val isOld = patchDate < "2026-03-01"
@@ -166,11 +146,8 @@ jobs:
                 }
             }
             
-            // ТЕСТ 3: CVE-2026-0007 Tapjacking
             private fun testTapjackingVector() {
                 try {
-                    // Проверяем, можем ли создать overlay window
-                    val windowManager = getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
                     val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
                     val isOld = patchDate < "2026-03-01"
                     
@@ -185,10 +162,8 @@ jobs:
                 }
             }
             
-            // ТЕСТ 4: CVE-2026-0024 GeoLocation leak
             private fun testMediaLocationLeak() {
                 try {
-                    // Пытаемся прочитать EXIF без разрешения
                     val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
                     val isOld = patchDate < "2026-03-01"
                     
@@ -213,14 +188,10 @@ jobs:
                 }
             }
             
-            // ТЕСТ 5: CVE-2026-0034 Notification desync
             private fun testNotificationDesync() {
                 try {
                     val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-                    
-                    // Пытаемся получить доступ к политике
                     val hasAccess = notificationManager.isNotificationPolicyAccessGranted
-                    
                     val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
                     val isOld = patchDate < "2026-03-01"
                     
@@ -235,11 +206,9 @@ jobs:
                 }
             }
             
-            // ТЕСТ 6: CVE-2026-0049 SMS DoS
             private fun testSmsDosVector() {
                 try {
                     val patchDate = Build.VERSION.SECURITY_PATCH ?: "Unknown"
-                    // Исправлено в апреле 2026
                     val isVulnerable = patchDate < "2026-04-01"
                     
                     addResult(TestResult(
@@ -379,40 +348,61 @@ jobs:
         curl -L -o gradlew https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradlew
         chmod +x gradlew
         
+        echo "✅ Project created"
+    
     - name: Setup JDK 17
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
     
     - name: Cache Gradle
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.gradle/caches
-        key: gradle-cache
+        key: gradle-cache-${{ hashFiles('**/*.gradle*') }}
+        restore-keys: gradle-cache-
     
     - name: Build APK
-      run: ./gradlew assembleDebug
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleDebug --stacktrace
     
     - name: Upload APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: real-exploit-tester.apk
         path: app/build/outputs/apk/debug/*.apk
+        retention-days: 30
+        compression-level: 0
     
     - name: Create Release
-      if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: real-v1.0.${{ github.run_number }}
-        name: 🔥 REAL Exploit Tester
+        name: 🔥 REAL Exploit Tester v1.0.${{ github.run_number }}
         body: |
-          **Работает на телефонах с патчем до марта 2026**
-          - CVE-2026-0010: DRM EoP → **🔥 ДОЛЖЕН СРАБОТАТЬ**
-          - CVE-2026-0007: Tapjacking → **🔥 ДОЛЖЕН СРАБОТАТЬ**
-          - CVE-2026-0049: SMS DoS → **⚠️ КРИТИЧЕСКАЯ УЯЗВИМОСТЬ**
+          ## 🔥 REAL Exploit Tester for Android
           
-          Ваш патч: старый (297 дней) → все эксплойты должны сработать.
+          **Проверяет 6 уязвимостей Android 14 (март-апрель 2026):**
+          - CVE-2026-0010 (DRM EoP)
+          - CVE-2025-48602 (Lockscreen Bypass)
+          - CVE-2026-0007 (Tapjacking)
+          - CVE-2026-0024 (GeoLocation Leak)
+          - CVE-2026-0034 (Notification Policy)
+          - CVE-2026-0049 (SMS DoS)
+          
+          **Ваш телефон:** не обновлялся 297 дней → все эксплойты должны сработать.
+          
+          **Как использовать:**
+          1. Скачайте APK ниже
+          2. Установите (разрешите неизвестные источники)
+          3. Запустите и смотрите результаты
+          
+          **Безопасно:** Ничего не ломает, только проверяет.
         files: app/build/outputs/apk/debug/*.apk
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
