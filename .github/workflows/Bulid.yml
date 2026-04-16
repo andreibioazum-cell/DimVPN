@@ -50,8 +50,7 @@ jobs:
             data class SearchResult(
                 val address: Long,
                 val value: Long,
-                val valueType: String,
-                val timestamp: Long = System.currentTimeMillis()
+                val valueType: String
             )
             
             override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,7 +71,7 @@ jobs:
                 mainLayout.addView(title)
                 
                 statusText = TextView(this).apply {
-                    text = "⚪ Status: not connected"
+                    text = "Status: not connected"
                     textSize = 14f
                     setPadding(15, 10, 15, 10)
                 }
@@ -84,7 +83,7 @@ jobs:
                 mainLayout.addView(progressBar)
                 
                 val appLabel = TextView(this).apply {
-                    text = "📱 Select process:"
+                    text = "Select process:"
                     textSize = 14f
                     setPadding(15, 20, 15, 5)
                 }
@@ -108,7 +107,7 @@ jobs:
                 }
                 
                 val connectButton = Button(this).apply {
-                    text = "🔌 Connect to process"
+                    text = "Connect to process"
                     setBackgroundColor(Color.parseColor("#2196F3"))
                     setTextColor(Color.WHITE)
                     setOnClickListener {
@@ -128,7 +127,7 @@ jobs:
                 mainLayout.addView(divider)
                 
                 val searchLabel = TextView(this).apply {
-                    text = "🔎 Search values:"
+                    text = "Search values:"
                     textSize = 14f
                     setPadding(15, 20, 15, 5)
                 }
@@ -139,14 +138,14 @@ jobs:
                 }
                 
                 searchInput = EditText(this).apply {
-                    hint = "Number to search (e.g., 100)"
+                    hint = "Number to search"
                     textSize = 14f
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 }
                 searchLayout.addView(searchInput)
                 
                 val searchTypeSpinner = Spinner(this)
-                val searchTypes = arrayOf("int (4 bytes)", "float", "double (8 bytes)", "short (2 bytes)")
+                val searchTypes = arrayOf("int", "float")
                 val typeAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, searchTypes)
                 typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 searchTypeSpinner.adapter = typeAdapter
@@ -155,7 +154,7 @@ jobs:
                 mainLayout.addView(searchLayout)
                 
                 val searchButton = Button(this).apply {
-                    text = "🔍 Start search"
+                    text = "Start search"
                     setBackgroundColor(Color.parseColor("#4CAF50"))
                     setTextColor(Color.WHITE)
                     setOnClickListener {
@@ -164,17 +163,17 @@ jobs:
                             if (valueStr.isNotBlank()) {
                                 startSearch(valueStr, searchTypeSpinner.selectedItemPosition)
                             } else {
-                                Toast.makeText(this@MainActivity, "Enter a number to search", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@MainActivity, "Enter a number", Toast.LENGTH_SHORT).show()
                             }
                         } else {
-                            Toast.makeText(this@MainActivity, "Connect to a process first", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, "Connect first", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
                 mainLayout.addView(searchButton)
                 
                 val resultsLabel = TextView(this).apply {
-                    text = "📋 Found values (newest first):"
+                    text = "Found values:"
                     textSize = 14f
                     setPadding(15, 25, 15, 5)
                 }
@@ -197,7 +196,7 @@ jobs:
                 try {
                     val runningProcesses = activityManager.runningAppProcesses
                     runningProcesses?.forEach { process ->
-                        if (process.processName.contains(packageName).not()) {
+                        if (!process.processName.contains(packageName)) {
                             processes.add(ProcessInfo(process.processName, process.pid))
                         }
                     }
@@ -224,9 +223,9 @@ jobs:
                         memoryAccessor = MemoryAccessor(pid)
                         
                         runOnUiThread {
-                            statusText.text = "🟢 Connected to PID: $pid"
+                            statusText.text = "Connected to PID: $pid"
                             statusText.setBackgroundColor(Color.parseColor("#C8E6C9"))
-                            Toast.makeText(this@MainActivity, "Connected to process $pid", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, "Connected", Toast.LENGTH_SHORT).show()
                         }
                         
                     } catch (e: Exception) {
@@ -249,41 +248,35 @@ jobs:
                 
                 runOnUiThread {
                     progressBar.visibility = View.VISIBLE
-                    statusText.text = "🔍 Searching..."
+                    statusText.text = "Searching..."
                 }
                 
                 Thread {
                     try {
                         val value = valueStr.toLongOrNull()
-                        val floatValue = valueStr.toFloatOrNull()
                         
-                        val results: List<SearchResult> = when (typeIndex) {
-                            0 -> memoryAccessor?.searchInt(value ?: 0) ?: emptyList()
-                            1 -> memoryAccessor?.searchFloat(floatValue ?: 0f) ?: emptyList()
-                            2 -> memoryAccessor?.searchDouble(valueStr.toDoubleOrNull() ?: 0.0) ?: emptyList()
-                            3 -> memoryAccessor?.searchShort((value ?: 0).toInt()) ?: emptyList()
-                            else -> emptyList()
+                        val results = if (typeIndex == 0 && value != null) {
+                            memoryAccessor?.searchInt(value) ?: emptyList()
+                        } else {
+                            val floatValue = valueStr.toFloatOrNull()
+                            if (floatValue != null) {
+                                memoryAccessor?.searchFloat(floatValue) ?: emptyList()
+                            } else {
+                                emptyList()
+                            }
                         }
                         
-                        val typeName = when (typeIndex) {
-                            0 -> "int"
-                            1 -> "float"
-                            2 -> "double"
-                            3 -> "short"
-                            else -> "int"
-                        }
-                        
-                        val sortedResults = results.sortedByDescending { it.timestamp }
+                        val typeName = if (typeIndex == 0) "int" else "float"
                         
                         runOnUiThread {
-                            displayResults(sortedResults, typeName)
-                            statusText.text = "✅ Found ${sortedResults.size} values"
+                            displayResults(results, typeName)
+                            statusText.text = "Found ${results.size} values"
                             progressBar.visibility = View.GONE
                         }
                         
                     } catch (e: Exception) {
                         runOnUiThread {
-                            statusText.text = "❌ Error: ${e.message}"
+                            statusText.text = "Error: ${e.message}"
                             progressBar.visibility = View.GONE
                         }
                     }
@@ -296,7 +289,7 @@ jobs:
                 
                 if (results.isEmpty()) {
                     val emptyText = TextView(this).apply {
-                        text = "Nothing found.\nTry a different value."
+                        text = "Nothing found."
                         textSize = 14f
                         setPadding(20, 30, 20, 30)
                         setTextColor(Color.GRAY)
@@ -322,7 +315,7 @@ jobs:
                     }
                     
                     val infoText = TextView(this).apply {
-                        text = "📍 0x${result.address.toString(16)}\n📊 ${result.value} ($valueType)"
+                        text = "0x${result.address.toString(16)} = ${result.value} ($valueType)"
                         textSize = 13f
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     }
@@ -367,9 +360,9 @@ jobs:
                     val success = memoryAccessor?.writeValue(address, newValue, valueType) ?: false
                     runOnUiThread {
                         if (success) {
-                            Toast.makeText(this, "✅ Changed to $newValue", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Changed to $newValue", Toast.LENGTH_SHORT).show()
                         } else {
-                            Toast.makeText(this, "❌ Failed", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }.start()
@@ -383,8 +376,8 @@ jobs:
                     if (!memFile.canRead()) return results
                     
                     RandomAccessFile(memFile, "r").use { raf ->
-                        var address = 0x70000000L
-                        val endAddress = 0x80000000L
+                        var address: Long = 0x70000000
+                        val endAddress: Long = 0x80000000
                         val buffer = ByteArray(4)
                         
                         while (address < endAddress) {
@@ -415,8 +408,8 @@ jobs:
                     if (!memFile.canRead()) return results
                     
                     RandomAccessFile(memFile, "r").use { raf ->
-                        var address = 0x70000000L
-                        val endAddress = 0x80000000L
+                        var address: Long = 0x70000000
+                        val endAddress: Long = 0x80000000
                         val buffer = ByteArray(4)
                         
                         while (address < endAddress) {
@@ -442,92 +435,18 @@ jobs:
                     return results
                 }
                 
-                fun searchDouble(target: Double): List<SearchResult> {
-                    val results = mutableListOf<SearchResult>()
-                    val memFile = java.io.File("/proc/$targetPid/mem")
-                    if (!memFile.canRead()) return results
-                    
-                    RandomAccessFile(memFile, "r").use { raf ->
-                        var address = 0x70000000L
-                        val endAddress = 0x80000000L
-                        val buffer = ByteArray(8)
-                        
-                        while (address < endAddress) {
-                            try {
-                                raf.seek(address)
-                                if (raf.read(buffer) == 8) {
-                                    val longBits = ((buffer[0].toLong() and 0xFF) or
-                                                   ((buffer[1].toLong() and 0xFF) shl 8) or
-                                                   ((buffer[2].toLong() and 0xFF) shl 16) or
-                                                   ((buffer[3].toLong() and 0xFF) shl 24) or
-                                                   ((buffer[4].toLong() and 0xFF) shl 32) or
-                                                   ((buffer[5].toLong() and 0xFF) shl 40) or
-                                                   ((buffer[6].toLong() and 0xFF) shl 48) or
-                                                   ((buffer[7].toLong() and 0xFF) shl 56))
-                                    val value = java.lang.Double.longBitsToDouble(longBits)
-                                    
-                                    if (kotlin.math.abs(value - target) < 0.0001) {
-                                        results.add(SearchResult(address, value.toLong(), "double"))
-                                    }
-                                }
-                                address += 8
-                            } catch (e: Exception) {
-                                address += 4096
-                            }
-                        }
-                    }
-                    return results
-                }
-                
-                fun searchShort(target: Int): List<SearchResult> {
-                    val results = mutableListOf<SearchResult>()
-                    val memFile = java.io.File("/proc/$targetPid/mem")
-                    if (!memFile.canRead()) return results
-                    
-                    RandomAccessFile(memFile, "r").use { raf ->
-                        var address = 0x70000000L
-                        val endAddress = 0x80000000L
-                        val buffer = ByteArray(2)
-                        
-                        while (address < endAddress) {
-                            try {
-                                raf.seek(address)
-                                if (raf.read(buffer) == 2) {
-                                    val value = ((buffer[0].toInt() and 0xFF) or
-                                                ((buffer[1].toInt() and 0xFF) shl 8))
-                                    
-                                    if (value == target) {
-                                        results.add(SearchResult(address, value.toLong(), "short"))
-                                    }
-                                }
-                                address += 2
-                            } catch (e: Exception) {
-                                address += 4096
-                            }
-                        }
-                    }
-                    return results
-                }
-                
                 fun writeValue(address: Long, newValue: Long, valueType: String): Boolean {
                     val memFile = java.io.File("/proc/$targetPid/mem")
                     if (!memFile.canWrite()) return false
                     
                     RandomAccessFile(memFile, "rw").use { raf ->
                         raf.seek(address)
-                        val bytes = when (valueType) {
-                            "int", "float" -> byteArrayOf(
-                                (newValue and 0xFF).toByte(),
-                                ((newValue shr 8) and 0xFF).toByte(),
-                                ((newValue shr 16) and 0xFF).toByte(),
-                                ((newValue shr 24) and 0xFF).toByte()
-                            )
-                            "short" -> byteArrayOf(
-                                (newValue and 0xFF).toByte(),
-                                ((newValue shr 8) and 0xFF).toByte()
-                            )
-                            else -> return false
-                        }
+                        val bytes = byteArrayOf(
+                            (newValue and 0xFF).toByte(),
+                            ((newValue shr 8) and 0xFF).toByte(),
+                            ((newValue shr 16) and 0xFF).toByte(),
+                            ((newValue shr 24) and 0xFF).toByte()
+                        )
                         raf.write(bytes)
                         return true
                     }
@@ -545,7 +464,7 @@ jobs:
             
             <application
                 android:allowBackup="true"
-                android:label="Memory Search Edit"
+                android:label="MemSearch"
                 android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
                 <activity
                     android:name=".MainActivity"
@@ -562,7 +481,7 @@ jobs:
         
         cat > app/src/main/res/values/strings.xml << 'STRINGS'
         <resources>
-            <string name="app_name">Memory Search Edit</string>
+            <string name="app_name">MemSearch</string>
         </resources>
         STRINGS
         
@@ -643,7 +562,7 @@ jobs:
         curl -L -o gradlew https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradlew
         chmod +x gradlew
         
-        echo "✅ Project created"
+        echo "Project created"
     
     - name: Setup JDK 17
       uses: actions/setup-java@v4
@@ -666,6 +585,6 @@ jobs:
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: memory-search-edit.apk
+        name: memsearch.apk
         path: app/build/outputs/apk/debug/*.apk
         retention-days: 30
