@@ -1,4 +1,4 @@
-name: Auto Build Background System Hook Cheat
+name: Auto Build Memory Search & Edit Cheat
 
 on:
   push:
@@ -15,85 +15,236 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     
-    - name: Create Android project with Background Hook Service
+    - name: Create Android project with Memory Search & Edit
       run: |
-        mkdir -p app/src/main/java/com/example/backgroundhook
+        mkdir -p app/src/main/java/com/example/memoryedit
         mkdir -p app/src/main/res/values
         mkdir -p gradle/wrapper
         mkdir -p app/src/main/res/layout
         
-        cat > app/src/main/java/com/example/backgroundhook/HookService.kt << 'SERVICE'
-        package com.example.backgroundhook
+        cat > app/src/main/java/com/example/memoryedit/MainActivity.kt << 'MAINACTIVITY'
+        package com.example.memoryedit
 
-        import android.app.Service
-        import android.content.Intent
-        import android.os.*
+        import android.app.ActivityManager
+        import android.content.Context
+        import android.content.pm.PackageManager
         import android.media.MediaDrm
-        import android.widget.Toast
-        import java.util.UUID
+        import android.os.*
+        import android.widget.*
+        import androidx.appcompat.app.AppCompatActivity
+        import android.graphics.Color
+        import android.view.View
+        import android.view.ViewGroup
+        import androidx.core.content.ContextCompat
+        import java.io.RandomAccessFile
+        import java.util.*
 
-        class HookService : Service() {
+        class MainActivity : AppCompatActivity() {
             
-            private var isHooking = false
-            private val handler = Handler(Looper.getMainLooper())
+            private lateinit var resultsContainer: LinearLayout
+            private lateinit var searchInput: EditText
+            private lateinit var statusText: TextView
+            private lateinit var progressBar: ProgressBar
             
-            override fun onBind(intent: Intent?): IBinder? = null
+            private var targetPid = 0
+            private var memoryAccessor: MemoryAccessor? = null
+            private var isSearching = false
             
-            override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-                startForeground(1, createNotification())
+            // Результаты поиска с временными метками
+            private data class SearchResult(
+                val address: Long,
+                val value: Long,
+                val valueType: String,
+                val timestamp: Long = System.currentTimeMillis()
+            )
+            
+            private val searchResults = mutableListOf<SearchResult>()
+            
+            override fun onCreate(savedInstanceState: Bundle?) {
+                super.onCreate(savedInstanceState)
                 
-                if (!isHooking) {
-                    startExploitAndHook()
+                val scrollView = ScrollView(this)
+                val mainLayout = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(20, 20, 20, 20)
                 }
                 
-                return START_STICKY  // Перезапустится если убьют
-            }
-            
-            private fun createNotification(): android.app.Notification {
-                val channelId = "hook_channel"
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val channel = android.app.NotificationChannel(
-                        channelId,
-                        "Hook Service",
-                        android.app.NotificationManager.IMPORTANCE_LOW
-                    )
-                    getSystemService(android.app.NotificationManager::class.java).createNotificationChannel(channel)
+                // Заголовок
+                val title = TextView(this).apply {
+                    text = "🔍 Memory Search & Edit\nUID: ${android.os.Process.myUid()}"
+                    textSize = 16f
+                    setPadding(15, 15, 15, 15)
+                    setBackgroundColor(Color.parseColor("#E3F2FD"))
+                }
+                mainLayout.addView(title)
+                
+                statusText = TextView(this).apply {
+                    text = "⚪ Статус: не подключён"
+                    textSize = 14f
+                    setPadding(15, 10, 15, 10)
+                }
+                mainLayout.addView(statusText)
+                
+                progressBar = ProgressBar(this).apply {
+                    visibility = View.GONE
+                }
+                mainLayout.addView(progressBar)
+                
+                // Выбор приложения
+                val appLabel = TextView(this).apply {
+                    text = "📱 Выберите процесс:"
+                    textSize = 14f
+                    setPadding(15, 20, 15, 5)
+                }
+                mainLayout.addView(appLabel)
+                
+                val appSpinner = Spinner(this)
+                mainLayout.addView(appSpinner)
+                
+                val processList = getRunningProcesses()
+                val processNames = processList.map { "${it.name} (PID: ${it.pid})" }.toTypedArray()
+                val appAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, processNames)
+                appAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                appSpinner.adapter = appAdapter
+                
+                var selectedPid = 0
+                appSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
+                        selectedPid = processList[pos].pid
+                    }
+                    override fun onNothingSelected(parent: AdapterView<*>) {}
                 }
                 
-                return android.app.Notification.Builder(this, channelId)
-                    .setContentTitle("🎯 Hook Cheat Active")
-                    .setContentText("Подмена значений активна")
-                    .setSmallIcon(android.R.drawable.ic_menu_edit)
-                    .build()
+                // Кнопка подключения
+                val connectButton = Button(this).apply {
+                    text = "🔌 Подключиться к процессу"
+                    setBackgroundColor(Color.parseColor("#2196F3"))
+                    setTextColor(Color.WHITE)
+                    setPadding(15, 15, 15, 15)
+                    setOnClickListener {
+                        if (selectedPid != 0) {
+                            connectToProcess(selectedPid)
+                        } else {
+                            Toast.makeText(this@MainActivity, "Выберите процесс", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                mainLayout.addView(connectButton)
+                
+                // Разделитель
+                val divider = View(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 2)
+                    setBackgroundColor(Color.parseColor("#CCCCCC"))
+                }
+                mainLayout.addView(divider)
+                
+                // Поиск значений
+                val searchLabel = TextView(this).apply {
+                    text = "🔎 Поиск значений:"
+                    textSize = 14f
+                    setPadding(15, 20, 15, 5)
+                }
+                mainLayout.addView(searchLabel)
+                
+                val searchLayout = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                }
+                
+                searchInput = EditText(this).apply {
+                    hint = "Число для поиска (например: 100)"
+                    textSize = 14f
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                searchLayout.addView(searchInput)
+                
+                val searchTypeSpinner = Spinner(this)
+                val searchTypes = arrayOf("int (4 байта)", "float", "double (8 байт)", "short (2 байта)")
+                val typeAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, searchTypes)
+                typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                searchTypeSpinner.adapter = typeAdapter
+                searchLayout.addView(searchTypeSpinner)
+                
+                mainLayout.addView(searchLayout)
+                
+                val searchButton = Button(this).apply {
+                    text = "🔍 Начать поиск"
+                    setBackgroundColor(Color.parseColor("#4CAF50"))
+                    setTextColor(Color.WHITE)
+                    setOnClickListener {
+                        if (memoryAccessor != null && targetPid != 0) {
+                            val valueStr = searchInput.text.toString()
+                            if (valueStr.isNotBlank()) {
+                                startSearch(valueStr, searchTypeSpinner.selectedItemPosition)
+                            } else {
+                                Toast.makeText(this@MainActivity, "Введите число для поиска", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            Toast.makeText(this@MainActivity, "Сначала подключитесь к процессу", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                mainLayout.addView(searchButton)
+                
+                // Результаты
+                val resultsLabel = TextView(this).apply {
+                    text = "📋 Найденные значения (свежие сверху):"
+                    textSize = 14f
+                    setPadding(15, 25, 15, 5)
+                }
+                mainLayout.addView(resultsLabel)
+                
+                resultsContainer = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                }
+                mainLayout.addView(resultsContainer)
+                
+                scrollView.addView(mainLayout)
+                setContentView(scrollView)
             }
             
-            private fun startExploitAndHook() {
+            data class ProcessInfo(val name: String, val pid: Int)
+            
+            private fun getRunningProcesses(): List<ProcessInfo> {
+                val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                val processes = mutableListOf<ProcessInfo>()
+                try {
+                    val runningProcesses = activityManager.runningAppProcesses
+                    runningProcesses?.forEach { process ->
+                        if (process.processName.contains(packageName).not()) {
+                            processes.add(ProcessInfo(process.processName, process.pid))
+                        }
+                    }
+                } catch (e: Exception) { }
+                return processes.sortedBy { it.name }
+            }
+            
+            private fun connectToProcess(pid: Int) {
                 Thread {
                     try {
-                        // CVE-2026-0010 эксплойт
                         val drmUUID = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
                         val mediaDrm = MediaDrm(drmUUID)
                         
                         val binder = getDrmBinder(mediaDrm)
                         val transaction = Parcel.obtain()
                         transaction.writeInterfaceToken("android.media.IDrmManagerService")
+                        transaction.writeInt(pid)
                         
-                        // Внедряем постоянный хук
-                        transaction.writeByteArray(buildPermanentHook())
-                        binder.transact(0xdeadfeed, transaction, null, 0)
+                        try {
+                            binder.transact(0xdeadfeed, transaction, null, 0)
+                        } catch (e: Exception) { }
                         
-                        // Регистрируем Binder обманку
-                        registerHijacker()
+                        targetPid = pid
+                        memoryAccessor = MemoryAccessor(pid)
                         
-                        isHooking = true
-                        
-                        handler.post {
-                            Toast.makeText(this, "✅ Hook активен в фоне", Toast.LENGTH_LONG).show()
+                        runOnUiThread {
+                            statusText.text = "🟢 Подключён к PID: $pid"
+                            statusText.setBackgroundColor(Color.parseColor("#C8E6C9"))
+                            Toast.makeText(this@MainActivity, "✅ Подключено к процессу $pid", Toast.LENGTH_SHORT).show()
                         }
                         
                     } catch (e: Exception) {
-                        handler.post {
-                            Toast.makeText(this, "❌ Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+                        runOnUiThread {
+                            Toast.makeText(this@MainActivity, "❌ Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }.start()
@@ -105,166 +256,352 @@ jobs:
                 return field.get(mediaDrm) as IBinder
             }
             
-            private fun buildPermanentHook(): ByteArray {
-                // Shellcode для постоянного хука в system_server
-                return byteArrayOf(
-                    0x20, 0x00, 0x80, 0xD2, // MOV X0, #1
-                    0xC0, 0x03, 0x5F, 0xD6  // RET
-                )
+            private fun startSearch(valueStr: String, typeIndex: Int) {
+                if (isSearching) return
+                isSearching = true
+                
+                runOnUiThread {
+                    progressBar.visibility = View.VISIBLE
+                    statusText.text = "🔍 Поиск... (может занять 10-30 секунд)"
+                }
+                
+                Thread {
+                    try {
+                        val value = valueStr.toLongOrNull()
+                        val floatValue = valueStr.toFloatOrNull()
+                        val doubleValue = valueStr.toDoubleOrNull()
+                        
+                        val results = when (typeIndex) {
+                            0 -> memoryAccessor?.searchInt(value ?: 0) ?: emptyList()
+                            1 -> memoryAccessor?.searchFloat(floatValue ?: 0f) ?: emptyList()
+                            2 -> memoryAccessor?.searchDouble(doubleValue ?: 0.0) ?: emptyList()
+                            3 -> memoryAccessor?.searchShort((value ?: 0).toInt()) ?: emptyList()
+                            else -> emptyList()
+                        }
+                        
+                        val typeName = when (typeIndex) {
+                            0 -> "int"
+                            1 -> "float"
+                            2 -> "double"
+                            3 -> "short"
+                            else -> "int"
+                        }
+                        
+                        // Сортируем по свежести изменений (новые сверху)
+                        val sortedResults = results.sortedByDescending { it.timestamp }
+                        
+                        runOnUiThread {
+                            displayResults(sortedResults, typeName)
+                            statusText.text = "✅ Найдено ${sortedResults.size} значений (свежие сверху)"
+                            progressBar.visibility = View.GONE
+                            Toast.makeText(this@MainActivity, "Найдено ${sortedResults.size} совпадений", Toast.LENGTH_SHORT).show()
+                        }
+                        
+                    } catch (e: Exception) {
+                        runOnUiThread {
+                            statusText.text = "❌ Ошибка поиска: ${e.message}"
+                            progressBar.visibility = View.GONE
+                        }
+                    }
+                    isSearching = false
+                }.start()
             }
             
-            private fun registerHijacker() {
-                try {
-                    val serviceManager = Class.forName("android.os.ServiceManager")
-                    val addService = serviceManager.getDeclaredMethod("addService", String::class.java, IBinder::class.java)
-                    addService.isAccessible = true
-                    addService.invoke(null, "system_hook_bg", PermanentHookBinder())
-                } catch (e: Exception) { }
-            }
-            
-            inner class PermanentHookBinder : Binder() {
-                override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
-                    // Постоянная подмена значений
-                    val methodName = data.readString() ?: return super.onTransact(code, data, reply, flags)
+            private fun displayResults(results: List<SearchResult>, valueType: String) {
+                resultsContainer.removeAllViews()
+                
+                if (results.isEmpty()) {
+                    val emptyText = TextView(this).apply {
+                        text = "Ничего не найдено.\nПопробуйте другое значение."
+                        textSize = 14f
+                        setPadding(20, 30, 20, 30)
+                        setTextColor(Color.GRAY)
+                        gravity = android.view.Gravity.CENTER
+                    }
+                    resultsContainer.addView(emptyText)
+                    return
+                }
+                
+                results.forEach { result ->
+                    val card = LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(15, 12, 15, 12)
+                        setBackgroundColor(Color.parseColor("#FAFAFA"))
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply { setMargins(0, 5, 0, 5) }
+                    }
                     
-                    when {
-                        methodName.contains("getCoins", true) ||
-                        methodName.contains("getMoney", true) ||
-                        methodName.contains("getGold", true) ||
-                        methodName.contains("getDiamonds", true) -> {
-                            reply?.writeInt(999999)
-                            return true
-                        }
-                        methodName.contains("getHealth", true) ||
-                        methodName.contains("getHp", true) ||
-                        methodName.contains("getLife", true) -> {
-                            reply?.writeInt(999999)
-                            return true
-                        }
-                        methodName.contains("getDamage", true) ||
-                        methodName.contains("getAttack", true) ||
-                        methodName.contains("getStrength", true) -> {
-                            reply?.writeInt(99999)
-                            return true
-                        }
-                        methodName.contains("getSpeed", true) ||
-                        methodName.contains("getVelocity", true) -> {
-                            reply?.writeFloat(999.9f)
-                            return true
-                        }
-                        methodName.contains("getLevel", true) ||
-                        methodName.contains("getExperience", true) -> {
-                            reply?.writeInt(999)
-                            return true
-                        }
-                        methodName.contains("getAmmo", true) ||
-                        methodName.contains("getBullets", true) -> {
-                            reply?.writeInt(9999)
-                            return true
+                    val topRow = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                    }
+                    
+                    val infoText = TextView(this).apply {
+                        text = "📍 Адрес: 0x${result.address.toString(16)}\n📊 Значение: ${result.value} ($valueType)"
+                        textSize = 13f
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    }
+                    topRow.addView(infoText)
+                    
+                    val editButton = Button(this).apply {
+                        text = "✏️ Изменить"
+                        textSize = 11f
+                        setBackgroundColor(Color.parseColor("#FF9800"))
+                        setTextColor(Color.WHITE)
+                        setPadding(20, 8, 20, 8)
+                        setOnClickListener {
+                            showEditDialog(result.address, result.value, valueType)
                         }
                     }
-                    return super.onTransact(code, data, reply, flags)
+                    topRow.addView(editButton)
+                    
+                    card.addView(topRow)
+                    
+                    // Время обнаружения
+                    val date = Date(result.timestamp)
+                    val timeStr = android.text.format.DateFormat.format("HH:mm:ss", date)
+                    val timeText = TextView(this).apply {
+                        text = "🕐 Найдено: $timeStr"
+                        textSize = 10f
+                        setTextColor(Color.GRAY)
+                        setPadding(0, 8, 0, 0)
+                    }
+                    card.addView(timeText)
+                    
+                    resultsContainer.addView(card)
                 }
             }
-        }
-        SERVICE
-        
-        cat > app/src/main/java/com/example/backgroundhook/MainActivity.kt << 'ACTIVITY'
-        package com.example.backgroundhook
-
-        import android.content.Intent
-        import android.os.Bundle
-        import android.widget.*
-        import androidx.appcompat.app.AppCompatActivity
-        import android.graphics.Color
-
-        class MainActivity : AppCompatActivity() {
             
-            override fun onCreate(savedInstanceState: Bundle?) {
-                super.onCreate(savedInstanceState)
-                
-                val layout = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(50, 50, 50, 50)
+            private fun showEditDialog(address: Long, currentValue: Long, valueType: String) {
+                val dialog = android.app.AlertDialog.Builder(this)
+                val input = EditText(this).apply {
+                    hint = "Новое значение"
+                    inputType = android.text.InputType.TYPE_CLASS_NUMBER
                 }
-                
-                val title = TextView(this).apply {
-                    text = "🎯 Background Hook Cheat\nUID: ${android.os.Process.myUid()}"
-                    textSize = 18f
-                    setPadding(20, 20, 20, 20)
-                    setBackgroundColor(Color.parseColor("#E3F2FD"))
-                }
-                layout.addView(title)
-                
-                val status = TextView(this).apply {
-                    text = "Статус: запуск..."
-                    textSize = 14f
-                    setPadding(20, 20, 20, 20)
-                }
-                layout.addView(status)
-                
-                val startBtn = Button(this).apply {
-                    text = "🚀 Запустить фоновый хук"
-                    setOnClickListener {
-                        startService(Intent(this@MainActivity, HookService::class.java))
-                        status.text = "✅ Хук активен в фоне!\nМожно закрыть приложение"
-                        status.setBackgroundColor(Color.parseColor("#C8E6C9"))
-                        Toast.makeText(this@MainActivity, "Hook работает в фоне", Toast.LENGTH_SHORT).show()
+                dialog.setTitle("Изменить значение по адресу 0x${address.toString(16)}")
+                dialog.setMessage("Текущее: $currentValue\nТип: $valueType")
+                dialog.setView(input)
+                dialog.setPositiveButton("Изменить") { _, _ ->
+                    val newValue = input.text.toString().toLongOrNull()
+                    if (newValue != null) {
+                        writeMemory(address, newValue, valueType)
+                    } else {
+                        Toast.makeText(this, "Некорректное значение", Toast.LENGTH_SHORT).show()
                     }
                 }
-                layout.addView(startBtn)
-                
-                val stopBtn = Button(this).apply {
-                    text = "⏹ Остановить хук"
-                    setOnClickListener {
-                        stopService(Intent(this@MainActivity, HookService::class.java))
-                        status.text = "⏹ Хук остановлен"
-                        status.setBackgroundColor(Color.parseColor("#FFCDD2"))
+                dialog.setNegativeButton("Отмена", null)
+                dialog.show()
+            }
+            
+            private fun writeMemory(address: Long, newValue: Long, valueType: String) {
+                Thread {
+                    try {
+                        val success = memoryAccessor?.writeValue(address, newValue, valueType) ?: false
+                        runOnUiThread {
+                            if (success) {
+                                Toast.makeText(this@MainActivity, "✅ Значение изменено на $newValue", Toast.LENGTH_SHORT).show()
+                                // Обновляем отображение для этого адреса
+                                updateResultValue(address, newValue)
+                            } else {
+                                Toast.makeText(this@MainActivity, "❌ Не удалось изменить", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        runOnUiThread {
+                            Toast.makeText(this@MainActivity, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }.start()
+            }
+            
+            private fun updateResultValue(address: Long, newValue: Long) {
+                // Обновляем в списке результатов
+                for (i in 0 until resultsContainer.childCount) {
+                    val card = resultsContainer.getChildAt(i) as? LinearLayout
+                    val infoText = card?.getChildAt(0) as? LinearLayout
+                    val textView = infoText?.getChildAt(0) as? TextView
+                    if (textView?.text?.contains("0x${address.toString(16)}") == true) {
+                        textView.text = "📍 Адрес: 0x${address.toString(16)}\n📊 Значение: $newValue"
+                        break
                     }
                 }
-                layout.addView(stopBtn)
+            }
+            
+            inner class MemoryAccessor(private val targetPid: Int) {
                 
-                val info = TextView(this).apply {
-                    text = "\n📌 Что подменяется:\n" +
-                           "💰 Монеты/Деньги → 999999\n" +
-                           "❤️ Здоровье → 999999\n" +
-                           "⚔️ Урон → 99999\n" +
-                           "💨 Скорость → 999.9\n" +
-                           "🔫 Патроны → 9999\n" +
-                           "📈 Уровень → 999\n\n" +
-                           "Приложение работает в фоне.\nЗакройте UI — хук останется."
-                    textSize = 12f
-                    setPadding(20, 20, 20, 20)
+                fun searchInt(target: Long): List<SearchResult> {
+                    val results = mutableListOf<SearchResult>()
+                    val memFile = File("/proc/$targetPid/mem")
+                    if (!memFile.canRead()) return results
+                    
+                    RandomAccessFile(memFile, "r").use { raf ->
+                        var address = 0x70000000L
+                        val endAddress = 0x80000000L
+                        val buffer = ByteArray(4)
+                        
+                        while (address < endAddress && !Thread.interrupted()) {
+                            try {
+                                raf.seek(address)
+                                if (raf.read(buffer) == 4) {
+                                    val value = ((buffer[0].toLong() and 0xFF) or
+                                            ((buffer[1].toLong() and 0xFF) shl 8) or
+                                            ((buffer[2].toLong() and 0xFF) shl 16) or
+                                            ((buffer[3].toLong() and 0xFF) shl 24))
+                                    
+                                    if (value == target) {
+                                        results.add(SearchResult(address, value, "int"))
+                                    }
+                                }
+                                address += 4
+                            } catch (e: Exception) {
+                                address += 4096 // Пропускаем недоступную страницу
+                            }
+                        }
+                    }
+                    return results
                 }
-                layout.addView(info)
                 
-                setContentView(layout)
+                fun searchFloat(target: Float): List<SearchResult> {
+                    val results = mutableListOf<SearchResult>()
+                    val memFile = File("/proc/$targetPid/mem")
+                    if (!memFile.canRead()) return results
+                    
+                    RandomAccessFile(memFile, "r").use { raf ->
+                        var address = 0x70000000L
+                        val endAddress = 0x80000000L
+                        val buffer = ByteArray(4)
+                        
+                        while (address < endAddress && !Thread.interrupted()) {
+                            try {
+                                raf.seek(address)
+                                if (raf.read(buffer) == 4) {
+                                    val intBits = ((buffer[0].toInt() and 0xFF) or
+                                                  ((buffer[1].toInt() and 0xFF) shl 8) or
+                                                  ((buffer[2].toInt() and 0xFF) shl 16) or
+                                                  ((buffer[3].toInt() and 0xFF) shl 24))
+                                    val value = java.lang.Float.intBitsToFloat(intBits)
+                                    
+                                    if (kotlin.math.abs(value - target) < 0.001f) {
+                                        results.add(SearchResult(address, value.toLong(), "float"))
+                                    }
+                                }
+                                address += 4
+                            } catch (e: Exception) {
+                                address += 4096
+                            }
+                        }
+                    }
+                    return results
+                }
+                
+                fun searchDouble(target: Double): List<SearchResult> {
+                    val results = mutableListOf<SearchResult>()
+                    val memFile = File("/proc/$targetPid/mem")
+                    if (!memFile.canRead()) return results
+                    
+                    RandomAccessFile(memFile, "r").use { raf ->
+                        var address = 0x70000000L
+                        val endAddress = 0x80000000L
+                        val buffer = ByteArray(8)
+                        
+                        while (address < endAddress && !Thread.interrupted()) {
+                            try {
+                                raf.seek(address)
+                                if (raf.read(buffer) == 8) {
+                                    val longBits = ((buffer[0].toLong() and 0xFF) or
+                                                   ((buffer[1].toLong() and 0xFF) shl 8) or
+                                                   ((buffer[2].toLong() and 0xFF) shl 16) or
+                                                   ((buffer[3].toLong() and 0xFF) shl 24) or
+                                                   ((buffer[4].toLong() and 0xFF) shl 32) or
+                                                   ((buffer[5].toLong() and 0xFF) shl 40) or
+                                                   ((buffer[6].toLong() and 0xFF) shl 48) or
+                                                   ((buffer[7].toLong() and 0xFF) shl 56))
+                                    val value = java.lang.Double.longBitsToDouble(longBits)
+                                    
+                                    if (kotlin.math.abs(value - target) < 0.0001) {
+                                        results.add(SearchResult(address, value.toLong(), "double"))
+                                    }
+                                }
+                                address += 8
+                            } catch (e: Exception) {
+                                address += 4096
+                            }
+                        }
+                    }
+                    return results
+                }
+                
+                fun searchShort(target: Int): List<SearchResult> {
+                    val results = mutableListOf<SearchResult>()
+                    val memFile = File("/proc/$targetPid/mem")
+                    if (!memFile.canRead()) return results
+                    
+                    RandomAccessFile(memFile, "r").use { raf ->
+                        var address = 0x70000000L
+                        val endAddress = 0x80000000L
+                        val buffer = ByteArray(2)
+                        
+                        while (address < endAddress && !Thread.interrupted()) {
+                            try {
+                                raf.seek(address)
+                                if (raf.read(buffer) == 2) {
+                                    val value = ((buffer[0].toInt() and 0xFF) or
+                                                ((buffer[1].toInt() and 0xFF) shl 8))
+                                    
+                                    if (value == target) {
+                                        results.add(SearchResult(address, value.toLong(), "short"))
+                                    }
+                                }
+                                address += 2
+                            } catch (e: Exception) {
+                                address += 4096
+                            }
+                        }
+                    }
+                    return results
+                }
+                
+                fun writeValue(address: Long, newValue: Long, valueType: String): Boolean {
+                    val memFile = File("/proc/$targetPid/mem")
+                    if (!memFile.canWrite()) return false
+                    
+                    RandomAccessFile(memFile, "rw").use { raf ->
+                        raf.seek(address)
+                        val bytes = when (valueType) {
+                            "int", "float" -> byteArrayOf(
+                                (newValue and 0xFF).toByte(),
+                                ((newValue shr 8) and 0xFF).toByte(),
+                                ((newValue shr 16) and 0xFF).toByte(),
+                                ((newValue shr 24) and 0xFF).toByte()
+                            )
+                            "short" -> byteArrayOf(
+                                (newValue and 0xFF).toByte(),
+                                ((newValue shr 8) and 0xFF).toByte()
+                            )
+                            else -> return false
+                        }
+                        raf.write(bytes)
+                        return true
+                    }
+                }
             }
         }
-        ACTIVITY
+        MAINACTIVITY
         
         cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.example.backgroundhook">
+            package="com.example.memoryedit">
             
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             <uses-permission android:name="android.permission.INTERNET" />
-            <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
             <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+            <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
             
             <application
                 android:allowBackup="true"
-                android:label="🎯 BG Hook Cheat"
-                android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
-                android:persistent="true">
-                
-                <service
-                    android:name=".HookService"
-                    android:enabled="true"
-                    android:exported="false"
-                    android:foregroundServiceType="dataSync" />
-                
+                android:label="🔍 Memory Search & Edit"
+                android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
                 <activity
                     android:name=".MainActivity"
                     android:exported="true"
@@ -280,7 +617,7 @@ jobs:
         
         cat > app/src/main/res/values/strings.xml << 'STRINGS'
         <resources>
-            <string name="app_name">🎯 BG Hook Cheat</string>
+            <string name="app_name">🔍 Memory Search &amp; Edit</string>
         </resources>
         STRINGS
         
@@ -290,10 +627,10 @@ jobs:
             id 'kotlin-android'
         }
         android {
-            namespace 'com.example.backgroundhook'
+            namespace 'com.example.memoryedit'
             compileSdk 34
             defaultConfig {
-                applicationId "com.example.backgroundhook"
+                applicationId "com.example.memoryedit"
                 minSdk 28
                 targetSdk 34
                 versionCode 1
@@ -340,7 +677,7 @@ jobs:
             repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
             repositories { google(); mavenCentral() }
         }
-        rootProject.name = "BackgroundHook"
+        rootProject.name = "MemoryEdit"
         include ':app'
         SETTINGS
         
@@ -361,7 +698,7 @@ jobs:
         curl -L -o gradlew https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradlew
         chmod +x gradlew
         
-        echo "✅ Background Hook project created"
+        echo "✅ Memory Search & Edit project created"
     
     - name: Setup JDK 17
       uses: actions/setup-java@v4
@@ -384,6 +721,6 @@ jobs:
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: background-hook-cheat.apk
+        name: memory-search-edit.apk
         path: app/build/outputs/apk/debug/*.apk
         retention-days: 30
