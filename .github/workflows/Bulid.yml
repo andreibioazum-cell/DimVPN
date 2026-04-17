@@ -1,4 +1,4 @@
-name: Enjoer_Build_v1.0
+name: Enjoer_v1.0_Full_Engine
 on: [push, workflow_dispatch]
 
 jobs:
@@ -50,6 +50,14 @@ jobs:
           </shape>
           EOF
 
+          cat <<EOF > app/src/main/res/drawable/btn_red.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <corners android:radius="12dp"/>
+            <solid android:color="#101820"/>
+            <stroke android:width="2dp" android:color="#FF4444"/>
+          </shape>
+          EOF
+
           cat <<EOF > app/src/main/res/drawable/btn_green.xml
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
@@ -70,20 +78,18 @@ jobs:
           </shape>
           EOF
 
+          cat <<EOF > app/src/main/res/drawable/panel_bg.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <corners android:radius="8dp"/>
+            <solid android:color="#E6101820"/>
+            <stroke android:width="1dp" android:color="#00BFFF"/>
+          </shape>
+          EOF
+
           cat <<EOF > app/src/main/res/drawable/crosshair.xml
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-            <item>
-              <shape android:shape="oval">
-                <size android:width="20dp" android:height="20dp"/>
-                <stroke android:width="2dp" android:color="#8000BFFF"/>
-              </shape>
-            </item>
-            <item android:gravity="center">
-              <shape android:shape="oval">
-                <size android:width="4dp" android:height="4dp"/>
-                <solid android:color="#FF00BFFF"/>
-              </shape>
-            </item>
+            <item><shape android:shape="oval"><size android:width="20dp" android:height="20dp"/><stroke android:width="2dp" android:color="#8000BFFF"/></shape></item>
+            <item android:gravity="center"><shape android:shape="oval"><size android:width="4dp" android:height="4dp"/><solid android:color="#FF00BFFF"/></shape></item>
           </layer-list>
           EOF
 
@@ -93,25 +99,62 @@ jobs:
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               android:background="#02050A">
-              <android.opengl.GLSurfaceView android:id="@+id/gl_view" android:layout_width="match_parent" android:layout_height="match_parent"/>
-              <RelativeLayout android:id="@+id/game_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
+
+              <android.opengl.GLSurfaceView
+                  android:id="@+id/gl_view"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"/>
+
+              <!-- Game UI -->
+              <RelativeLayout
+                  android:id="@+id/game_ui"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:visibility="gone">
                   <View android:id="@+id/look_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
                   <Button android:id="@+id/btn_menu" android:layout_width="50dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="≡" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
                   <FrameLayout android:id="@+id/joy_base" android:layout_width="126dp" android:layout_height="126dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="36dp" android:layout_marginBottom="36dp" android:background="@drawable/joy_base"/>
                   <View android:id="@+id/joy_stick" android:layout_width="54dp" android:layout_height="54dp" android:layout_alignLeft="@id/joy_base" android:layout_alignTop="@id/joy_base" android:layout_marginLeft="36dp" android:layout_marginTop="36dp" android:background="@drawable/joy_stick"/>
-                  <Button android:id="@+id/btn_jump" android:layout_width="85dp" android:layout_height="85dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="40dp" android:layout_marginBottom="40dp" android:text="▲" android:textSize="25sp" android:background="@drawable/btn_blue" android:textColor="#FFF"/>
+                  <Button android:id="@+id/btn_jump" android:layout_width="90dp" android:layout_height="90dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="40dp" android:layout_marginBottom="40dp" android:text="▲" android:textSize="28sp" android:background="@drawable/btn_blue" android:textColor="#FFF"/>
                   <View android:layout_width="22dp" android:layout_height="22dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
               </RelativeLayout>
-              <RelativeLayout android:id="@+id/engine_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
+
+              <!-- Engine UI -->
+              <RelativeLayout
+                  android:id="@+id/engine_ui"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:visibility="gone">
                   <View android:id="@+id/engine_look" android:layout_width="match_parent" android:layout_height="match_parent"/>
                   <Button android:id="@+id/btn_engine_menu" android:layout_width="50dp" android:layout_height="50dp" android:text="≡" android:layout_margin="10dp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
-                  <Button android:id="@+id/btn_place" android:layout_width="100dp" android:layout_height="50dp" android:text="PLACE" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_margin="20dp" android:background="@drawable/btn_blue_filled"/>
-                  <Button android:id="@+id/btn_playtest" android:layout_width="50dp" android:layout_height="50dp" android:text="▶" android:layout_toLeftOf="@id/btn_place" android:layout_alignParentBottom="true" android:layout_margin="20dp" android:background="@drawable/btn_green"/>
+                  
+                  <ScrollView android:layout_width="180dp" android:layout_height="match_parent" android:layout_alignParentRight="true" android:layout_marginTop="60dp" android:layout_marginRight="10dp">
+                      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/panel_bg" android:padding="10dp">
+                          <TextView android:id="@+id/txt_info" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Size: 4x4x4" android:textColor="#FFF"/>
+                          <Button android:id="@+id/btn_x_plus" android:layout_width="match_parent" android:layout_height="35dp" android:text="X+" android:layout_marginTop="5dp"/>
+                          <Button android:id="@+id/btn_y_plus" android:layout_width="match_parent" android:layout_height="35dp" android:text="Y+" android:layout_marginTop="2dp"/>
+                          <Button android:id="@+id/btn_z_plus" android:layout_width="match_parent" android:layout_height="35dp" android:text="Z+" android:layout_marginTop="2dp"/>
+                          <Button android:id="@+id/btn_script" android:layout_width="match_parent" android:layout_height="40dp" android:text="SCRIPT" android:layout_marginTop="10dp" android:background="@drawable/btn_blue"/>
+                          <Button android:id="@+id/btn_place" android:layout_width="match_parent" android:layout_height="50dp" android:text="PLACE" android:layout_marginTop="10dp" android:background="@drawable/btn_blue_filled"/>
+                          <Button android:id="@+id/btn_del" android:layout_width="match_parent" android:layout_height="40dp" android:text="DELETE" android:layout_marginTop="5dp" android:visibility="gone" android:background="@drawable/btn_red"/>
+                      </LinearLayout>
+                  </ScrollView>
+                  
+                  <Button android:id="@+id/btn_playtest" android:layout_width="60dp" android:layout_height="60dp" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="20dp" android:text="▶" android:background="@drawable/btn_green"/>
               </RelativeLayout>
-              <LinearLayout android:id="@+id/menu_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#02050A">
-                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ENJOER" android:textSize="50sp" android:textColor="#00BFFF" android:textStyle="bold"/>
-                  <Button android:id="@+id/btn_start_game" android:layout_width="200dp" android:layout_height="60dp" android:text="PLAY" android:layout_marginTop="20dp" android:background="@drawable/btn_blue_filled"/>
-                  <Button android:id="@+id/btn_start_engine" android:layout_width="200dp" android:layout_height="60dp" android:text="EDITOR" android:layout_marginTop="10dp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+
+              <!-- Menu UI -->
+              <LinearLayout
+                  android:id="@+id/menu_ui"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:orientation="vertical"
+                  android:gravity="center"
+                  android:background="#02050A">
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ENJOER" android:textSize="60sp" android:textColor="#00BFFF" android:textStyle="bold"/>
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="v1.0 Pro Engine" android:textColor="#0088CC" android:layout_marginBottom="40dp"/>
+                  <Button android:id="@+id/btn_start_game" android:layout_width="220dp" android:layout_height="60dp" android:text="PLAY GAME" android:background="@drawable/btn_blue_filled"/>
+                  <Button android:id="@+id/btn_start_engine" android:layout_width="220dp" android:layout_height="60dp" android:text="EDITOR" android:layout_marginTop="15dp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
               </LinearLayout>
           </FrameLayout>
           LAYOUT
@@ -120,6 +163,7 @@ jobs:
           package com.enjoer.game;
           public class Block {
               public float x, y, z, sx, sy, sz, r, g, b;
+              public String script = "";
               public Block(float x, float y, float z, float sx, float sy, float sz, float r, float g, float b) {
                   this.x=x; this.y=y; this.z=z; this.sx=sx; this.sy=sy; this.sz=sz; this.r=r; this.g=g; this.b=b;
               }
@@ -129,8 +173,36 @@ jobs:
           }
           EOF
 
+          cat <<'SCRIPT' > app/src/main/java/com/enjoer/game/ScriptEngine.java
+          package com.enjoer.game;
+          import android.widget.Toast;
+
+          public class ScriptEngine {
+              public static void run(MainActivity activity, String code) {
+                  if(code == null || code.isEmpty()) return;
+                  String[] lines = code.split("\n");
+                  GameRenderer ren = activity.renderer();
+                  for(String line : lines) {
+                      line = line.trim();
+                      try {
+                          if(line.equals("player.jump")) ren.vY = 0.55f;
+                          if(line.startsWith("player.speed(")) {
+                              float s = Float.parseFloat(line.substring(13, line.length()-1));
+                              // логика изменения скорости
+                          }
+                          if(line.startsWith("phone.toast(")) {
+                              String m = line.substring(12, line.length()-2);
+                              activity.runOnUiThread(() -> Toast.makeText(activity, m, Toast.LENGTH_SHORT).show());
+                          }
+                      } catch (Exception ignored) {}
+                  }
+              }
+          }
+          SCRIPT
+
           cat <<'RENDERER' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
+
           import android.opengl.GLES30;
           import android.opengl.GLSurfaceView;
           import android.opengl.Matrix;
@@ -146,16 +218,17 @@ jobs:
               private int prog, skyProg;
               private FloatBuffer vBuf, skyBuf;
               public CopyOnWriteArrayList<Block> blocks = new CopyOnWriteArrayList<>();
-              private static final float PLAYER_HEIGHT=5.4f, PLAYER_RADIUS=1.0f;
+              
+              private static final float PLAYER_HEIGHT=5.5f, PLAYER_RADIUS=1.0f;
               private float charRot=0, walkPhase=0, lastTime=0;
 
               @Override public void onSurfaceCreated(GL10 gl, EGLConfig cfg) {
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
-                  String vs="precision highp float;layout(location=0)in vec4 aP;uniform mat4 uMVP,uM;out vec3 vP;void main(){vP=vec3(uM*aP);gl_Position=uMVP*aP;}";
-                  String fs="precision highp float;in vec3 vP;uniform vec3 camP;uniform vec4 uC;uniform float isF;out vec4 fC;void main(){vec3 vD=normalize(camP-vP);float l=dot(vD,vec3(0,1,0))*0.5+0.5;vec3 c=uC.rgb*l;if(isF>0.5){vec2 g=fract(vP.xz*0.2);if(g.x>0.95||g.y>0.95)c=vec3(0,0.4,0.8);}fC=vec4(c,1.0);}";
+                  String vs="#version 300 es\nlayout(location=0)in vec4 aP;uniform mat4 uMVP,uM;out vec3 vP;void main(){vP=vec3(uM*aP);gl_Position=uMVP*aP;}";
+                  String fs="#version 300 es\nprecision highp float;in vec3 vP;uniform vec3 camP;uniform vec4 uC;uniform float isF;out vec4 fC;void main(){vec3 vD=normalize(camP-vP);float l=dot(vD,vec3(0.4,1,0.2))*0.5+0.6;vec3 c=uC.rgb*l;if(isF>0.5){vec2 g=fract(vP.xz*0.2);if(g.x>0.96||g.y>0.96)c=vec3(0,0.5,1);}fC=vec4(c,1.0);}";
                   prog=mkProg(vs,fs);
-                  String svs="precision highp float;layout(location=0)in vec3 aP;out vec3 vD;void main(){vD=aP;gl_Position=vec4(aP,1.0);}";
-                  String sfs="precision highp float;in vec3 vD;out vec4 fC;float h(vec3 p){return fract(sin(dot(p,vec3(12.9,78.2,45.3)))*43758.5);}void main(){vec3 d=normalize(vD);float s=step(0.997,h(d*120.0));fC=vec4(mix(vec3(0,0.01,0.05),vec3(1),s),1.0);}";
+                  String svs="#version 300 es\nlayout(location=0)in vec3 aP;out vec3 vD;void main(){vD=aP;gl_Position=vec4(aP,1.0);}";
+                  String sfs="#version 300 es\nprecision highp float;in vec3 vD;out vec4 fC;float h(vec3 p){return fract(sin(dot(p,vec3(12.9,78.2,45.3)))*43758.5);}void main(){vec3 d=normalize(vD);float s=step(0.997,h(d*150.0));fC=vec4(mix(vec3(0.005,0.01,0.04),vec3(1),s),1.0);}";
                   skyProg=mkProg(svs,sfs);
                   float[] vc={-.5f,.5f,.5f, -.5f,-.5f,.5f, .5f,.5f,.5f, .5f,-.5f,.5f, -.5f,.5f,-.5f, -.5f,-.5f,-.5f, .5f,.5f,-.5f, .5f,-.5f,-.5f, -.5f,.5f,-.5f, -.5f,.5f,.5f, .5f,.5f,-.5f, .5f,.5f,.5f, -.5f,-.5f,-.5f, -.5f,-.5f,.5f, .5f,-.5f,-.5f, .5f,-.5f,.5f, -.5f,.5f,-.5f, -.5f,-.5f,-.5f, -.5f,.5f,.5f, -.5f,-.5f,.5f, .5f,.5f,-.5f, .5f,-.5f,-.5f, .5f,.5f,.5f, .5f,-.5f,.5f};
                   vBuf=ByteBuffer.allocateDirect(vc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vc); vBuf.position(0);
@@ -171,25 +244,29 @@ jobs:
                   if(isEngineMode && !isPlaying){
                       Matrix.setLookAtM(view,0, pX,pY,pZ, pX+(float)(Math.sin(ry)*Math.cos(rx)), pY+(float)Math.sin(rx), pZ-(float)(Math.cos(ry)*Math.cos(rx)), 0,1,0);
                   } else {
-                      float dist = 16.0f;
+                      float dist = 17.0f;
                       float cx = pX - (float)(Math.sin(ry)*Math.cos(rx)) * dist;
-                      float cy = pY - (float)Math.sin(rx) * dist + 2.5f;
+                      float cy = pY - (float)Math.sin(rx) * dist + 3.0f;
                       float cz = pZ + (float)(Math.cos(ry)*Math.cos(rx)) * dist;
-                      cy = Math.max(1.5f, cy);
-                      Matrix.setLookAtM(view,0, cx,cy,cz, pX,pY,pZ, 0,1,0);
+                      cy = Math.max(1.2f, cy); 
+                      Matrix.setLookAtM(view,0, cx,cy,cz, pX,pY-0.5f,pZ, 0,1,0);
                   }
                   Matrix.multiplyMM(vp,0,proj,0,view,0);
+
                   GLES30.glDisable(GLES30.GL_DEPTH_TEST);
                   GLES30.glUseProgram(skyProg);
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,skyBuf); GLES30.glEnableVertexAttribArray(0);
                   GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,0,4);
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
+
                   GLES30.glUseProgram(prog);
                   int uM=GLES30.glGetUniformLocation(prog,"uM"), uMVP=GLES30.glGetUniformLocation(prog,"uMVP"), uC=GLES30.glGetUniformLocation(prog,"uC"), isF=GLES30.glGetUniformLocation(prog,"isF");
                   GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"camP"),pX,pY,pZ);
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf); GLES30.glEnableVertexAttribArray(0);
+
                   Matrix.setIdentityM(model,0); Matrix.translateM(model,0,0,-0.1f,0); Matrix.scaleM(model,0,1000,0.2f,1000);
-                  GLES30.glUniform1f(isF, 1); draw(uM,uMVP,uC,0.1f,0.1f,0.15f); GLES30.glUniform1f(isF, 0);
+                  GLES30.glUniform1f(isF, 1); draw(uM,uMVP,uC,0.08f,0.1f,0.15f); GLES30.glUniform1f(isF, 0);
+
                   for(Block b : blocks){
                       Matrix.setIdentityM(model,0); Matrix.translateM(model,0,b.x,b.y,b.z); Matrix.scaleM(model,0,b.sx,b.sy,b.sz);
                       draw(uM,uMVP,uC,b.r,b.g,b.b);
@@ -200,15 +277,17 @@ jobs:
               private void update(){
                   long time=System.nanoTime(); if(lastTime==0) lastTime=time;
                   float dt=(time-lastTime)/1e9f; lastTime=time;
-                  if(dt>0.1f) dt=0.1f;
+                  if(dt>0.08f) dt=0.08f;
+
                   float ry=(float)Math.toRadians(rY);
-                  float speed = (isEngineMode?25f:18f) * dt;
+                  float speed = (isEngineMode?28f:20f) * dt;
                   float mx = (float)(Math.sin(ry)*jY + Math.cos(ry)*jX) * speed;
                   float mz = (float)(-Math.cos(ry)*jY + Math.sin(ry)*jX) * speed;
+
                   if(isEngineMode && !isPlaying){
                       pX+=mx; pZ+=mz; pY+=(float)Math.sin(Math.toRadians(rX))*jY*speed;
                   } else {
-                      vY -= 1.4f * dt; pY += vY;
+                      vY -= 1.6f * dt; pY += vY;
                       if(pY-PLAYER_HEIGHT < 0){ pY=PLAYER_HEIGHT; vY=0; }
                       for(Block b : blocks){
                           if(pX+PLAYER_RADIUS>b.minX() && pX-PLAYER_RADIUS<b.maxX() && pZ+PLAYER_RADIUS>b.minZ() && pZ-PLAYER_RADIUS<b.maxZ()){
@@ -218,7 +297,7 @@ jobs:
                       pX+=mx; pZ+=mz;
                       if(Math.abs(jX)>0.1f || Math.abs(jY)>0.1f){
                           charRot = (float)Math.toDegrees(Math.atan2(mx, mz));
-                          walkPhase += dt * 10f;
+                          walkPhase += dt * 12f;
                       }
                   }
               }
@@ -226,19 +305,24 @@ jobs:
               private void drawPlayer(int uM, int uMVP, int uC){
                   float fy = pY - PLAYER_HEIGHT;
                   float s = (float)Math.sin(walkPhase);
-                  float armA = (vY == 0) ? s*40f : -150f;
-                  Matrix.setIdentityM(model,0); Matrix.translateM(model,0,pX,fy+2.6f,pZ); Matrix.rotateM(model,0,charRot,0,1,0); Matrix.scaleM(model,0,1.4f,2.0f,0.8f);
-                  draw(uM,uMVP,uC, 0.1f, 0.5f, 0.9f);
-                  Matrix.setIdentityM(model,0); Matrix.translateM(model,0,pX,fy+4.2f,pZ); Matrix.rotateM(model,0,charRot,0,1,0); Matrix.scaleM(model,0, 1.1f,1.1f,1.1f);
-                  draw(uM,uMVP,uC, 1, 0.8f, 0.2f);
+                  float armA = (vY == 0) ? s*45f : -155f; // Руки вверх в прыжке
+
+                  // Torso
+                  Matrix.setIdentityM(model,0); Matrix.translateM(model,0,pX,fy+2.7f,pZ); Matrix.rotateM(model,0,charRot,0,1,0); Matrix.scaleM(model,0,1.5f,2.1f,0.9f);
+                  draw(uM,uMVP,uC, 0.1f, 0.5f, 1.0f);
+                  // Head
+                  Matrix.setIdentityM(model,0); Matrix.translateM(model,0,pX,fy+4.3f,pZ); Matrix.rotateM(model,0,charRot,0,1,0); Matrix.scaleM(model,0, 1.2f,1.2f,1.2f);
+                  draw(uM,uMVP,uC, 1, 0.9f, 0.2f);
+                  // Arms
                   for(int i : new int[]{-1, 1}){
-                      Matrix.setIdentityM(model,0); Matrix.translateM(model,0,pX,fy+3.4f,pZ); Matrix.rotateM(model,0,charRot,0,1,0);
-                      Matrix.translateM(model,0,i*1.1f,0,0); Matrix.rotateM(model,0,i*armA,1,0,0); Matrix.translateM(model,0,0,-0.7f,0); Matrix.scaleM(model,0,0.6f,1.4f,0.6f);
-                      draw(uM,uMVP,uC, 1, 0.8f, 0.2f);
+                      Matrix.setIdentityM(model,0); Matrix.translateM(model,0,pX,fy+3.5f,pZ); Matrix.rotateM(model,0,charRot,0,1,0);
+                      Matrix.translateM(model,0,i*1.2f,0,0); Matrix.rotateM(model,0,i*armA,1,0,0); Matrix.translateM(model,0,0,-0.7f,0); Matrix.scaleM(model,0,0.65f,1.5f,0.65f);
+                      draw(uM,uMVP,uC, 1, 0.9f, 0.2f);
                   }
+                  // Legs
                   for(int i : new int[]{-1, 1}){
                       Matrix.setIdentityM(model,0); Matrix.translateM(model,0,pX,fy+1.2f,pZ); Matrix.rotateM(model,0,charRot,0,1,0);
-                      Matrix.translateM(model,0,i*0.4f,0,0); Matrix.rotateM(model,0,-i*s*40f,1,0,0); Matrix.translateM(model,0,0,-0.6f,0); Matrix.scaleM(model,0,0.7f,1.2f,0.7f);
+                      Matrix.translateM(model,0,i*0.45f,0,0); Matrix.rotateM(model,0,-i*s*45f,1,0,0); Matrix.translateM(model,0,0,-0.6f,0); Matrix.scaleM(model,0,0.75f,1.2f,0.75f);
                       draw(uM,uMVP,uC, 0.1f, 0.8f, 0.2f);
                   }
               }
@@ -258,6 +342,7 @@ jobs:
           cat <<'MAIN' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
           import android.app.Activity;
+          import android.app.AlertDialog;
           import android.os.Bundle;
           import android.view.*;
           import android.widget.*;
@@ -266,23 +351,53 @@ jobs:
               private GameRenderer ren;
               private float lx, ly;
               private View menuUI, gameUI, engineUI;
+              private TextView txtInfo;
+              private float curSX=4, curSY=4, curSZ=4;
+
+              public GameRenderer renderer() { return ren; }
+
               @Override protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   setContentView(R.layout.activity_main);
                   android.opengl.GLSurfaceView gv = findViewById(R.id.gl_view);
                   gv.setEGLContextClientVersion(3); ren = new GameRenderer(); gv.setRenderer(ren);
+
                   menuUI = findViewById(R.id.menu_ui); gameUI = findViewById(R.id.game_ui); engineUI = findViewById(R.id.engine_ui);
-                  findViewById(R.id.btn_start_game).setOnClickListener(v -> { menuUI.setVisibility(View.GONE); gameUI.setVisibility(View.VISIBLE); });
+                  txtInfo = findViewById(R.id.txt_info);
+
+                  findViewById(R.id.btn_start_game).setOnClickListener(v -> { menuUI.setVisibility(View.GONE); gameUI.setVisibility(View.VISIBLE); ren.isPlaying=true; });
                   findViewById(R.id.btn_start_engine).setOnClickListener(v -> { menuUI.setVisibility(View.GONE); engineUI.setVisibility(View.VISIBLE); ren.isEngineMode=true; });
+                  
+                  findViewById(R.id.btn_menu).setOnClickListener(v -> { gameUI.setVisibility(View.GONE); menuUI.setVisibility(View.VISIBLE); ren.isPlaying=false; });
+                  findViewById(R.id.btn_engine_menu).setOnClickListener(v -> { engineUI.setVisibility(View.GONE); menuUI.setVisibility(View.VISIBLE); ren.isEngineMode=false; });
+
                   setupJoy(findViewById(R.id.joy_base), findViewById(R.id.joy_stick));
-                  findViewById(R.id.look_zone).setOnTouchListener((v, e) -> {
+                  
+                  View.OnTouchListener look = (v, e) -> {
                       if(e.getAction()==MotionEvent.ACTION_DOWN){ lx=e.getX(); ly=e.getY(); }
-                      else if(e.getAction()==MotionEvent.ACTION_MOVE){ ren.rY+=(e.getX()-lx)*0.25f; ren.rX=Math.max(-80,Math.min(80,ren.rX-(e.getY()-ly)*0.25f)); lx=e.getX(); ly=e.getY(); }
+                      else if(e.getAction()==MotionEvent.ACTION_MOVE){ ren.rY+=(e.getX()-lx)*0.25f; ren.rX=Math.max(-85,Math.min(85,ren.rX-(e.getY()-ly)*0.25f)); lx=e.getX(); ly=e.getY(); }
                       return true;
-                  });
+                  };
+                  findViewById(R.id.look_zone).setOnTouchListener(look);
+                  findViewById(R.id.engine_look).setOnTouchListener(look);
+
                   findViewById(R.id.btn_jump).setOnClickListener(v -> { if(ren.vY==0) ren.vY=0.55f; });
-                  findViewById(R.id.btn_place).setOnClickListener(v -> ren.blocks.add(new Block(ren.pX, ren.pY, ren.pZ-15, 4,4,4, 0.8f,0.3f,0.3f)));
+                  
+                  findViewById(R.id.btn_x_plus).setOnClickListener(v -> { curSX+=1f; updateTxt(); });
+                  findViewById(R.id.btn_y_plus).setOnClickListener(v -> { curSY+=1f; updateTxt(); });
+                  findViewById(R.id.btn_z_plus).setOnClickListener(v -> { curSZ+=1f; updateTxt(); });
+                  
+                  findViewById(R.id.btn_place).setOnClickListener(v -> ren.blocks.add(new Block(ren.pX, ren.pY, ren.pZ-15, curSX, curSY, curSZ, 0.8f, 0.3f, 0.3f)));
+                  
+                  findViewById(R.id.btn_script).setOnClickListener(v -> {
+                      EditText et = new EditText(this);
+                      et.setText("phone.toast(\"Hello!\")\nplayer.jump");
+                      new AlertDialog.Builder(this).setTitle("Block Script").setView(et).setPositiveButton("Run", (d,w) -> ScriptEngine.run(this, et.getText().toString())).show();
+                  });
               }
+
+              private void updateTxt() { txtInfo.setText("Size: "+curSX+"x"+curSY+"x"+curSZ); }
+
               private void setupJoy(View b, View s){
                   b.setOnTouchListener((v, e) -> {
                       float cx=v.getWidth()/2f, cy=v.getHeight()/2f, dx=e.getX()-cx, dy=e.getY()-cy, dist=(float)Math.sqrt(dx*dx+dy*dy), lim=cx-s.getWidth()/2f;
@@ -312,7 +427,20 @@ jobs:
           EOF
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
-          android { namespace 'com.enjoer.game'; compileSdk 34; defaultConfig { applicationId 'com.enjoer.game'; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" } }
+          android { 
+              namespace 'com.enjoer.game'
+              compileSdk 34 
+              defaultConfig { 
+                  applicationId 'com.enjoer.game'
+                  minSdk 24 
+                  targetSdk 34 
+                  versionCode 1 
+                  versionName "1.0" 
+              } 
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+          }
           EOF
 
       - name: Build APK
