@@ -1,4 +1,4 @@
-name: Enjoer_Horror_Edition_6.1
+name: Enjoer_Horror_3D_Menu_Fixed
 on: [push, workflow_dispatch]
 
 jobs:
@@ -9,16 +9,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Project
+      - name: Create Project Structure
         run: |
           mkdir -p app/src/main/java/com/enjoer/game
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-          # Стили без рамок
+          # Стили
           cat <<EOF > app/src/main/res/values/themes.xml
           <resources>
             <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
@@ -28,60 +34,59 @@ jobs:
           </resources>
           EOF
 
-          # UI элементы (Хоррор стиль: красный/черный)
-          cat <<EOF > app/src/main/res/drawable/btn_blood.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android">
-            <corners android:radius="2dp"/>
-            <solid android:color="#220000"/>
-            <stroke android:width="1dp" android:color="#FF0000"/>
-          </shape>
-          EOF
-
+          # UI Оформление
           cat <<EOF > app/src/main/res/drawable/joy_base.xml
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-            <solid android:color="#88000000"/>
-            <stroke android:width="1dp" android:color="#440000"/>
+            <solid android:color="#22000000"/>
+            <stroke android:width="2dp" android:color="#44FF0000"/>
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/crosshair.xml
+          cat <<EOF > app/src/main/res/drawable/joy_stick.xml
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-            <size android:width="4dp" android:height="4dp"/>
             <solid android:color="#FF0000"/>
           </shape>
           EOF
 
-          # Макет (Интерфейс почти пустой для погружения)
+          # Макет
           cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
           <?xml version="1.0" encoding="utf-8"?>
           <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              android:background="#000">
+              android:background="#050000">
 
               <android.opengl.GLSurfaceView
                   android:id="@+id/gl_view"
                   android:layout_width="match_parent"
                   android:layout_height="match_parent"/>
 
-              <RelativeLayout
-                  android:id="@+id/game_ui"
+              <View
+                  android:id="@+id/look_zone"
                   android:layout_width="match_parent"
-                  android:layout_height="match_parent">
+                  android:layout_height="match_parent"/>
 
-                  <View
-                      android:id="@+id/look_zone"
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent"/>
+              <RelativeLayout
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:padding="20dp">
+
+                  <TextView
+                      android:id="@+id/horror_text"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:layout_centerHorizontal="true"
+                      android:text="ENJOER 6.1 : VOID EDITION"
+                      android:textColor="#FF0000"
+                      android:textSize="14sp"
+                      android:fontFamily="monospace"/>
 
                   <FrameLayout
                       android:id="@+id/joy_base"
-                      android:layout_width="120dp"
-                      android:layout_height="120dp"
+                      android:layout_width="130dp"
+                      android:layout_height="130dp"
                       android:layout_alignParentBottom="true"
                       android:layout_alignParentLeft="true"
-                      android:layout_marginLeft="30dp"
-                      android:layout_marginBottom="30dp"
                       android:background="@drawable/joy_base"/>
 
                   <View
@@ -90,50 +95,31 @@ jobs:
                       android:layout_height="50dp"
                       android:layout_alignLeft="@id/joy_base"
                       android:layout_alignTop="@id/joy_base"
-                      android:layout_marginLeft="35dp"
-                      android:layout_marginTop="35dp"
-                      android:background="@drawable/btn_blood"/>
+                      android:layout_marginLeft="40dp"
+                      android:layout_marginTop="40dp"
+                      android:background="@drawable/joy_stick"/>
 
-                  <Button
-                      android:id="@+id/btn_action"
-                      android:layout_width="80dp"
-                      android:layout_height="80dp"
-                      android:layout_alignParentRight="true"
-                      android:layout_alignParentBottom="true"
-                      android:layout_marginRight="30dp"
-                      android:layout_marginBottom="30dp"
-                      android:text="STAY"
-                      android:textColor="#F00"
-                      android:background="@drawable/btn_blood"/>
-
-                  <View
-                      android:layout_width="4dp"
-                      android:layout_height="4dp"
-                      android:layout_centerInParent="true"
-                      android:background="@drawable/crosshair"/>
-                  
                   <TextView
-                      android:id="@+id/status_text"
+                      android:id="@+id/instruction"
                       android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
-                      android:layout_centerHorizontal="true"
-                      android:layout_marginTop="20dp"
-                      android:textColor="#FF0000"
-                      android:text="[ IN_MENU ]"
-                      android:fontFamily="monospace"/>
+                      android:layout_centerInParent="true"
+                      android:layout_marginTop="100dp"
+                      android:text="WALK INTO THE RED CUBE TO BEGIN"
+                      android:textColor="#55FF0000"
+                      android:textSize="12sp"/>
               </RelativeLayout>
           </FrameLayout>
           LAYOUT
 
-          # Класс Block (с триггерами)
+          # Класс Block
           cat <<EOF > app/src/main/java/com/enjoer/game/Block.java
           package com.enjoer.game;
           public class Block {
               public float x, y, z, sx, sy, sz, r, g, b;
-              public String name = "";
-              public boolean hidden = false;
-              public Block(float x, float y, float z, float sx, float sy, float sz, float r, float g, float b, String name) {
-                  this.x=x; this.y=y; this.z=z; this.sx=sx; this.sy=sy; this.sz=sz; this.r=r; this.g=g; this.b=b; this.name=name;
+              public String type;
+              public Block(float x, float y, float z, float sx, float sy, float sz, float r, float g, float b, String type) {
+                  this.x=x; this.y=y; this.z=z; this.sx=sx; this.sy=sy; this.sz=sz; this.r=r; this.g=g; this.b=b; this.type=type;
               }
               public float minX(){return x-sx/2f;} public float maxX(){return x+sx/2f;}
               public float minY(){return y-sy/2f;} public float maxY(){return y+sy/2f;}
@@ -141,7 +127,7 @@ jobs:
           }
           EOF
 
-          # Рендерер (Хоррор шейдеры)
+          # Рендерер с хоррор-шейдерами
           cat <<'RENDERER' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
 
@@ -154,97 +140,82 @@ jobs:
           import javax.microedition.khronos.opengles.GL10;
 
           public class GameRenderer implements GLSurfaceView.Renderer {
-              public float pX=0, pY=5.2f, pZ=10, rY=0, rX=0, jX=0, jY=0, vY=0;
+              public float pX=0, pY=4.5f, pZ=12, rY=0, rX=0, jX=0, jY=0;
               public final CopyOnWriteArrayList<Block> blocks = new CopyOnWriteArrayList<>();
               private int prog;
-              private FloatBuffer vBuf, nBuf;
+              private FloatBuffer vBuf;
               private final float[] proj=new float[16], view=new float[16], model=new float[16], vp=new float[16];
               public boolean isMenu = true;
-              private float glitchTimer = 0;
+              private float time = 0;
 
               @Override
               public void onSurfaceCreated(GL10 gl, EGLConfig cfg) {
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
                   
                   String vs = "#version 300 es\n" +
-                      "layout(location=0) in vec4 aP; layout(location=1) in vec3 aN;\n" +
-                      "uniform mat4 uMVP, uM; out vec3 vN, vP;\n" +
-                      "void main(){ vP=vec3(uM*aP); vN=mat3(uM)*aN; gl_Position=uMVP*aP; }";
+                      "layout(location=0) in vec4 aP;\n" +
+                      "uniform mat4 uMVP; out vec3 vP;\n" +
+                      "void main(){ vP=aP.xyz; gl_Position=uMVP*aP; }";
 
                   String fs = "#version 300 es\nprecision highp float;\n" +
-                      "in vec3 vN, vP; uniform vec3 camP; uniform vec4 uC; uniform float uGlitch; out vec4 fC;\n" +
+                      "in vec3 vP; uniform vec4 uC; uniform float uTime; out vec4 fC;\n" +
                       "void main(){\n" +
-                      "  vec3 n=normalize(vN); vec3 lD=normalize(vec3(0.5, 1.0, 0.3));\n" +
-                      "  float diff=max(dot(n, lD), 0.1);\n" +
-                      "  float dist=length(camP-vP);\n" +
-                      "  float fog=clamp(exp(-dist*0.07), 0.0, 1.0);\n" +
-                      "  vec3 col=uC.rgb * (diff + 0.1);\n" +
-                      "  if(uGlitch > 0.8) col.r *= 2.0;\n" + // Эффект глюка
-                      "  fC=vec4(mix(vec3(0.01, 0.0, 0.0), col, fog), 1.0);\n" +
+                      "  float scanline = sin(vP.y * 100.0 + uTime * 10.0) * 0.1;\n" +
+                      "  vec3 col = uC.rgb + scanline;\n" +
+                      "  float d = length(vP); \n" +
+                      "  fC = vec4(col, uC.a);\n" +
                       "}";
                   prog = mkProg(vs, fs);
-                  setupGeometry();
-                  loadMenu();
-              }
-
-              private void setupGeometry() {
+                  
                   float[] vc = { -.5f,.5f,.5f, -.5f,-.5f,.5f, .5f,.5f,.5f, .5f,-.5f,.5f, -.5f,.5f,-.5f, -.5f,-.5f,-.5f, .5f,.5f,-.5f, .5f,-.5f,-.5f,
                                 -.5f,.5f,-.5f, -.5f,.5f,.5f, .5f,.5f,-.5f, .5f,.5f,.5f, -.5f,-.5f,-.5f, -.5f,-.5f,.5f, .5f,-.5f,-.5f, .5f,-.5f,.5f,
                                 -.5f,.5f,-.5f, -.5f,-.5f,-.5f, -.5f,.5f,.5f, -.5f,-.5f,.5f, .5f,.5f,-.5f, .5f,-.5f,-.5f, .5f,.5f,.5f, .5f,-.5f,.5f };
-                  vBuf = ByteBuffer.allocateDirect(vc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vc); vBuf.position(0);
-                  nBuf = ByteBuffer.allocateDirect(vc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vc); nBuf.position(0);
+                  vBuf = ByteBuffer.allocateDirect(vc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vc);
+                  vBuf.position(0);
+                  
+                  loadMenu();
               }
 
               public void loadMenu() {
                   blocks.clear();
                   isMenu = true;
-                  pX=0; pY=5.2f; pZ=10; rY=0; rX=0;
-                  // Пол
-                  blocks.add(new Block(0, 0, 0, 50, 0.2f, 50, 0.1f, 0.1f, 0.1f, "floor"));
-                  // Кнопка ПУСК (Красная)
-                  blocks.add(new Block(-4, 1.5f, -5, 2, 2, 2, 0.8f, 0, 0, "btn_start"));
-                  // Кнопка ВЫХОД (Черная)
-                  blocks.add(new Block(4, 1.5f, -5, 2, 2, 2, 0.05f, 0.05f, 0.05f, "btn_exit"));
-                  // Стены
-                  blocks.add(new Block(0, 5, -15, 30, 10, 1, 0.2f, 0.2f, 0.2f, "wall"));
+                  // Пол (черный бетон)
+                  blocks.add(new Block(0, 0, 0, 40, 0.1f, 40, 0.05f, 0.05f, 0.05f, "env"));
+                  // 3D Кнопка ПУСК (Красный пульсирующий куб)
+                  blocks.add(new Block(0, 2, -8, 3, 3, 3, 0.6f, 0, 0, "btn_play"));
+                  // Декор (столбы)
+                  blocks.add(new Block(-10, 5, -10, 1, 10, 1, 0.1f, 0.1f, 0.1f, "env"));
+                  blocks.add(new Block(10, 5, -10, 1, 10, 1, 0.1f, 0.1f, 0.1f, "env"));
               }
 
-              public void startGame() {
+              public void startHorror() {
                   isMenu = false;
                   blocks.clear();
-                  blocks.add(new Block(0, 0, 0, 200, 0.2f, 200, 0.05f, 0.05f, 0.05f, "world_floor"));
-                  // Лабиринт ужаса
-                  for(int i=0; i<20; i++) {
-                      float rx = (float)Math.random()*100-50;
-                      float rz = (float)Math.random()*100-50;
-                      blocks.add(new Block(rx, 5, rz, 4, 10, 4, 0.1f, 0.1f, 0.15f, "pillar"));
+                  blocks.add(new Block(0, 0, 0, 100, 0.1f, 100, 0.02f, 0.02f, 0.02f, "env"));
+                  for(int i=0; i<30; i++) {
+                      float rx = (float)Math.random()*80-40;
+                      float rz = (float)Math.random()*80-40;
+                      blocks.add(new Block(rx, 4, rz, 2, 8, 2, 0.1f, 0, 0, "enemy"));
                   }
               }
 
               @Override
               public void onDrawFrame(GL10 gl) {
-                  update();
-                  GLES30.glClearColor(0,0,0,1);
+                  time += 0.02f;
+                  updateMovement();
+                  GLES30.glClearColor(0, 0, 0, 1);
                   GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
                   GLES30.glUseProgram(prog);
 
-                  float radY = (float)Math.toRadians(rY);
-                  float radX = (float)Math.toRadians(rX);
-                  float vx = (float)(Math.sin(radY)*Math.cos(radX));
-                  float vy = (float)Math.sin(radX);
-                  float vz = (float)(-Math.cos(radY)*Math.cos(radX));
-
-                  Matrix.setLookAtM(view, 0, pX, pY, pZ, pX+vx, pY+vy, pZ+vz, 0, 1, 0);
+                  float vx = (float)(Math.sin(Math.toRadians(rY)));
+                  float vz = (float)(-Math.cos(Math.toRadians(rY)));
+                  Matrix.setLookAtM(view, 0, pX, pY, pZ, pX+vx, pY, pZ+vz, 0, 1, 0);
                   Matrix.multiplyMM(vp, 0, proj, 0, view, 0);
 
                   int uMVP = GLES30.glGetUniformLocation(prog, "uMVP");
-                  int uM = GLES30.glGetUniformLocation(prog, "uM");
                   int uC = GLES30.glGetUniformLocation(prog, "uC");
-                  int uG = GLES30.glGetUniformLocation(prog, "uGlitch");
-                  
-                  glitchTimer += 0.1f;
-                  GLES30.glUniform1f(uG, (Math.sin(glitchTimer*5) > 0.9) ? 1.0f : 0.0f);
-                  GLES30.glUniform3f(GLES30.glGetUniformLocation(prog, "camP"), pX, pY, pZ);
+                  int uT = GLES30.glGetUniformLocation(prog, "uTime");
+                  GLES30.glUniform1f(uT, time);
 
                   GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 0, vBuf);
                   GLES30.glEnableVertexAttribArray(0);
@@ -253,31 +224,28 @@ jobs:
                       Matrix.setIdentityM(model, 0);
                       Matrix.translateM(model, 0, b.x, b.y, b.z);
                       Matrix.scaleM(model, 0, b.sx, b.sy, b.sz);
-                      Matrix.multiplyMM(vp, 0, proj, 0, view, 0); // Reset VP
-                      float[] mvp = new float[16];
-                      Matrix.multiplyMM(mvp, 0, vp, 0, model, 0);
-                      GLES30.glUniformMatrix4fv(uMVP, 1, false, mvp, 0);
-                      GLES30.glUniformMatrix4fv(uM, 1, false, model, 0);
-                      GLES30.glUniform4f(uC, b.r, b.g, b.b, 1.0f);
+                      float[] res = new float[16];
+                      Matrix.multiplyMM(res, 0, vp, 0, model, 0);
+                      GLES30.glUniformMatrix4fv(uMVP, 1, false, res, 0);
+                      
+                      float pulse = (b.type.equals("btn_play")) ? (float)Math.abs(Math.sin(time*2.0))*0.4f : 0;
+                      GLES30.glUniform4f(uC, b.r + pulse, b.g, b.b, 1.0f);
+                      
                       for(int i=0; i<6; i++) GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, i*4, 4);
                   }
               }
 
-              private void update() {
-                  float s = 0.15f;
+              private void updateMovement() {
+                  float s = 0.12f;
                   float rad = (float)Math.toRadians(rY);
                   pX += (Math.sin(rad)*-jY + Math.cos(rad)*jX) * s;
                   pZ += (-Math.cos(rad)*-jY + Math.sin(rad)*jX) * s;
-                  
-                  // Коллизия с кнопками в меню
+
                   if(isMenu) {
                       for(Block b : blocks) {
-                          if(b.name.startsWith("btn_")) {
-                              float dx = pX - b.x; float dz = pZ - b.z;
-                              if(Math.abs(dx) < 2 && Math.abs(dz) < 2) {
-                                  if(b.name.equals("btn_start")) startGame();
-                                  if(b.name.equals("btn_exit")) System.exit(0);
-                              }
+                          if(b.type.equals("btn_play")) {
+                              float dist = (float)Math.sqrt(Math.pow(pX-b.x, 2) + Math.pow(pZ-b.z, 2));
+                              if(dist < 2.5f) startHorror();
                           }
                       }
                   }
@@ -286,32 +254,28 @@ jobs:
               @Override
               public void onSurfaceChanged(GL10 gl, int w, int h) {
                   GLES30.glViewport(0, 0, w, h);
-                  Matrix.perspectiveM(proj, 0, 65, (float)w/h, 0.1f, 100f);
+                  Matrix.perspectiveM(proj, 0, 60, (float)w/h, 0.1f, 100f);
               }
 
               private int mkProg(String v, String f){
                   int p=GLES30.glCreateProgram();
-                  GLES30.glAttachShader(p,mkSh(GLES30.GL_VERTEX_SHADER,v));
-                  GLES30.glAttachShader(p,mkSh(GLES30.GL_FRAGMENT_SHADER,f));
-                  GLES30.glLinkProgram(p);
-                  return p;
-              }
-              private int mkSh(int t, String s){
-                  int sh=GLES30.glCreateShader(t);
-                  GLES30.glShaderSource(sh,s); GLES30.glCompileShader(sh);
-                  return sh;
+                  int vs=GLES30.glCreateShader(GLES30.GL_VERTEX_SHADER);
+                  GLES30.glShaderSource(vs, v); GLES30.glCompileShader(vs);
+                  int fs=GLES30.glCreateShader(GLES30.GL_FRAGMENT_SHADER);
+                  GLES30.glShaderSource(fs, f); GLES30.glCompileShader(fs);
+                  GLES30.glAttachShader(p, vs); GLES30.glAttachShader(p, fs);
+                  GLES30.glLinkProgram(p); return p;
               }
           }
           RENDERER
 
-          # Главная активность
+          # MainActivity
           cat <<'MAIN' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
           import android.annotation.SuppressLint;
           import android.os.Bundle;
           import android.view.MotionEvent;
           import android.view.View;
-          import android.widget.TextView;
           import androidx.appcompat.app.AppCompatActivity;
 
           public class MainActivity extends AppCompatActivity {
@@ -327,33 +291,8 @@ jobs:
                   ren = new GameRenderer();
                   gv.setRenderer(ren);
 
-                  setupJoy(findViewById(R.id.joy_base), findViewById(R.id.joy_stick));
-                  
-                  findViewById(R.id.look_zone).setOnTouchListener((v,e)->{
-                      if(e.getAction()==MotionEvent.ACTION_DOWN){ lx=e.getX(); ly=e.getY(); }
-                      else if(e.getAction()==MotionEvent.ACTION_MOVE){
-                          ren.rY += (e.getX()-lx)*0.2f;
-                          ren.rX = Math.max(-80, Math.min(80, ren.rX - (e.getY()-ly)*0.2f));
-                          lx=e.getX(); ly=e.getY();
-                      }
-                      return true;
-                  });
-
-                  // Цикл обновления статуса
-                  final TextView status = findViewById(R.id.status_text);
-                  new Thread(() -> {
-                      while(true) {
-                          try { Thread.sleep(500); } catch(Exception e){}
-                          runOnUiThread(() -> {
-                              if(ren.isMenu) status.setText("[ MODE: SELECTION_VOID ]\nWalk to RED cube to Start");
-                              else status.setText("[ MODE: SURVIVAL ]\nDon't look back.");
-                          });
-                      }
-                  }).start();
-              }
-
-              private void setupJoy(View base, View stick){
-                  base.setOnTouchListener((v,e)->{
+                  findViewById(R.id.joy_base).setOnTouchListener((v,e)->{
+                      View stick = findViewById(R.id.joy_stick);
                       float cx=v.getWidth()/2f, cy=v.getHeight()/2f;
                       if(e.getAction()==MotionEvent.ACTION_MOVE || e.getAction()==MotionEvent.ACTION_DOWN){
                           float dx=e.getX()-cx, dy=e.getY()-cy, d=(float)Math.sqrt(dx*dx+dy*dy), lim=cx-stick.getWidth()/2f;
@@ -363,15 +302,25 @@ jobs:
                       } else { stick.setTranslationX(0); stick.setTranslationY(0); ren.jX=0; ren.jY=0; }
                       return true;
                   });
+
+                  findViewById(R.id.look_zone).setOnTouchListener((v,e)->{
+                      if(e.getAction()==MotionEvent.ACTION_DOWN){ lx=e.getX(); ly=e.getY(); }
+                      else if(e.getAction()==MotionEvent.ACTION_MOVE){
+                          ren.rY += (e.getX()-lx)*0.3f;
+                          lx=e.getX(); ly=e.getY();
+                      }
+                      return true;
+                  });
               }
           }
           MAIN
 
-          # Манифест и сборка
+          # Манифест без лишних тегов package (Gradle 8.0+ style)
           cat <<EOF > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.enjoer.game">
-              <application android:label="Enjoer 6.1: Horror" android:theme="@style/AppTheme">
-                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application android:label="Enjoer 6.1 Horror" android:theme="@style/AppTheme">
+                  <activity android:name="com.enjoer.game.MainActivity" android:exported="true" android:screenOrientation="landscape">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
@@ -381,16 +330,28 @@ jobs:
           </manifest>
           EOF
 
+          # Сборка
           echo "include ':app'" > settings.gradle
-          echo "buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.2.2' } }" > build.gradle
-          echo "allprojects { repositories { google(); mavenCentral() } }" >> build.gradle
-          
+          cat <<EOF > build.gradle
+          buildscript {
+            repositories { google(); mavenCentral() }
+            dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
               namespace 'com.enjoer.game'
               compileSdk 34
-              defaultConfig { applicationId 'com.enjoer.game'; minSdk 24; targetSdk 34 }
+              defaultConfig {
+                  applicationId 'com.enjoer.game'
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "6.1-Horror"
+              }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
@@ -403,8 +364,8 @@ jobs:
           gradle wrapper --gradle-version 8.5
           ./gradlew assembleDebug
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_Horror_Final
+          name: Enjoer_6.1_Horror_Final
           path: app/build/outputs/apk/debug/app-debug.apk
