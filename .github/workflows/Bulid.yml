@@ -10,6 +10,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v3
         with:
           distribution: temurin
@@ -35,7 +36,7 @@ jobs:
           plugins { id 'fabric-loom' version '1.6.12' }
 
           group = 'me.godblock'
-          version = '2.0'
+          version = '3.0'
 
           repositories {
               mavenCentral()
@@ -69,7 +70,7 @@ jobs:
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "2.0",
+            "version": "3.0",
             "name": "God Block",
             "entrypoints": { "main": ["me.godblock.GodBlockMod"] },
             "depends": {
@@ -80,13 +81,13 @@ jobs:
           }
           EOF
 
-      # перевод
+      # lang
       - run: |
           cat << 'EOF' > src/main/resources/assets/godblock/lang/en_us.json
           { "block.godblock.god_block": "God Block" }
           EOF
 
-      # рецепт
+      # recipe
       - run: |
           cat << 'EOF' > src/main/resources/data/godblock/recipes/god_block.json
           {
@@ -100,71 +101,40 @@ jobs:
           }
           EOF
 
-      # ✅ ВАНИЛЬНЫЕ текстуры
+      # simple vanilla texture
       - run: |
           sudo apt-get update && sudo apt-get install imagemagick -y
+          convert -size 16x16 plasma:fractal -resize 16x16! -colorspace gray \
+          src/main/resources/assets/godblock/textures/block/god_block.png
 
-          # базовый каменный шум
-          convert -size 16x16 plasma:fractal -resize 16x16! -colorspace gray stone.png
-
-          # красный режим
-          convert stone.png \
-            -fill "#aa2222" -colorize 30 \
-            -brightness-contrast 10x5 \
-            src/main/resources/assets/godblock/textures/block/god_block_red.png
-
-          # фиолетовый режим
-          convert stone.png \
-            -fill "#7722aa" -colorize 35 \
-            -brightness-contrast 10x5 \
-            src/main/resources/assets/godblock/textures/block/god_block_purple.png
-
-          # зелёный режим
-          convert stone.png \
-            -fill "#22aa55" -colorize 30 \
-            -brightness-contrast 10x5 \
-            src/main/resources/assets/godblock/textures/block/god_block_green.png
-
-      # blockstates
+      # models & blockstate
       - run: |
           cat << 'EOF' > src/main/resources/assets/godblock/blockstates/god_block.json
-          {
-            "variants": {
-              "mode=1": { "model": "godblock:block/god_block_red" },
-              "mode=2": { "model": "godblock:block/god_block_purple" },
-              "mode=3": { "model": "godblock:block/god_block_green" }
-            }
-          }
+          { "variants": { "": { "model": "godblock:block/god_block" } } }
           EOF
 
-      # модели
-      - run: |
-          for color in red purple green; do
-          cat << EOF > src/main/resources/assets/godblock/models/block/god_block_$color.json
+          cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block.json
           { "parent": "block/cube_all",
-            "textures": { "all": "godblock:block/god_block_$color" }
+            "textures": { "all": "godblock:block/god_block" }
           }
           EOF
-          done
 
           cat << 'EOF' > src/main/resources/assets/godblock/models/item/god_block.json
-          {
-            "parent": "minecraft:block/cube_all",
-            "textures": { "all": "godblock:block/god_block_red" }
-          }
+          { "parent": "godblock:block/god_block" }
           EOF
 
-      # ✅ Новый Java код (меньше частиц + свечение)
+      # ✅ Java
       - run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
           package me.godblock;
 
           import net.fabricmc.api.ModInitializer;
+          import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLivingEntityEvents;
           import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
           import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
           import net.minecraft.block.*;
           import net.minecraft.block.entity.*;
-          import net.minecraft.entity.effect.*;
+          import net.minecraft.entity.*;
           import net.minecraft.entity.mob.HostileEntity;
           import net.minecraft.entity.player.PlayerEntity;
           import net.minecraft.item.*;
@@ -182,13 +152,18 @@ jobs:
           import net.minecraft.util.math.*;
           import net.minecraft.world.World;
 
+          import java.util.HashMap;
+          import java.util.Map;
+
           public class GodBlockMod implements ModInitializer {
 
               public static final String MOD_ID = "godblock";
-              public static final IntProperty MODE = IntProperty.of("mode",1,3);
+              public static final IntProperty MODE = IntProperty.of("mode", 1, 3);
 
               public static Block GOD_BLOCK;
               public static BlockEntityType<GodBlockEntity> GOD_BLOCK_ENTITY;
+
+              private static final Map<PlayerEntity,Integer> damageCounter = new HashMap<>();
 
               @Override
               public void onInitialize() {
@@ -197,7 +172,7 @@ jobs:
                           new Identifier(MOD_ID,"god_block"),
                           new GodBlock(AbstractBlock.Settings.copy(Blocks.NETHERITE_BLOCK)
                                   .strength(5f)
-                                  .luminance(state -> 10))); // лёгкое свечение
+                                  .luminance(state -> 10)));
 
                   Registry.register(Registries.ITEM,
                           new Identifier(MOD_ID,"god_block"),
@@ -211,6 +186,66 @@ jobs:
 
                   ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS)
                           .register(entries -> entries.add(GOD_BLOCK));
+
+                  // MODE 3
+                  ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, amount, result) -> {
+
+                      if(!(entity instanceof PlayerEntity player)) return;
+
+                      ServerWorld world = (ServerWorld) player.getWorld();
+                      Box radius125 = new Box(player.getBlockPos()).expand(125);
+
+                      boolean hasBlock = world.getEntitiesByClass(
+                              GodBlockEntity.class,
+                              radius125,
+                              be -> be.getCachedState().get(MODE) == 3
+                      ).size() > 0;
+
+                      if(!hasBlock) return;
+
+                      damageCounter.put(player, damageCounter.getOrDefault(player,0)+1);
+
+                      if(damageCounter.get(player) >= 2){
+                          player.heal(1f); // пол сердца
+                          damageCounter.put(player,0);
+                      }
+                  });
+
+                  // MODE 2
+                  ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
+
+                      if(!(entity instanceof PlayerEntity player)) return true;
+
+                      ServerWorld world = (ServerWorld) player.getWorld();
+                      Box radius150 = new Box(player.getBlockPos()).expand(150);
+
+                      for(GodBlockEntity be :
+                              world.getEntitiesByClass(GodBlockEntity.class,
+                                      radius150,
+                                      block -> block.getCachedState().get(MODE) == 2)){
+
+                          player.requestRespawn();
+                          player.heal(player.getMaxHealth()*0.5f);
+
+                          world.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING,
+                                  be.getPos().getX()+0.5,
+                                  be.getPos().getY()+1,
+                                  be.getPos().getZ()+0.5,
+                                  20,1,1,1,0.2);
+
+                          world.playSound(null,
+                                  be.getPos(),
+                                  SoundEvents.ITEM_TOTEM_USE,
+                                  SoundCategory.BLOCKS,
+                                  1f,1f);
+
+                          world.removeBlock(be.getPos(),false);
+
+                          return false;
+                      }
+
+                      return true;
+                  });
               }
 
               public static class GodBlock extends BlockWithEntity {
@@ -218,6 +253,11 @@ jobs:
                   public GodBlock(Settings settings){
                       super(settings);
                       setDefaultState(getStateManager().getDefaultState().with(MODE,1));
+                  }
+
+                  @Override
+                  public BlockRenderType getRenderType(BlockState state){
+                      return BlockRenderType.MODEL;
                   }
 
                   @Override
@@ -233,6 +273,7 @@ jobs:
                   @Override
                   public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
                           World world, BlockState state, BlockEntityType<T> type){
+
                       return world.isClient?null:
                               checkType(type,GOD_BLOCK_ENTITY,GodBlockEntity::tick);
                   }
@@ -246,17 +287,14 @@ jobs:
                           if(m>3) m=1;
                           world.setBlockState(pos,state.with(MODE,m));
                           player.sendMessage(Text.literal("Mode: "+m),false);
-                          world.playSound(null,pos,
-                                  SoundEvents.BLOCK_BEACON_POWER_SELECT,
-                                  SoundCategory.BLOCKS,1f,1f);
                       }
                       return ActionResult.SUCCESS;
                   }
               }
 
-              public static class GodBlockEntity extends BlockEntity{
+              public static class GodBlockEntity extends BlockEntity {
 
-                  public int mode=1;
+                  private int tickCounter = 0;
 
                   public GodBlockEntity(BlockPos pos, BlockState state){
                       super(GOD_BLOCK_ENTITY,pos,state);
@@ -267,40 +305,29 @@ jobs:
 
                       if(!(world instanceof ServerWorld sw)) return;
 
-                      Box box = new Box(pos).expand(20);
+                      be.tickCounter++;
 
-                      // меньше частиц
-                      if(be.mode==1){
-                          sw.spawnParticles(ParticleTypes.FLAME,
-                                  pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  1,0.2,0.2,0.2,0.01);
-                      }
+                      if(state.get(MODE)!=1) return;
+                      if(be.tickCounter<40) return;
 
-                      if(be.mode==2){
-                          sw.spawnParticles(ParticleTypes.PORTAL,
-                                  pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  1,0.2,0.2,0.2,0.02);
-                      }
+                      be.tickCounter=0;
 
-                      if(be.mode==3){
-                          for(PlayerEntity p:
-                                  sw.getEntitiesByClass(PlayerEntity.class,box,e->true)){
-                              p.addStatusEffect(new StatusEffectInstance(
-                                      StatusEffects.REGENERATION,40,0));
-                          }
+                      Box radius150 = new Box(pos).expand(150);
+
+                      for(HostileEntity mob :
+                              sw.getEntitiesByClass(HostileEntity.class,radius150,e->true)){
+                          mob.damage(sw.getDamageSources().magic(),2f);
                       }
                   }
 
                   @Override
                   public void writeNbt(NbtCompound nbt){
                       super.writeNbt(nbt);
-                      nbt.putInt("Mode",mode);
                   }
 
                   @Override
                   public void readNbt(NbtCompound nbt){
                       super.readNbt(nbt);
-                      mode = nbt.getInt("Mode");
                   }
               }
           }
