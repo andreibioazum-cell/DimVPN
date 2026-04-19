@@ -43,7 +43,7 @@ jobs:
           }
 
           group = 'me.godblock'
-          version = '4.1'
+          version = '5.0'
 
           repositories {
               mavenCentral()
@@ -83,7 +83,7 @@ jobs:
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "4.1",
+            "version": "5.0",
             "name": "God Block",
             "entrypoints": {
               "main": ["me.godblock.GodBlockMod"]
@@ -157,13 +157,12 @@ jobs:
           { "parent": "godblock:block/god_block_red" }
           EOF
 
-      # Java код
+      # Java код (финальный)
       - run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
           package me.godblock;
 
           import net.fabricmc.api.ModInitializer;
-          import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
           import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
           import net.minecraft.block.*;
           import net.minecraft.block.entity.*;
@@ -209,18 +208,6 @@ jobs:
                           new Identifier("godblock","god_block_entity"),
                           FabricBlockEntityTypeBuilder.create(GodBlockEntity::new, GOD_BLOCK).build()
                   );
-
-                  ServerTickEvents.END_SERVER_TICK.register(server -> {
-                      for (ServerWorld world : server.getWorlds()) {
-                          world.getChunkManager().getLoadedChunksIterable().forEach(chunk -> {
-                              chunk.getBlockEntities().values().forEach(be -> {
-                                  if (be instanceof GodBlockEntity gbe) {
-                                      applyMode(world, gbe.getPos(), gbe.mode);
-                                  }
-                              });
-                          });
-                      }
-                  });
               }
 
               public static class GodBlock extends BlockWithEntity {
@@ -238,6 +225,11 @@ jobs:
                   @Override
                   public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
                       return new GodBlockEntity(pos, state);
+                  }
+
+                  @Override
+                  public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
+                      return world.isClient ? null : checkType(type, GOD_BLOCK_ENTITY, GodBlockEntity::tick);
                   }
 
                   @Override
@@ -268,53 +260,55 @@ jobs:
                   }
               }
 
-              private static void applyMode(ServerWorld world, BlockPos pos, int mode) {
-
-                  Box box = new Box(pos).expand(100);
-
-                  if (mode == 1) {
-                      world.spawnParticles(ParticleTypes.FLAME,
-                              pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                              10,0.5,0.5,0.5,0.02);
-
-                      for (HostileEntity mob :
-                              world.getEntitiesByClass(HostileEntity.class, box, e->true)) {
-                          mob.setOnFireFor(3);
-                          mob.damage(world.getDamageSources().onFire(),2f);
-                      }
-                  }
-
-                  if (mode == 2) {
-                      world.spawnParticles(ParticleTypes.PORTAL,
-                              pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                              20,1,1,1,0.2);
-
-                      for (HostileEntity mob :
-                              world.getEntitiesByClass(HostileEntity.class, box, e->true)) {
-                          mob.damage(world.getDamageSources().magic(),4f);
-                      }
-                  }
-
-                  if (mode == 3) {
-                      world.spawnParticles(ParticleTypes.END_ROD,
-                              pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                              15,0.5,0.5,0.5,0.05);
-
-                      for (PlayerEntity p :
-                              world.getEntitiesByClass(PlayerEntity.class, box, e->true)) {
-                          p.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE,60,1));
-                          p.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION,60,0));
-                          p.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE,60,0));
-                      }
-                  }
-              }
-
               public static class GodBlockEntity extends BlockEntity {
 
                   public int mode = 1;
 
                   public GodBlockEntity(BlockPos pos, BlockState state) {
                       super(GOD_BLOCK_ENTITY, pos, state);
+                  }
+
+                  public static void tick(World world, BlockPos pos, BlockState state, GodBlockEntity be) {
+
+                      if (!(world instanceof ServerWorld serverWorld)) return;
+
+                      Box box = new Box(pos).expand(100);
+
+                      if (be.mode == 1) {
+                          serverWorld.spawnParticles(ParticleTypes.FLAME,
+                                  pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
+                                  10,0.5,0.5,0.5,0.02);
+
+                          for (HostileEntity mob :
+                                  serverWorld.getEntitiesByClass(HostileEntity.class, box, e->true)) {
+                              mob.setOnFireFor(3);
+                              mob.damage(serverWorld.getDamageSources().onFire(),2f);
+                          }
+                      }
+
+                      if (be.mode == 2) {
+                          serverWorld.spawnParticles(ParticleTypes.PORTAL,
+                                  pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
+                                  20,1,1,1,0.2);
+
+                          for (HostileEntity mob :
+                                  serverWorld.getEntitiesByClass(HostileEntity.class, box, e->true)) {
+                              mob.damage(serverWorld.getDamageSources().magic(),4f);
+                          }
+                      }
+
+                      if (be.mode == 3) {
+                          serverWorld.spawnParticles(ParticleTypes.END_ROD,
+                                  pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
+                                  15,0.5,0.5,0.5,0.05);
+
+                          for (PlayerEntity p :
+                                  serverWorld.getEntitiesByClass(PlayerEntity.class, box, e->true)) {
+                              p.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE,60,1));
+                              p.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION,60,0));
+                              p.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE,60,0));
+                          }
+                      }
                   }
 
                   @Override
