@@ -16,13 +16,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # ✅ временный build.gradle
+      # ✅ Временный build.gradle
       - run: echo "" > build.gradle
 
-      # ✅ wrapper 8.7
+      # ✅ Gradle 8.7
       - run: gradle wrapper --gradle-version 8.7
 
-      # ✅ settings.gradle
+      # ✅ settings.gradle (Fabric Maven)
       - run: |
           cat << 'EOF' > settings.gradle
           pluginManagement {
@@ -35,15 +35,15 @@ jobs:
           rootProject.name = 'GodBlock'
           EOF
 
-      # ✅ build.gradle
+      # ✅ build.gradle (Loom 1.6)
       - run: |
           cat << 'EOF' > build.gradle
           plugins {
-              id 'fabric-loom' version '1.4.6'
+              id 'fabric-loom' version '1.6-SNAPSHOT'
           }
 
           group = 'me.godblock'
-          version = '3.0'
+          version = '4.0'
 
           repositories {
               mavenCentral()
@@ -62,14 +62,16 @@ jobs:
           }
           EOF
 
-      # ✅ УВЕЛИЧЕНИЕ ПАМЯТИ (фикс OOM)
+      # ✅ Больше памяти
       - run: |
           cat << 'EOF' > gradle.properties
-          org.gradle.jvmargs=-Xmx3G
+          org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G
+          org.gradle.parallel=true
           org.gradle.daemon=false
+          org.gradle.caching=true
           EOF
 
-      # ✅ структура
+      # ✅ Структура
       - run: |
           mkdir -p src/main/java/me/godblock
           mkdir -p src/main/resources/assets/godblock/{blockstates,models/block,models/item,textures/block}
@@ -81,7 +83,7 @@ jobs:
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "3.0",
+            "version": "4.0",
             "name": "God Block",
             "entrypoints": {
               "main": ["me.godblock.GodBlockMod"]
@@ -94,7 +96,7 @@ jobs:
           }
           EOF
 
-      # ✅ рецепт
+      # ✅ Рецепт
       - run: |
           cat << 'EOF' > src/main/resources/data/godblock/recipes/god_block.json
           {
@@ -115,7 +117,7 @@ jobs:
           }
           EOF
 
-      # ✅ текстуры
+      # ✅ Текстуры (3 цвета)
       - run: |
           sudo apt-get update && sudo apt-get install imagemagick -y
           convert -size 16x16 xc:red red.png
@@ -125,7 +127,7 @@ jobs:
           mv purple.png src/main/resources/assets/godblock/textures/block/god_block_purple.png
           mv green.png src/main/resources/assets/godblock/textures/block/god_block_green.png
 
-      # ✅ blockstates
+      # ✅ Blockstates
       - run: |
           cat << 'EOF' > src/main/resources/assets/godblock/blockstates/god_block.json
           {
@@ -137,7 +139,7 @@ jobs:
           }
           EOF
 
-      # ✅ модели
+      # ✅ Модели
       - run: |
           cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block_red.json
           { "parent": "block/cube_all", "textures": { "all": "godblock:block/god_block_red" } }
