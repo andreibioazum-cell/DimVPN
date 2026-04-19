@@ -10,19 +10,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: 17
 
-      # временный build.gradle
       - run: echo "" > build.gradle
-
-      # Gradle 8.7
       - run: gradle wrapper --gradle-version 8.7
 
-      # settings.gradle
       - run: |
           cat << 'EOF' > settings.gradle
           pluginManagement {
@@ -35,15 +30,12 @@ jobs:
           rootProject.name = 'GodBlock'
           EOF
 
-      # ✅ build.gradle (ИСПРАВЛЕННЫЙ)
       - run: |
           cat << 'EOF' > build.gradle
-          plugins {
-              id 'fabric-loom' version '1.6.12'
-          }
+          plugins { id 'fabric-loom' version '1.6.12' }
 
           group = 'me.godblock'
-          version = '1.0'
+          version = '2.0'
 
           repositories {
               mavenCentral()
@@ -57,19 +49,15 @@ jobs:
               modImplementation "net.fabricmc.fabric-api:fabric-api:0.92.1+1.20.1"
           }
 
-          java {
-              toolchain.languageVersion = JavaLanguageVersion.of(17)
-          }
+          java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
           EOF
 
-      # память
       - run: |
           cat << 'EOF' > gradle.properties
           org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G
           org.gradle.daemon=false
           EOF
 
-      # структура
       - run: |
           mkdir -p src/main/java/me/godblock
           mkdir -p src/main/resources/assets/godblock/{blockstates,models/block,models/item,lang,textures/block}
@@ -81,11 +69,9 @@ jobs:
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "1.0",
+            "version": "2.0",
             "name": "God Block",
-            "entrypoints": {
-              "main": ["me.godblock.GodBlockMod"]
-            },
+            "entrypoints": { "main": ["me.godblock.GodBlockMod"] },
             "depends": {
               "fabricloader": ">=0.15.0",
               "minecraft": "1.20.1",
@@ -97,9 +83,7 @@ jobs:
       # перевод
       - run: |
           cat << 'EOF' > src/main/resources/assets/godblock/lang/en_us.json
-          {
-            "block.godblock.god_block": "God Block"
-          }
+          { "block.godblock.god_block": "God Block" }
           EOF
 
       # рецепт
@@ -107,31 +91,39 @@ jobs:
           cat << 'EOF' > src/main/resources/data/godblock/recipes/god_block.json
           {
             "type": "minecraft:crafting_shaped",
-            "pattern": [
-              "SSS",
-              "SCS",
-              "SSS"
-            ],
+            "pattern": ["SSS","SCS","SSS"],
             "key": {
               "S": { "item": "minecraft:stone" },
               "C": { "item": "minecraft:coal" }
             },
-            "result": {
-              "item": "godblock:god_block",
-              "count": 1
-            }
+            "result": { "item": "godblock:god_block" }
           }
           EOF
 
-      # текстуры
+      # ✅ ВАНИЛЬНЫЕ текстуры
       - run: |
           sudo apt-get update && sudo apt-get install imagemagick -y
-          convert -size 16x16 xc:red red.png
-          convert -size 16x16 xc:purple purple.png
-          convert -size 16x16 xc:green green.png
-          mv red.png src/main/resources/assets/godblock/textures/block/god_block_red.png
-          mv purple.png src/main/resources/assets/godblock/textures/block/god_block_purple.png
-          mv green.png src/main/resources/assets/godblock/textures/block/god_block_green.png
+
+          # базовый каменный шум
+          convert -size 16x16 plasma:fractal -resize 16x16! -colorspace gray stone.png
+
+          # красный режим
+          convert stone.png \
+            -fill "#aa2222" -colorize 30 \
+            -brightness-contrast 10x5 \
+            src/main/resources/assets/godblock/textures/block/god_block_red.png
+
+          # фиолетовый режим
+          convert stone.png \
+            -fill "#7722aa" -colorize 35 \
+            -brightness-contrast 10x5 \
+            src/main/resources/assets/godblock/textures/block/god_block_purple.png
+
+          # зелёный режим
+          convert stone.png \
+            -fill "#22aa55" -colorize 30 \
+            -brightness-contrast 10x5 \
+            src/main/resources/assets/godblock/textures/block/god_block_green.png
 
       # blockstates
       - run: |
@@ -147,20 +139,22 @@ jobs:
 
       # модели
       - run: |
-          cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block_red.json
-          { "parent": "block/cube_all", "textures": { "all": "godblock:block/god_block_red" } }
+          for color in red purple green; do
+          cat << EOF > src/main/resources/assets/godblock/models/block/god_block_$color.json
+          { "parent": "block/cube_all",
+            "textures": { "all": "godblock:block/god_block_$color" }
+          }
           EOF
-          cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block_purple.json
-          { "parent": "block/cube_all", "textures": { "all": "godblock:block/god_block_purple" } }
-          EOF
-          cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block_green.json
-          { "parent": "block/cube_all", "textures": { "all": "godblock:block/god_block_green" } }
-          EOF
+          done
+
           cat << 'EOF' > src/main/resources/assets/godblock/models/item/god_block.json
-          { "parent": "godblock:block/god_block_red" }
+          {
+            "parent": "minecraft:block/cube_all",
+            "textures": { "all": "godblock:block/god_block_red" }
+          }
           EOF
 
-      # Java код
+      # ✅ Новый Java код (меньше частиц + свечение)
       - run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
           package me.godblock;
@@ -191,7 +185,7 @@ jobs:
           public class GodBlockMod implements ModInitializer {
 
               public static final String MOD_ID = "godblock";
-              public static final IntProperty MODE = IntProperty.of("mode", 1, 3);
+              public static final IntProperty MODE = IntProperty.of("mode",1,3);
 
               public static Block GOD_BLOCK;
               public static BlockEntityType<GodBlockEntity> GOD_BLOCK_ENTITY;
@@ -199,22 +193,20 @@ jobs:
               @Override
               public void onInitialize() {
 
-                  System.out.println("GOD BLOCK MOD LOADED");
-
                   GOD_BLOCK = Registry.register(Registries.BLOCK,
-                          new Identifier(MOD_ID, "god_block"),
+                          new Identifier(MOD_ID,"god_block"),
                           new GodBlock(AbstractBlock.Settings.copy(Blocks.NETHERITE_BLOCK)
                                   .strength(5f)
-                                  .luminance(state -> 15)));
+                                  .luminance(state -> 10))); // лёгкое свечение
 
                   Registry.register(Registries.ITEM,
-                          new Identifier(MOD_ID, "god_block"),
+                          new Identifier(MOD_ID,"god_block"),
                           new BlockItem(GOD_BLOCK,new Item.Settings()));
 
                   GOD_BLOCK_ENTITY = Registry.register(
                           Registries.BLOCK_ENTITY_TYPE,
                           new Identifier(MOD_ID,"god_block_entity"),
-                          FabricBlockEntityTypeBuilder.create(GodBlockEntity::new, GOD_BLOCK).build()
+                          FabricBlockEntityTypeBuilder.create(GodBlockEntity::new,GOD_BLOCK).build()
                   );
 
                   ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS)
@@ -223,48 +215,37 @@ jobs:
 
               public static class GodBlock extends BlockWithEntity {
 
-                  public GodBlock(Settings settings) {
+                  public GodBlock(Settings settings){
                       super(settings);
                       setDefaultState(getStateManager().getDefaultState().with(MODE,1));
                   }
 
                   @Override
-                  protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+                  protected void appendProperties(StateManager.Builder<Block,BlockState> builder){
                       builder.add(MODE);
                   }
 
                   @Override
-                  public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+                  public BlockEntity createBlockEntity(BlockPos pos, BlockState state){
                       return new GodBlockEntity(pos,state);
                   }
 
                   @Override
                   public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
-                          World world, BlockState state, BlockEntityType<T> type) {
-
-                      return world.isClient ? null :
-                              checkType(type, GOD_BLOCK_ENTITY, GodBlockEntity::tick);
+                          World world, BlockState state, BlockEntityType<T> type){
+                      return world.isClient?null:
+                              checkType(type,GOD_BLOCK_ENTITY,GodBlockEntity::tick);
                   }
 
                   @Override
                   public ActionResult onUse(BlockState state, World world, BlockPos pos,
-                                            PlayerEntity player, Hand hand, BlockHitResult hit) {
+                                            PlayerEntity player, Hand hand, BlockHitResult hit){
 
-                      if (!world.isClient && player.isSneaking()) {
-
-                          int newMode = state.get(MODE) + 1;
-                          if (newMode > 3) newMode = 1;
-
-                          world.setBlockState(pos, state.with(MODE,newMode));
-
-                          BlockEntity be = world.getBlockEntity(pos);
-                          if (be instanceof GodBlockEntity gbe) {
-                              gbe.mode = newMode;
-                              gbe.markDirty();
-                          }
-
-                          player.sendMessage(Text.literal("Mode: "+newMode),false);
-
+                      if(!world.isClient && player.isSneaking()){
+                          int m = state.get(MODE)+1;
+                          if(m>3) m=1;
+                          world.setBlockState(pos,state.with(MODE,m));
+                          player.sendMessage(Text.literal("Mode: "+m),false);
                           world.playSound(null,pos,
                                   SoundEvents.BLOCK_BEACON_POWER_SELECT,
                                   SoundCategory.BLOCKS,1f,1f);
@@ -273,36 +254,37 @@ jobs:
                   }
               }
 
-              public static class GodBlockEntity extends BlockEntity {
+              public static class GodBlockEntity extends BlockEntity{
 
-                  public int mode = 1;
+                  public int mode=1;
 
-                  public GodBlockEntity(BlockPos pos, BlockState state) {
+                  public GodBlockEntity(BlockPos pos, BlockState state){
                       super(GOD_BLOCK_ENTITY,pos,state);
                   }
 
                   public static void tick(World world, BlockPos pos,
-                                          BlockState state, GodBlockEntity be) {
+                                          BlockState state, GodBlockEntity be){
 
-                      if (!(world instanceof ServerWorld serverWorld)) return;
+                      if(!(world instanceof ServerWorld sw)) return;
 
-                      Box box = new Box(pos).expand(30);
+                      Box box = new Box(pos).expand(20);
 
-                      if (be.mode == 1) {
-                          serverWorld.spawnParticles(ParticleTypes.FLAME,
+                      // меньше частиц
+                      if(be.mode==1){
+                          sw.spawnParticles(ParticleTypes.FLAME,
                                   pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  5,0.3,0.3,0.3,0.02);
+                                  1,0.2,0.2,0.2,0.01);
                       }
 
-                      if (be.mode == 2) {
-                          serverWorld.spawnParticles(ParticleTypes.PORTAL,
+                      if(be.mode==2){
+                          sw.spawnParticles(ParticleTypes.PORTAL,
                                   pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  10,0.5,0.5,0.5,0.1);
+                                  1,0.2,0.2,0.2,0.02);
                       }
 
-                      if (be.mode == 3) {
-                          for (PlayerEntity p :
-                                  serverWorld.getEntitiesByClass(PlayerEntity.class, box, e->true)) {
+                      if(be.mode==3){
+                          for(PlayerEntity p:
+                                  sw.getEntitiesByClass(PlayerEntity.class,box,e->true)){
                               p.addStatusEffect(new StatusEffectInstance(
                                       StatusEffects.REGENERATION,40,0));
                           }
@@ -310,13 +292,13 @@ jobs:
                   }
 
                   @Override
-                  public void writeNbt(NbtCompound nbt) {
+                  public void writeNbt(NbtCompound nbt){
                       super.writeNbt(nbt);
                       nbt.putInt("Mode",mode);
                   }
 
                   @Override
-                  public void readNbt(NbtCompound nbt) {
+                  public void readNbt(NbtCompound nbt){
                       super.readNbt(nbt);
                       mode = nbt.getInt("Mode");
                   }
