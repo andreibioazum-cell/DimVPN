@@ -16,7 +16,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # временный build.gradle
+      # пустой gradle
       - run: echo "" > build.gradle
 
       # Gradle 8.7
@@ -43,7 +43,7 @@ jobs:
           }
 
           group = 'me.godblock'
-          version = '5.0'
+          version = '1.0'
 
           repositories {
               mavenCentral()
@@ -54,7 +54,7 @@ jobs:
               minecraft "com.mojang:minecraft:1.20.1"
               mappings "net.fabricmc:yarn:1.20.1+build.10:v2"
               modImplementation "net.fabricmc:fabric-loader:0.15.11"
-              modImplementation "net.fabricmc.fabric-api:fabric-api:0.92.1+1.20.1"
+              modImplementation "net.fabricmc.fabric-api:0.92.1+1.20.1"
           }
 
           java {
@@ -66,15 +66,13 @@ jobs:
       - run: |
           cat << 'EOF' > gradle.properties
           org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G
-          org.gradle.parallel=true
           org.gradle.daemon=false
-          org.gradle.caching=true
           EOF
 
       # структура
       - run: |
           mkdir -p src/main/java/me/godblock
-          mkdir -p src/main/resources/assets/godblock/{blockstates,models/block,models/item,textures/block}
+          mkdir -p src/main/resources/assets/godblock/{blockstates,models/block,models/item,lang,textures/block}
           mkdir -p src/main/resources/data/godblock/recipes
 
       # fabric.mod.json
@@ -83,7 +81,7 @@ jobs:
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "5.0",
+            "version": "1.0",
             "name": "God Block",
             "entrypoints": {
               "main": ["me.godblock.GodBlockMod"]
@@ -93,6 +91,14 @@ jobs:
               "minecraft": "1.20.1",
               "fabric-api": "*"
             }
+          }
+          EOF
+
+      # перевод
+      - run: |
+          cat << 'EOF' > src/main/resources/assets/godblock/lang/en_us.json
+          {
+            "block.godblock.god_block": "God Block"
           }
           EOF
 
@@ -144,26 +150,24 @@ jobs:
           cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block_red.json
           { "parent": "block/cube_all", "textures": { "all": "godblock:block/god_block_red" } }
           EOF
-
           cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block_purple.json
           { "parent": "block/cube_all", "textures": { "all": "godblock:block/god_block_purple" } }
           EOF
-
           cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block_green.json
           { "parent": "block/cube_all", "textures": { "all": "godblock:block/god_block_green" } }
           EOF
-
           cat << 'EOF' > src/main/resources/assets/godblock/models/item/god_block.json
           { "parent": "godblock:block/god_block_red" }
           EOF
 
-      # Java код (финальный)
+      # Java код
       - run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
           package me.godblock;
 
           import net.fabricmc.api.ModInitializer;
           import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
+          import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
           import net.minecraft.block.*;
           import net.minecraft.block.entity.*;
           import net.minecraft.entity.effect.*;
@@ -186,28 +190,35 @@ jobs:
 
           public class GodBlockMod implements ModInitializer {
 
+              public static final String MOD_ID = "godblock";
               public static final IntProperty MODE = IntProperty.of("mode", 1, 3);
+
               public static Block GOD_BLOCK;
               public static BlockEntityType<GodBlockEntity> GOD_BLOCK_ENTITY;
 
               @Override
               public void onInitialize() {
 
+                  System.out.println("GOD BLOCK MOD LOADED");
+
                   GOD_BLOCK = Registry.register(Registries.BLOCK,
-                          new Identifier("godblock","god_block"),
+                          new Identifier(MOD_ID, "god_block"),
                           new GodBlock(AbstractBlock.Settings.copy(Blocks.NETHERITE_BLOCK)
                                   .strength(5f)
                                   .luminance(state -> 15)));
 
                   Registry.register(Registries.ITEM,
-                          new Identifier("godblock","god_block"),
+                          new Identifier(MOD_ID, "god_block"),
                           new BlockItem(GOD_BLOCK,new Item.Settings()));
 
                   GOD_BLOCK_ENTITY = Registry.register(
                           Registries.BLOCK_ENTITY_TYPE,
-                          new Identifier("godblock","god_block_entity"),
+                          new Identifier(MOD_ID,"god_block_entity"),
                           FabricBlockEntityTypeBuilder.create(GodBlockEntity::new, GOD_BLOCK).build()
                   );
+
+                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS)
+                          .register(entries -> entries.add(GOD_BLOCK));
               }
 
               public static class GodBlock extends BlockWithEntity {
@@ -224,12 +235,15 @@ jobs:
 
                   @Override
                   public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
-                      return new GodBlockEntity(pos, state);
+                      return new GodBlockEntity(pos,state);
                   }
 
                   @Override
-                  public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
-                      return world.isClient ? null : checkType(type, GOD_BLOCK_ENTITY, GodBlockEntity::tick);
+                  public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
+                          World world, BlockState state, BlockEntityType<T> type) {
+
+                      return world.isClient ? null :
+                              checkType(type, GOD_BLOCK_ENTITY, GodBlockEntity::tick);
                   }
 
                   @Override
@@ -241,7 +255,7 @@ jobs:
                           int newMode = state.get(MODE) + 1;
                           if (newMode > 3) newMode = 1;
 
-                          world.setBlockState(pos, state.with(MODE, newMode));
+                          world.setBlockState(pos, state.with(MODE,newMode));
 
                           BlockEntity be = world.getBlockEntity(pos);
                           if (be instanceof GodBlockEntity gbe) {
@@ -249,13 +263,12 @@ jobs:
                               gbe.markDirty();
                           }
 
-                          player.sendMessage(Text.literal("§6God Mode: §e" + newMode), false);
+                          player.sendMessage(Text.literal("Mode: "+newMode),false);
 
-                          world.playSound(null, pos,
+                          world.playSound(null,pos,
                                   SoundEvents.BLOCK_BEACON_POWER_SELECT,
-                                  SoundCategory.BLOCKS, 1f, 1f);
+                                  SoundCategory.BLOCKS,1f,1f);
                       }
-
                       return ActionResult.SUCCESS;
                   }
               }
@@ -265,48 +278,33 @@ jobs:
                   public int mode = 1;
 
                   public GodBlockEntity(BlockPos pos, BlockState state) {
-                      super(GOD_BLOCK_ENTITY, pos, state);
+                      super(GOD_BLOCK_ENTITY,pos,state);
                   }
 
-                  public static void tick(World world, BlockPos pos, BlockState state, GodBlockEntity be) {
+                  public static void tick(World world, BlockPos pos,
+                                          BlockState state, GodBlockEntity be) {
 
                       if (!(world instanceof ServerWorld serverWorld)) return;
 
-                      Box box = new Box(pos).expand(100);
+                      Box box = new Box(pos).expand(30);
 
                       if (be.mode == 1) {
                           serverWorld.spawnParticles(ParticleTypes.FLAME,
                                   pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  10,0.5,0.5,0.5,0.02);
-
-                          for (HostileEntity mob :
-                                  serverWorld.getEntitiesByClass(HostileEntity.class, box, e->true)) {
-                              mob.setOnFireFor(3);
-                              mob.damage(serverWorld.getDamageSources().onFire(),2f);
-                          }
+                                  5,0.3,0.3,0.3,0.02);
                       }
 
                       if (be.mode == 2) {
                           serverWorld.spawnParticles(ParticleTypes.PORTAL,
                                   pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  20,1,1,1,0.2);
-
-                          for (HostileEntity mob :
-                                  serverWorld.getEntitiesByClass(HostileEntity.class, box, e->true)) {
-                              mob.damage(serverWorld.getDamageSources().magic(),4f);
-                          }
+                                  10,0.5,0.5,0.5,0.1);
                       }
 
                       if (be.mode == 3) {
-                          serverWorld.spawnParticles(ParticleTypes.END_ROD,
-                                  pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  15,0.5,0.5,0.5,0.05);
-
                           for (PlayerEntity p :
                                   serverWorld.getEntitiesByClass(PlayerEntity.class, box, e->true)) {
-                              p.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE,60,1));
-                              p.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION,60,0));
-                              p.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE,60,0));
+                              p.addStatusEffect(new StatusEffectInstance(
+                                      StatusEffects.REGENERATION,40,0));
                           }
                       }
                   }
@@ -314,7 +312,7 @@ jobs:
                   @Override
                   public void writeNbt(NbtCompound nbt) {
                       super.writeNbt(nbt);
-                      nbt.putInt("Mode", mode);
+                      nbt.putInt("Mode",mode);
                   }
 
                   @Override
