@@ -1,4 +1,4 @@
-name: Build GodBlock Animated
+name: Build GodBlock
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # ✅ settings.gradle (фикс Loom)
+      # ✅ settings.gradle
       - name: settings.gradle
         run: |
           cat << 'EOF' > settings.gradle
@@ -35,7 +35,7 @@ jobs:
         run: |
           cat << 'EOF' > build.gradle
           plugins {
-              id 'fabric-loom' version '1.4.+'
+              id 'fabric-loom' version '1.4.6'
           }
 
           group = 'me.godblock'
@@ -57,6 +57,11 @@ jobs:
               toolchain.languageVersion = JavaLanguageVersion.of(17)
           }
           EOF
+
+      # ✅ Генерируем wrapper с Gradle 8.7 (ВАЖНО!)
+      - name: Generate Gradle Wrapper 8.7
+        run: |
+          gradle wrapper --gradle-version 8.7
 
       # ✅ Структура
       - name: Setup Structure
@@ -85,7 +90,7 @@ jobs:
           }
           EOF
 
-      # ✅ Рецепт (уголь по центру, вокруг камень)
+      # ✅ Рецепт
       - name: Recipe
         run: |
           cat << 'EOF' > src/main/resources/data/godblock/recipes/god_block.json
@@ -107,7 +112,7 @@ jobs:
           }
           EOF
 
-      # ✅ Простейшая текстура
+      # ✅ Текстура
       - name: Texture
         run: |
           sudo apt-get update && sudo apt-get install imagemagick -y
@@ -129,7 +134,7 @@ jobs:
           { "parent": "godblock:block/god_block" }
           EOF
 
-      # ✅ Основной код с NBT
+      # ✅ Код
       - name: GodBlock Code
         run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
@@ -161,7 +166,12 @@ jobs:
 
                   GOD_BLOCK = Registry.register(Registries.BLOCK,
                           new Identifier("godblock","god_block"),
-                          new Block(AbstractBlock.Settings.copy(Blocks.NETHERITE_BLOCK).strength(5f)) {
+                          new BlockWithEntity(AbstractBlock.Settings.copy(Blocks.NETHERITE_BLOCK).strength(5f)) {
+
+                              @Override
+                              public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+                                  return new GodBlockEntity(pos, state);
+                              }
 
                               @Override
                               public ActionResult onUse(BlockState state, World world, BlockPos pos,
@@ -182,16 +192,6 @@ jobs:
                                       }
                                   }
                                   return ActionResult.SUCCESS;
-                              }
-
-                              @Override
-                              public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
-                                  return new GodBlockEntity(pos, state);
-                              }
-
-                              @Override
-                              public boolean hasBlockEntity(BlockState state) {
-                                  return true;
                               }
                           });
 
@@ -229,10 +229,9 @@ jobs:
           }
           EOF
 
-      - run: gradle wrapper
       - run: ./gradlew build
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GodBlockNBT
+          name: GodBlock
           path: build/libs/*.jar
