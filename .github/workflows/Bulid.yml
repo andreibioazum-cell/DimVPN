@@ -16,7 +16,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # пустой gradle
+      # временный build.gradle
       - run: echo "" > build.gradle
 
       # Gradle 8.7
@@ -35,7 +35,7 @@ jobs:
           rootProject.name = 'GodBlock'
           EOF
 
-      # build.gradle
+      # ✅ build.gradle (ИСПРАВЛЕННЫЙ)
       - run: |
           cat << 'EOF' > build.gradle
           plugins {
@@ -54,7 +54,7 @@ jobs:
               minecraft "com.mojang:minecraft:1.20.1"
               mappings "net.fabricmc:yarn:1.20.1+build.10:v2"
               modImplementation "net.fabricmc:fabric-loader:0.15.11"
-              modImplementation "net.fabricmc.fabric-api:0.92.1+1.20.1"
+              modImplementation "net.fabricmc.fabric-api:fabric-api:0.92.1+1.20.1"
           }
 
           java {
