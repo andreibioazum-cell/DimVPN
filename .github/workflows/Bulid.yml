@@ -36,7 +36,7 @@ jobs:
           plugins { id 'fabric-loom' version '1.6.12' }
 
           group = 'me.godblock'
-          version = '3.0'
+          version = '4.0'
 
           repositories {
               mavenCentral()
@@ -70,7 +70,7 @@ jobs:
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "3.0",
+            "version": "4.0",
             "name": "God Block",
             "entrypoints": { "main": ["me.godblock.GodBlockMod"] },
             "depends": {
@@ -101,13 +101,13 @@ jobs:
           }
           EOF
 
-      # simple vanilla texture
+      # texture
       - run: |
           sudo apt-get update && sudo apt-get install imagemagick -y
           convert -size 16x16 plasma:fractal -resize 16x16! -colorspace gray \
           src/main/resources/assets/godblock/textures/block/god_block.png
 
-      # models & blockstate
+      # models
       - run: |
           cat << 'EOF' > src/main/resources/assets/godblock/blockstates/god_block.json
           { "variants": { "": { "model": "godblock:block/god_block" } } }
@@ -123,24 +123,24 @@ jobs:
           { "parent": "godblock:block/god_block" }
           EOF
 
-      # ✅ Java
+      # ✅ Java код
       - run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
           package me.godblock;
 
           import net.fabricmc.api.ModInitializer;
-          import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLivingEntityEvents;
+          import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
           import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
           import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
           import net.minecraft.block.*;
           import net.minecraft.block.entity.*;
-          import net.minecraft.entity.*;
           import net.minecraft.entity.mob.HostileEntity;
           import net.minecraft.entity.player.PlayerEntity;
           import net.minecraft.item.*;
           import net.minecraft.nbt.NbtCompound;
           import net.minecraft.particle.ParticleTypes;
           import net.minecraft.registry.*;
+          import net.minecraft.server.MinecraftServer;
           import net.minecraft.server.world.ServerWorld;
           import net.minecraft.sound.SoundCategory;
           import net.minecraft.sound.SoundEvents;
@@ -187,65 +187,75 @@ jobs:
                   ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS)
                           .register(entries -> entries.add(GOD_BLOCK));
 
-                  // MODE 3
-                  ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, amount, result) -> {
+                  ServerTickEvents.END_SERVER_TICK.register(this::serverTick);
+              }
 
-                      if(!(entity instanceof PlayerEntity player)) return;
+              private void serverTick(MinecraftServer server){
 
-                      ServerWorld world = (ServerWorld) player.getWorld();
-                      Box radius125 = new Box(player.getBlockPos()).expand(125);
+                  for(ServerWorld world : server.getWorlds()){
 
-                      boolean hasBlock = world.getEntitiesByClass(
-                              GodBlockEntity.class,
-                              radius125,
-                              be -> be.getCachedState().get(MODE) == 3
-                      ).size() > 0;
+                      world.getChunkManager().getLoadedChunksIterable().forEach(chunk -> {
 
-                      if(!hasBlock) return;
+                          chunk.getBlockEntities().values().forEach(be -> {
 
-                      damageCounter.put(player, damageCounter.getOrDefault(player,0)+1);
+                              if(!(be instanceof GodBlockEntity god)) return;
 
-                      if(damageCounter.get(player) >= 2){
-                          player.heal(1f); // пол сердца
-                          damageCounter.put(player,0);
-                      }
-                  });
+                              BlockPos pos = god.getPos();
+                              BlockState state = god.getCachedState();
+                              int mode = state.get(MODE);
 
-                  // MODE 2
-                  ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
+                              god.tickCounter++;
 
-                      if(!(entity instanceof PlayerEntity player)) return true;
+                              // MODE 1
+                              if(mode==1 && god.tickCounter>=40){
+                                  god.tickCounter=0;
+                                  Box radius150=new Box(pos).expand(150);
+                                  for(HostileEntity mob:
+                                      world.getEntitiesByClass(HostileEntity.class,radius150,e->true)){
+                                      mob.damage(world.getDamageSources().magic(),2f);
+                                  }
+                              }
 
-                      ServerWorld world = (ServerWorld) player.getWorld();
-                      Box radius150 = new Box(player.getBlockPos()).expand(150);
+                              // MODE 2
+                              if(mode==2){
+                                  Box radius150=new Box(pos).expand(150);
+                                  for(PlayerEntity player:
+                                      world.getEntitiesByClass(PlayerEntity.class,radius150,e->true)){
+                                      if(player.isDead()){
+                                          player.requestRespawn();
+                                          player.heal(player.getMaxHealth()*0.5f);
+                                          world.spawnParticles(
+                                              ParticleTypes.TOTEM_OF_UNDYING,
+                                              pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
+                                              20,1,1,1,0.2);
+                                          world.playSound(null,pos,
+                                              SoundEvents.ITEM_TOTEM_USE,
+                                              SoundCategory.BLOCKS,1f,1f);
+                                          world.removeBlock(pos,false);
+                                      }
+                                  }
+                              }
 
-                      for(GodBlockEntity be :
-                              world.getEntitiesByClass(GodBlockEntity.class,
-                                      radius150,
-                                      block -> block.getCachedState().get(MODE) == 2)){
+                              // MODE 3
+                              if(mode==3){
+                                  Box radius125=new Box(pos).expand(125);
+                                  for(PlayerEntity player:
+                                      world.getEntitiesByClass(PlayerEntity.class,radius125,e->true)){
+                                      if(player.hurtTime==1){
+                                          damageCounter.put(player,
+                                              damageCounter.getOrDefault(player,0)+1);
+                                          if(damageCounter.get(player)>=2){
+                                              player.heal(1f);
+                                              damageCounter.put(player,0);
+                                          }
+                                      }
+                                  }
+                              }
 
-                          player.requestRespawn();
-                          player.heal(player.getMaxHealth()*0.5f);
+                          });
 
-                          world.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING,
-                                  be.getPos().getX()+0.5,
-                                  be.getPos().getY()+1,
-                                  be.getPos().getZ()+0.5,
-                                  20,1,1,1,0.2);
-
-                          world.playSound(null,
-                                  be.getPos(),
-                                  SoundEvents.ITEM_TOTEM_USE,
-                                  SoundCategory.BLOCKS,
-                                  1f,1f);
-
-                          world.removeBlock(be.getPos(),false);
-
-                          return false;
-                      }
-
-                      return true;
-                  });
+                      });
+                  }
               }
 
               public static class GodBlock extends BlockWithEntity {
@@ -271,20 +281,12 @@ jobs:
                   }
 
                   @Override
-                  public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
-                          World world, BlockState state, BlockEntityType<T> type){
-
-                      return world.isClient?null:
-                              checkType(type,GOD_BLOCK_ENTITY,GodBlockEntity::tick);
-                  }
-
-                  @Override
                   public ActionResult onUse(BlockState state, World world, BlockPos pos,
                                             PlayerEntity player, Hand hand, BlockHitResult hit){
 
                       if(!world.isClient && player.isSneaking()){
-                          int m = state.get(MODE)+1;
-                          if(m>3) m=1;
+                          int m=state.get(MODE)+1;
+                          if(m>3)m=1;
                           world.setBlockState(pos,state.with(MODE,m));
                           player.sendMessage(Text.literal("Mode: "+m),false);
                       }
@@ -294,41 +296,17 @@ jobs:
 
               public static class GodBlockEntity extends BlockEntity {
 
-                  private int tickCounter = 0;
+                  int tickCounter=0;
 
                   public GodBlockEntity(BlockPos pos, BlockState state){
                       super(GOD_BLOCK_ENTITY,pos,state);
                   }
 
-                  public static void tick(World world, BlockPos pos,
-                                          BlockState state, GodBlockEntity be){
-
-                      if(!(world instanceof ServerWorld sw)) return;
-
-                      be.tickCounter++;
-
-                      if(state.get(MODE)!=1) return;
-                      if(be.tickCounter<40) return;
-
-                      be.tickCounter=0;
-
-                      Box radius150 = new Box(pos).expand(150);
-
-                      for(HostileEntity mob :
-                              sw.getEntitiesByClass(HostileEntity.class,radius150,e->true)){
-                          mob.damage(sw.getDamageSources().magic(),2f);
-                      }
-                  }
+                  @Override
+                  public void writeNbt(NbtCompound nbt){ super.writeNbt(nbt); }
 
                   @Override
-                  public void writeNbt(NbtCompound nbt){
-                      super.writeNbt(nbt);
-                  }
-
-                  @Override
-                  public void readNbt(NbtCompound nbt){
-                      super.readNbt(nbt);
-                  }
+                  public void readNbt(NbtCompound nbt){ super.readNbt(nbt); }
               }
           }
           EOF
