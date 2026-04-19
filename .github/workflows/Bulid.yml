@@ -16,35 +16,76 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - run: sudo apt-get update && sudo apt-get install imagemagick -y
+      # ✅ settings.gradle (фикс Loom)
+      - name: settings.gradle
+        run: |
+          cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  maven { url = 'https://maven.fabricmc.net/' }
+                  gradlePluginPortal()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = 'GodBlock'
+          EOF
 
+      # ✅ build.gradle
+      - name: build.gradle
+        run: |
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'fabric-loom' version '1.4.+'
+          }
+
+          group = 'me.godblock'
+          version = '2.0'
+
+          repositories {
+              mavenCentral()
+              maven { url 'https://maven.fabricmc.net/' }
+          }
+
+          dependencies {
+              minecraft "com.mojang:minecraft:1.20.1"
+              mappings "net.fabricmc:yarn:1.20.1+build.10:v2"
+              modImplementation "net.fabricmc:fabric-loader:0.15.11"
+              modImplementation "net.fabricmc.fabric-api:fabric-api:0.92.1+1.20.1"
+          }
+
+          java {
+              toolchain.languageVersion = JavaLanguageVersion.of(17)
+          }
+          EOF
+
+      # ✅ Структура
       - name: Setup Structure
         run: |
           mkdir -p src/main/java/me/godblock
           mkdir -p src/main/resources/assets/godblock/{blockstates,models/block,models/item,textures/block}
           mkdir -p src/main/resources/data/godblock/recipes
 
-      # Текстура
-      - name: Generate Texture
+      # ✅ fabric.mod.json
+      - name: fabric.mod.json
         run: |
-          convert -size 16x16 xc:purple god.png
-          mv god.png src/main/resources/assets/godblock/textures/block/god_block.png
-
-      - name: Blockstate & Models
-        run: |
-          cat << 'EOF' > src/main/resources/assets/godblock/blockstates/god_block.json
-          { "variants": { "": { "model": "godblock:block/god_block" } } }
+          cat << 'EOF' > src/main/resources/fabric.mod.json
+          {
+            "schemaVersion": 1,
+            "id": "godblock",
+            "version": "2.0",
+            "name": "God Block",
+            "entrypoints": {
+              "main": ["me.godblock.GodBlockMod"]
+            },
+            "depends": {
+              "fabricloader": ">=0.15.0",
+              "minecraft": "1.20.1",
+              "fabric-api": "*"
+            }
+          }
           EOF
 
-          cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block.json
-          { "parent": "block/cube_all", "textures": { "all": "godblock:block/god_block" } }
-          EOF
-
-          cat << 'EOF' > src/main/resources/assets/godblock/models/item/god_block.json
-          { "parent": "godblock:block/god_block" }
-          EOF
-
-      # ✅ Крафт: уголь в центре, вокруг камень
+      # ✅ Рецепт (уголь по центру, вокруг камень)
       - name: Recipe
         run: |
           cat << 'EOF' > src/main/resources/data/godblock/recipes/god_block.json
@@ -66,51 +107,29 @@ jobs:
           }
           EOF
 
-      - name: build.gradle
+      # ✅ Простейшая текстура
+      - name: Texture
         run: |
-          cat << 'EOF' > build.gradle
-          plugins { id 'fabric-loom' version '1.5-SNAPSHOT' }
+          sudo apt-get update && sudo apt-get install imagemagick -y
+          convert -size 16x16 xc:purple god.png
+          mv god.png src/main/resources/assets/godblock/textures/block/god_block.png
 
-          group = 'me.godblock'
-          version = '2.0'
-
-          repositories {
-              mavenCentral()
-              maven { url 'https://maven.fabricmc.net/' }
-          }
-
-          dependencies {
-              minecraft "com.mojang:minecraft:1.20.1"
-              mappings "net.fabricmc:yarn:1.20.1+build.10:v2"
-              modImplementation "net.fabricmc:fabric-loader:0.15.11"
-              modImplementation "net.fabricmc.fabric-api:fabric-api:0.92.1+1.20.1"
-          }
-
-          java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
+      # ✅ Модели
+      - name: Models
+        run: |
+          cat << 'EOF' > src/main/resources/assets/godblock/blockstates/god_block.json
+          { "variants": { "": { "model": "godblock:block/god_block" } } }
           EOF
 
-      - run: echo "rootProject.name = 'GodBlock'" > settings.gradle
-
-      - name: fabric.mod.json
-        run: |
-          cat << 'EOF' > src/main/resources/fabric.mod.json
-          {
-            "schemaVersion": 1,
-            "id": "godblock",
-            "version": "2.0",
-            "name": "God Block",
-            "entrypoints": {
-              "main": ["me.godblock.GodBlockMod"]
-            },
-            "depends": {
-              "fabricloader": ">=0.15.0",
-              "minecraft": "1.20.1",
-              "fabric-api": "*"
-            }
-          }
+          cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block.json
+          { "parent": "block/cube_all", "textures": { "all": "godblock:block/god_block" } }
           EOF
 
-      # ✅ Новый код с NBT
+          cat << 'EOF' > src/main/resources/assets/godblock/models/item/god_block.json
+          { "parent": "godblock:block/god_block" }
+          EOF
+
+      # ✅ Основной код с NBT
       - name: GodBlock Code
         run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
@@ -124,7 +143,6 @@ jobs:
           import net.minecraft.item.*;
           import net.minecraft.nbt.NbtCompound;
           import net.minecraft.registry.*;
-          import net.minecraft.server.world.ServerWorld;
           import net.minecraft.sound.SoundCategory;
           import net.minecraft.sound.SoundEvents;
           import net.minecraft.text.Text;
@@ -138,6 +156,7 @@ jobs:
               public static Block GOD_BLOCK;
               public static BlockEntityType<GodBlockEntity> GOD_BLOCK_ENTITY;
 
+              @Override
               public void onInitialize() {
 
                   GOD_BLOCK = Registry.register(Registries.BLOCK,
@@ -149,10 +168,8 @@ jobs:
                                                         PlayerEntity player, Hand hand, BlockHitResult hit) {
 
                                   if (!world.isClient && player.isSneaking()) {
-
                                       BlockEntity be = world.getBlockEntity(pos);
                                       if (be instanceof GodBlockEntity gbe) {
-
                                           gbe.mode++;
                                           if (gbe.mode > 3) gbe.mode = 1;
                                           gbe.markDirty();
