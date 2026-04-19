@@ -16,13 +16,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # ✅ Временный build.gradle
+      # временный build.gradle
       - run: echo "" > build.gradle
 
-      # ✅ Gradle 8.7
+      # Gradle 8.7
       - run: gradle wrapper --gradle-version 8.7
 
-      # ✅ settings.gradle (Fabric Maven)
+      # settings.gradle
       - run: |
           cat << 'EOF' > settings.gradle
           pluginManagement {
@@ -35,15 +35,15 @@ jobs:
           rootProject.name = 'GodBlock'
           EOF
 
-      # ✅ build.gradle (Loom 1.6)
+      # build.gradle
       - run: |
           cat << 'EOF' > build.gradle
           plugins {
-              id 'fabric-loom' version '1.6-SNAPSHOT'
+              id 'fabric-loom' version '1.6.12'
           }
 
           group = 'me.godblock'
-          version = '4.0'
+          version = '4.1'
 
           repositories {
               mavenCentral()
@@ -62,7 +62,7 @@ jobs:
           }
           EOF
 
-      # ✅ Больше памяти
+      # память
       - run: |
           cat << 'EOF' > gradle.properties
           org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G
@@ -71,19 +71,19 @@ jobs:
           org.gradle.caching=true
           EOF
 
-      # ✅ Структура
+      # структура
       - run: |
           mkdir -p src/main/java/me/godblock
           mkdir -p src/main/resources/assets/godblock/{blockstates,models/block,models/item,textures/block}
           mkdir -p src/main/resources/data/godblock/recipes
 
-      # ✅ fabric.mod.json
+      # fabric.mod.json
       - run: |
           cat << 'EOF' > src/main/resources/fabric.mod.json
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "4.0",
+            "version": "4.1",
             "name": "God Block",
             "entrypoints": {
               "main": ["me.godblock.GodBlockMod"]
@@ -96,7 +96,7 @@ jobs:
           }
           EOF
 
-      # ✅ Рецепт
+      # рецепт
       - run: |
           cat << 'EOF' > src/main/resources/data/godblock/recipes/god_block.json
           {
@@ -117,7 +117,7 @@ jobs:
           }
           EOF
 
-      # ✅ Текстуры (3 цвета)
+      # текстуры
       - run: |
           sudo apt-get update && sudo apt-get install imagemagick -y
           convert -size 16x16 xc:red red.png
@@ -127,7 +127,7 @@ jobs:
           mv purple.png src/main/resources/assets/godblock/textures/block/god_block_purple.png
           mv green.png src/main/resources/assets/godblock/textures/block/god_block_green.png
 
-      # ✅ Blockstates
+      # blockstates
       - run: |
           cat << 'EOF' > src/main/resources/assets/godblock/blockstates/god_block.json
           {
@@ -139,7 +139,7 @@ jobs:
           }
           EOF
 
-      # ✅ Модели
+      # модели
       - run: |
           cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block_red.json
           { "parent": "block/cube_all", "textures": { "all": "godblock:block/god_block_red" } }
@@ -157,7 +157,7 @@ jobs:
           { "parent": "godblock:block/god_block_red" }
           EOF
 
-      # ✅ Java код
+      # Java код
       - run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
           package me.godblock;
@@ -197,7 +197,8 @@ jobs:
                   GOD_BLOCK = Registry.register(Registries.BLOCK,
                           new Identifier("godblock","god_block"),
                           new GodBlock(AbstractBlock.Settings.copy(Blocks.NETHERITE_BLOCK)
-                                  .strength(5f).luminance(15)));
+                                  .strength(5f)
+                                  .luminance(state -> 15)));
 
                   Registry.register(Registries.ITEM,
                           new Identifier("godblock","god_block"),
@@ -211,11 +212,13 @@ jobs:
 
                   ServerTickEvents.END_SERVER_TICK.register(server -> {
                       for (ServerWorld world : server.getWorlds()) {
-                          for (BlockEntity be : world.iterateBlockEntities()) {
-                              if (be instanceof GodBlockEntity gbe) {
-                                  applyMode(world, gbe.getPos(), gbe.mode);
-                              }
-                          }
+                          world.getChunkManager().getLoadedChunksIterable().forEach(chunk -> {
+                              chunk.getBlockEntities().values().forEach(be -> {
+                                  if (be instanceof GodBlockEntity gbe) {
+                                      applyMode(world, gbe.getPos(), gbe.mode);
+                                  }
+                              });
+                          });
                       }
                   });
               }
