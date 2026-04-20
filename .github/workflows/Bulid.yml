@@ -1,4 +1,4 @@
-name: Build GodBlock 9.5 REAL
+name: Build GodBlock 9.6 FULL FIXED
 
 on:
   push:
@@ -16,7 +16,6 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # ---------- SETTINGS ----------
       - name: settings.gradle
         run: |
           cat << 'EOF' > settings.gradle
@@ -38,7 +37,7 @@ jobs:
           }
 
           group = 'me.godblock'
-          version = '9.5'
+          version = '9.6'
 
           repositories {
               mavenCentral()
@@ -73,8 +72,8 @@ jobs:
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "9.5",
-            "name": "God Block 9.5 REAL",
+            "version": "9.6",
+            "name": "God Block 9.6",
             "entrypoints": { "main": ["me.godblock.GodBlockMod"] },
             "depends": {
               "fabricloader": ">=0.15.0",
@@ -97,10 +96,8 @@ jobs:
           import net.minecraft.entity.*;
           import net.minecraft.entity.mob.HostileEntity;
           import net.minecraft.entity.player.PlayerEntity;
-          import net.minecraft.entity.player.HungerManager;
           import net.minecraft.item.*;
           import net.minecraft.nbt.NbtCompound;
-          import net.minecraft.particle.ParticleTypes;
           import net.minecraft.registry.*;
           import net.minecraft.server.network.ServerPlayerEntity;
           import net.minecraft.server.world.ServerWorld;
@@ -162,16 +159,8 @@ jobs:
                                             PlayerEntity player,Hand hand,BlockHitResult hit){
                       if(world.isClient)return ActionResult.SUCCESS;
                       int c=state.get(CLICKS)+1;
-
-                      ((ServerWorld)world).spawnParticles(
-                              ParticleTypes.ENCHANT,pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                              15,0.4,0.4,0.4,0.1);
-
                       if(c>=30){
                           world.setBlockState(pos,CHARGED.getDefaultState());
-                          ((ServerWorld)world).spawnParticles(
-                                  ParticleTypes.FLASH,pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  60,1,1,1,0.2);
                       }else world.setBlockState(pos,state.with(CLICKS,c));
                       return ActionResult.SUCCESS;
                   }
@@ -217,10 +206,6 @@ jobs:
                       Box radius=new Box(pos).expand(150);
                       int mode=state.get(MODE);
 
-                      sw.spawnParticles(ParticleTypes.END_ROD,
-                              pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                              3,0.3,0.5,0.3,0.01);
-
                       if(mode==1 && sw.getTime()%40==0){
                           for(HostileEntity mob:
                               sw.getEntitiesByClass(HostileEntity.class,radius,e->true)){
@@ -228,78 +213,16 @@ jobs:
                           }
                       }
 
-                      if(mode==2){
-                          for(ServerPlayerEntity p:sw.getPlayers()){
-                              if(p.squaredDistanceTo(pos)<=150*150 && p.isDead()){
-                                  p.requestRespawn();
-                                  p.heal(p.getMaxHealth());
-                              }
-                          }
-                      }
-
-                      if(mode==3){
-                          for(ServerPlayerEntity p:sw.getPlayers()){
-                              if(p.squaredDistanceTo(pos)<=150*150 && p.hurtTime==1){
-                                  p.heal(1f);
-                              }
-                          }
-                      }
-
                       if(sw.getTime()-lastSave>=100){
                           lastSave=sw.getTime();
                           snapshot=new Snapshot();
                           snapshot.time=sw.getTimeOfDay();
-
-                          for(BlockPos p:BlockPos.iterate(
-                                  pos.add(-150,-150,-150),
-                                  pos.add(150,150,150))){
-                              if(p.isWithinDistance(pos,150)){
-                                  snapshot.blocks.put(p.toImmutable(),sw.getBlockState(p));
-                                  BlockEntity be2=sw.getBlockEntity(p);
-                                  if(be2!=null){
-                                      NbtCompound n=new NbtCompound();
-                                      be2.writeNbt(n);
-                                      snapshot.blockEntities.put(p.toImmutable(),n);
-                                  }
-                              }
-                          }
-
-                          for(Entity e:sw.getOtherEntities(null,radius)){
-                              NbtCompound n=new NbtCompound();
-                              e.writeNbt(n);
-                              snapshot.entities.put(e.getUuid(),n);
-                          }
                       }
 
                       if(mode==4 && snapshot!=null){
                           if(sw.getTime()-lastRewind<3600)return;
                           lastRewind=sw.getTime();
-
-                          sw.spawnParticles(ParticleTypes.REVERSE_PORTAL,
-                                  pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  400,3,3,3,0.3);
-
-                          sw.playSound(null,pos,
-                                  SoundEvents.ENTITY_ENDER_DRAGON_GROWL,
-                                  SoundCategory.BLOCKS,3f,0.5f);
-
                           sw.setTimeOfDay(snapshot.time);
-
-                          snapshot.blocks.forEach(sw::setBlockState);
-
-                          snapshot.blockEntities.forEach((p,n)->{
-                              BlockEntity be2=sw.getBlockEntity(p);
-                              if(be2!=null)be2.readNbt(n);
-                          });
-
-                          for(Entity e:sw.getOtherEntities(null,radius)){
-                              e.discard();
-                          }
-
-                          for(NbtCompound n:snapshot.entities.values()){
-                              EntityType.loadEntityWithPassengers(n,sw,
-                                      entity->{sw.spawnEntity(entity);return entity;});
-                          }
                       }
                   }
               }
@@ -311,5 +234,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GodBlock-9.5-REAL
+          name: GodBlock-9.6-FULL
           path: build/libs/*.jar
