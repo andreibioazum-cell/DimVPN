@@ -1,4 +1,4 @@
-name: Build GodBlock 9.0 GOD EDITION
+name: Build GodBlock 9.2 FULL
 
 on:
   push:
@@ -10,16 +10,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: 17
 
-      - run: gradle wrapper --gradle-version 8.7
-
-      # ---------------- SETTINGS ----------------
-
-      - run: |
+      # ---------- SETTINGS ----------
+      - name: Create settings.gradle
+        run: |
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
@@ -31,12 +30,15 @@ jobs:
           rootProject.name = 'GodBlock'
           EOF
 
-      - run: |
+      - name: Create build.gradle
+        run: |
           cat << 'EOF' > build.gradle
-          plugins { id 'fabric-loom' version '1.6.12' }
+          plugins {
+              id 'fabric-loom' version '1.6.12'
+          }
 
           group = 'me.godblock'
-          version = '9.0'
+          version = '9.2'
 
           repositories {
               mavenCentral()
@@ -50,85 +52,29 @@ jobs:
               modImplementation "net.fabricmc.fabric-api:fabric-api:0.92.1+1.20.1"
           }
 
-          java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
-          EOF
-
-      - run: |
-          cat << 'EOF' > gradle.properties
-          org.gradle.jvmargs=-Xmx4G
-          org.gradle.daemon=false
-          EOF
-
-      # ---------------- FOLDERS ----------------
-
-      - run: |
-          mkdir -p src/main/java/me/godblock
-          mkdir -p src/main/resources/assets/godblock/{blockstates,models/block,models/item,lang,textures/block}
-          mkdir -p src/main/resources/data/godblock/recipes
-
-      # ---------------- TEXTURES ----------------
-
-      - run: |
-          sudo apt-get update && sudo apt-get install imagemagick -y
-          convert -size 16x16 plasma:fractal -resize 16x16! \
-          src/main/resources/assets/godblock/textures/block/god_block.png
-
-          convert -size 16x16 plasma:fractal -resize 16x16! -colorize 100,100,0 \
-          src/main/resources/assets/godblock/textures/block/god_block_charged.png
-
-      # ---------------- MODELS ----------------
-
-      - run: |
-          cat << 'EOF' > src/main/resources/assets/godblock/blockstates/god_block.json
-          { "variants": { "": { "model": "godblock:block/god_block" } } }
-          EOF
-
-          cat << 'EOF' > src/main/resources/assets/godblock/blockstates/god_block_charged.json
-          { "variants": { "": { "model": "godblock:block/god_block_charged" } } }
-          EOF
-
-          cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block.json
-          { "parent": "block/cube_all",
-            "textures": { "all": "godblock:block/god_block" } }
-          EOF
-
-          cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block_charged.json
-          { "parent": "block/cube_all",
-            "textures": { "all": "godblock:block/god_block_charged" } }
-          EOF
-
-          cat << 'EOF' > src/main/resources/assets/godblock/models/item/god_block.json
-          { "parent": "godblock:block/god_block" }
-          EOF
-
-          cat << 'EOF' > src/main/resources/assets/godblock/models/item/god_block_charged.json
-          { "parent": "godblock:block/god_block_charged" }
-          EOF
-
-      # ---------------- RECIPE ----------------
-
-      - run: |
-          cat << 'EOF' > src/main/resources/data/godblock/recipes/god_block.json
-          {
-            "type": "minecraft:crafting_shaped",
-            "pattern": ["SSS","SCS","SSS"],
-            "key": {
-              "S": { "item": "minecraft:stone" },
-              "C": { "item": "minecraft:coal" }
-            },
-            "result": { "item": "godblock:god_block" }
+          java {
+              toolchain.languageVersion = JavaLanguageVersion.of(17)
           }
           EOF
 
-      # ---------------- MOD JSON ----------------
+      - run: echo "org.gradle.jvmargs=-Xmx4G" > gradle.properties
 
+      - name: Generate Wrapper
+        run: gradle wrapper --gradle-version 8.7
+
+      # ---------- STRUCTURE ----------
+      - run: |
+          mkdir -p src/main/java/me/godblock
+          mkdir -p src/main/resources
+
+      # ---------- MOD JSON ----------
       - run: |
           cat << 'EOF' > src/main/resources/fabric.mod.json
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "9.0",
-            "name": "God Block GOD EDITION",
+            "version": "9.2",
+            "name": "God Block 9.2",
             "entrypoints": { "main": ["me.godblock.GodBlockMod"] },
             "depends": {
               "fabricloader": ">=0.15.0",
@@ -138,14 +84,13 @@ jobs:
           }
           EOF
 
-      # ---------------- JAVA ----------------
-
+      # ---------- JAVA ----------
       - run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
-          // FULL GOD EDITION WITH CHARGE + 4 MODES + TIME RIFT
           package me.godblock;
 
           import net.fabricmc.api.ModInitializer;
+          import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
           import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
           import net.minecraft.block.*;
           import net.minecraft.block.entity.*;
@@ -200,7 +145,7 @@ jobs:
 
                   TYPE=Registry.register(
                           Registries.BLOCK_ENTITY_TYPE,
-                          new Identifier(MOD_ID,"god_block_entity"),
+                          new Identifier(MOD_ID,"god_entity"),
                           FabricBlockEntityTypeBuilder.create(ChargedEntity::new,CHARGED).build()
                   );
 
@@ -208,8 +153,7 @@ jobs:
                           .register(e->{e.add(UNCHARGED);e.add(CHARGED);});
               }
 
-              // ---------- UNCHARGED ----------
-
+              // ----- UNCHARGED -----
               public static class UnchargedBlock extends Block{
                   public UnchargedBlock(Settings s){
                       super(s);
@@ -225,13 +169,13 @@ jobs:
 
                       ((ServerWorld)world).spawnParticles(
                               ParticleTypes.ENCHANT,pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                              20,0.5,0.5,0.5,0.1);
+                              15,0.4,0.4,0.4,0.1);
 
                       if(clicks>=30){
                           world.setBlockState(pos,CHARGED.getDefaultState());
                           ((ServerWorld)world).spawnParticles(
                                   ParticleTypes.FLASH,pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  80,1,1,1,0.2);
+                                  60,1,1,1,0.2);
                       }else{
                           world.setBlockState(pos,state.with(CLICKS,clicks));
                       }
@@ -239,8 +183,7 @@ jobs:
                   }
               }
 
-              // ---------- CHARGED ----------
-
+              // ----- CHARGED -----
               public static class ChargedBlock extends BlockWithEntity{
                   public ChargedBlock(Settings s){
                       super(s);
@@ -268,8 +211,7 @@ jobs:
                   }
               }
 
-              // ---------- SNAPSHOT + MODES ----------
-
+              // ----- SNAPSHOT -----
               static class Snapshot{
                   Map<BlockPos,BlockState> blocks=new HashMap<>();
                   List<NbtCompound> entities=new ArrayList<>();
@@ -294,9 +236,10 @@ jobs:
                       Box radius=new Box(pos).expand(150);
                       int mode=state.get(MODE);
 
+                      // glow
                       sw.spawnParticles(ParticleTypes.END_ROD,
                               pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                              4,0.3,0.5,0.3,0.01);
+                              3,0.3,0.5,0.3,0.01);
 
                       // MODE 1
                       if(mode==1 && sw.getTime()%40==0){
@@ -325,7 +268,7 @@ jobs:
                           }
                       }
 
-                      // SAVE
+                      // SAVE SNAPSHOT
                       if(sw.getTime()-lastSave>=100){
                           lastSave=sw.getTime();
                           snapshot=new Snapshot();
@@ -348,13 +291,12 @@ jobs:
 
                       // MODE 4 TIME RIFT
                       if(mode==4 && snapshot!=null){
-
                           if(sw.getTime()-lastRewind<3600)return;
                           lastRewind=sw.getTime();
 
                           sw.spawnParticles(ParticleTypes.REVERSE_PORTAL,
                                   pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
-                                  600,3,3,3,0.4);
+                                  400,3,3,3,0.3);
 
                           sw.playSound(null,pos,
                                   SoundEvents.ENTITY_ENDER_DRAGON_GROWL,
@@ -378,9 +320,10 @@ jobs:
           }
           EOF
 
-      - run: ./gradlew build --no-daemon
+      - name: Build
+        run: ./gradlew build --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GodBlock-9.0-GOD-EDITION
+          name: GodBlock-9.2-FULL
           path: build/libs/*.jar
