@@ -1,4 +1,4 @@
-name: Build GodBlock 9.2 FULL
+name: Build GodBlock 9.5 REAL
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
           java-version: 17
 
       # ---------- SETTINGS ----------
-      - name: Create settings.gradle
+      - name: settings.gradle
         run: |
           cat << 'EOF' > settings.gradle
           pluginManagement {
@@ -27,10 +27,10 @@ jobs:
                   mavenCentral()
               }
           }
-          rootProject.name = 'GodBlock'
+          rootProject.name = "GodBlock"
           EOF
 
-      - name: Create build.gradle
+      - name: build.gradle
         run: |
           cat << 'EOF' > build.gradle
           plugins {
@@ -38,7 +38,7 @@ jobs:
           }
 
           group = 'me.godblock'
-          version = '9.2'
+          version = '9.5'
 
           repositories {
               mavenCentral()
@@ -58,23 +58,23 @@ jobs:
           EOF
 
       - run: echo "org.gradle.jvmargs=-Xmx4G" > gradle.properties
+      - run: echo "org.gradle.daemon=false" >> gradle.properties
 
-      - name: Generate Wrapper
-        run: gradle wrapper --gradle-version 8.7
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
 
-      # ---------- STRUCTURE ----------
-      - run: |
-          mkdir -p src/main/java/me/godblock
-          mkdir -p src/main/resources
+      - run: mkdir -p src/main/java/me/godblock
+      - run: mkdir -p src/main/resources
 
-      # ---------- MOD JSON ----------
-      - run: |
+      - name: fabric.mod.json
+        run: |
           cat << 'EOF' > src/main/resources/fabric.mod.json
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "9.2",
-            "name": "God Block 9.2",
+            "version": "9.5",
+            "name": "God Block 9.5 REAL",
             "entrypoints": { "main": ["me.godblock.GodBlockMod"] },
             "depends": {
               "fabricloader": ">=0.15.0",
@@ -84,8 +84,8 @@ jobs:
           }
           EOF
 
-      # ---------- JAVA ----------
-      - run: |
+      - name: Java Source
+        run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
           package me.godblock;
 
@@ -97,10 +97,12 @@ jobs:
           import net.minecraft.entity.*;
           import net.minecraft.entity.mob.HostileEntity;
           import net.minecraft.entity.player.PlayerEntity;
+          import net.minecraft.entity.player.HungerManager;
           import net.minecraft.item.*;
           import net.minecraft.nbt.NbtCompound;
           import net.minecraft.particle.ParticleTypes;
           import net.minecraft.registry.*;
+          import net.minecraft.server.network.ServerPlayerEntity;
           import net.minecraft.server.world.ServerWorld;
           import net.minecraft.sound.SoundCategory;
           import net.minecraft.sound.SoundEvents;
@@ -135,12 +137,9 @@ jobs:
                           new ChargedBlock(AbstractBlock.Settings.copy(Blocks.NETHERITE_BLOCK)
                                   .strength(5f).luminance(s->15)));
 
-                  Registry.register(Registries.ITEM,
-                          new Identifier(MOD_ID,"god_block"),
+                  Registry.register(Registries.ITEM,new Identifier(MOD_ID,"god_block"),
                           new BlockItem(UNCHARGED,new Item.Settings()));
-
-                  Registry.register(Registries.ITEM,
-                          new Identifier(MOD_ID,"god_block_charged"),
+                  Registry.register(Registries.ITEM,new Identifier(MOD_ID,"god_block_charged"),
                           new BlockItem(CHARGED,new Item.Settings()));
 
                   TYPE=Registry.register(
@@ -153,69 +152,51 @@ jobs:
                           .register(e->{e.add(UNCHARGED);e.add(CHARGED);});
               }
 
-              // ----- UNCHARGED -----
               public static class UnchargedBlock extends Block{
                   public UnchargedBlock(Settings s){
                       super(s);
                       setDefaultState(getStateManager().getDefaultState().with(CLICKS,0));
                   }
-                  protected void appendProperties(StateManager.Builder<Block,BlockState>b){
-                      b.add(CLICKS);
-                  }
+                  protected void appendProperties(StateManager.Builder<Block,BlockState>b){b.add(CLICKS);}
                   public ActionResult onUse(BlockState state,World world,BlockPos pos,
                                             PlayerEntity player,Hand hand,BlockHitResult hit){
                       if(world.isClient)return ActionResult.SUCCESS;
-                      int clicks=state.get(CLICKS)+1;
+                      int c=state.get(CLICKS)+1;
 
                       ((ServerWorld)world).spawnParticles(
                               ParticleTypes.ENCHANT,pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
                               15,0.4,0.4,0.4,0.1);
 
-                      if(clicks>=30){
+                      if(c>=30){
                           world.setBlockState(pos,CHARGED.getDefaultState());
                           ((ServerWorld)world).spawnParticles(
                                   ParticleTypes.FLASH,pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
                                   60,1,1,1,0.2);
-                      }else{
-                          world.setBlockState(pos,state.with(CLICKS,clicks));
-                      }
+                      }else world.setBlockState(pos,state.with(CLICKS,c));
                       return ActionResult.SUCCESS;
                   }
               }
 
-              // ----- CHARGED -----
+              static class Snapshot{
+                  Map<BlockPos,BlockState> blocks=new HashMap<>();
+                  Map<BlockPos,NbtCompound> blockEntities=new HashMap<>();
+                  Map<UUID,NbtCompound> entities=new HashMap<>();
+                  long time;
+              }
+
               public static class ChargedBlock extends BlockWithEntity{
                   public ChargedBlock(Settings s){
                       super(s);
                       setDefaultState(getStateManager().getDefaultState().with(MODE,1));
                   }
-                  protected void appendProperties(StateManager.Builder<Block,BlockState>b){
-                      b.add(MODE);
-                  }
+                  protected void appendProperties(StateManager.Builder<Block,BlockState>b){b.add(MODE);}
                   public BlockEntity createBlockEntity(BlockPos pos,BlockState state){
                       return new ChargedEntity(pos,state);
                   }
                   public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
                           World world,BlockState state,BlockEntityType<T> type){
-                      return world.isClient?null:
-                              checkType(type,TYPE,ChargedEntity::tick);
+                      return world.isClient?null:checkType(type,TYPE,ChargedEntity::tick);
                   }
-                  public ActionResult onUse(BlockState state,World world,BlockPos pos,
-                                            PlayerEntity player,Hand hand,BlockHitResult hit){
-                      if(!world.isClient && player.isSneaking()){
-                          int m=state.get(MODE)+1;
-                          if(m>4)m=1;
-                          world.setBlockState(pos,state.with(MODE,m));
-                      }
-                      return ActionResult.SUCCESS;
-                  }
-              }
-
-              // ----- SNAPSHOT -----
-              static class Snapshot{
-                  Map<BlockPos,BlockState> blocks=new HashMap<>();
-                  List<NbtCompound> entities=new ArrayList<>();
-                  long time;
               }
 
               public static class ChargedEntity extends BlockEntity{
@@ -236,12 +217,10 @@ jobs:
                       Box radius=new Box(pos).expand(150);
                       int mode=state.get(MODE);
 
-                      // glow
                       sw.spawnParticles(ParticleTypes.END_ROD,
                               pos.getX()+0.5,pos.getY()+1,pos.getZ()+0.5,
                               3,0.3,0.5,0.3,0.01);
 
-                      // MODE 1
                       if(mode==1 && sw.getTime()%40==0){
                           for(HostileEntity mob:
                               sw.getEntitiesByClass(HostileEntity.class,radius,e->true)){
@@ -249,26 +228,23 @@ jobs:
                           }
                       }
 
-                      // MODE 2
                       if(mode==2){
-                          for(PlayerEntity p:
-                              sw.getEntitiesByClass(PlayerEntity.class,radius,e->true)){
-                              if(p.isDead()){
+                          for(ServerPlayerEntity p:sw.getPlayers()){
+                              if(p.squaredDistanceTo(pos)<=150*150 && p.isDead()){
                                   p.requestRespawn();
                                   p.heal(p.getMaxHealth());
                               }
                           }
                       }
 
-                      // MODE 3
                       if(mode==3){
-                          for(PlayerEntity p:
-                              sw.getEntitiesByClass(PlayerEntity.class,radius,e->true)){
-                              if(p.hurtTime==1)p.heal(1f);
+                          for(ServerPlayerEntity p:sw.getPlayers()){
+                              if(p.squaredDistanceTo(pos)<=150*150 && p.hurtTime==1){
+                                  p.heal(1f);
+                              }
                           }
                       }
 
-                      // SAVE SNAPSHOT
                       if(sw.getTime()-lastSave>=100){
                           lastSave=sw.getTime();
                           snapshot=new Snapshot();
@@ -277,19 +253,24 @@ jobs:
                           for(BlockPos p:BlockPos.iterate(
                                   pos.add(-150,-150,-150),
                                   pos.add(150,150,150))){
-                              if(p.isWithinDistance(pos,150))
-                                  snapshot.blocks.put(p.toImmutable(),
-                                          sw.getBlockState(p));
+                              if(p.isWithinDistance(pos,150)){
+                                  snapshot.blocks.put(p.toImmutable(),sw.getBlockState(p));
+                                  BlockEntity be2=sw.getBlockEntity(p);
+                                  if(be2!=null){
+                                      NbtCompound n=new NbtCompound();
+                                      be2.writeNbt(n);
+                                      snapshot.blockEntities.put(p.toImmutable(),n);
+                                  }
+                              }
                           }
 
                           for(Entity e:sw.getOtherEntities(null,radius)){
                               NbtCompound n=new NbtCompound();
                               e.writeNbt(n);
-                              snapshot.entities.add(n);
+                              snapshot.entities.put(e.getUuid(),n);
                           }
                       }
 
-                      // MODE 4 TIME RIFT
                       if(mode==4 && snapshot!=null){
                           if(sw.getTime()-lastRewind<3600)return;
                           lastRewind=sw.getTime();
@@ -306,11 +287,16 @@ jobs:
 
                           snapshot.blocks.forEach(sw::setBlockState);
 
+                          snapshot.blockEntities.forEach((p,n)->{
+                              BlockEntity be2=sw.getBlockEntity(p);
+                              if(be2!=null)be2.readNbt(n);
+                          });
+
                           for(Entity e:sw.getOtherEntities(null,radius)){
                               e.discard();
                           }
 
-                          for(NbtCompound n:snapshot.entities){
+                          for(NbtCompound n:snapshot.entities.values()){
                               EntityType.loadEntityWithPassengers(n,sw,
                                       entity->{sw.spawnEntity(entity);return entity;});
                           }
@@ -321,9 +307,9 @@ jobs:
           EOF
 
       - name: Build
-        run: ./gradlew build --no-daemon
+        run: gradle build --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GodBlock-9.2-FULL
+          name: GodBlock-9.5-REAL
           path: build/libs/*.jar
