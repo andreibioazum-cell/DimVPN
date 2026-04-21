@@ -132,7 +132,7 @@ jobs:
           { "parent": "godblock:block/god_block" }
           EOF
 
-      # Java code with all features
+      # Java code with all features - FIXED VERSION
       - run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
           package me.godblock;
@@ -148,7 +148,6 @@ jobs:
           import net.minecraft.entity.player.PlayerEntity;
           import net.minecraft.item.*;
           import net.minecraft.nbt.NbtCompound;
-          import net.minecraft.nbt.NbtIo;
           import net.minecraft.particle.ParticleTypes;
           import net.minecraft.registry.*;
           import net.minecraft.server.world.ServerWorld;
@@ -177,7 +176,6 @@ jobs:
               private static final Map<PlayerEntity,Integer> damageCounter = new ConcurrentHashMap<>();
               private static final Map<ServerWorld, Deque<WorldSnapshot>> snapshots = new ConcurrentHashMap<>();
               private static final int SNAPSHOT_INTERVAL = 1200; // 60 seconds (20 ticks per second)
-              private static final int REWIND_SECONDS = 60;
 
               @Override
               public void onInitialize() {
@@ -242,7 +240,6 @@ jobs:
                           if(m>4) m=1;
                           world.setBlockState(pos,state.with(MODE,m));
                           
-                          // Send mode info with description
                           String modeMessage = "";
                           String modeDescription = "";
                           switch(m) {
@@ -267,7 +264,6 @@ jobs:
                           player.sendMessage(Text.literal(modeMessage), false);
                           player.sendMessage(Text.literal(modeDescription), false);
                           
-                          // Spawn particles on mode change
                           if(world instanceof ServerWorld sw) {
                               sw.spawnParticles(ParticleTypes.ENCHANT,
                                       pos.getX()+0.5, pos.getY()+1, pos.getZ()+0.5,
@@ -282,24 +278,20 @@ jobs:
 
               public static class WorldSnapshot implements Serializable {
                   private static final long serialVersionUID = 1L;
-                  public final byte[] worldData;
-                  public final long timestamp;
                   public final Map<BlockPos, NbtCompound> blockEntities;
                   public final List<NbtCompound> entities;
+                  public final long timestamp;
                   
-                  public WorldSnapshot(ServerWorld world) throws IOException {
+                  public WorldSnapshot(ServerWorld world) {
                       this.timestamp = world.getTime();
                       this.blockEntities = new HashMap<>();
                       this.entities = new ArrayList<>();
                       
                       // Save all block entities
-                      for(BlockPos pos : world.getBlockEntities().keySet()) {
-                          BlockEntity be = world.getBlockEntity(pos);
-                          if(be != null) {
-                              NbtCompound nbt = new NbtCompound();
-                              be.writeNbt(nbt);
-                              blockEntities.put(pos, nbt);
-                          }
+                      for(BlockEntity be : world.blockEntities) {
+                          NbtCompound nbt = new NbtCompound();
+                          be.writeNbt(nbt);
+                          blockEntities.put(be.getPos(), nbt);
                       }
                       
                       // Save all entities (except players)
@@ -311,20 +303,15 @@ jobs:
                               }
                           }
                       }
-                      
-                      // Save world data (simplified)
-                      worldData = new byte[0]; // Placeholder for world data
                   }
                   
                   public void restore(ServerWorld world) {
                       // Clear existing non-player entities
-                      List<Entity> toRemove = new ArrayList<>();
                       for(Entity entity : world.getEntities()) {
                           if(!(entity instanceof PlayerEntity)) {
-                              toRemove.add(entity);
+                              entity.remove(Entity.RemovalReason.DISCARDED);
                           }
                       }
-                      toRemove.forEach(Entity::remove);
                       
                       // Restore block entities
                       for(Map.Entry<BlockPos, NbtCompound> entry : blockEntities.entrySet()) {
@@ -343,10 +330,11 @@ jobs:
                       }
                       
                       // Spawn particles for effect
+                      BlockPos spawnPos = world.getSpawnPos();
                       world.spawnParticles(ParticleTypes.PORTAL,
-                              world.getSpawnPos().getX(), world.getSpawnPos().getY(), world.getSpawnPos().getZ(),
+                              spawnPos.getX(), spawnPos.getY(), spawnPos.getZ(),
                               200, 50, 50, 50, 0.5);
-                      world.playSound(null, world.getSpawnPos(), SoundEvents.BLOCK_BEACON_DEACTIVATE,
+                      world.playSound(null, spawnPos, SoundEvents.BLOCK_BEACON_DEACTIVATE,
                               SoundCategory.BLOCKS, 1f, 1f);
                   }
               }
@@ -367,7 +355,6 @@ jobs:
 
                       // Spawn particles around the block (glow effect)
                       if(sw.getTime() % 10 == 0) {
-                          double offset = 0.5;
                           sw.spawnParticles(ParticleTypes.GLOW,
                                   pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5,
                                   5, 0.3, 0.3, 0.3, 0.02);
@@ -386,7 +373,6 @@ jobs:
                               mob.damage(sw.getDamageSources().magic(), 2f);
                               damagedCount++;
                               
-                              // Spawn damage particles
                               sw.spawnParticles(ParticleTypes.DAMAGE_INDICATOR,
                                       mob.getX(), mob.getY() + 0.5, mob.getZ(),
                                       2, 0.2, 0.2, 0.2, 0);
@@ -411,7 +397,6 @@ jobs:
                                   sw.playSound(null, pos, SoundEvents.ITEM_TOTEM_USE,
                                           SoundCategory.BLOCKS, 1f, 1f);
                                   
-                                  // Broadcast resurrection message
                                   sw.getPlayers().forEach(p -> 
                                       p.sendMessage(Text.literal("§b" + player.getName().getString() + " was resurrected by the God Block!§r"), false)
                                   );
@@ -427,7 +412,6 @@ jobs:
                               if(player.hurtTime == 1){
                                   damageCounter.put(player, damageCounter.getOrDefault(player, 0) + 1);
                                   
-                                  // Show heal particles
                                   sw.spawnParticles(ParticleTypes.HEART,
                                           player.getX(), player.getY() + 0.5, player.getZ(),
                                           2, 0.3, 0.3, 0.3, 0);
@@ -448,14 +432,13 @@ jobs:
                       if(mode == 4){
                           be.snapshotTimer++;
                           
-                          // Create snapshot every 60 seconds (1200 ticks)
+                          // Create snapshot every 60 seconds
                           if(be.snapshotTimer >= SNAPSHOT_INTERVAL) {
                               be.snapshotTimer = 0;
                               try {
                                   WorldSnapshot snapshot = new WorldSnapshot(sw);
                                   snapshots.computeIfAbsent(sw, k -> new ArrayDeque<>()).addFirst(snapshot);
                                   
-                                  // Keep only last 2 snapshots (2 minutes)
                                   Deque<WorldSnapshot> deque = snapshots.get(sw);
                                   while(deque.size() > 2) {
                                       deque.removeLast();
@@ -472,8 +455,8 @@ jobs:
                               }
                           }
                           
-                          // Check if we need to rewind (every 60 seconds for demo, or on redstone signal)
-                          if(be.tickCounter >= SNAPSHOT_INTERVAL + 20) { // 61 seconds
+                          // Rewind time every 60 seconds
+                          if(be.tickCounter >= SNAPSHOT_INTERVAL + 20) {
                               be.tickCounter = 0;
                               Deque<WorldSnapshot> deque = snapshots.get(sw);
                               if(deque != null && deque.size() >= 1) {
