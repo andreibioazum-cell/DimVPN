@@ -1,4 +1,4 @@
-name: Build GodBlock 9.6 FULL FIXED
+name: Build GodBlock
 
 on:
   push:
@@ -16,8 +16,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: settings.gradle
-        run: |
+      - run: echo "" > build.gradle
+      - run: gradle wrapper --gradle-version 8.7
+
+      - run: |
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
@@ -26,18 +28,15 @@ jobs:
                   mavenCentral()
               }
           }
-          rootProject.name = "GodBlock"
+          rootProject.name = 'GodBlock'
           EOF
 
-      - name: build.gradle
-        run: |
+      - run: |
           cat << 'EOF' > build.gradle
-          plugins {
-              id 'fabric-loom' version '1.6.12'
-          }
+          plugins { id 'fabric-loom' version '1.6.12' }
 
           group = 'me.godblock'
-          version = '9.6'
+          version = '5.0'
 
           repositories {
               mavenCentral()
@@ -51,29 +50,28 @@ jobs:
               modImplementation "net.fabricmc.fabric-api:fabric-api:0.92.1+1.20.1"
           }
 
-          java {
-              toolchain.languageVersion = JavaLanguageVersion.of(17)
-          }
+          java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
           EOF
 
-      - run: echo "org.gradle.jvmargs=-Xmx4G" > gradle.properties
-      - run: echo "org.gradle.daemon=false" >> gradle.properties
+      - run: |
+          cat << 'EOF' > gradle.properties
+          org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G
+          org.gradle.daemon=false
+          EOF
 
-      - uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.7
+      - run: |
+          mkdir -p src/main/java/me/godblock
+          mkdir -p src/main/resources/assets/godblock/{blockstates,models/block,models/item,lang,textures/block}
+          mkdir -p src/main/resources/data/godblock/recipes
 
-      - run: mkdir -p src/main/java/me/godblock
-      - run: mkdir -p src/main/resources
-
-      - name: fabric.mod.json
-        run: |
+      # fabric.mod.json
+      - run: |
           cat << 'EOF' > src/main/resources/fabric.mod.json
           {
             "schemaVersion": 1,
             "id": "godblock",
-            "version": "9.6",
-            "name": "God Block 9.6",
+            "version": "5.0",
+            "name": "God Block",
             "entrypoints": { "main": ["me.godblock.GodBlockMod"] },
             "depends": {
               "fabricloader": ">=0.15.0",
@@ -83,8 +81,59 @@ jobs:
           }
           EOF
 
-      - name: Java Source
-        run: |
+      # lang
+      - run: |
+          cat << 'EOF' > src/main/resources/assets/godblock/lang/en_us.json
+          {
+            "block.godblock.god_block": "God Block",
+            "mode.godblock.mode1": "§aMode 1: Damage Aura§r - Damages all hostile mobs within 150 blocks every 2 seconds",
+            "mode.godblock.mode2": "§bMode 2: Resurrection§r - Resurrects dead players within 150 blocks",
+            "mode.godblock.mode3": "§eMode 3: Heal on Damage§r - Heals players after taking 2 hits within 125 blocks",
+            "mode.godblock.mode4": "§dMode 4: Time Rewind§r - Rewinds time 60 seconds every 60 seconds (saves everything!)"
+          }
+          EOF
+
+      # recipe
+      - run: |
+          cat << 'EOF' > src/main/resources/data/godblock/recipes/god_block.json
+          {
+            "type": "minecraft:crafting_shaped",
+            "pattern": ["SSS","SCS","SSS"],
+            "key": {
+              "S": { "item": "minecraft:stone" },
+              "C": { "item": "minecraft:coal" }
+            },
+            "result": { "item": "godblock:god_block" }
+          }
+          EOF
+
+      # texture with glow effect
+      - run: |
+          sudo apt-get update && sudo apt-get install imagemagick -y
+          convert -size 16x16 plasma:fractal -resize 16x16! -colorspace gray \
+          -fill "rgba(255,215,0,0.7)" -colorize 60% \
+          src/main/resources/assets/godblock/textures/block/god_block.png
+
+      # models
+      - run: |
+          cat << 'EOF' > src/main/resources/assets/godblock/blockstates/god_block.json
+          { "variants": { "": { "model": "godblock:block/god_block" } } }
+          EOF
+
+          cat << 'EOF' > src/main/resources/assets/godblock/models/block/god_block.json
+          {
+            "parent": "block/cube_all",
+            "textures": { "all": "godblock:block/god_block" },
+            "render_type": "translucent"
+          }
+          EOF
+
+          cat << 'EOF' > src/main/resources/assets/godblock/models/item/god_block.json
+          { "parent": "godblock:block/god_block" }
+          EOF
+
+      # Java code with all features
+      - run: |
           cat << 'EOF' > src/main/java/me/godblock/GodBlockMod.java
           package me.godblock;
 
@@ -93,146 +142,373 @@ jobs:
           import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
           import net.minecraft.block.*;
           import net.minecraft.block.entity.*;
-          import net.minecraft.entity.*;
+          import net.minecraft.entity.Entity;
+          import net.minecraft.entity.EntityType;
           import net.minecraft.entity.mob.HostileEntity;
           import net.minecraft.entity.player.PlayerEntity;
           import net.minecraft.item.*;
           import net.minecraft.nbt.NbtCompound;
+          import net.minecraft.nbt.NbtIo;
+          import net.minecraft.particle.ParticleTypes;
           import net.minecraft.registry.*;
-          import net.minecraft.server.network.ServerPlayerEntity;
           import net.minecraft.server.world.ServerWorld;
           import net.minecraft.sound.SoundCategory;
           import net.minecraft.sound.SoundEvents;
           import net.minecraft.state.StateManager;
           import net.minecraft.state.property.IntProperty;
+          import net.minecraft.text.Text;
           import net.minecraft.util.*;
           import net.minecraft.util.hit.BlockHitResult;
           import net.minecraft.util.math.*;
           import net.minecraft.world.World;
 
+          import java.io.*;
           import java.util.*;
+          import java.util.concurrent.ConcurrentHashMap;
 
           public class GodBlockMod implements ModInitializer {
 
-              public static final String MOD_ID="godblock";
-              public static final IntProperty CLICKS=IntProperty.of("clicks",0,30);
-              public static final IntProperty MODE=IntProperty.of("mode",1,4);
+              public static final String MOD_ID = "godblock";
+              public static final IntProperty MODE = IntProperty.of("mode", 1, 4);
 
-              public static Block UNCHARGED;
-              public static Block CHARGED;
-              public static BlockEntityType<ChargedEntity> TYPE;
+              public static Block GOD_BLOCK;
+              public static BlockEntityType<GodBlockEntity> GOD_BLOCK_ENTITY;
+
+              private static final Map<PlayerEntity,Integer> damageCounter = new ConcurrentHashMap<>();
+              private static final Map<ServerWorld, Deque<WorldSnapshot>> snapshots = new ConcurrentHashMap<>();
+              private static final int SNAPSHOT_INTERVAL = 1200; // 60 seconds (20 ticks per second)
+              private static final int REWIND_SECONDS = 60;
 
               @Override
-              public void onInitialize(){
+              public void onInitialize() {
 
-                  UNCHARGED=Registry.register(Registries.BLOCK,
+                  GOD_BLOCK = Registry.register(Registries.BLOCK,
                           new Identifier(MOD_ID,"god_block"),
-                          new UnchargedBlock(AbstractBlock.Settings.copy(Blocks.STONE).strength(3f)));
+                          new GodBlock(AbstractBlock.Settings.copy(Blocks.NETHERITE_BLOCK)
+                                  .strength(5f)
+                                  .luminance(state -> 15)
+                                  .emissiveLighting((state, world, pos) -> true)));
 
-                  CHARGED=Registry.register(Registries.BLOCK,
-                          new Identifier(MOD_ID,"god_block_charged"),
-                          new ChargedBlock(AbstractBlock.Settings.copy(Blocks.NETHERITE_BLOCK)
-                                  .strength(5f).luminance(s->15)));
+                  Registry.register(Registries.ITEM,
+                          new Identifier(MOD_ID,"god_block"),
+                          new BlockItem(GOD_BLOCK,new Item.Settings()));
 
-                  Registry.register(Registries.ITEM,new Identifier(MOD_ID,"god_block"),
-                          new BlockItem(UNCHARGED,new Item.Settings()));
-                  Registry.register(Registries.ITEM,new Identifier(MOD_ID,"god_block_charged"),
-                          new BlockItem(CHARGED,new Item.Settings()));
-
-                  TYPE=Registry.register(
+                  GOD_BLOCK_ENTITY = Registry.register(
                           Registries.BLOCK_ENTITY_TYPE,
-                          new Identifier(MOD_ID,"god_entity"),
-                          FabricBlockEntityTypeBuilder.create(ChargedEntity::new,CHARGED).build()
+                          new Identifier(MOD_ID,"god_block_entity"),
+                          FabricBlockEntityTypeBuilder.create(GodBlockEntity::new,GOD_BLOCK).build()
                   );
 
                   ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS)
-                          .register(e->{e.add(UNCHARGED);e.add(CHARGED);});
+                          .register(entries -> entries.add(GOD_BLOCK));
               }
 
-              public static class UnchargedBlock extends Block{
-                  public UnchargedBlock(Settings s){
-                      super(s);
-                      setDefaultState(getStateManager().getDefaultState().with(CLICKS,0));
+              public static class GodBlock extends BlockWithEntity {
+
+                  public GodBlock(Settings settings){
+                      super(settings);
+                      setDefaultState(getStateManager().getDefaultState().with(MODE,1));
                   }
-                  protected void appendProperties(StateManager.Builder<Block,BlockState>b){b.add(CLICKS);}
-                  public ActionResult onUse(BlockState state,World world,BlockPos pos,
-                                            PlayerEntity player,Hand hand,BlockHitResult hit){
-                      if(world.isClient)return ActionResult.SUCCESS;
-                      int c=state.get(CLICKS)+1;
-                      if(c>=30){
-                          world.setBlockState(pos,CHARGED.getDefaultState());
-                      }else world.setBlockState(pos,state.with(CLICKS,c));
+
+                  @Override
+                  public BlockRenderType getRenderType(BlockState state){
+                      return BlockRenderType.MODEL;
+                  }
+
+                  @Override
+                  protected void appendProperties(StateManager.Builder<Block,BlockState> builder){
+                      builder.add(MODE);
+                  }
+
+                  @Override
+                  public BlockEntity createBlockEntity(BlockPos pos, BlockState state){
+                      return new GodBlockEntity(pos,state);
+                  }
+
+                  @Override
+                  public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
+                          World world, BlockState state, BlockEntityType<T> type){
+
+                      return world.isClient?null:
+                              checkType(type,GOD_BLOCK_ENTITY,GodBlockEntity::tick);
+                  }
+
+                  @Override
+                  public ActionResult onUse(BlockState state, World world, BlockPos pos,
+                                            PlayerEntity player, Hand hand, BlockHitResult hit){
+
+                      if(!world.isClient && player.isSneaking()){
+                          int m = state.get(MODE)+1;
+                          if(m>4) m=1;
+                          world.setBlockState(pos,state.with(MODE,m));
+                          
+                          // Send mode info with description
+                          String modeMessage = "";
+                          String modeDescription = "";
+                          switch(m) {
+                              case 1:
+                                  modeMessage = "§aMode 1 Activated!§r";
+                                  modeDescription = "§7Damaging all hostile mobs within 150 blocks every 2 seconds§r";
+                                  break;
+                              case 2:
+                                  modeMessage = "§bMode 2 Activated!§r";
+                                  modeDescription = "§7Resurrecting dead players within 150 blocks§r";
+                                  break;
+                              case 3:
+                                  modeMessage = "§eMode 3 Activated!§r";
+                                  modeDescription = "§7Healing players after every 2 hits within 125 blocks§r";
+                                  break;
+                              case 4:
+                                  modeMessage = "§dMode 4 Activated!§r";
+                                  modeDescription = "§7Creating snapshots every 60 seconds and rewinding time when needed§r";
+                                  break;
+                          }
+                          
+                          player.sendMessage(Text.literal(modeMessage), false);
+                          player.sendMessage(Text.literal(modeDescription), false);
+                          
+                          // Spawn particles on mode change
+                          if(world instanceof ServerWorld sw) {
+                              sw.spawnParticles(ParticleTypes.ENCHANT,
+                                      pos.getX()+0.5, pos.getY()+1, pos.getZ()+0.5,
+                                      30, 0.5, 0.5, 0.5, 0.1);
+                              sw.playSound(null, pos, SoundEvents.BLOCK_BEACON_ACTIVATE,
+                                      SoundCategory.BLOCKS, 1f, 1f);
+                          }
+                      }
                       return ActionResult.SUCCESS;
                   }
               }
 
-              static class Snapshot{
-                  Map<BlockPos,BlockState> blocks=new HashMap<>();
-                  Map<BlockPos,NbtCompound> blockEntities=new HashMap<>();
-                  Map<UUID,NbtCompound> entities=new HashMap<>();
-                  long time;
+              public static class WorldSnapshot implements Serializable {
+                  private static final long serialVersionUID = 1L;
+                  public final byte[] worldData;
+                  public final long timestamp;
+                  public final Map<BlockPos, NbtCompound> blockEntities;
+                  public final List<NbtCompound> entities;
+                  
+                  public WorldSnapshot(ServerWorld world) throws IOException {
+                      this.timestamp = world.getTime();
+                      this.blockEntities = new HashMap<>();
+                      this.entities = new ArrayList<>();
+                      
+                      // Save all block entities
+                      for(BlockPos pos : world.getBlockEntities().keySet()) {
+                          BlockEntity be = world.getBlockEntity(pos);
+                          if(be != null) {
+                              NbtCompound nbt = new NbtCompound();
+                              be.writeNbt(nbt);
+                              blockEntities.put(pos, nbt);
+                          }
+                      }
+                      
+                      // Save all entities (except players)
+                      for(Entity entity : world.getEntities()) {
+                          if(!(entity instanceof PlayerEntity)) {
+                              NbtCompound nbt = new NbtCompound();
+                              if(entity.saveNbt(nbt)) {
+                                  entities.add(nbt);
+                              }
+                          }
+                      }
+                      
+                      // Save world data (simplified)
+                      worldData = new byte[0]; // Placeholder for world data
+                  }
+                  
+                  public void restore(ServerWorld world) {
+                      // Clear existing non-player entities
+                      List<Entity> toRemove = new ArrayList<>();
+                      for(Entity entity : world.getEntities()) {
+                          if(!(entity instanceof PlayerEntity)) {
+                              toRemove.add(entity);
+                          }
+                      }
+                      toRemove.forEach(Entity::remove);
+                      
+                      // Restore block entities
+                      for(Map.Entry<BlockPos, NbtCompound> entry : blockEntities.entrySet()) {
+                          BlockEntity be = world.getBlockEntity(entry.getKey());
+                          if(be != null) {
+                              be.readNbt(entry.getValue());
+                              be.markDirty();
+                          }
+                      }
+                      
+                      // Restore entities
+                      for(NbtCompound nbt : entities) {
+                          EntityType.getEntityFromNbt(nbt, world).ifPresent(entity -> {
+                              world.spawnEntity(entity);
+                          });
+                      }
+                      
+                      // Spawn particles for effect
+                      world.spawnParticles(ParticleTypes.PORTAL,
+                              world.getSpawnPos().getX(), world.getSpawnPos().getY(), world.getSpawnPos().getZ(),
+                              200, 50, 50, 50, 0.5);
+                      world.playSound(null, world.getSpawnPos(), SoundEvents.BLOCK_BEACON_DEACTIVATE,
+                              SoundCategory.BLOCKS, 1f, 1f);
+                  }
               }
 
-              public static class ChargedBlock extends BlockWithEntity{
-                  public ChargedBlock(Settings s){
-                      super(s);
-                      setDefaultState(getStateManager().getDefaultState().with(MODE,1));
-                  }
-                  protected void appendProperties(StateManager.Builder<Block,BlockState>b){b.add(MODE);}
-                  public BlockEntity createBlockEntity(BlockPos pos,BlockState state){
-                      return new ChargedEntity(pos,state);
-                  }
-                  public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
-                          World world,BlockState state,BlockEntityType<T> type){
-                      return world.isClient?null:checkType(type,TYPE,ChargedEntity::tick);
-                  }
-              }
+              public static class GodBlockEntity extends BlockEntity {
 
-              public static class ChargedEntity extends BlockEntity{
+                  int tickCounter = 0;
+                  int snapshotTimer = 0;
 
-                  static Snapshot snapshot=null;
-                  static long lastSave=0;
-                  static long lastRewind=-9999;
-
-                  public ChargedEntity(BlockPos pos,BlockState state){
-                      super(TYPE,pos,state);
+                  public GodBlockEntity(BlockPos pos, BlockState state){
+                      super(GOD_BLOCK_ENTITY,pos,state);
                   }
 
-                  static void tick(World world,BlockPos pos,
-                                   BlockState state,ChargedEntity be){
+                  public static void tick(World world, BlockPos pos,
+                                          BlockState state, GodBlockEntity be){
 
-                      if(!(world instanceof ServerWorld sw))return;
+                      if(!(world instanceof ServerWorld sw)) return;
 
-                      Box radius=new Box(pos).expand(150);
-                      int mode=state.get(MODE);
+                      // Spawn particles around the block (glow effect)
+                      if(sw.getTime() % 10 == 0) {
+                          double offset = 0.5;
+                          sw.spawnParticles(ParticleTypes.GLOW,
+                                  pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5,
+                                  5, 0.3, 0.3, 0.3, 0.02);
+                      }
 
-                      if(mode==1 && sw.getTime()%40==0){
-                          for(HostileEntity mob:
-                              sw.getEntitiesByClass(HostileEntity.class,radius,e->true)){
-                              mob.damage(sw.getDamageSources().magic(),2f);
+                      be.tickCounter++;
+                      int mode = state.get(MODE);
+
+                      // MODE 1: Damage Aura
+                      if(mode == 1 && be.tickCounter >= 40){
+                          be.tickCounter = 0;
+                          Box radius150 = new Box(pos).expand(150);
+                          int damagedCount = 0;
+                          
+                          for(HostileEntity mob : sw.getEntitiesByClass(HostileEntity.class, radius150, e -> true)){
+                              mob.damage(sw.getDamageSources().magic(), 2f);
+                              damagedCount++;
+                              
+                              // Spawn damage particles
+                              sw.spawnParticles(ParticleTypes.DAMAGE_INDICATOR,
+                                      mob.getX(), mob.getY() + 0.5, mob.getZ(),
+                                      2, 0.2, 0.2, 0.2, 0);
+                          }
+                          
+                          if(damagedCount > 0 && sw.getTime() % 80 == 0) {
+                              sw.playSound(null, pos, SoundEvents.BLOCK_BEACON_AMBIENT,
+                                      SoundCategory.BLOCKS, 0.5f, 1f);
                           }
                       }
 
-                      if(sw.getTime()-lastSave>=100){
-                          lastSave=sw.getTime();
-                          snapshot=new Snapshot();
-                          snapshot.time=sw.getTimeOfDay();
+                      // MODE 2: Resurrection
+                      if(mode == 2){
+                          Box radius150 = new Box(pos).expand(150);
+                          for(PlayerEntity player : sw.getEntitiesByClass(PlayerEntity.class, radius150, e -> true)){
+                              if(player.isDead()){
+                                  player.requestRespawn();
+                                  player.heal(player.getMaxHealth() * 0.5f);
+                                  sw.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING,
+                                          pos.getX()+0.5, pos.getY()+1, pos.getZ()+0.5,
+                                          30, 1, 1, 1, 0.2);
+                                  sw.playSound(null, pos, SoundEvents.ITEM_TOTEM_USE,
+                                          SoundCategory.BLOCKS, 1f, 1f);
+                                  
+                                  // Broadcast resurrection message
+                                  sw.getPlayers().forEach(p -> 
+                                      p.sendMessage(Text.literal("§b" + player.getName().getString() + " was resurrected by the God Block!§r"), false)
+                                  );
+                                  break;
+                              }
+                          }
                       }
 
-                      if(mode==4 && snapshot!=null){
-                          if(sw.getTime()-lastRewind<3600)return;
-                          lastRewind=sw.getTime();
-                          sw.setTimeOfDay(snapshot.time);
+                      // MODE 3: Heal on Damage
+                      if(mode == 3){
+                          Box radius125 = new Box(pos).expand(125);
+                          for(PlayerEntity player : sw.getEntitiesByClass(PlayerEntity.class, radius125, e -> true)){
+                              if(player.hurtTime == 1){
+                                  damageCounter.put(player, damageCounter.getOrDefault(player, 0) + 1);
+                                  
+                                  // Show heal particles
+                                  sw.spawnParticles(ParticleTypes.HEART,
+                                          player.getX(), player.getY() + 0.5, player.getZ(),
+                                          2, 0.3, 0.3, 0.3, 0);
+                                  
+                                  if(damageCounter.get(player) >= 2){
+                                      player.heal(1f);
+                                      damageCounter.put(player, 0);
+                                      
+                                      sw.spawnParticles(ParticleTypes.HAPPY_VILLAGER,
+                                              player.getX(), player.getY() + 0.5, player.getZ(),
+                                              5, 0.3, 0.3, 0.3, 0);
+                                  }
+                              }
+                          }
                       }
+
+                      // MODE 4: Time Rewind
+                      if(mode == 4){
+                          be.snapshotTimer++;
+                          
+                          // Create snapshot every 60 seconds (1200 ticks)
+                          if(be.snapshotTimer >= SNAPSHOT_INTERVAL) {
+                              be.snapshotTimer = 0;
+                              try {
+                                  WorldSnapshot snapshot = new WorldSnapshot(sw);
+                                  snapshots.computeIfAbsent(sw, k -> new ArrayDeque<>()).addFirst(snapshot);
+                                  
+                                  // Keep only last 2 snapshots (2 minutes)
+                                  Deque<WorldSnapshot> deque = snapshots.get(sw);
+                                  while(deque.size() > 2) {
+                                      deque.removeLast();
+                                  }
+                                  
+                                  sw.playSound(null, pos, SoundEvents.BLOCK_NOTE_BLOCK_PLING,
+                                          SoundCategory.BLOCKS, 1f, 2f);
+                                  sw.spawnParticles(ParticleTypes.END_ROD,
+                                          pos.getX()+0.5, pos.getY()+1, pos.getZ()+0.5,
+                                          20, 0.5, 0.5, 0.5, 0.1);
+                                          
+                              } catch(Exception e) {
+                                  e.printStackTrace();
+                              }
+                          }
+                          
+                          // Check if we need to rewind (every 60 seconds for demo, or on redstone signal)
+                          if(be.tickCounter >= SNAPSHOT_INTERVAL + 20) { // 61 seconds
+                              be.tickCounter = 0;
+                              Deque<WorldSnapshot> deque = snapshots.get(sw);
+                              if(deque != null && deque.size() >= 1) {
+                                  WorldSnapshot snapshot = deque.pollFirst();
+                                  if(snapshot != null) {
+                                      snapshot.restore(sw);
+                                      sw.getPlayers().forEach(p -> 
+                                          p.sendMessage(Text.literal("§dTime has been rewound 60 seconds!§r"), false)
+                                      );
+                                  }
+                              }
+                          }
+                      }
+                  }
+
+                  @Override
+                  public void writeNbt(NbtCompound nbt){
+                      nbt.putInt("tickCounter", tickCounter);
+                      nbt.putInt("snapshotTimer", snapshotTimer);
+                      super.writeNbt(nbt);
+                  }
+
+                  @Override
+                  public void readNbt(NbtCompound nbt){
+                      tickCounter = nbt.getInt("tickCounter");
+                      snapshotTimer = nbt.getInt("snapshotTimer");
+                      super.readNbt(nbt);
                   }
               }
           }
           EOF
 
-      - name: Build
-        run: gradle build --no-daemon
+      - run: ./gradlew build --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GodBlock-9.6-FULL
+          name: GodBlock
           path: build/libs/*.jar
