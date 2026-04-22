@@ -5,14 +5,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Обновлено до v4
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build L-OS Autonomous
         run: |
           mkdir -p src qml apps
           
-          # --- 1. ЯДРО АВТОНОМНОГО РЕТРАНСЛЯТОРА (C++) ---
+          # --- 1. ЯДРО (C++) ---
           cat <<EOF > src/core.h
           #include <QObject>
           #include <QUdpSocket>
@@ -26,21 +27,15 @@ jobs:
               explicit LOS_Core(QObject *parent = nullptr) : QObject(parent) {
                   myNodeID = QString::number(QRandomGenerator::global()->generate() % 1000);
                   udp = new QUdpSocket(this);
-                  // Слушаем порт автономной сети
                   udp->bind(QHostAddress::Any, 10001, QUdpSocket::ShareAddress);
                   connect(udp, &QUdpSocket::readyRead, this, &LOS_Core::handleMeshTraffic);
               }
 
-              // Отправка данных в эфир (через Wi-Fi Direct / Ad-Hoc)
               Q_INVOKABLE void broadcastData(QString type, QString payload, QString targetID = "ALL") {
-                  // Формат: ТИП | ОТПРАВИТЕЛЬ | ЦЕЛЬ | ПРЫЖКИ | ДАННЫЕ
                   QString raw = QString("%1|%2|%3|%4|%5")
                                   .arg(type).arg(myNodeID).arg(targetID).arg(0).arg(payload);
-                  
                   QByteArray packet = raw.toUtf8();
-                  // L-Stealth XOR шифрование
                   for(int i=0; i<packet.size(); i++) packet[i] = packet[i] ^ 0xAF;
-                  
                   udp->writeDatagram(packet, QHostAddress::Broadcast, 10001);
               }
 
@@ -48,40 +43,22 @@ jobs:
                   while (udp->hasPendingDatagrams()) {
                       QNetworkDatagram dg = udp->receiveDatagram();
                       QByteArray packet = dg.data();
-                      for(int i=0; i<packet.size(); i++) packet[i] = packet[i] ^ 0xAF; // Дешифровка
+                      for(int i=0; i<packet.size(); i++) packet[i] = packet[i] ^ 0xAF;
                       
                       QStringList parts = QString(packet).split("|");
-                      if(parts.size() < 5) return;
+                      if(parts.size() < 5) continue;
 
-                      QString type = parts[0];
-                      QString sender = parts[1];
-                      QString target = parts[2];
-                      int hops = parts[3].toInt();
-                      QString data = parts[4];
+                      if(parts[1] == myNodeID) continue;
 
-                      if(sender == myNodeID) return; // Игнорим свои же пакеты
-
-                      if(target == myNodeID || target == "ALL") {
-                          if(type == "DRAW") emit remoteDrawReceived(data);
-                          if(type == "CHAT") emit remoteMessageReceived(sender, data);
-                      }
-
-                      // РЕТРАНСЛЯЦИЯ (MESH LOGIC)
-                      if(hops < 5) { // Ограничение 5 прыжков чтобы не заспамить эфир
-                          parts[3] = QString::number(hops + 1);
-                          QString relayStr = parts.join("|");
-                          QByteArray relayPacket = relayStr.toUtf8();
-                          for(int i=0; i<relayPacket.size(); i++) relayPacket[i] = relayPacket[i] ^ 0xAF;
-                          udp->writeDatagram(relayPacket, QHostAddress::Broadcast, 10001);
+                      if(parts[2] == myNodeID || parts[2] == "ALL") {
+                          if(parts[0] == "DRAW") emit remoteDrawReceived(parts[4]);
                       }
                   }
               }
 
           signals:
               void remoteDrawReceived(QString data);
-              void remoteMessageReceived(QString from, QString text);
               void statusChanged(QString s);
-
           private:
               QUdpSocket *udp;
           };
@@ -103,7 +80,7 @@ jobs:
           }
           EOF
 
-          # --- 2. ИНТЕРФЕЙС СО СТАТУСОМ АВТОНОМНОЙ СЕТИ ---
+          # --- 2. ИНТЕРФЕЙС (QML) ---
           cat <<EOF > qml/Main.qml
           import QtQuick
           import QtQuick.Controls
@@ -119,30 +96,15 @@ jobs:
                   source: currentApp == "Home" ? "Launcher.qml" : "apps/" + currentApp + ".qml"
               }
 
-              // ШТОРКА "АВТОНОМНЫЙ РЕЖИМ"
               Rectangle {
                   id: curtain; z: 100; width: parent.width; height: 420
                   y: -height + 40; color: "#0a0a0a"; border.color: "#00ff00"
-                  
                   Column {
                       anchors.fill: parent; anchors.margins: 20; spacing: 15
-                      Text { text: "L-NET: АВТОНОМНЫЙ РЕТРАНСЛЯТОР"; color: "#00ff00"; font.bold: true }
-                      
-                      Rectangle {
-                          width: parent.width; height: 120; color: "#111"; radius: 10
-                          Text {
-                              anchors.fill: parent; anchors.margins: 10; color: "#00ff00"
-                              text: "📡 РЕЖИМ 'БАШНЯ': Включен.\n" +
-                                    "Ваш телефон передает пакеты других людей.\n" +
-                                    "ДИСТАНЦИЯ: Зависит от цепочки людей.\n" +
-                                    "ИНТЕРНЕТ: НЕ ИСПОЛЬЗУЕТСЯ."
-                              font.pixelSize: 12; wrapMode: Text.WordWrap
-                          }
-                      }
-                      
-                      Text { text: "ID вашего узла: " + (OS ? OS.myNodeID : "..."); color: "gray" }
+                      Text { text: "L-NET: MESH NODE"; color: "#00ff00"; font.bold: true }
+                      Text { text: "ID: " + (OS ? OS.myNodeID : "..."); color: "gray" }
+                      Text { text: "ВНИМАНИЕ: Работает без интернета\nв пределах прямой видимости узлов."; color: "#ffaa00" }
                   }
-                  
                   MouseArea {
                       anchors.fill: parent; property real ly
                       onPressed: ly = mouseY
@@ -153,11 +115,28 @@ jobs:
           }
           EOF
 
-          # --- 3. ПРИЛОЖЕНИЕ L-PAINT MESH ---
+          cat <<EOF > qml/Launcher.qml
+          import QtQuick
+          GridView {
+              anchors.fill: parent; anchors.topMargin: 80; cellWidth: 120; cellHeight: 120
+              model: ListModel {
+                  ListElement { n: "L-Paint"; i: "🎨"; c: "LPaint" }
+              }
+              delegate: Column {
+                  spacing: 10; x: 30
+                  Rectangle { width: 70; height: 70; radius: 20; color: "#1a1a1a"; border.color: "#00ff00"
+                      Text { text: model.i; font.pixelSize: 35; anchors.centerIn: parent }
+                      MouseArea { anchors.fill: parent; onClicked: window.currentApp = model.c }
+                  }
+                  Text { text: model.n; color: "white"; font.pixelSize: 14; anchors.horizontalCenter: parent.horizontalCenter }
+              }
+          }
+          EOF
+
+          mkdir -p qml/apps
           cat <<EOF > qml/apps/LPaint.qml
           import QtQuick
           import QtQuick.Controls
-
           Rectangle {
               color: "#000"
               Canvas {
@@ -207,8 +186,9 @@ jobs:
           qt-cmake .. -DQT_ANDROID_BUILD_ALL_ABIS=OFF
           cmake --build . --target apk
 
+      # ИСПРАВЛЕНО: Обновлено до v4
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: L-OS-Autonomous-Mesh
+          name: L-OS-V4-Build
           path: build/android-build/*.apk
