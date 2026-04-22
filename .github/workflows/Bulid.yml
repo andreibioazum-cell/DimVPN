@@ -1,17 +1,16 @@
-name: L-OS_Autonomous_Mesh_Edition
+name: L-OS_Ultimate_Build_Fix
 on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Обновлено до v4
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build L-OS Autonomous
+      - name: Create Project Files
         run: |
-          mkdir -p src qml apps
+          mkdir -p src qml/apps
           
           # --- 1. ЯДРО (C++) ---
           cat <<EOF > src/core.h
@@ -31,9 +30,8 @@ jobs:
                   connect(udp, &QUdpSocket::readyRead, this, &LOS_Core::handleMeshTraffic);
               }
 
-              Q_INVOKABLE void broadcastData(QString type, QString payload, QString targetID = "ALL") {
-                  QString raw = QString("%1|%2|%3|%4|%5")
-                                  .arg(type).arg(myNodeID).arg(targetID).arg(0).arg(payload);
+              Q_INVOKABLE void broadcastData(QString type, QString payload) {
+                  QString raw = QString("%1|%2|ALL|0|%3").arg(type).arg(myNodeID).arg(payload);
                   QByteArray packet = raw.toUtf8();
                   for(int i=0; i<packet.size(); i++) packet[i] = packet[i] ^ 0xAF;
                   udp->writeDatagram(packet, QHostAddress::Broadcast, 10001);
@@ -44,13 +42,8 @@ jobs:
                       QNetworkDatagram dg = udp->receiveDatagram();
                       QByteArray packet = dg.data();
                       for(int i=0; i<packet.size(); i++) packet[i] = packet[i] ^ 0xAF;
-                      
                       QStringList parts = QString(packet).split("|");
-                      if(parts.size() < 5) continue;
-
-                      if(parts[1] == myNodeID) continue;
-
-                      if(parts[2] == myNodeID || parts[2] == "ALL") {
+                      if(parts.size() >= 5 && parts[1] != myNodeID) {
                           if(parts[0] == "DRAW") emit remoteDrawReceived(parts[4]);
                       }
                   }
@@ -58,7 +51,6 @@ jobs:
 
           signals:
               void remoteDrawReceived(QString data);
-              void statusChanged(QString s);
           private:
               QUdpSocket *udp;
           };
@@ -88,84 +80,49 @@ jobs:
           ApplicationWindow {
               id: window; visible: true; width: 360; height: 720
               property string currentApp: "Home"
-
               Rectangle { anchors.fill: parent; color: "#000" }
-
-              Loader { 
-                  id: mainLoader; anchors.fill: parent
-                  source: currentApp == "Home" ? "Launcher.qml" : "apps/" + currentApp + ".qml"
-              }
-
+              Loader { id: mainLoader; anchors.fill: parent; source: currentApp == "Home" ? "Launcher.qml" : "apps/" + currentApp + ".qml" }
               Rectangle {
-                  id: curtain; z: 100; width: parent.width; height: 420
-                  y: -height + 40; color: "#0a0a0a"; border.color: "#00ff00"
-                  Column {
-                      anchors.fill: parent; anchors.margins: 20; spacing: 15
-                      Text { text: "L-NET: MESH NODE"; color: "#00ff00"; font.bold: true }
-                      Text { text: "ID: " + (OS ? OS.myNodeID : "..."); color: "gray" }
-                      Text { text: "ВНИМАНИЕ: Работает без интернета\nв пределах прямой видимости узлов."; color: "#ffaa00" }
-                  }
-                  MouseArea {
-                      anchors.fill: parent; property real ly
-                      onPressed: ly = mouseY
-                      onPositionChanged: { let d = mouseY-ly; if(curtain.y+d <= 0 && curtain.y+d >= -380) curtain.y+=d }
-                      onReleased: curtain.y = (curtain.y > -190) ? 0 : -380
-                  }
+                  id: curtain; z: 100; width: parent.width; height: 100; y: -70; color: "#111"; border.color: "#00ff00"
+                  Text { text: "L-OS MESH ID: " + (OS ? OS.myNodeID : "..."); color: "#00ff00"; anchors.centerIn: parent }
+                  MouseArea { anchors.fill: parent; onClicked: curtain.y = (curtain.y == 0 ? -70 : 0) }
               }
           }
           EOF
 
           cat <<EOF > qml/Launcher.qml
           import QtQuick
+          import QtQuick.Controls
           GridView {
-              anchors.fill: parent; anchors.topMargin: 80; cellWidth: 120; cellHeight: 120
-              model: ListModel {
-                  ListElement { n: "L-Paint"; i: "🎨"; c: "LPaint" }
-              }
-              delegate: Column {
-                  spacing: 10; x: 30
-                  Rectangle { width: 70; height: 70; radius: 20; color: "#1a1a1a"; border.color: "#00ff00"
-                      Text { text: model.i; font.pixelSize: 35; anchors.centerIn: parent }
-                      MouseArea { anchors.fill: parent; onClicked: window.currentApp = model.c }
-                  }
-                  Text { text: model.n; color: "white"; font.pixelSize: 14; anchors.horizontalCenter: parent.horizontalCenter }
-              }
+              anchors.fill: parent; anchors.topMargin: 50; cellWidth: 120; cellHeight: 120
+              model: ListModel { ListElement { n: "L-Paint"; i: "🎨"; c: "LPaint" } }
+              delegate: Button { text: model.i + "\n" + model.n; onClicked: window.currentApp = model.c }
           }
           EOF
 
-          mkdir -p qml/apps
           cat <<EOF > qml/apps/LPaint.qml
           import QtQuick
-          import QtQuick.Controls
           Rectangle {
               color: "#000"
               Canvas {
                   id: canvas; anchors.fill: parent
-                  function draw(x, y, col, isNew) {
+                  function draw(x, y, isNew) {
                       var ctx = getContext("2d"); if(isNew) ctx.beginPath();
-                      ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineTo(x, y); ctx.stroke();
+                      ctx.strokeStyle = "#0f0"; ctx.lineWidth = 3; ctx.lineTo(x, y); ctx.stroke();
                       requestPaint();
                   }
               }
               MouseArea {
                   anchors.fill: parent
-                  onPositionChanged: {
-                      canvas.draw(mouse.x, mouse.y, "#00ff00", false);
-                      OS.broadcastData("DRAW", mouse.x + "," + mouse.y + ",#00ff00,0");
-                  }
+                  onPositionChanged: { canvas.draw(mouse.x, mouse.y, false); OS.broadcastData("DRAW", mouse.x + "," + mouse.y); }
               }
-              Connections {
-                  target: OS
-                  onRemoteDrawReceived: (data) => {
-                      let p = data.split(",");
-                      canvas.draw(p[0], p[1], p[2], p[3]=="1");
-                  }
-              }
+              Connections { target: OS; onRemoteDrawReceived: (d) => { let p=d.split(","); canvas.draw(p[0],p[1],false); } }
           }
           EOF
 
+          # --- 3. CMAKE (Исправлена версия) ---
           cat <<EOF > CMakeLists.txt
-          cmake_minimum_required(VERSION 3.16)
+          cmake_minimum_required(VERSION 3.20)
           project(L-OS LANGUAGES CXX)
           find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Network)
           qt_add_executable(L-OS src/main.cpp)
@@ -174,21 +131,35 @@ jobs:
           EOF
 
       - name: Install Qt
+        id: install-qt
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.5.0'
+          # Важно: устанавливаем Desktop версию (host) и Android версию (target)
+          host: 'linux'
           target: 'android'
           arch: 'android_arm64_v8a'
+          modules: 'qtnetwork qtdeclarative'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
       - name: Build APK
         run: |
           mkdir build && cd build
-          qt-cmake .. -DQT_ANDROID_BUILD_ALL_ABIS=OFF
+          # Указываем QT_HOST_PATH для исправления ошибки
+          qt-cmake .. \
+            -DQT_HOST_PATH=${{ steps.install-qt.outputs.qt_bin }}/../gcc_64 \
+            -DANDROID_SDK_ROOT=${ANDROID_SDK_ROOT} \
+            -DANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/25.2.9519653 \
+            -DQT_ANDROID_BUILD_ALL_ABIS=OFF
           cmake --build . --target apk
 
-      # ИСПРАВЛЕНО: Обновлено до v4
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-V4-Build
+          name: L-OS-Fixed-Build
           path: build/android-build/*.apk
