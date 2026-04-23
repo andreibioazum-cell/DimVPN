@@ -1,4 +1,4 @@
-name: L-OS_Polyglot_VM
+name: L-OS_Polyglot_VM_Final
 on: [push, workflow_dispatch]
 
 jobs:
@@ -14,23 +14,46 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Project
+      - name: Create Android Project
         run: |
+          # Создаем структуру папок
           mkdir -p app/src/main/java/com/los/vm
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-          # --- 1. ДИЗАЙН: ТЕРМИНАЛЬНЫЕ КНОПКИ ---
+          # --- 1. РЕСУРСЫ (Colors, Strings, Styles) ---
+          cat <<EOF > app/src/main/res/values/colors.xml
+          <resources>
+              <color name="black">#000000</color>
+              <color name="green">#00FF00</color>
+          </resources>
+          EOF
+
+          cat <<EOF > app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">L-OS Polyglot</string>
+          </resources>
+          EOF
+
+          cat <<EOF > app/src/main/res/values/themes.xml
+          <resources>
+            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+              <item name="android:windowBackground">@color/black</item>
+              <item name="android:windowFullscreen">true</item>
+            </style>
+          </resources>
+          EOF
+
           cat <<EOF > app/src/main/res/drawable/btn_v.xml
           <shape xmlns:android="http://schemas.android.com/apk/res/android">
-            <solid android:color="#000"/>
-            <stroke android:width="2dp" android:color="#0F0"/>
-            <padding android:top="20dp" android:bottom="20dp"/>
+            <solid android:color="#000000"/>
+            <stroke android:width="2dp" android:color="#00FF00"/>
+            <padding android:top="15dp" android:bottom="15dp"/>
           </shape>
           EOF
 
-          # --- 2. ИНТЕРФЕЙС: УНИКАЛЬНЫЙ ВЕРТИКАЛЬНЫЙ СТЕК ---
+          # --- 2. ИНТЕРФЕЙС (Вертикальный стек) ---
           cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent" android:layout_height="match_parent"
@@ -64,7 +87,22 @@ jobs:
           </LinearLayout>
           LAYOUT
 
-          # --- 3. ЯДРО ДИСПЕТЧЕР ЯЗЫКОВ (Java) ---
+          # --- 3. JAVA КОД (Core, Bridge, MainActivity) ---
+          cat <<'JAVA' > app/src/main/java/com/los/vm/PolyglotBridge.java
+          package com.los.vm;
+          import android.webkit.JavascriptInterface;
+          import android.widget.Toast;
+
+          public class PolyglotBridge {
+              MainActivity a;
+              public PolyglotBridge(MainActivity activity) { this.a = activity; }
+              @JavascriptInterface
+              public void toast(String m) { Toast.makeText(a, m, Toast.LENGTH_SHORT).show(); }
+              @JavascriptInterface
+              public void exit() { a.runOnUiThread(() -> a.closeApp()); }
+          }
+          JAVA
+
           cat <<'JAVA' > app/src/main/java/com/los/vm/MainActivity.java
           package com.los.vm;
 
@@ -75,12 +113,11 @@ jobs:
           import android.widget.LinearLayout;
           import android.widget.Toast;
           import androidx.appcompat.app.AppCompatActivity;
-          import org.json.JSONObject;
-          import java.io.File;
 
           public class MainActivity extends AppCompatActivity {
               private LinearLayout appStack;
               private WebView runtime;
+              private View sysTop, btnTemplate, btnImport;
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -89,96 +126,107 @@ jobs:
 
                   appStack = findViewById(R.id.app_stack);
                   runtime = findViewById(R.id.vm_runtime);
+                  sysTop = findViewById(R.id.sys_top);
+                  btnTemplate = findViewById(R.id.btn_template);
+                  btnImport = findViewById(R.id.btn_import);
+
                   runtime.getSettings().setJavaScriptEnabled(true);
                   runtime.addJavascriptInterface(new PolyglotBridge(this), "LOS");
 
-                  // Создаем тестовое Python приложение
-                  addAppButton("SPACE_COLONY (Python)", "python");
-                  addAppButton("DPI_BYPASS_UTIL (JS)", "javascript");
+                  // Примеры приложений
+                  addAppButton("SPACE_COLONY", "python");
+                  addAppButton("DPI_SCANNER", "javascript");
+
+                  btnTemplate.setOnClickListener(v -> Toast.makeText(this, "Template saved to /sdcard/L-OS/", Toast.LENGTH_LONG).show());
+                  btnImport.setOnClickListener(v -> Toast.makeText(this, "Select .lapp to install", Toast.LENGTH_SHORT).show());
               }
 
-              private void addAppButton(String name, String lang) {
+              private void addAppButton(String name, final String lang) {
                   Button b = new Button(this);
-                  b.setText("> EXEC: " + name.toUpperCase());
+                  b.setText("> EXEC: " + name);
                   b.setTextColor(0xFF00FF00);
                   b.setBackgroundResource(R.drawable.btn_v);
-                  b.setOnClickListener(v -> runPolyglotApp(name, lang));
                   LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
                   lp.setMargins(0,0,0,15);
                   b.setLayoutParams(lp);
+                  b.setOnClickListener(v -> runPolyglot(lang));
                   appStack.addView(b);
               }
 
-              private void runPolyglotApp(String name, String lang) {
-                  appStack.setVisibility(View.GONE);
-                  findViewById(R.id.sys_top).setVisibility(View.GONE);
+              private void runPolyglot(String lang) {
+                  appStack.getParent().getParent().setVisibility(View.GONE); // Скрыть ScrollView
+                  sysTop.setVisibility(View.GONE);
+                  btnTemplate.setVisibility(View.GONE);
+                  btnImport.setVisibility(View.GONE);
                   runtime.setVisibility(View.VISIBLE);
 
-                  String bootCode = "";
+                  String html = "";
                   if(lang.equals("python")) {
-                      // Подключаем Brython для исполнения Python прямо в виртуалке
-                      bootCode = "<html><head><script src='https://cdn.jsdelivr.net/npm/brython@3/brython.min.js'></script></head>" +
-                                 "<body onload='brython()'><script type='text/python'>" +
-                                 "from browser import window\n" +
-                                 "window.LOS.toast('Python Engine Active!')\n" +
-                                 "print('Python Game Running...')</script></body></html>";
+                      html = "<html><head><script src='https://cdn.jsdelivr.net/npm/brython@3/brython.min.js'></script></head>" +
+                             "<body onload='brython()' style='background:#000;color:#0f0;font-family:monospace;'>" +
+                             "<h1>PYTHON_CORE_ACTIVE</h1>" +
+                             "<script type='text/python'>\nfrom browser import window\nwindow.LOS.toast('Python is running!')</script>" +
+                             "<button onclick='LOS.exit()' style='color:#0f0;background:#000;border:1px solid #0f0;padding:10px;'>TERMINATE</button></body></html>";
                   } else {
-                      bootCode = "<html><body style='background:#000;color:#0f0'><h1>JS Runtime</h1>" +
-                                 "<button onclick='LOS.exit()'>STOP</button></body></html>";
+                      html = "<html><body style='background:#000;color:#0f0;font-family:monospace;'>" +
+                             "<h1>JS_RUNTIME_ACTIVE</h1><button onclick='LOS.exit()'>EXIT</button></body></html>";
                   }
-                  runtime.loadData(bootCode, "text/html", "UTF-8");
+                  runtime.loadData(html, "text/html", "UTF-8");
               }
 
               public void closeApp() {
                   runtime.setVisibility(View.GONE);
-                  appStack.setVisibility(View.VISIBLE);
-                  findViewById(R.id.sys_top).setVisibility(View.VISIBLE);
+                  appStack.getParent().getParent().setVisibility(View.VISIBLE);
+                  sysTop.setVisibility(View.VISIBLE);
+                  btnTemplate.setVisibility(View.VISIBLE);
+                  btnImport.setVisibility(View.VISIBLE);
               }
           }
           JAVA
 
-          # --- 4. BRIDGE API ---
-          cat <<'JAVA' > app/src/main/java/com/los/vm/PolyglotBridge.java
-          package com.los.vm;
-          import android.webkit.JavascriptInterface;
-          import android.widget.Toast;
-
-          public class PolyglotBridge {
-              MainActivity a;
-              public PolyglotBridge(MainActivity activity) { this.a = activity; }
-              
-              @JavascriptInterface
-              public void toast(String m) { Toast.makeText(a, m, Toast.LENGTH_SHORT).show(); }
-              
-              @JavascriptInterface
-              public void exit() { a.runOnUiThread(() -> a.closeApp()); }
-          }
-          JAVA
-
-          # --- 5. BUILD SCRIPTS ---
+          # --- 4. CONFIG FILES (Gradle, Manifest) ---
           cat <<EOF > build.gradle
-          buildscript { repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' } }
-          allprojects { repositories { google(); mavenCentral() } }
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects {
+              repositories { google(); mavenCentral() }
+          }
           EOF
+
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
-          android { namespace 'com.los.vm'; compileSdk 34
-              defaultConfig { applicationId "com.los.vm"; minSdk 24; targetSdk 34 } }
-          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
+          android {
+              namespace 'com.los.vm'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.los.vm"
+                  minSdk 24
+                  targetSdk 34
+              }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+          }
           EOF
-          echo "include ':app'" > settings.gradle
+
           cat <<EOF > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET"/>
-              <application android:label="L-OS Polyglot" android:theme="@style/Theme.AppCompat.NoActionBar">
+              <application android:label="L-OS Polyglot" android:theme="@style/AppTheme">
                   <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter><action android:name="android.intent.action.MAIN"/>
-                      <category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
                   </activity>
               </application>
           </manifest>
           EOF
+
+          echo "include ':app'" > settings.gradle
 
       - name: Build APK
         run: |
@@ -186,10 +234,10 @@ jobs:
           unzip -q gradle-8.5-bin.zip
           export PATH="$PWD/gradle-8.5/bin:$PATH"
           gradle wrapper --gradle-version 8.5
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-Polyglot-VM
+          name: L-OS-Polyglot-Final
           path: app/build/outputs/apk/debug/app-debug.apk
