@@ -130,11 +130,13 @@ jobs:
 
       - name: Cleanup Android SDK
         run: |
-          # Удаляем нестабильные версии SDK, чтобы Gradle их не видел
-          rm -rf $ANDROID_SDK_ROOT/platforms/android-35*
-          rm -rf $ANDROID_SDK_ROOT/platforms/android-36*
-          # Убедимся, что API 34 установлена
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          # Находим путь к sdkmanager
+          SDK_MANAGER_PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager
+          # Удаляем нестабильные версии платформ (35 и 36)
+          rm -rf ${ANDROID_SDK_ROOT}/platforms/android-35
+          rm -rf ${ANDROID_SDK_ROOT}/platforms/android-36
+          # Устанавливаем стабильный API 34
+          yes | $SDK_MANAGER_PATH --sdk_root=${ANDROID_SDK_ROOT} "platforms;android-34" "build-tools;34.0.0"
 
       - name: Install Tools
         run: |
@@ -173,5 +175,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-Final-Fixed
+          name: L-OS-Final-Build
           path: build/android-build/*.apk
