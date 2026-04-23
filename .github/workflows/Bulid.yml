@@ -1,9 +1,13 @@
 name: L-OS_Polyglot_VM
-on: [push, workflow_dispatch]
+
+on:
+  push:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -11,20 +15,22 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: 17
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Create Project Files
         run: |
+
           mkdir -p app/src/main/java/com/los/vm
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-          # --- 1. РЕСУРСЫ ---
+          # ----------------- RESOURCES -----------------
+
           cat <<EOF > app/src/main/res/values/colors.xml
           <resources>
               <color name="black">#000000</color>
@@ -40,10 +46,8 @@ jobs:
 
           cat <<EOF > app/src/main/res/values/themes.xml
           <resources>
-            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+            <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
               <item name="android:windowBackground">@color/black</item>
-              <item name="android:windowFullscreen">true</item>
-              <item name="android:windowNoTitle">true</item>
             </style>
           </resources>
           EOF
@@ -52,47 +56,74 @@ jobs:
           <shape xmlns:android="http://schemas.android.com/apk/res/android">
             <solid android:color="#000000"/>
             <stroke android:width="2dp" android:color="#00FF00"/>
-            <padding android:top="15dp" android:bottom="15dp" android:left="10dp" android:right="10dp"/>
+            <padding android:top="15dp" android:bottom="15dp"
+                     android:left="10dp" android:right="10dp"/>
           </shape>
           EOF
 
-          # --- 2. ИНТЕРФЕЙС ---
-          cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
+          # ----------------- LAYOUT -----------------
+
+          cat <<'EOF' > app/src/main/res/layout/activity_main.xml
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent" android:layout_height="match_parent"
-              android:background="#000" android:orientation="vertical" android:padding="15dp">
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="#000"
+              android:orientation="vertical"
+              android:padding="15dp">
 
-              <Button android:id="@+id/sys_top"
-                  android:layout_width="match_parent" android:layout_height="wrap_content"
-                  android:background="@drawable/btn_v" android:text="[ L-OS_SYSTEM_CORE: ACTIVE ]"
-                  android:textColor="#0F0" android:textStyle="bold" android:fontFamily="monospace"/>
+              <Button
+                  android:id="@+id/sys_top"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:background="@drawable/btn_v"
+                  android:text="[ L-OS_SYSTEM_CORE: ACTIVE ]"
+                  android:textColor="#0F0"
+                  android:textStyle="bold"
+                  android:fontFamily="monospace"/>
 
-              <ScrollView android:id="@+id/scroll_view"
-                  android:layout_width="match_parent" android:layout_height="0dp"
-                  android:layout_weight="1" android:layout_marginTop="10dp">
-                  <LinearLayout android:id="@+id/app_stack"
-                      android:layout_width="match_parent" android:layout_height="wrap_content"
+              <ScrollView
+                  android:id="@+id/scroll_view"
+                  android:layout_width="match_parent"
+                  android:layout_height="0dp"
+                  android:layout_weight="1"
+                  android:layout_marginTop="10dp">
+
+                  <LinearLayout
+                      android:id="@+id/app_stack"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
                       android:orientation="vertical"/>
               </ScrollView>
 
-              <Button android:id="@+id/btn_template"
-                  android:layout_width="match_parent" android:layout_height="wrap_content"
-                  android:background="@drawable/btn_v" android:text="> GET_PYTHON_TEMPLATE"
-                  android:textColor="#0F0" android:layout_marginBottom="10dp"/>
+              <Button
+                  android:id="@+id/btn_template"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:background="@drawable/btn_v"
+                  android:text="> GET_PYTHON_TEMPLATE"
+                  android:textColor="#0F0"
+                  android:layout_marginBottom="10dp"/>
 
-              <Button android:id="@+id/btn_import"
-                  android:layout_width="match_parent" android:layout_height="wrap_content"
-                  android:background="@drawable/btn_v" android:text="> IMPORT_LAPP_PACKAGE"
+              <Button
+                  android:id="@+id/btn_import"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:background="@drawable/btn_v"
+                  android:text="> IMPORT_LAPP_PACKAGE"
                   android:textColor="#0F0"/>
 
-              <android.webkit.WebView android:id="@+id/vm_runtime"
-                  android:layout_width="match_parent" android:layout_height="match_parent"
-                  android:visibility="gone" android:background="#000"/>
+              <WebView
+                  android:id="@+id/vm_runtime"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:visibility="gone"
+                  android:background="#000"/>
           </LinearLayout>
-          LAYOUT
+          EOF
 
-          # --- 3. JAVA ENGINE ---
-          cat <<'JAVA' > app/src/main/java/com/los/vm/MainActivity.java
+          # ----------------- JAVA -----------------
+
+          cat <<'EOF' > app/src/main/java/com/los/vm/MainActivity.java
           package com.los.vm;
 
           import android.os.Bundle;
@@ -105,6 +136,7 @@ jobs:
           import androidx.appcompat.app.AppCompatActivity;
 
           public class MainActivity extends AppCompatActivity {
+
               private LinearLayout appStack;
               private WebView runtime;
               private View sysTop, scrollContainer, btnT, btnI;
@@ -122,58 +154,73 @@ jobs:
                   btnI = findViewById(R.id.btn_import);
 
                   runtime.getSettings().setJavaScriptEnabled(true);
+
                   runtime.addJavascriptInterface(new Object() {
                       @JavascriptInterface
-                      public void exit() { runOnUiThread(() -> closeApp()); }
+                      public void exit() {
+                          runOnUiThread(() -> closeApp());
+                      }
+
                       @JavascriptInterface
-                      public void toast(String m) { runOnUiThread(() -> Toast.makeText(MainActivity.this, m, Toast.LENGTH_SHORT).show()); }
+                      public void toast(String msg) {
+                          runOnUiThread(() ->
+                              Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show());
+                      }
                   }, "LOS");
 
-                  // Динамическое добавление приложений
                   addApp("SPACE_WARS", "python");
                   addApp("FILE_DECRYPTOR", "javascript");
                   addApp("MESH_CHAT", "javascript");
 
-                  btnT.setOnClickListener(v -> Toast.makeText(this, "Template.lapp created!", Toast.LENGTH_SHORT).show());
-                  btnI.setOnClickListener(v -> Toast.makeText(this, "Select .lapp file", Toast.LENGTH_SHORT).show());
+                  btnT.setOnClickListener(v ->
+                      Toast.makeText(this, "Template created!", Toast.LENGTH_SHORT).show());
+
+                  btnI.setOnClickListener(v ->
+                      Toast.makeText(this, "Import feature soon", Toast.LENGTH_SHORT).show());
               }
 
-              private void addApp(String name, final String lang) {
+              private void addApp(String name, String lang) {
                   Button b = new Button(this);
                   b.setText("> EXEC: " + name);
                   b.setTextColor(0xFF00FF00);
                   b.setBackgroundResource(R.drawable.btn_v);
                   b.setAllCaps(true);
-                  b.setFontFeatureSettings("monospace");
-                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+
+                  LinearLayout.LayoutParams lp =
+                      new LinearLayout.LayoutParams(-1, -2);
                   lp.setMargins(0, 0, 0, 20);
                   b.setLayoutParams(lp);
+
                   b.setOnClickListener(v -> launchApp(lang));
                   appStack.addView(b);
               }
 
               private void launchApp(String lang) {
+
                   sysTop.setVisibility(View.GONE);
                   scrollContainer.setVisibility(View.GONE);
                   btnT.setVisibility(View.GONE);
                   btnI.setVisibility(View.GONE);
                   runtime.setVisibility(View.VISIBLE);
 
-                  String html = "";
+                  String html;
+
                   if (lang.equals("python")) {
-                      html = "<html><head><script src='https://cdn.jsdelivr.net/npm/brython@3/brython.min.js'></script></head>" +
-                             "<body onload='brython()' style='background:#000;color:#0f0;font-family:monospace;'>" +
-                             "<h2>[PYTHON_MODE_ACTIVE]</h2>" +
-                             "<script type='text/python'>\nfrom browser import window\nwindow.LOS.toast('Python App Started')\n</script>" +
-                             "<br><button onclick='LOS.exit()' style='background:#000;color:#0f0;border:1px solid #0f0;padding:10px;'>TERMINATE</button>" +
-                             "</body></html>";
+                      html = "<html><body style='background:#000;color:#0f0;font-family:monospace;'>" +
+                             "<h2>[PYTHON_MODE]</h2>" +
+                             "<script>LOS.toast('Python VM Started')</script>" +
+                             "<button onclick='LOS.exit()' " +
+                             "style='background:#000;color:#0f0;border:1px solid #0f0;padding:10px;'>" +
+                             "TERMINATE</button></body></html>";
                   } else {
                       html = "<html><body style='background:#000;color:#0f0;font-family:monospace;'>" +
-                             "<h2>[JS_MODE_ACTIVE]</h2>" +
-                             "<button onclick='LOS.exit()' style='background:#000;color:#0f0;border:1px solid #0f0;padding:10px;'>EXIT_VM</button>" +
-                             "</body></html>";
+                             "<h2>[JS_MODE]</h2>" +
+                             "<button onclick='LOS.exit()' " +
+                             "style='background:#000;color:#0f0;border:1px solid #0f0;padding:10px;'>" +
+                             "EXIT_VM</button></body></html>";
                   }
-                  runtime.loadData(html, "text/html", "UTF-8");
+
+                  runtime.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
               }
 
               private void closeApp() {
@@ -184,24 +231,48 @@ jobs:
                   btnI.setVisibility(View.VISIBLE);
               }
           }
-          JAVA
+          EOF
 
-          # --- 4. КОНФИГУРАЦИЯ СБОРКИ ---
+          # ----------------- GRADLE CONFIG -----------------
+
+          cat <<EOF > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "L-OS_Polyglot_VM"
+          include(":app")
+          EOF
+
           cat <<EOF > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
+          // Top-level build file
+          EOF
+
+          cat <<EOF > gradle.properties
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          android.enableJetifier=true
           EOF
 
           cat <<EOF > app/build.gradle
-          plugins { id 'com.android.application' }
+          plugins {
+              id 'com.android.application'
+          }
+
           android {
               namespace 'com.los.vm'
               compileSdk 34
+
               defaultConfig {
                   applicationId "com.los.vm"
                   minSdk 24
@@ -209,39 +280,47 @@ jobs:
                   versionCode 1
                   versionName "1.0"
               }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
           }
+
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.10.0'
+              implementation 'com.google.android.material:material:1.11.0'
           }
           EOF
 
           cat <<EOF > app/src/main/AndroidManifest.xml
-          <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET"/>
-              <application 
-                  android:label="L-OS Polyglot" 
-                  android:theme="@style/AppTheme"
-                  android:icon="@mipmap/ic_launcher">
-                  <activity android:name=".MainActivity" android:exported="true">
+
+              <application
+                  android:label="L-OS Polyglot"
+                  android:theme="@style/AppTheme">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
                       </intent-filter>
+
                   </activity>
               </application>
           </manifest>
           EOF
 
-          echo "include ':app'" > settings.gradle
+      - name: Generate Gradle Wrapper
+        run: gradle wrapper --gradle-version 8.5
 
-      - name: Build APK
-        run: |
-          # Создаем обертку Gradle
-          gradle wrapper --gradle-version 8.5
-          chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
