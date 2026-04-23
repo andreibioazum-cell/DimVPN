@@ -81,7 +81,7 @@ jobs:
               Rectangle {
                   id: curtain; z: 100; width: parent.width; height: 80; y: -50; color: "#111"; border.color: "#0f0"
                   Text { text: "L-OS MESH ID: " + (OS ? OS.myNodeID : "..."); color: "#0f0"; anchors.centerIn: parent }
-                  MouseArea { anchors.fill: parent; onClicked: curtain.y = (curtain.y == 0 ? -70 : 0) }
+                  MouseArea { anchors.fill: parent; onClicked: curtain.y = (curtain.y == 0 ? -50 : 0) }
               }
           }
           EOF
@@ -129,14 +129,20 @@ jobs:
           target_link_libraries(L-OS PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Network)
           EOF
 
-      - name: Nuclear SDK Cleanup
+      - name: Fix Android SDK & NDK
         run: |
-          # Прямое удаление проблемных платформ
-          sudo rm -rf /usr/local/lib/android/sdk/platforms/android-35
-          sudo rm -rf /usr/local/lib/android/sdk/platforms/android-36*
+          # Силовое удаление SDK 35/36 (они несовместимы с текущим aapt2 в Qt 6.7)
+          sudo rm -rf $ANDROID_SDK_ROOT/platforms/android-35
+          sudo rm -rf $ANDROID_SDK_ROOT/platforms/android-36
           # Убеждаемся в наличии API 34
           SDK_MANAGER=$(find $ANDROID_SDK_ROOT -name sdkmanager | grep latest | head -n 1)
           yes | $SDK_MANAGER --sdk_root=$ANDROID_SDK_ROOT "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Install Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libgl1-mesa-dev python3-pip ninja-build
+          python3 -m pip install aqtinstall
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
@@ -154,14 +160,16 @@ jobs:
 
       - name: Build APK
         run: |
-          # ДИНАМИЧЕСКИЙ ПОИСК ПУТЕЙ (Самый надежный способ)
+          # 1. Находим Qt динамически
           QT_CMAKE_EXE=$(find $HOME/work -name qt-cmake | grep android_arm64_v8a | head -n 1)
           QT_ANDROID_BIN=$(dirname "$QT_CMAKE_EXE")
           QT_HOST_PATH=$(echo "$QT_ANDROID_BIN" | sed 's/android_arm64_v8a\/bin/gcc_64/')
-          ANDROID_NDK_PATH=$ANDROID_SDK_ROOT/ndk/25.2.9519653
-
+          
+          # 2. Находим NDK динамически (берем любую установленную версию)
+          export ANDROID_NDK_PATH=$(ls -d $ANDROID_SDK_ROOT/ndk/* | head -n 1)
+          
           echo "Using qt-cmake: $QT_CMAKE_EXE"
-          echo "Using Host Path: $QT_HOST_PATH"
+          echo "Using NDK: $ANDROID_NDK_PATH"
 
           mkdir build && cd build
           
