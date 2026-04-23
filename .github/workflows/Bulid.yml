@@ -1,9 +1,10 @@
-name: L-OS_Ultimate_Build_Fix
+name: L-OS_Stable_Build
 on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # ИЗМЕНЕНО: Используем 22.04 для стабильности пакетов
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -12,7 +13,7 @@ jobs:
         run: |
           mkdir -p src qml/apps
           
-          # --- 1. ЯДРО (C++) ---
+          # 1. ЯДРО (C++)
           cat <<EOF > src/core.h
           #include <QObject>
           #include <QUdpSocket>
@@ -72,20 +73,19 @@ jobs:
           }
           EOF
 
-          # --- 2. ИНТЕРФЕЙС (QML) ---
+          # 2. ИНТЕРФЕЙС
           cat <<EOF > qml/Main.qml
           import QtQuick
           import QtQuick.Controls
-
           ApplicationWindow {
               id: window; visible: true; width: 360; height: 720
               property string currentApp: "Home"
               Rectangle { anchors.fill: parent; color: "#000" }
               Loader { id: mainLoader; anchors.fill: parent; source: currentApp == "Home" ? "Launcher.qml" : "apps/" + currentApp + ".qml" }
               Rectangle {
-                  id: curtain; z: 100; width: parent.width; height: 100; y: -70; color: "#111"; border.color: "#00ff00"
-                  Text { text: "L-OS MESH ID: " + (OS ? OS.myNodeID : "..."); color: "#00ff00"; anchors.centerIn: parent }
-                  MouseArea { anchors.fill: parent; onClicked: curtain.y = (curtain.y == 0 ? -70 : 0) }
+                  id: curtain; z: 100; width: parent.width; height: 80; y: -50; color: "#111"; border.color: "#0f0"
+                  Text { text: "L-OS MESH ID: " + (OS ? OS.myNodeID : "..."); color: "#0f0"; anchors.centerIn: parent }
+                  MouseArea { anchors.fill: parent; onClicked: curtain.y = (curtain.y == 0 ? -50 : 0) }
               }
           }
           EOF
@@ -96,7 +96,10 @@ jobs:
           GridView {
               anchors.fill: parent; anchors.topMargin: 50; cellWidth: 120; cellHeight: 120
               model: ListModel { ListElement { n: "L-Paint"; i: "🎨"; c: "LPaint" } }
-              delegate: Button { text: model.i + "\n" + model.n; onClicked: window.currentApp = model.c }
+              delegate: Button { 
+                  width: 100; height: 100; text: model.i + "\n" + model.n
+                  onClicked: window.currentApp = model.c 
+              }
           }
           EOF
 
@@ -106,10 +109,13 @@ jobs:
               color: "#000"
               Canvas {
                   id: canvas; anchors.fill: parent
+                  onPaint: {
+                      var ctx = getContext("2d");
+                      ctx.strokeStyle = "#0f0"; ctx.lineWidth = 3;
+                  }
                   function draw(x, y, isNew) {
                       var ctx = getContext("2d"); if(isNew) ctx.beginPath();
-                      ctx.strokeStyle = "#0f0"; ctx.lineWidth = 3; ctx.lineTo(x, y); ctx.stroke();
-                      requestPaint();
+                      ctx.lineTo(x, y); ctx.stroke(); requestPaint();
                   }
               }
               MouseArea {
@@ -120,7 +126,7 @@ jobs:
           }
           EOF
 
-          # --- 3. CMAKE (Исправлена версия) ---
+          # 3. CMAKE
           cat <<EOF > CMakeLists.txt
           cmake_minimum_required(VERSION 3.20)
           project(L-OS LANGUAGES CXX)
@@ -134,11 +140,11 @@ jobs:
         id: install-qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.5.0'
-          # Важно: устанавливаем Desktop версию (host) и Android версию (target)
+          version: '6.7.2'
           host: 'linux'
           target: 'android'
           arch: 'android_arm64_v8a'
+          # Ограничим модули для ускорения
           modules: 'qtnetwork qtdeclarative'
 
       - name: Set up Java
@@ -150,16 +156,18 @@ jobs:
       - name: Build APK
         run: |
           mkdir build && cd build
-          # Указываем QT_HOST_PATH для исправления ошибки
+          # Явный поиск путей в Ubuntu 22.04
+          export HOST_QT_PATH=$(dirname $(which qt-cmake))/../gcc_64
+          
           qt-cmake .. \
-            -DQT_HOST_PATH=${{ steps.install-qt.outputs.qt_bin }}/../gcc_64 \
-            -DANDROID_SDK_ROOT=${ANDROID_SDK_ROOT} \
-            -DANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/25.2.9519653 \
+            -DQT_HOST_PATH=$HOST_QT_PATH \
+            -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
             -DQT_ANDROID_BUILD_ALL_ABIS=OFF
+          
           cmake --build . --target apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-Fixed-Build
+          name: L-OS-Final-Fixed
           path: build/android-build/*.apk
