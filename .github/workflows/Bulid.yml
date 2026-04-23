@@ -81,11 +81,12 @@ jobs:
               Rectangle {
                   id: curtain; z: 100; width: parent.width; height: 80; y: -50; color: "#111"; border.color: "#0f0"
                   Text { text: "L-OS MESH ID: " + (OS ? OS.myNodeID : "..."); color: "#0f0"; anchors.centerIn: parent }
-                  MouseArea { anchors.fill: parent; onClicked: curtain.y = (curtain.y == 0 ? -50 : 0) }
+                  MouseArea { anchors.fill: parent; onClicked: curtain.y = (curtain.y == 0 ? -70 : 0) }
               }
           }
           EOF
 
+          mkdir -p qml/apps
           cat <<EOF > qml/Launcher.qml
           import QtQuick
           import QtQuick.Controls
@@ -127,13 +128,21 @@ jobs:
           target_link_libraries(L-OS PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Network)
           EOF
 
+      - name: Cleanup Android SDK
+        run: |
+          # Удаляем нестабильные версии SDK, чтобы Gradle их не видел
+          rm -rf $ANDROID_SDK_ROOT/platforms/android-35*
+          rm -rf $ANDROID_SDK_ROOT/platforms/android-36*
+          # Убедимся, что API 34 установлена
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
       - name: Install Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential libgl1-mesa-dev python3-pip ninja-build
           python3 -m pip install aqtinstall
 
-      - name: Install Qt (Desktop & Android)
+      - name: Install Qt
         run: |
           python3 -m aqt install-qt linux desktop 6.7.2 linux_gcc_64 --outputdir ${{ github.workspace }}/Qt
           python3 -m aqt install-qt linux android 6.7.2 android_arm64_v8a --outputdir ${{ github.workspace }}/Qt
@@ -148,18 +157,15 @@ jobs:
         run: |
           mkdir build && cd build
           export QT_DIR=${{ github.workspace }}/Qt/6.7.2
-          # ДИНАМИЧЕСКИЙ ПОИСК NDK
-          export ANDROID_NDK_PATH=$(ls -d ${ANDROID_SDK_ROOT}/ndk/* | tail -1)
-          echo "Detected NDK: $ANDROID_NDK_PATH"
+          export ANDROID_NDK_PATH=$(ls -d ${ANDROID_SDK_ROOT}/ndk/* | head -1)
           
-          # Явно указываем путь к Ninja и NDK
           $QT_DIR/android_arm64_v8a/bin/qt-cmake .. \
             -G Ninja \
             -DCMAKE_MAKE_PROGRAM=$(which ninja) \
             -DQT_HOST_PATH=$QT_DIR/gcc_64 \
             -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
             -DANDROID_NDK_ROOT=$ANDROID_NDK_PATH \
-            -DQT_ANDROID_API_VERSION=33 \
+            -DQT_ANDROID_API_VERSION=34 \
             -DQT_ANDROID_BUILD_ALL_ABIS=OFF
           
           ninja apk
@@ -167,5 +173,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-Final-APK
+          name: L-OS-Final-Fixed
           path: build/android-build/*.apk
