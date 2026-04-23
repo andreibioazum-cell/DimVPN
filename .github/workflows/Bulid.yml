@@ -3,7 +3,7 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # 22.04 более стабильна для Android
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -128,25 +128,23 @@ jobs:
           target_link_libraries(L-OS PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Network)
           EOF
 
-      - name: Aggressive SDK Cleanup
+      - name: Kill API 35/36 and Fix SDK
         run: |
-          # Прямое удаление папок API 35 и 36, которые вызывают ошибку
-          sudo rm -rf /usr/local/lib/android/sdk/platforms/android-35
-          sudo rm -rf /usr/local/lib/android/sdk/platforms/android-36*
-          # Убедимся, что API 34 установлена
-          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
-          yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platforms;android-34"
-
-      - name: Install Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libgl1-mesa-dev python3-pip ninja-build
-          python3 -m pip install aqtinstall
+          # Полная зачистка всех новых платформ, которые ломают билд
+          sudo rm -rf ${ANDROID_SDK_ROOT}/platforms/android-35*
+          sudo rm -rf ${ANDROID_SDK_ROOT}/platforms/android-36*
+          # Убеждаемся, что 34 установлена
+          export PATH=$PATH:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin
+          yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platforms;android-34" "build-tools;34.0.0"
 
       - name: Install Qt
-        run: |
-          python3 -m aqt install-qt linux desktop 6.7.2 linux_gcc_64 --outputdir ${{ github.workspace }}/Qt
-          python3 -m aqt install-qt linux android 6.7.2 android_arm64_v8a --outputdir ${{ github.workspace }}/Qt
+        id: install-qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.7.2'
+          host: 'linux'
+          target: 'android'
+          arch: 'android_arm64_v8a'
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -166,13 +164,17 @@ jobs:
             -DQT_HOST_PATH=$QT_DIR/gcc_64 \
             -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
             -DANDROID_NDK_ROOT=$ANDROID_NDK_PATH \
-            -DQT_ANDROID_PLATFORM_SDK_VERSION=34 \
+            -DQT_ANDROID_API_VERSION=34 \
+            -DCMAKE_ANDROID_API=34 \
             -DQT_ANDROID_BUILD_ALL_ABIS=OFF
+          
+          # Добавляем хак для Gradle перед самой сборкой
+          echo "android.suppressUnsupportedCompileSdk=34" > android_gradle_properties
           
           ninja apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-V8-Final
+          name: L-OS-Final-Build
           path: build/android-build/*.apk
