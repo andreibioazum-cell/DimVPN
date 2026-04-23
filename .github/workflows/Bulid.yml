@@ -12,11 +12,10 @@ jobs:
         run: |
           mkdir -p src qml/apps
           
-          # 1. ЯДРО (C++) - Добавили заголовки для корректного MOC
+          # 1. ЯДРО (C++)
           cat <<EOF > src/core.h
           #ifndef CORE_H
           #define CORE_H
-
           #include <QObject>
           #include <QUdpSocket>
           #include <QNetworkDatagram>
@@ -126,30 +125,18 @@ jobs:
           }
           EOF
 
-          # 3. CMAKE (ВКЛЮЧЕН AUTOMOC)
+          # 3. CMAKE (Добавили AUTOMOC)
           cat <<EOF > CMakeLists.txt
           cmake_minimum_required(VERSION 3.21)
           project(L-OS LANGUAGES CXX)
-
           set(CMAKE_AUTOMOC ON)
-          set(CMAKE_AUTORCC ON)
-
           find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Network)
-          
-          qt_add_executable(L-OS 
-              src/main.cpp 
-              src/core.h
-          )
-          
+          qt_add_executable(L-OS src/main.cpp src/core.h)
           qt_add_qml_module(L-OS
               URI VirtualOS
               VERSION 1.0
-              QML_FILES 
-                  qml/Main.qml 
-                  qml/Launcher.qml 
-                  qml/apps/LPaint.qml
+              QML_FILES qml/Main.qml qml/Launcher.qml qml/apps/LPaint.qml
           )
-          
           target_link_libraries(L-OS PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Network)
           EOF
 
@@ -174,13 +161,15 @@ jobs:
         run: |
           mkdir build && cd build
           export QT_DIR=${{ github.workspace }}/Qt/6.7.2
-          export ANDROID_NDK_PATH=$(ls -d ${ANDROID_SDK_ROOT}/ndk/* | head -1)
+          # Форсируем использование SDK 33 и NDK 25 для стабильности
+          export ANDROID_NDK_PATH=${ANDROID_SDK_ROOT}/ndk/25.2.9519653
           
           $QT_DIR/android_arm64_v8a/bin/qt-cmake .. \
             -G Ninja \
             -DQT_HOST_PATH=$QT_DIR/gcc_64 \
             -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
             -DANDROID_NDK_ROOT=$ANDROID_NDK_PATH \
+            -DQT_ANDROID_API_VERSION=33 \
             -DQT_ANDROID_BUILD_ALL_ABIS=OFF
           
           ninja apk
@@ -188,5 +177,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-V7-Ready
+          name: L-OS-Final-Fixed-APK
           path: build/android-build/*.apk
