@@ -1,187 +1,195 @@
-name: L-OS_Ultimate_Build
+name: L-OS_Polyglot_VM
 on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create Project Files
-        run: |
-          mkdir -p src qml/apps
-          # 1. ЯДРО (C++)
-          cat <<EOF > src/core.h
-          #ifndef CORE_H
-          #define CORE_H
-          #include <QObject>
-          #include <QUdpSocket>
-          #include <QNetworkDatagram>
-          #include <QRandomGenerator>
-          class LOS_Core : public QObject {
-              Q_OBJECT
-          public:
-              QString myNodeID;
-              explicit LOS_Core(QObject *parent = nullptr) : QObject(parent) {
-                  myNodeID = QString::number(QRandomGenerator::global()->generate() % 1000);
-                  udp = new QUdpSocket(this);
-                  udp->bind(QHostAddress::Any, 10001, QUdpSocket::ShareAddress);
-                  connect(udp, &QUdpSocket::readyRead, this, &LOS_Core::handleMeshTraffic);
-              }
-              Q_INVOKABLE void broadcastData(QString type, QString payload) {
-                  QString raw = QString("%1|%2|ALL|0|%3").arg(type).arg(myNodeID).arg(payload);
-                  QByteArray packet = raw.toUtf8();
-                  for(int i=0; i<packet.size(); i++) packet[i] = packet[i] ^ 0xAF;
-                  udp->writeDatagram(packet, QHostAddress::Broadcast, 10001);
-              }
-              void handleMeshTraffic() {
-                  while (udp->hasPendingDatagrams()) {
-                      QNetworkDatagram dg = udp->receiveDatagram();
-                      QByteArray packet = dg.data();
-                      for(int i=0; i<packet.size(); i++) packet[i] = packet[i] ^ 0xAF;
-                      QStringList parts = QString(packet).split("|");
-                      if(parts.size() >= 5 && parts[1] != myNodeID) {
-                          if(parts[0] == "DRAW") emit remoteDrawReceived(parts[4]);
-                      }
-                  }
-              }
-          signals:
-              void remoteDrawReceived(QString data);
-          private:
-              QUdpSocket *udp;
-          };
-          #endif
-          EOF
-
-          cat <<EOF > src/main.cpp
-          #include <QGuiApplication>
-          #include <QQmlApplicationEngine>
-          #include <QQmlContext>
-          #include "core.h"
-          int main(int argc, char *argv[]) {
-              QGuiApplication app(argc, argv);
-              QQmlApplicationEngine engine;
-              LOS_Core core;
-              engine.rootContext()->setContextProperty("OS", &core);
-              const QUrl url(u"qrc:/qt/qml/VirtualOS/qml/Main.qml"_qs);
-              engine.load(url);
-              return app.exec();
-          }
-          EOF
-
-          # 2. ИНТЕРФЕЙС (QML)
-          cat <<EOF > qml/Main.qml
-          import QtQuick
-          import QtQuick.Controls
-          ApplicationWindow {
-              id: window; visible: true; width: 360; height: 720
-              property string currentApp: "Home"
-              Rectangle { anchors.fill: parent; color: "#000" }
-              Loader { id: mainLoader; anchors.fill: parent; source: currentApp == "Home" ? "Launcher.qml" : "apps/" + currentApp + ".qml" }
-              Rectangle {
-                  id: curtain; z: 100; width: parent.width; height: 80; y: -50; color: "#111"; border.color: "#0f0"
-                  Text { text: "L-OS MESH ID: " + (OS ? OS.myNodeID : "..."); color: "#0f0"; anchors.centerIn: parent }
-                  MouseArea { anchors.fill: parent; onClicked: curtain.y = (curtain.y == 0 ? -50 : 0) }
-              }
-          }
-          EOF
-
-          cat <<EOF > qml/Launcher.qml
-          import QtQuick
-          import QtQuick.Controls
-          GridView {
-              anchors.fill: parent; anchors.topMargin: 50; cellWidth: 120; cellHeight: 120
-              model: ListModel { ListElement { n: "L-Paint"; i: "🎨"; c: "LPaint" } }
-              delegate: Button { width: 100; height: 100; text: model.i + "\n" + model.n; onClicked: window.currentApp = model.c }
-          }
-          EOF
-
-          cat <<EOF > qml/apps/LPaint.qml
-          import QtQuick
-          Rectangle {
-              color: "#000"
-              Canvas {
-                  id: canvas; anchors.fill: parent
-                  function draw(x, y, isNew) {
-                      var ctx = getContext("2d"); if(isNew) ctx.beginPath();
-                      ctx.strokeStyle = "#0f0"; ctx.lineWidth = 3; ctx.lineTo(x, y); ctx.stroke();
-                      requestPaint();
-                  }
-              }
-              MouseArea {
-                  anchors.fill: parent
-                  onPositionChanged: { canvas.draw(mouse.x, mouse.y, false); OS.broadcastData("DRAW", mouse.x + "," + mouse.y); }
-              }
-              Connections { target: OS; onRemoteDrawReceived: (d) => { let p=d.split(","); canvas.draw(p[0],p[1],false); } }
-          }
-          EOF
-
-          # 3. CMAKE
-          cat <<EOF > CMakeLists.txt
-          cmake_minimum_required(VERSION 3.21)
-          project(L-OS LANGUAGES CXX)
-          set(CMAKE_AUTOMOC ON)
-          find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Network)
-          qt_add_executable(L-OS src/main.cpp src/core.h)
-          qt_add_qml_module(L-OS 
-              URI VirtualOS 
-              VERSION 1.0 
-              QML_FILES qml/Main.qml qml/Launcher.qml qml/apps/LPaint.qml
-          )
-          target_link_libraries(L-OS PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Network)
-          EOF
-
-      - name: Install Build Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libgl1-mesa-dev python3-pip ninja-build
-          python3 -m pip install aqtinstall
-
-      - name: Clean Android SDK
-        run: |
-          # Силовое удаление проблемных версий SDK 35/36
-          sudo rm -rf $ANDROID_SDK_ROOT/platforms/android-35
-          sudo rm -rf $ANDROID_SDK_ROOT/platforms/android-36*
-          # Установка стабильного API 34
-          SDK_MANAGER=$(find $ANDROID_SDK_ROOT -name sdkmanager | grep latest | head -n 1)
-          yes | $SDK_MANAGER --sdk_root=$ANDROID_SDK_ROOT "platforms;android-34" "build-tools;34.0.0"
-
-      - name: Install Qt (Host & Android)
-        run: |
-          # Устанавливаем и Linux версию (для инструментов), и Android версию
-          python3 -m aqt install-qt linux desktop 6.7.2 linux_gcc_64 --outputdir ${{ github.workspace }}/Qt
-          python3 -m aqt install-qt linux android 6.7.2 android_arm64_v8a --outputdir ${{ github.workspace }}/Qt
-
-      - name: Set up Java
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Create Project
+        run: |
+          mkdir -p app/src/main/java/com/los/vm
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
+
+          # --- 1. ДИЗАЙН: ТЕРМИНАЛЬНЫЕ КНОПКИ ---
+          cat <<EOF > app/src/main/res/drawable/btn_v.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+            <solid android:color="#000"/>
+            <stroke android:width="2dp" android:color="#0F0"/>
+            <padding android:top="20dp" android:bottom="20dp"/>
+          </shape>
+          EOF
+
+          # --- 2. ИНТЕРФЕЙС: УНИКАЛЬНЫЙ ВЕРТИКАЛЬНЫЙ СТЕК ---
+          cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:background="#000" android:orientation="vertical" android:padding="15dp">
+
+              <Button android:id="@+id/sys_top"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:background="@drawable/btn_v" android:text="[ SYSTEM_CORE: ACTIVE ]"
+                  android:textColor="#0F0" android:textStyle="bold" android:fontFamily="monospace"/>
+
+              <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
+                  android:layout_weight="1" android:layout_marginTop="10dp">
+                  <LinearLayout android:id="@+id/app_stack"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:orientation="vertical"/>
+              </ScrollView>
+
+              <Button android:id="@+id/btn_template"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:background="@drawable/btn_v" android:text="> GET_PYTHON_TEMPLATE"
+                  android:textColor="#0F0" android:layout_marginBottom="10dp"/>
+
+              <Button android:id="@+id/btn_import"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:background="@drawable/btn_v" android:text="> IMPORT_LAPP_PACKAGE"
+                  android:textColor="#0F0"/>
+
+              <android.webkit.WebView android:id="@+id/vm_runtime"
+                  android:layout_width="match_parent" android:layout_height="match_parent"
+                  android:visibility="gone"/>
+          </LinearLayout>
+          LAYOUT
+
+          # --- 3. ЯДРО ДИСПЕТЧЕР ЯЗЫКОВ (Java) ---
+          cat <<'JAVA' > app/src/main/java/com/los/vm/MainActivity.java
+          package com.los.vm;
+
+          import android.os.Bundle;
+          import android.view.View;
+          import android.webkit.WebView;
+          import android.widget.Button;
+          import android.widget.LinearLayout;
+          import android.widget.Toast;
+          import androidx.appcompat.app.AppCompatActivity;
+          import org.json.JSONObject;
+          import java.io.File;
+
+          public class MainActivity extends AppCompatActivity {
+              private LinearLayout appStack;
+              private WebView runtime;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+
+                  appStack = findViewById(R.id.app_stack);
+                  runtime = findViewById(R.id.vm_runtime);
+                  runtime.getSettings().setJavaScriptEnabled(true);
+                  runtime.addJavascriptInterface(new PolyglotBridge(this), "LOS");
+
+                  // Создаем тестовое Python приложение
+                  addAppButton("SPACE_COLONY (Python)", "python");
+                  addAppButton("DPI_BYPASS_UTIL (JS)", "javascript");
+              }
+
+              private void addAppButton(String name, String lang) {
+                  Button b = new Button(this);
+                  b.setText("> EXEC: " + name.toUpperCase());
+                  b.setTextColor(0xFF00FF00);
+                  b.setBackgroundResource(R.drawable.btn_v);
+                  b.setOnClickListener(v -> runPolyglotApp(name, lang));
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+                  lp.setMargins(0,0,0,15);
+                  b.setLayoutParams(lp);
+                  appStack.addView(b);
+              }
+
+              private void runPolyglotApp(String name, String lang) {
+                  appStack.setVisibility(View.GONE);
+                  findViewById(R.id.sys_top).setVisibility(View.GONE);
+                  runtime.setVisibility(View.VISIBLE);
+
+                  String bootCode = "";
+                  if(lang.equals("python")) {
+                      // Подключаем Brython для исполнения Python прямо в виртуалке
+                      bootCode = "<html><head><script src='https://cdn.jsdelivr.net/npm/brython@3/brython.min.js'></script></head>" +
+                                 "<body onload='brython()'><script type='text/python'>" +
+                                 "from browser import window\n" +
+                                 "window.LOS.toast('Python Engine Active!')\n" +
+                                 "print('Python Game Running...')</script></body></html>";
+                  } else {
+                      bootCode = "<html><body style='background:#000;color:#0f0'><h1>JS Runtime</h1>" +
+                                 "<button onclick='LOS.exit()'>STOP</button></body></html>";
+                  }
+                  runtime.loadData(bootCode, "text/html", "UTF-8");
+              }
+
+              public void closeApp() {
+                  runtime.setVisibility(View.GONE);
+                  appStack.setVisibility(View.VISIBLE);
+                  findViewById(R.id.sys_top).setVisibility(View.VISIBLE);
+              }
+          }
+          JAVA
+
+          # --- 4. BRIDGE API ---
+          cat <<'JAVA' > app/src/main/java/com/los/vm/PolyglotBridge.java
+          package com.los.vm;
+          import android.webkit.JavascriptInterface;
+          import android.widget.Toast;
+
+          public class PolyglotBridge {
+              MainActivity a;
+              public PolyglotBridge(MainActivity activity) { this.a = activity; }
+              
+              @JavascriptInterface
+              public void toast(String m) { Toast.makeText(a, m, Toast.LENGTH_SHORT).show(); }
+              
+              @JavascriptInterface
+              public void exit() { a.runOnUiThread(() -> a.closeApp()); }
+          }
+          JAVA
+
+          # --- 5. BUILD SCRIPTS ---
+          cat <<EOF > build.gradle
+          buildscript { repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' } }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+          cat <<EOF > app/build.gradle
+          plugins { id 'com.android.application' }
+          android { namespace 'com.los.vm'; compileSdk 34
+              defaultConfig { applicationId "com.los.vm"; minSdk 24; targetSdk 34 } }
+          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
+          EOF
+          echo "include ':app'" > settings.gradle
+          cat <<EOF > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <application android:label="L-OS Polyglot" android:theme="@style/Theme.AppCompat.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter><action android:name="android.intent.action.MAIN"/>
+                      <category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
       - name: Build APK
         run: |
-          export QT_ROOT=${{ github.workspace }}/Qt/6.7.2
-          export QT_HOST_PATH=$QT_ROOT/gcc_64
-          export QT_ANDROID_PATH=$QT_ROOT/android_arm64_v8a
-          export ANDROID_NDK_PATH=$(ls -d $ANDROID_SDK_ROOT/ndk/* | head -n 1)
-          
-          mkdir build && cd build
-          
-          # Запуск сборки с явным указанием QT_HOST_PATH
-          $QT_ANDROID_PATH/bin/qt-cmake .. \
-            -G Ninja \
-            -DCMAKE_MAKE_PROGRAM=$(which ninja) \
-            -DQT_HOST_PATH=$QT_HOST_PATH \
-            -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
-            -DANDROID_NDK_ROOT=$ANDROID_NDK_PATH \
-            -DQT_ANDROID_PLATFORM_SDK_VERSION=34 \
-            -DQT_ANDROID_BUILD_ALL_ABIS=OFF
-          
-          ninja apk
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle-8.5-bin.zip
+          export PATH="$PWD/gradle-8.5/bin:$PATH"
+          gradle wrapper --gradle-version 8.5
+          ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-Final-Fixed
-          path: build/android-build/*.apk
+          name: L-OS-Polyglot-VM
+          path: app/build/outputs/apk/debug/app-debug.apk
