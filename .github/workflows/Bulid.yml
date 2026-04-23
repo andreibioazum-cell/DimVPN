@@ -10,11 +10,13 @@ jobs:
 
       - name: Create Project Files
         run: |
-          # Создаем структуру папок
           mkdir -p src qml/apps
           
-          # 1. ЯДРО (C++)
+          # 1. ЯДРО (C++) - Добавили заголовки для корректного MOC
           cat <<EOF > src/core.h
+          #ifndef CORE_H
+          #define CORE_H
+
           #include <QObject>
           #include <QUdpSocket>
           #include <QNetworkDatagram>
@@ -55,6 +57,7 @@ jobs:
           private:
               QUdpSocket *udp;
           };
+          #endif
           EOF
 
           cat <<EOF > src/main.cpp
@@ -85,7 +88,7 @@ jobs:
               Rectangle {
                   id: curtain; z: 100; width: parent.width; height: 80; y: -50; color: "#111"; border.color: "#0f0"
                   Text { text: "L-OS MESH ID: " + (OS ? OS.myNodeID : "..."); color: "#0f0"; anchors.centerIn: parent }
-                  MouseArea { anchors.fill: parent; onClicked: curtain.y = (curtain.y == 0 ? -70 : 0) }
+                  MouseArea { anchors.fill: parent; onClicked: curtain.y = (curtain.y == 0 ? -50 : 0) }
               }
           }
           EOF
@@ -123,13 +126,20 @@ jobs:
           }
           EOF
 
-          # 3. CMAKE (ИСПРАВЛЕН СИНТАКСИС)
+          # 3. CMAKE (ВКЛЮЧЕН AUTOMOC)
           cat <<EOF > CMakeLists.txt
           cmake_minimum_required(VERSION 3.21)
           project(L-OS LANGUAGES CXX)
+
+          set(CMAKE_AUTOMOC ON)
+          set(CMAKE_AUTORCC ON)
+
           find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Network)
           
-          qt_add_executable(L-OS src/main.cpp)
+          qt_add_executable(L-OS 
+              src/main.cpp 
+              src/core.h
+          )
           
           qt_add_qml_module(L-OS
               URI VirtualOS
@@ -164,7 +174,6 @@ jobs:
         run: |
           mkdir build && cd build
           export QT_DIR=${{ github.workspace }}/Qt/6.7.2
-          # Авто-поиск NDK
           export ANDROID_NDK_PATH=$(ls -d ${ANDROID_SDK_ROOT}/ndk/* | head -1)
           
           $QT_DIR/android_arm64_v8a/bin/qt-cmake .. \
@@ -179,5 +188,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-V6-Fixed
+          name: L-OS-V7-Ready
           path: build/android-build/*.apk
