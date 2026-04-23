@@ -1,9 +1,8 @@
-name: L-OS_Stable_Build
+name: L-OS_Final_Fix_V3
 on: [push, workflow_dispatch]
 
 jobs:
   build:
-    # ИЗМЕНЕНО: Используем 22.04 для стабильности пакетов
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -144,8 +143,7 @@ jobs:
           host: 'linux'
           target: 'android'
           arch: 'android_arm64_v8a'
-          # Ограничим модули для ускорения
-          modules: 'qtnetwork qtdeclarative'
+          # УДАЛЕНО: 'modules', так как всё нужное уже в базе
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -156,11 +154,9 @@ jobs:
       - name: Build APK
         run: |
           mkdir build && cd build
-          # Явный поиск путей в Ubuntu 22.04
-          export HOST_QT_PATH=$(dirname $(which qt-cmake))/../gcc_64
-          
+          # Указываем путь к Host Qt (gcc_64), который установился автоматически
           qt-cmake .. \
-            -DQT_HOST_PATH=$HOST_QT_PATH \
+            -DQT_HOST_PATH=${{ steps.install-qt.outputs.qt_dir }}/gcc_64 \
             -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
             -DQT_ANDROID_BUILD_ALL_ABIS=OFF
           
@@ -169,5 +165,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-Final-Fixed
+          name: L-OS-Final-Build
           path: build/android-build/*.apk
