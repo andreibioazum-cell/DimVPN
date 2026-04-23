@@ -1,4 +1,4 @@
-name: L-OS_Final_Fix_V3
+name: L-OS_Final_CrossCompile_Fix
 on: [push, workflow_dispatch]
 
 jobs:
@@ -72,7 +72,7 @@ jobs:
           }
           EOF
 
-          # 2. ИНТЕРФЕЙС
+          # 2. ИНТЕРФЕЙС (QML)
           cat <<EOF > qml/Main.qml
           import QtQuick
           import QtQuick.Controls
@@ -89,6 +89,7 @@ jobs:
           }
           EOF
 
+          mkdir -p qml/apps
           cat <<EOF > qml/Launcher.qml
           import QtQuick
           import QtQuick.Controls
@@ -108,13 +109,10 @@ jobs:
               color: "#000"
               Canvas {
                   id: canvas; anchors.fill: parent
-                  onPaint: {
-                      var ctx = getContext("2d");
-                      ctx.strokeStyle = "#0f0"; ctx.lineWidth = 3;
-                  }
                   function draw(x, y, isNew) {
                       var ctx = getContext("2d"); if(isNew) ctx.beginPath();
-                      ctx.lineTo(x, y); ctx.stroke(); requestPaint();
+                      ctx.strokeStyle = "#0f0"; ctx.lineWidth = 3; ctx.lineTo(x, y); ctx.stroke();
+                      requestPaint();
                   }
               }
               MouseArea {
@@ -135,15 +133,18 @@ jobs:
           target_link_libraries(L-OS PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Network)
           EOF
 
-      - name: Install Qt
-        id: install-qt
-        uses: jurplel/install-qt-action@v3
-        with:
-          version: '6.7.2'
-          host: 'linux'
-          target: 'android'
-          arch: 'android_arm64_v8a'
-          # УДАЛЕНО: 'modules', так как всё нужное уже в базе
+      - name: Install Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libgl1-mesa-dev python3-pip
+          pip3 install aqtinstall
+
+      - name: Install Qt (Desktop & Android)
+        run: |
+          # Устанавливаем Desktop Qt (Host)
+          aqt install-qt linux desktop 6.7.2 linux_gcc_64 -outputdir ${{ github.workspace }}/Qt
+          # Устанавливаем Android Qt (Target)
+          aqt install-qt linux android 6.7.2 android_arm64_v8a -outputdir ${{ github.workspace }}/Qt
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -154,10 +155,14 @@ jobs:
       - name: Build APK
         run: |
           mkdir build && cd build
-          # Указываем путь к Host Qt (gcc_64), который установился автоматически
-          qt-cmake .. \
-            -DQT_HOST_PATH=${{ steps.install-qt.outputs.qt_dir }}/gcc_64 \
+          # Указываем пути вручную для гарантии
+          export QT_DIR=${{ github.workspace }}/Qt/6.7.2
+          export ANDROID_NDK_PATH=${ANDROID_SDK_ROOT}/ndk/25.2.9519653
+          
+          $QT_DIR/android_arm64_v8a/bin/qt-cmake .. \
+            -DQT_HOST_PATH=$QT_DIR/gcc_64 \
             -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
+            -DANDROID_NDK_ROOT=$ANDROID_NDK_PATH \
             -DQT_ANDROID_BUILD_ALL_ABIS=OFF
           
           cmake --build . --target apk
@@ -165,5 +170,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-Final-Build
+          name: L-OS-Manual-Qt-Build
           path: build/android-build/*.apk
