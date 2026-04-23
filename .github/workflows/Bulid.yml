@@ -89,7 +89,6 @@ jobs:
           }
           EOF
 
-          mkdir -p qml/apps
           cat <<EOF > qml/Launcher.qml
           import QtQuick
           import QtQuick.Controls
@@ -137,14 +136,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential libgl1-mesa-dev python3-pip
-          pip3 install aqtinstall
+          python3 -m pip install aqtinstall
 
       - name: Install Qt (Desktop & Android)
         run: |
-          # Устанавливаем Desktop Qt (Host)
-          aqt install-qt linux desktop 6.7.2 linux_gcc_64 -outputdir ${{ github.workspace }}/Qt
-          # Устанавливаем Android Qt (Target)
-          aqt install-qt linux android 6.7.2 android_arm64_v8a -outputdir ${{ github.workspace }}/Qt
+          # Исправлено: добавлены -- перед outputdir
+          python3 -m aqt install-qt linux desktop 6.7.2 linux_gcc_64 --outputdir ${{ github.workspace }}/Qt
+          python3 -m aqt install-qt linux android 6.7.2 android_arm64_v8a --outputdir ${{ github.workspace }}/Qt
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -155,8 +153,8 @@ jobs:
       - name: Build APK
         run: |
           mkdir build && cd build
-          # Указываем пути вручную для гарантии
           export QT_DIR=${{ github.workspace }}/Qt/6.7.2
+          # Путь к NDK на Ubuntu 22.04
           export ANDROID_NDK_PATH=${ANDROID_SDK_ROOT}/ndk/25.2.9519653
           
           $QT_DIR/android_arm64_v8a/bin/qt-cmake .. \
