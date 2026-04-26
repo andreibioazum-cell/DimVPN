@@ -1,280 +1,64 @@
-name: L-OS_Polyglot_VM
+name: Enjoer_Menu_Build
 
 on:
-  push:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
+      # ---------------- CREATE STRUCTURE ----------------
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Create Project Files
+      - name: Create project structure
         run: |
-
-          mkdir -p app/src/main/java/com/los/vm
+          mkdir -p app/src/main/java/com/enjoer/menu
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-          # ----------------- RESOURCES -----------------
+      # ---------------- ROOT FILES ----------------
 
-          cat <<EOF > app/src/main/res/values/colors.xml
-          <resources>
-              <color name="black">#000000</color>
-              <color name="green">#00FF00</color>
-          </resources>
-          EOF
-
-          cat <<EOF > app/src/main/res/values/strings.xml
-          <resources>
-              <string name="app_name">L-OS Polyglot</string>
-          </resources>
-          EOF
-
-          cat <<EOF > app/src/main/res/values/themes.xml
-          <resources>
-            <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
-              <item name="android:windowBackground">@color/black</item>
-            </style>
-          </resources>
-          EOF
-
-          cat <<EOF > app/src/main/res/drawable/btn_v.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android">
-            <solid android:color="#000000"/>
-            <stroke android:width="2dp" android:color="#00FF00"/>
-            <padding android:top="15dp" android:bottom="15dp"
-                     android:left="10dp" android:right="10dp"/>
-          </shape>
-          EOF
-
-          # ----------------- LAYOUT -----------------
-
-          cat <<'EOF' > app/src/main/res/layout/activity_main.xml
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:background="#000"
-              android:orientation="vertical"
-              android:padding="15dp">
-
-              <Button
-                  android:id="@+id/sys_top"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:background="@drawable/btn_v"
-                  android:text="[ L-OS_SYSTEM_CORE: ACTIVE ]"
-                  android:textColor="#0F0"
-                  android:textStyle="bold"
-                  android:fontFamily="monospace"/>
-
-              <ScrollView
-                  android:id="@+id/scroll_view"
-                  android:layout_width="match_parent"
-                  android:layout_height="0dp"
-                  android:layout_weight="1"
-                  android:layout_marginTop="10dp">
-
-                  <LinearLayout
-                      android:id="@+id/app_stack"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:orientation="vertical"/>
-              </ScrollView>
-
-              <Button
-                  android:id="@+id/btn_template"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:background="@drawable/btn_v"
-                  android:text="> GET_PYTHON_TEMPLATE"
-                  android:textColor="#0F0"
-                  android:layout_marginBottom="10dp"/>
-
-              <Button
-                  android:id="@+id/btn_import"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:background="@drawable/btn_v"
-                  android:text="> IMPORT_LAPP_PACKAGE"
-                  android:textColor="#0F0"/>
-
-              <WebView
-                  android:id="@+id/vm_runtime"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:visibility="gone"
-                  android:background="#000"/>
-          </LinearLayout>
-          EOF
-
-          # ----------------- JAVA -----------------
-
-          cat <<'EOF' > app/src/main/java/com/los/vm/MainActivity.java
-          package com.los.vm;
-
-          import android.os.Bundle;
-          import android.view.View;
-          import android.webkit.JavascriptInterface;
-          import android.webkit.WebView;
-          import android.widget.Button;
-          import android.widget.LinearLayout;
-          import android.widget.Toast;
-          import androidx.appcompat.app.AppCompatActivity;
-
-          public class MainActivity extends AppCompatActivity {
-
-              private LinearLayout appStack;
-              private WebView runtime;
-              private View sysTop, scrollContainer, btnT, btnI;
-
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-
-                  appStack = findViewById(R.id.app_stack);
-                  runtime = findViewById(R.id.vm_runtime);
-                  sysTop = findViewById(R.id.sys_top);
-                  scrollContainer = findViewById(R.id.scroll_view);
-                  btnT = findViewById(R.id.btn_template);
-                  btnI = findViewById(R.id.btn_import);
-
-                  runtime.getSettings().setJavaScriptEnabled(true);
-
-                  runtime.addJavascriptInterface(new Object() {
-                      @JavascriptInterface
-                      public void exit() {
-                          runOnUiThread(() -> closeApp());
-                      }
-
-                      @JavascriptInterface
-                      public void toast(String msg) {
-                          runOnUiThread(() ->
-                              Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show());
-                      }
-                  }, "LOS");
-
-                  addApp("SPACE_WARS", "python");
-                  addApp("FILE_DECRYPTOR", "javascript");
-                  addApp("MESH_CHAT", "javascript");
-
-                  btnT.setOnClickListener(v ->
-                      Toast.makeText(this, "Template created!", Toast.LENGTH_SHORT).show());
-
-                  btnI.setOnClickListener(v ->
-                      Toast.makeText(this, "Import feature soon", Toast.LENGTH_SHORT).show());
-              }
-
-              private void addApp(String name, String lang) {
-                  Button b = new Button(this);
-                  b.setText("> EXEC: " + name);
-                  b.setTextColor(0xFF00FF00);
-                  b.setBackgroundResource(R.drawable.btn_v);
-                  b.setAllCaps(true);
-
-                  LinearLayout.LayoutParams lp =
-                      new LinearLayout.LayoutParams(-1, -2);
-                  lp.setMargins(0, 0, 0, 20);
-                  b.setLayoutParams(lp);
-
-                  b.setOnClickListener(v -> launchApp(lang));
-                  appStack.addView(b);
-              }
-
-              private void launchApp(String lang) {
-
-                  sysTop.setVisibility(View.GONE);
-                  scrollContainer.setVisibility(View.GONE);
-                  btnT.setVisibility(View.GONE);
-                  btnI.setVisibility(View.GONE);
-                  runtime.setVisibility(View.VISIBLE);
-
-                  String html;
-
-                  if (lang.equals("python")) {
-                      html = "<html><body style='background:#000;color:#0f0;font-family:monospace;'>" +
-                             "<h2>[PYTHON_MODE]</h2>" +
-                             "<script>LOS.toast('Python VM Started')</script>" +
-                             "<button onclick='LOS.exit()' " +
-                             "style='background:#000;color:#0f0;border:1px solid #0f0;padding:10px;'>" +
-                             "TERMINATE</button></body></html>";
-                  } else {
-                      html = "<html><body style='background:#000;color:#0f0;font-family:monospace;'>" +
-                             "<h2>[JS_MODE]</h2>" +
-                             "<button onclick='LOS.exit()' " +
-                             "style='background:#000;color:#0f0;border:1px solid #0f0;padding:10px;'>" +
-                             "EXIT_VM</button></body></html>";
-                  }
-
-                  runtime.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
-              }
-
-              private void closeApp() {
-                  runtime.setVisibility(View.GONE);
-                  sysTop.setVisibility(View.VISIBLE);
-                  scrollContainer.setVisibility(View.VISIBLE);
-                  btnT.setVisibility(View.VISIBLE);
-                  btnI.setVisibility(View.VISIBLE);
-              }
-          }
-          EOF
-
-          # ----------------- GRADLE CONFIG -----------------
-
-          cat <<EOF > settings.gradle
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "L-OS_Polyglot_VM"
-          include(":app")
-          EOF
+      - name: Create Gradle root
+        run: |
+          echo "rootProject.name='Enjoer_Menu'" > settings.gradle
+          echo "include ':app'" >> settings.gradle
 
           cat <<EOF > build.gradle
-          // Top-level build file
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies {
+                  classpath "com.android.tools.build:gradle:8.2.2"
+              }
+          }
           EOF
 
           cat <<EOF > gradle.properties
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           android.useAndroidX=true
           android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
           EOF
 
+      # ---------------- APP BUILD ----------------
+
+      - name: Create app build.gradle
+        run: |
           cat <<EOF > app/build.gradle
           plugins {
               id 'com.android.application'
           }
 
           android {
-              namespace 'com.los.vm'
+              namespace 'com.enjoer.menu'
               compileSdk 34
 
               defaultConfig {
-                  applicationId "com.los.vm"
+                  applicationId "com.enjoer.menu"
                   minSdk 24
                   targetSdk 34
                   versionCode 1
@@ -282,28 +66,27 @@ jobs:
               }
 
               buildTypes {
-                  release {
-                      minifyEnabled false
-                  }
+                  release { minifyEnabled false }
               }
           }
 
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
           }
           EOF
 
+      # ---------------- MANIFEST ----------------
+
+      - name: Create Manifest
+        run: |
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET"/>
-
               <application
-                  android:label="L-OS Polyglot"
+                  android:label="Enjoer"
                   android:theme="@style/AppTheme">
 
                   <activity
-                      android:name=".MainActivity"
+                      android:name="com.enjoer.menu.MainActivity"
                       android:exported="true">
 
                       <intent-filter>
@@ -316,14 +99,144 @@ jobs:
           </manifest>
           EOF
 
-      - name: Generate Gradle Wrapper
-        run: gradle wrapper --gradle-version 8.5
+      # ---------------- THEME ----------------
+
+      - name: Create Theme
+        run: |
+          cat <<EOF > app/src/main/res/values/themes.xml
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+                  <item name="android:windowFullscreen">true</item>
+                  <item name="android:windowBackground">#0A0F1C</item>
+              </style>
+          </resources>
+          EOF
+
+      # ---------------- BUTTON STYLE ----------------
+
+      - name: Create button drawable
+        run: |
+          cat <<EOF > app/src/main/res/drawable/btn_blue.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android"
+              android:shape="rectangle">
+              <corners android:radius="14dp"/>
+              <solid android:color="#00BFFF"/>
+          </shape>
+          EOF
+
+      # ---------------- LAYOUT ----------------
+
+      - name: Create activity_main.xml
+        run: |
+          cat <<EOF > app/src/main/res/layout/activity_main.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#0A0F1C">
+
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="ENJOER"
+                  android:textSize="42sp"
+                  android:textStyle="bold"
+                  android:textColor="#00BFFF"
+                  android:layout_marginBottom="60dp"/>
+
+              <Button
+                  android:id="@+id/btn_play"
+                  android:layout_width="240dp"
+                  android:layout_height="60dp"
+                  android:text="Play"
+                  android:textSize="18sp"
+                  android:background="@drawable/btn_blue"
+                  android:textColor="#000"
+                  android:layout_marginBottom="16dp"/>
+
+              <Button
+                  android:id="@+id/btn_settings"
+                  android:layout_width="240dp"
+                  android:layout_height="60dp"
+                  android:text="Settings"
+                  android:textSize="18sp"
+                  android:background="@drawable/btn_blue"
+                  android:textColor="#000"
+                  android:layout_marginBottom="16dp"/>
+
+              <Button
+                  android:id="@+id/btn_exit"
+                  android:layout_width="240dp"
+                  android:layout_height="60dp"
+                  android:text="Exit"
+                  android:textSize="18sp"
+                  android:background="@drawable/btn_blue"
+                  android:textColor="#000"/>
+
+          </LinearLayout>
+          EOF
+
+      # ---------------- MAIN ACTIVITY ----------------
+
+      - name: Create MainActivity.java
+        run: |
+          cat <<EOF > app/src/main/java/com/enjoer/menu/MainActivity.java
+          package com.enjoer.menu;
+
+          import android.os.Bundle;
+          import android.widget.Button;
+          import android.widget.Toast;
+          import androidx.appcompat.app.AppCompatActivity;
+
+          public class MainActivity extends AppCompatActivity {
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+
+                  Button play = findViewById(R.id.btn_play);
+                  Button settings = findViewById(R.id.btn_settings);
+                  Button exit = findViewById(R.id.btn_exit);
+
+                  play.setOnClickListener(v ->
+                          Toast.makeText(this,"Play pressed",Toast.LENGTH_SHORT).show()
+                  );
+
+                  settings.setOnClickListener(v ->
+                          Toast.makeText(this,"Settings pressed",Toast.LENGTH_SHORT).show()
+                  );
+
+                  exit.setOnClickListener(v -> finish());
+              }
+          }
+          EOF
+
+      # ---------------- BUILD APK ----------------
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle Wrapper
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle-8.5-bin.zip
+          export PATH="$PWD/gradle-8.5/bin:$PATH"
+          gradle wrapper --gradle-version 8.5
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: L-OS-Polyglot-VM
+          name: Enjoer_Menu_APK
           path: app/build/outputs/apk/debug/app-debug.apk
