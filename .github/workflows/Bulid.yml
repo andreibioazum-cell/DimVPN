@@ -1,4 +1,4 @@
-name: Enjoer_6.1_Stars_Final
+name: Enjoer_6.1_Retro_Rigid
 on: [push, workflow_dispatch]
 
 jobs:
@@ -94,21 +94,18 @@ jobs:
           EOF
 
           cat <<EOF > app/src/main/res/drawable/crosshair.xml
-          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-            <item android:gravity="center">
-              <shape android:shape="oval">
-                <size android:width="24dp" android:height="24dp"/>
-                <solid android:color="#00000000"/>
-                <stroke android:width="2dp" android:color="#FF00BFFF"/>
-              </shape>
-            </item>
-            <item android:gravity="center">
-              <shape android:shape="oval">
-                <size android:width="4dp" android:height="4dp"/>
-                <solid android:color="#FF7FDBFF"/>
-              </shape>
-            </item>
-          </layer-list>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+            <size android:width="6dp" android:height="6dp"/>
+            <solid android:color="#FF00BFFF"/>
+          </shape>
+          EOF
+
+          cat <<EOF > app/src/main/res/drawable/rigid_bg.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <corners android:radius="8dp"/>
+            <solid android:color="#DD101820"/>
+            <stroke android:width="2dp" android:color="#FFD700"/>
+          </shape>
           EOF
 
           cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
@@ -134,15 +131,56 @@ jobs:
                       android:layout_width="match_parent"
                       android:layout_height="match_parent"/>
 
-                  <Button
-                      android:id="@+id/btn_menu"
-                      android:layout_width="50dp"
-                      android:layout_height="50dp"
+                  <LinearLayout
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:layout_alignParentTop="true"
+                      android:layout_alignParentLeft="true"
                       android:layout_margin="10dp"
-                      android:text="≡"
-                      android:textSize="24sp"
-                      android:background="@drawable/btn_blue"
-                      android:textColor="#00BFFF"/>
+                      android:orientation="horizontal">
+
+                      <Button
+                          android:id="@+id/btn_menu"
+                          android:layout_width="50dp"
+                          android:layout_height="50dp"
+                          android:text="≡"
+                          android:textSize="24sp"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#00BFFF"/>
+
+                      <LinearLayout
+                          android:layout_width="wrap_content"
+                          android:layout_height="wrap_content"
+                          android:orientation="vertical"
+                          android:background="@drawable/rigid_bg"
+                          android:padding="8dp"
+                          android:layout_marginLeft="10dp">
+
+                          <TextView
+                              android:id="@+id/txt_rigids"
+                              android:layout_width="wrap_content"
+                              android:layout_height="wrap_content"
+                              android:text="💰 0 Rigid's"
+                              android:textColor="#FFD700"
+                              android:textSize="16sp"
+                              android:textStyle="bold"/>
+                      </LinearLayout>
+                  </LinearLayout>
+
+                  <TextView
+                      android:id="@+id/txt_rigid_notify"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:layout_alignParentTop="true"
+                      android:layout_alignParentRight="true"
+                      android:layout_margin="10dp"
+                      android:background="@drawable/rigid_bg"
+                      android:padding="12dp"
+                      android:text="Rigid's доставлены!"
+                      android:textColor="#FFD700"
+                      android:textSize="14sp"
+                      android:textStyle="bold"
+                      android:visibility="gone"/>
 
                   <FrameLayout
                       android:id="@+id/joy_base"
@@ -179,8 +217,8 @@ jobs:
 
                   <View
                       android:id="@+id/crosshair_game"
-                      android:layout_width="24dp"
-                      android:layout_height="24dp"
+                      android:layout_width="6dp"
+                      android:layout_height="6dp"
                       android:layout_centerInParent="true"
                       android:background="@drawable/crosshair"/>
               </RelativeLayout>
@@ -661,8 +699,8 @@ jobs:
 
                   <View
                       android:id="@+id/crosshair_engine"
-                      android:layout_width="24dp"
-                      android:layout_height="24dp"
+                      android:layout_width="6dp"
+                      android:layout_height="6dp"
                       android:layout_centerInParent="true"
                       android:background="@drawable/crosshair"/>
               </RelativeLayout>
@@ -723,8 +761,8 @@ jobs:
 
                   <View
                       android:id="@+id/crosshair_playtest"
-                      android:layout_width="24dp"
-                      android:layout_height="24dp"
+                      android:layout_width="6dp"
+                      android:layout_height="6dp"
                       android:layout_centerInParent="true"
                       android:background="@drawable/crosshair"/>
               </RelativeLayout>
@@ -751,7 +789,25 @@ jobs:
                       android:text="ENGINE 6.1"
                       android:textSize="18sp"
                       android:textColor="#0088CC"
-                      android:layout_marginBottom="80dp"/>
+                      android:layout_marginBottom="40dp"/>
+
+                  <LinearLayout
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:orientation="vertical"
+                      android:background="@drawable/rigid_bg"
+                      android:padding="12dp"
+                      android:layout_marginBottom="40dp">
+
+                      <TextView
+                          android:id="@+id/txt_menu_rigids"
+                          android:layout_width="wrap_content"
+                          android:layout_height="wrap_content"
+                          android:text="💰 0 Rigid's"
+                          android:textColor="#FFD700"
+                          android:textSize="20sp"
+                          android:textStyle="bold"/>
+                  </LinearLayout>
 
                   <Button
                       android:id="@+id/btn_play"
@@ -768,6 +824,16 @@ jobs:
                       android:layout_width="240dp"
                       android:layout_height="60dp"
                       android:text="Editor"
+                      android:textSize="18sp"
+                      android:textColor="#00BFFF"
+                      android:background="@drawable/btn_blue"
+                      android:layout_marginBottom="16dp"/>
+
+                  <Button
+                      android:id="@+id/btn_customize"
+                      android:layout_width="240dp"
+                      android:layout_height="60dp"
+                      android:text="Customize"
                       android:textSize="18sp"
                       android:textColor="#00BFFF"
                       android:background="@drawable/btn_blue"
@@ -811,6 +877,73 @@ jobs:
               public float maxZ(){return z+sz/2f;}
           }
           EOF
+
+          cat <<'PREFS' > app/src/main/java/com/enjoer/game/PlayerPrefs.java
+          package com.enjoer.game;
+
+          import android.content.Context;
+          import android.content.SharedPreferences;
+
+          public class PlayerPrefs {
+              private static SharedPreferences prefs;
+
+              public static void init(Context ctx) {
+                  prefs = ctx.getSharedPreferences("enjoer_prefs", Context.MODE_PRIVATE);
+              }
+
+              public static int getRigids() {
+                  return prefs.getInt("rigids", 0);
+              }
+
+              public static void setRigids(int val) {
+                  prefs.edit().putInt("rigids", val).apply();
+              }
+
+              public static void addRigids(int val) {
+                  setRigids(getRigids() + val);
+              }
+
+              public static int getSkinColor() {
+                  return prefs.getInt("skinColor", 0);
+              }
+
+              public static void setSkinColor(int val) {
+                  prefs.edit().putInt("skinColor", val).apply();
+              }
+
+              public static int getTorsoColor() {
+                  return prefs.getInt("torsoColor", 1);
+              }
+
+              public static void setTorsoColor(int val) {
+                  prefs.edit().putInt("torsoColor", val).apply();
+              }
+
+              public static int getLegsColor() {
+                  return prefs.getInt("legsColor", 2);
+              }
+
+              public static void setLegsColor(int val) {
+                  prefs.edit().putInt("legsColor", val).apply();
+              }
+
+              public static int getFaceType() {
+                  return prefs.getInt("faceType", 0);
+              }
+
+              public static void setFaceType(int val) {
+                  prefs.edit().putInt("faceType", val).apply();
+              }
+
+              public static long getPlayStartTime() {
+                  return prefs.getLong("playStartTime", 0);
+              }
+
+              public static void setPlayStartTime(long val) {
+                  prefs.edit().putLong("playStartTime", val).apply();
+              }
+          }
+          PREFS
 
           cat <<'SCRIPT' > app/src/main/java/com/enjoer/game/ScriptEngine.java
           package com.enjoer.game;
@@ -1034,7 +1167,12 @@ jobs:
               private long lastTimeNs = 0L;
               private float walkPhase = 0f;
               private float moveMag = 0f; 
-              private float charRotation = 0f; 
+              private float charRotation = 0f;
+
+              public int skinColor = 0;
+              public int torsoColor = 1;
+              public int legsColor = 2;
+              public int faceType = 0;
 
               public Block getSelectedBlock(){
                   if(selectedIndex>=0 && selectedIndex<blocks.size()) return blocks.get(selectedIndex);
@@ -1393,45 +1531,61 @@ jobs:
                   final float armH = 1.6f, armW = 0.55f, armD = 0.55f;
 
                   float footY = pY - PLAYER_HEIGHT;
-                  float swing = (float)Math.sin(walkPhase) * 42f * moveMag * (onGround ? 1f : 0.2f);
-                  float armAngle = onGround ? swing : -140f;
-                  float legAngle = onGround ? -swing : 15f;
-                  float bob = 0f;
+
+                  int walkFrame = (int)((walkPhase * 2f) % 4);
+                  float armAngle = 0f, legAngle = 0f;
+
+                  if(onGround && moveMag > 0.05f){
+                      if(walkFrame == 0 || walkFrame == 2) { armAngle = 0f; legAngle = 0f; }
+                      else if(walkFrame == 1) { armAngle = 35f; legAngle = -35f; }
+                      else { armAngle = -35f; legAngle = 35f; }
+                  } else if(!onGround) {
+                      armAngle = -140f;
+                      legAngle = 15f;
+                  }
 
                   GLES30.glUniform1f(uSel, 0f);
-                  float skinR=1.0f, skinG=0.85f, skinB=0.15f;
-                  float torsoR=0.1f, torsoG=0.4f, torsoB=1.0f;
-                  float legsR=0.1f, legsG=0.8f, legsB=0.2f;
 
-                  // TORSO
+                  float[][] palette = {
+                      {1.0f,0.85f,0.15f},
+                      {0.1f,0.4f,1.0f},
+                      {0.1f,0.8f,0.2f},
+                      {1.0f,0.2f,0.2f},
+                      {0.9f,0.9f,0.9f},
+                      {0.1f,0.1f,0.1f}
+                  };
+
+                  float[] skinCol = palette[Math.max(0,Math.min(5,skinColor))];
+                  float[] torsoCol = palette[Math.max(0,Math.min(5,torsoColor))];
+                  float[] legsCol = palette[Math.max(0,Math.min(5,legsColor))];
+
                   Matrix.setIdentityM(model,0);
                   Matrix.translateM(model,0, pX, footY, pZ);
                   Matrix.rotateM(model,0, charRotation, 0,1,0);
-                  Matrix.translateM(model,0, 0f, legH + torsoH/2f + bob, 0f);
+                  Matrix.translateM(model,0, 0f, legH + torsoH/2f, 0f);
                   Matrix.scaleM(model,0, torsoW, torsoH, torsoD);
-                  draw(uM,uMVP,uC, torsoR,torsoG,torsoB, 1f);
+                  draw(uM,uMVP,uC, torsoCol[0],torsoCol[1],torsoCol[2], 1f);
 
-                  // HEAD
                   Matrix.setIdentityM(model,0);
                   Matrix.translateM(model,0, pX, footY, pZ);
                   Matrix.rotateM(model,0, charRotation, 0,1,0);
-                  Matrix.translateM(model,0, 0f, legH + torsoH + headS/2f + bob, 0f);
+                  Matrix.translateM(model,0, 0f, legH + torsoH + headS/2f, 0f);
                   Matrix.scaleM(model,0, headS, headS, headS);
-                  draw(uM,uMVP,uC, skinR,skinG,skinB, 1f);
+                  draw(uM,uMVP,uC, skinCol[0],skinCol[1],skinCol[2], 1f);
 
-                  // LEFT ARM
+                  drawFace(uM,uMVP,uC);
+
                   Matrix.setIdentityM(model,0);
                   Matrix.translateM(model,0, pX, footY, pZ);
                   Matrix.rotateM(model,0, charRotation, 0,1,0);
-                  float shoulderY = legH + torsoH - 0.2f + bob;
+                  float shoulderY = legH + torsoH - 0.2f;
                   float shoulderX = -(torsoW/2f + armW/2f);
                   Matrix.translateM(model,0, shoulderX, shoulderY, 0f);
                   Matrix.rotateM(model,0, armAngle, 1,0,0);
                   Matrix.translateM(model,0, 0f, -armH/2f, 0f);
                   Matrix.scaleM(model,0, armW, armH, armD);
-                  draw(uM,uMVP,uC, skinR,skinG,skinB, 1f);
+                  draw(uM,uMVP,uC, skinCol[0],skinCol[1],skinCol[2], 1f);
 
-                  // RIGHT ARM
                   Matrix.setIdentityM(model,0);
                   Matrix.translateM(model,0, pX, footY, pZ);
                   Matrix.rotateM(model,0, charRotation, 0,1,0);
@@ -1440,9 +1594,8 @@ jobs:
                   Matrix.rotateM(model,0, -armAngle, 1,0,0);
                   Matrix.translateM(model,0, 0f, -armH/2f, 0f);
                   Matrix.scaleM(model,0, armW, armH, armD);
-                  draw(uM,uMVP,uC, skinR,skinG,skinB, 1f);
+                  draw(uM,uMVP,uC, skinCol[0],skinCol[1],skinCol[2], 1f);
 
-                  // LEFT LEG
                   Matrix.setIdentityM(model,0);
                   Matrix.translateM(model,0, pX, footY, pZ);
                   Matrix.rotateM(model,0, charRotation, 0,1,0);
@@ -1451,9 +1604,8 @@ jobs:
                   Matrix.rotateM(model,0, legAngle, 1,0,0);
                   Matrix.translateM(model,0, 0f, -legH/2f, 0f);
                   Matrix.scaleM(model,0, legW, legH, legD);
-                  draw(uM,uMVP,uC, legsR,legsG,legsB, 1f);
+                  draw(uM,uMVP,uC, legsCol[0],legsCol[1],legsCol[2], 1f);
 
-                  // RIGHT LEG
                   Matrix.setIdentityM(model,0);
                   Matrix.translateM(model,0, pX, footY, pZ);
                   Matrix.rotateM(model,0, charRotation, 0,1,0);
@@ -1462,7 +1614,56 @@ jobs:
                   Matrix.rotateM(model,0, -legAngle, 1,0,0);
                   Matrix.translateM(model,0, 0f, -legH/2f, 0f);
                   Matrix.scaleM(model,0, legW, legH, legD);
-                  draw(uM,uMVP,uC, legsR,legsG,legsB, 1f);
+                  draw(uM,uMVP,uC, legsCol[0],legsCol[1],legsCol[2], 1f);
+              }
+
+              private void drawFace(int uM, int uMVP, int uC){
+                  final float legH = 1.6f, torsoH = 1.8f, headS = 1.15f;
+                  float footY = pY - PLAYER_HEIGHT;
+                  float faceY = legH + torsoH + headS/2f;
+                  float faceZ = headS/2f + 0.01f;
+
+                  float eyeSize = headS * 0.15f;
+                  float eyeY = faceY + headS * 0.15f;
+                  float eyeX = headS * 0.18f;
+                  float mouthY = faceY - headS * 0.15f;
+
+                  Matrix.setIdentityM(model,0);
+                  Matrix.translateM(model,0, pX, footY, pZ);
+                  Matrix.rotateM(model,0, charRotation, 0,1,0);
+                  Matrix.translateM(model,0, -eyeX, eyeY, faceZ);
+                  Matrix.scaleM(model,0, eyeSize, eyeSize, 0.02f);
+                  draw(uM,uMVP,uC, 0f,0f,0f, 1f);
+
+                  Matrix.setIdentityM(model,0);
+                  Matrix.translateM(model,0, pX, footY, pZ);
+                  Matrix.rotateM(model,0, charRotation, 0,1,0);
+                  Matrix.translateM(model,0, eyeX, eyeY, faceZ);
+                  Matrix.scaleM(model,0, eyeSize, eyeSize, 0.02f);
+                  draw(uM,uMVP,uC, 0f,0f,0f, 1f);
+
+                  if(faceType == 0){
+                      Matrix.setIdentityM(model,0);
+                      Matrix.translateM(model,0, pX, footY, pZ);
+                      Matrix.rotateM(model,0, charRotation, 0,1,0);
+                      Matrix.translateM(model,0, 0f, mouthY, faceZ);
+                      Matrix.scaleM(model,0, headS*0.4f, headS*0.08f, 0.02f);
+                      draw(uM,uMVP,uC, 0f,0f,0f, 1f);
+                  } else if(faceType == 1){
+                      Matrix.setIdentityM(model,0);
+                      Matrix.translateM(model,0, pX, footY, pZ);
+                      Matrix.rotateM(model,0, charRotation, 0,1,0);
+                      Matrix.translateM(model,0, 0f, mouthY, faceZ);
+                      Matrix.scaleM(model,0, headS*0.5f, headS*0.12f, 0.02f);
+                      draw(uM,uMVP,uC, 1f,0f,0f, 1f);
+                  } else if(faceType == 2){
+                      Matrix.setIdentityM(model,0);
+                      Matrix.translateM(model,0, pX, footY, pZ);
+                      Matrix.rotateM(model,0, charRotation, 0,1,0);
+                      Matrix.translateM(model,0, 0f, mouthY, faceZ);
+                      Matrix.scaleM(model,0, headS*0.1f, headS*0.1f, 0.02f);
+                      draw(uM,uMVP,uC, 0f,0f,0f, 1f);
+                  }
               }
 
               private void draw(int uM,int uMVP,int uC,float r,float g,float b,float a){
@@ -1506,11 +1707,7 @@ jobs:
           import android.text.InputType;
           import android.view.MotionEvent;
           import android.view.View;
-          import android.widget.Button;
-          import android.widget.EditText;
-          import android.widget.LinearLayout;
-          import android.widget.TextView;
-          import android.widget.Toast;
+          import android.widget.*;
           import androidx.activity.result.ActivityResultLauncher;
           import androidx.activity.result.contract.ActivityResultContracts;
           import androidx.appcompat.app.AppCompatActivity;
@@ -1525,10 +1722,11 @@ jobs:
               private View[] colorBtn;
               private View axisPanel,menuUI,gameUI,engineUI,playtestUI;
               private Button btnDeselect, btnHide, btnDelete, btnEvents, btnGrid;
-              private TextView txtSizeInfo;
+              private TextView txtSizeInfo, txtRigids, txtMenuRigids, txtRigidNotify;
               private ActivityResultLauncher<Intent> saveLauncher,loadLauncher;
               private Handler handler = new Handler(Looper.getMainLooper());
               private int pendingMode = 0;
+              private long rigidTimer = 0;
 
               @Override
               public GameRenderer renderer() {
@@ -1560,6 +1758,7 @@ jobs:
               @Override protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   setContentView(R.layout.activity_main);
+                  PlayerPrefs.init(this);
 
                   android.opengl.GLSurfaceView gv=findViewById(R.id.gl_view);
                   gv.setEGLContextClientVersion(3);
@@ -1578,6 +1777,11 @@ jobs:
                   btnEvents=findViewById(R.id.btn_block_events);
                   btnGrid=findViewById(R.id.btn_grid);
                   txtSizeInfo=findViewById(R.id.txt_size_info);
+                  txtRigids=findViewById(R.id.txt_rigids);
+                  txtMenuRigids=findViewById(R.id.txt_menu_rigids);
+                  txtRigidNotify=findViewById(R.id.txt_rigid_notify);
+
+                  updRigidDisplay();
 
                   saveLauncher=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),res->{
                       if(res.getResultCode()==RESULT_OK&&res.getData()!=null){
@@ -1651,6 +1855,7 @@ jobs:
                               gameUI.setVisibility(View.VISIBLE);
                               setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
                               ren.runStartScripts();
+                              startRigidTimer();
                               Toast.makeText(this,"Loaded!",Toast.LENGTH_SHORT).show();
                           }catch(Exception e){
                               Toast.makeText(this,"Invalid file",Toast.LENGTH_SHORT).show();
@@ -1670,6 +1875,7 @@ jobs:
                       engineUI.setVisibility(View.GONE);
                       playtestUI.setVisibility(View.GONE);
                       ren.runStartScripts();
+                      startRigidTimer();
                       handler.postDelayed(() -> setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE), 50);
                   });
 
@@ -1690,6 +1896,8 @@ jobs:
                       handler.postDelayed(() -> setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE), 50);
                   });
 
+                  findViewById(R.id.btn_customize).setOnClickListener(v-> showCustomizeDialog());
+
                   findViewById(R.id.btn_load_file).setOnClickListener(v->{
                       Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
                       i.addCategory(Intent.CATEGORY_OPENABLE);
@@ -1700,10 +1908,12 @@ jobs:
                   View.OnClickListener back=v->{
                       pendingMode = 0;
                       ren.isPlayingLevel=false;
+                      stopRigidTimer();
                       gameUI.setVisibility(View.GONE);
                       engineUI.setVisibility(View.GONE);
                       playtestUI.setVisibility(View.GONE);
                       menuUI.setVisibility(View.VISIBLE);
+                      updRigidDisplay();
                       setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                   };
                   findViewById(R.id.btn_menu).setOnClickListener(back);
@@ -1848,7 +2058,7 @@ jobs:
                           }
                       } else if(e.getAction()==MotionEvent.ACTION_MOVE){
                           ren.rY+=(e.getX()-lx)*.2f;
-                          ren.rX=Math.max(-85,Math.min(85,ren.rX-(e.getY()-ly)*.2f));
+                          ren.rX+=(ly-e.getY())*.2f;
                           lx=e.getX();ly=e.getY();
                       }
                       return true;
@@ -1857,6 +2067,133 @@ jobs:
                   updSizeInfo();
                   updAxis();
                   updGridButton();
+                  loadCustomization();
+              }
+
+              private void startRigidTimer(){
+                  rigidTimer = System.currentTimeMillis();
+                  handler.postDelayed(rigidCheckRunnable, 1000);
+              }
+
+              private void stopRigidTimer(){
+                  handler.removeCallbacks(rigidCheckRunnable);
+              }
+
+              private final Runnable rigidCheckRunnable = new Runnable() {
+                  @Override
+                  public void run() {
+                      if(pendingMode == 1 && !ren.isEngineMode){
+                          long elapsed = System.currentTimeMillis() - rigidTimer;
+                          if(elapsed >= 180000){
+                              PlayerPrefs.addRigids(10);
+                              updRigidDisplay();
+                              showRigidNotification();
+                              rigidTimer = System.currentTimeMillis();
+                          }
+                          handler.postDelayed(this, 1000);
+                      }
+                  }
+              };
+
+              private void showRigidNotification(){
+                  runOnUiThread(()->{
+                      txtRigidNotify.setVisibility(View.VISIBLE);
+                      handler.postDelayed(()->txtRigidNotify.setVisibility(View.GONE), 3000);
+                  });
+              }
+
+              private void updRigidDisplay(){
+                  runOnUiThread(()->{
+                      int r = PlayerPrefs.getRigids();
+                      txtRigids.setText("💰 " + r + " Rigid's");
+                      txtMenuRigids.setText("💰 " + r + " Rigid's");
+                  });
+              }
+
+              private void loadCustomization(){
+                  ren.skinColor = PlayerPrefs.getSkinColor();
+                  ren.torsoColor = PlayerPrefs.getTorsoColor();
+                  ren.legsColor = PlayerPrefs.getLegsColor();
+                  ren.faceType = PlayerPrefs.getFaceType();
+              }
+
+              private void showCustomizeDialog(){
+                  LinearLayout root = new LinearLayout(this);
+                  root.setOrientation(LinearLayout.VERTICAL);
+                  root.setPadding(30,30,30,30);
+
+                  TextView title = new TextView(this);
+                  title.setText("Customize Character");
+                  title.setTextSize(20);
+                  root.addView(title);
+
+                  String[] colorNames = {"Yellow","Blue","Green","Red","White","Black"};
+
+                  TextView t1 = new TextView(this); t1.setText("Skin Color (50 Rigid's)");
+                  Spinner s1 = new Spinner(this);
+                  ArrayAdapter<String> a1 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
+                  a1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                  s1.setAdapter(a1); s1.setSelection(PlayerPrefs.getSkinColor());
+
+                  TextView t2 = new TextView(this); t2.setText("Torso Color (30 Rigid's)");
+                  Spinner s2 = new Spinner(this);
+                  ArrayAdapter<String> a2 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
+                  a2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                  s2.setAdapter(a2); s2.setSelection(PlayerPrefs.getTorsoColor());
+
+                  TextView t3 = new TextView(this); t3.setText("Legs Color (30 Rigid's)");
+                  Spinner s3 = new Spinner(this);
+                  ArrayAdapter<String> a3 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
+                  a3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                  s3.setAdapter(a3); s3.setSelection(PlayerPrefs.getLegsColor());
+
+                  TextView t4 = new TextView(this); t4.setText("Face Type (100 Rigid's)");
+                  Spinner s4 = new Spinner(this);
+                  String[] faceNames = {"Smile", "Big Smile", "Dot"};
+                  ArrayAdapter<String> a4 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,faceNames);
+                  a4.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                  s4.setAdapter(a4); s4.setSelection(PlayerPrefs.getFaceType());
+
+                  root.addView(t1); root.addView(s1);
+                  root.addView(t2); root.addView(s2);
+                  root.addView(t3); root.addView(s3);
+                  root.addView(t4); root.addView(s4);
+
+                  new AlertDialog.Builder(this)
+                      .setView(root)
+                      .setPositiveButton("Apply", (d,w)->{
+                          int cost = 0;
+                          int oldSkin = PlayerPrefs.getSkinColor();
+                          int oldTorso = PlayerPrefs.getTorsoColor();
+                          int oldLegs = PlayerPrefs.getLegsColor();
+                          int oldFace = PlayerPrefs.getFaceType();
+
+                          int newSkin = s1.getSelectedItemPosition();
+                          int newTorso = s2.getSelectedItemPosition();
+                          int newLegs = s3.getSelectedItemPosition();
+                          int newFace = s4.getSelectedItemPosition();
+
+                          if(newSkin != oldSkin) cost += 50;
+                          if(newTorso != oldTorso) cost += 30;
+                          if(newLegs != oldLegs) cost += 30;
+                          if(newFace != oldFace) cost += 100;
+
+                          if(cost > PlayerPrefs.getRigids()){
+                              Toast.makeText(this,"Not enough Rigid's!",Toast.LENGTH_SHORT).show();
+                              return;
+                          }
+
+                          PlayerPrefs.addRigids(-cost);
+                          PlayerPrefs.setSkinColor(newSkin);
+                          PlayerPrefs.setTorsoColor(newTorso);
+                          PlayerPrefs.setLegsColor(newLegs);
+                          PlayerPrefs.setFaceType(newFace);
+                          loadCustomization();
+                          updRigidDisplay();
+                          Toast.makeText(this,"Customization applied!",Toast.LENGTH_SHORT).show();
+                      })
+                      .setNegativeButton("Cancel", null)
+                      .show();
               }
 
               @Override
@@ -2004,7 +2341,7 @@ jobs:
                           lx=e.getX();ly=e.getY();
                       }else if(e.getAction()==MotionEvent.ACTION_MOVE){
                           ren.rY+=(e.getX()-lx)*.25f;
-                          ren.rX=Math.max(-85,Math.min(85,ren.rX-(e.getY()-ly)*.25f));
+                          ren.rX+=(ly-e.getY())*.25f;
                           lx=e.getX();ly=e.getY();
                       }
                       return true;
@@ -2039,7 +2376,7 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application
-                  android:label="Enjoer 6.1 Final"
+                  android:label="Enjoer 6.1 Rigid"
                   android:theme="@style/AppTheme">
                   <activity
                       android:name="com.enjoer.game.MainActivity"
@@ -2103,5 +2440,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_6.1_Stars_Final
+          name: Enjoer_6.1_Retro_Rigid
           path: app/build/outputs/apk/debug/app-debug.apk
