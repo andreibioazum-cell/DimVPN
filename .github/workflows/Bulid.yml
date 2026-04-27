@@ -1,4 +1,4 @@
-name: Enjoer_6.1_Retro_Rigid
+name: Enjoer_6.1_Clean_Final
 on: [push, workflow_dispatch]
 
 jobs:
@@ -354,31 +354,14 @@ jobs:
                                   android:layout_marginLeft="4dp"/>
                           </LinearLayout>
 
-                          <LinearLayout
+                          <Button
+                              android:id="@+id/shape_triangle"
                               android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="4dp">
-
-                              <Button
-                                  android:id="@+id/shape_circle"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Circle"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
-
-                              <Button
-                                  android:id="@+id/shape_triangle"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Triangle"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
-                          </LinearLayout>
+                              android:layout_height="36dp"
+                              android:text="Triangle"
+                              android:background="@drawable/btn_blue"
+                              android:textColor="#00BFFF"
+                              android:layout_marginTop="4dp"/>
 
                           <TextView
                               android:layout_width="match_parent"
@@ -857,7 +840,6 @@ jobs:
           public class Block {
               public float x, y, z, sx, sy, sz, r, g, b;
               public boolean hidden = false;
-              public String shape = "square";
 
               public String onStartScript = "";
               public String onTouchScript = "";
@@ -933,14 +915,6 @@ jobs:
 
               public static void setFaceType(int val) {
                   prefs.edit().putInt("faceType", val).apply();
-              }
-
-              public static long getPlayStartTime() {
-                  return prefs.getLong("playStartTime", 0);
-              }
-
-              public static void setPlayStartTime(long val) {
-                  prefs.edit().putLong("playStartTime", val).apply();
               }
           }
           PREFS
@@ -1066,15 +1040,6 @@ jobs:
                       return;
                   }
 
-                  if(line.startsWith("block.shape(") && line.endsWith(")")){
-                      String[] a = argsText(line);
-                      if(a.length != 1) throw new Exception("block.shape requires 1 arg");
-                      Block b = ren.getSelectedBlock();
-                      if(b == null) throw new Exception("No selected block");
-                      b.shape = stripQuotes(a[0]).toLowerCase(Locale.US);
-                      return;
-                  }
-
                   if(line.startsWith("world.place(") && line.endsWith(")")){
                       String[] a = args(line);
                       if(a.length != 9) throw new Exception("world.place requires 9 args");
@@ -1154,7 +1119,6 @@ jobs:
               private int prog, skyProg;
               private FloatBuffer vBuf, nBuf, skyBuf;
               public float blockR=0.8f, blockG=0.3f, blockB=0.3f, blockSX=4, blockSY=4, blockSZ=4, placeDist=6f;
-              public String blockShape="square";
               public final float gridSize = 2f;
               public CopyOnWriteArrayList<Block> blocks = new CopyOnWriteArrayList<>();
               public int selectedIndex = -1;
@@ -1187,7 +1151,6 @@ jobs:
               public void loadBuiltInLevel() {
                   blocks.clear();
                   Block b1 = new Block(0,2,-10, 8,4,8, 0.9f,0.2f,0.2f);
-                  b1.shape="square";
                   blocks.add(b1);
               }
 
@@ -1212,14 +1175,15 @@ jobs:
               }
 
               public void placeBlock() {
-                  float vx=(float)(Math.sin(Math.toRadians(rY))*Math.cos(Math.toRadians(rX)));
-                  float vy=(float)Math.sin(Math.toRadians(rX));
-                  float vz=(float)(-Math.cos(Math.toRadians(rY))*Math.cos(Math.toRadians(rX)));
+                  double rad = Math.toRadians(rY);
+                  double pitch = Math.toRadians(rX);
+                  float vx=(float)(Math.sin(rad)*Math.cos(pitch));
+                  float vy=(float)Math.sin(pitch);
+                  float vz=(float)(-Math.cos(rad)*Math.cos(pitch));
                   float nx=pX+vx*placeDist, ny=pY+vy*placeDist, nz=pZ+vz*placeDist;
                   nx = snap(nx); ny = snap(ny); nz = snap(nz);
                   if(ny-blockSY/2f<FLOOR_Y) ny=FLOOR_Y+blockSY/2f;
                   Block b = new Block(nx,ny,nz, blockSX,blockSY,blockSZ, blockR,blockG,blockB);
-                  b.shape = blockShape;
                   blocks.add(b);
               }
 
@@ -1309,6 +1273,8 @@ jobs:
                       "vec3 fogCol=vec3(.02,.06,.14);"+
                       "vec3 c=mix(fin,fogCol,clamp(fog,0.,.82));"+
                       "c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);"+
+                      "vec3 shadow=vec3(0.15,0.15,0.18);"+
+                      "if(vP.y<0.5)c=mix(c,shadow,0.6);"+
                       "fC=vec4(c,uC.a);}";
 
                   String skyVs="#version 300 es\n"+
@@ -1373,9 +1339,11 @@ jobs:
                   GLES30.glClearColor(.01f,.015f,.03f,1f);
                   GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT|GLES30.GL_DEPTH_BUFFER_BIT);
 
-                  float vx=(float)(Math.sin(Math.toRadians(rY))*Math.cos(Math.toRadians(rX)));
-                  float vy=(float)Math.sin(Math.toRadians(rX));
-                  float vz=(float)(-Math.cos(Math.toRadians(rY))*Math.cos(Math.toRadians(rX)));
+                  double rad = Math.toRadians(rY);
+                  double pitch = Math.toRadians(rX);
+                  float vx=(float)(Math.sin(rad)*Math.cos(pitch));
+                  float vy=(float)Math.sin(pitch);
+                  float vz=(float)(-Math.cos(rad)*Math.cos(pitch));
 
                   if(isEngineMode && !isPlayingLevel){
                       camX = pX; camY = pY; camZ = pZ;
@@ -1384,8 +1352,8 @@ jobs:
                       float dist = 12.5f;
                       float up   = 5.4f;
                       
-                      float hvx = (float)(Math.sin(Math.toRadians(rY)));
-                      float hvz = (float)(-Math.cos(Math.toRadians(rY)));
+                      float hvx = (float)(Math.sin(rad));
+                      float hvz = (float)(-Math.cos(rad));
                       
                       camX = pX - hvx*dist;
                       camY = pY + up;
@@ -1467,7 +1435,9 @@ jobs:
 
                   moveMag = (float)Math.min(1.0, Math.sqrt(jX*jX + jY*jY));
 
-                  float s=.42f,rad=(float)Math.toRadians(rY),pitch=(float)Math.toRadians(rX);
+                  float s=.42f;
+                  double rad = Math.toRadians(rY);
+                  double pitch = Math.toRadians(rX);
                   if(isEngineMode&&!isPlayingLevel){
                       float fx=(float)Math.sin(rad),fz=(float)-Math.cos(rad),fy=(float)Math.sin(pitch);
                       pX+=(fx*-jY+(float)Math.cos(rad)*jX)*s;
@@ -1509,7 +1479,7 @@ jobs:
 
                       if(moveMag > 0.05f){
                           charRotation = (float)Math.toDegrees(Math.atan2(mX, mZ));
-                          walkPhase += dt * 9.5f * moveMag;
+                          walkPhase += dt * 3.5f * moveMag;
                       }
                   }
               }
@@ -1532,7 +1502,7 @@ jobs:
 
                   float footY = pY - PLAYER_HEIGHT;
 
-                  int walkFrame = (int)((walkPhase * 2f) % 4);
+                  int walkFrame = (int)(walkPhase % 4);
                   float armAngle = 0f, legAngle = 0f;
 
                   if(onGround && moveMag > 0.05f){
@@ -1794,7 +1764,6 @@ jobs:
                                   o.put("sx",b.sx); o.put("sy",b.sy); o.put("sz",b.sz);
                                   o.put("r",b.r); o.put("g",b.g); o.put("b",b.b);
                                   o.put("hidden",b.hidden);
-                                  o.put("shape",b.shape);
                                   o.put("onStartScript", b.onStartScript);
                                   o.put("onTouchScript", b.onTouchScript);
                                   o.put("onTapScript", b.onTapScript);
@@ -1839,7 +1808,6 @@ jobs:
                                       (float)o.getDouble("b")
                                   );
                                   b.hidden = o.optBoolean("hidden", false);
-                                  b.shape = o.optString("shape", "square");
                                   b.onStartScript = o.optString("onStartScript", "");
                                   b.onTouchScript = o.optString("onTouchScript", "");
                                   b.onTapScript = o.optString("onTapScript", "");
@@ -1978,14 +1946,12 @@ jobs:
                   shapeBtn=new Button[]{
                       findViewById(R.id.shape_square),
                       findViewById(R.id.shape_rectangle),
-                      findViewById(R.id.shape_circle),
                       findViewById(R.id.shape_triangle)
                   };
 
-                  findViewById(R.id.shape_square).setOnClickListener(v->{ setShapePreset("square",4,4,4,0); });
-                  findViewById(R.id.shape_rectangle).setOnClickListener(v->{ setShapePreset("rectangle",8,4,4,1); });
-                  findViewById(R.id.shape_circle).setOnClickListener(v->{ setShapePreset("circle",4,4,4,2); });
-                  findViewById(R.id.shape_triangle).setOnClickListener(v->{ setShapePreset("triangle",4,4,4,3); });
+                  findViewById(R.id.shape_square).setOnClickListener(v->{ setShapePreset(4,4,4,0); });
+                  findViewById(R.id.shape_rectangle).setOnClickListener(v->{ setShapePreset(8,4,4,1); });
+                  findViewById(R.id.shape_triangle).setOnClickListener(v->{ setShapePreset(4,4,4,2); });
 
                   findViewById(R.id.size_x_minus).setOnClickListener(v->{ ren.blockSX=Math.max(0.5f, ren.blockSX-0.5f); updSizeInfo(); });
                   findViewById(R.id.size_x_plus).setOnClickListener(v->{ ren.blockSX+=0.5f; updSizeInfo(); });
@@ -2050,7 +2016,6 @@ jobs:
                                   Block b = ren.blocks.get(hit);
                                   ren.blockR=b.r; ren.blockG=b.g; ren.blockB=b.b;
                                   ren.blockSX=b.sx; ren.blockSY=b.sy; ren.blockSZ=b.sz;
-                                  ren.blockShape=b.shape;
                                   ren.handleTapBlock(hit);
                                   updSizeInfo();
                               }
@@ -2196,12 +2161,6 @@ jobs:
                       .show();
               }
 
-              @Override
-              protected void onSaveInstanceState(Bundle outState) {
-                  super.onSaveInstanceState(outState);
-                  outState.putInt("mode", pendingMode);
-              }
-
               private void showScriptDialog(){
                   EditText input = new EditText(this);
                   input.setMinLines(10);
@@ -2263,8 +2222,7 @@ jobs:
                       .show();
               }
 
-              private void setShapePreset(String shape,float sx,float sy,float sz,int idx){
-                  ren.blockShape=shape;
+              private void setShapePreset(float sx,float sy,float sz,int idx){
                   ren.blockSX=sx;
                   ren.blockSY=sy;
                   ren.blockSZ=sz;
@@ -2376,7 +2334,7 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application
-                  android:label="Enjoer 6.1 Rigid"
+                  android:label="Enjoer 6.1 Final"
                   android:theme="@style/AppTheme">
                   <activity
                       android:name="com.enjoer.game.MainActivity"
@@ -2440,5 +2398,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_6.1_Retro_Rigid
+          name: Enjoer_6.1_Clean_Final
           path: app/build/outputs/apk/debug/app-debug.apk
