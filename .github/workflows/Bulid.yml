@@ -1,11 +1,11 @@
-name: Ultimate Stealth Container (v4 Fixed)
+name: Ultimate Stealth Container Fixed
 on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout кода
+      - name: Checkout репозитория
         uses: actions/checkout@v4
 
       - name: Установка JDK 17
@@ -13,7 +13,10 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
+          # Убрали кэш, так как файлы создаются позже
+
+      - name: Инициализация Gradle Wrapper
+        run: gradle wrapper
 
       - name: Создание структуры проекта
         run: |
@@ -21,7 +24,7 @@ jobs:
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
-      - name: Конфигурация Gradle
+      - name: Конфигурация Gradle (Root)
         run: |
           cat <<EOF > build.gradle
           buildscript {
@@ -31,7 +34,7 @@ jobs:
           allprojects { repositories { google(); mavenCentral(); maven { url 'https://jitpack.io' } } }
           EOF
 
-      - name: Скрипт сборки приложения
+      - name: Конфигурация Gradle (App)
         run: |
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application'; id 'kotlin-android' }
@@ -43,7 +46,7 @@ jobs:
                   minSdk 24
                   targetSdk 33
                   versionCode 1
-                  versionName "5.2-FINAL-FIX"
+                  versionName "5.3-FIXED"
               }
           }
           dependencies {
@@ -53,7 +56,7 @@ jobs:
           }
           EOF
 
-      - name: Основной интерфейс (Выбор приложений)
+      - name: Основной интерфейс
         run: |
           cat <<EOF > app/src/main/java/com/stealth/container/MainActivity.kt
           package com.stealth.container
@@ -78,7 +81,7 @@ jobs:
                   }
 
                   val title = TextView(this).apply {
-                      text = "Выберите приложение для запуска в Iso-среде"
+                      text = "Выберите приложение для запуска"
                       textSize = 18f
                       setPadding(0, 0, 0, 40)
                   }
@@ -114,7 +117,7 @@ jobs:
                       return
                   }
                   startService(Intent(this, FloatingService::class.java))
-                  Toast.makeText(this, "Запуск \$label в стелс-режиме...", Toast.LENGTH_LONG).show()
+                  Toast.makeText(this, "Запуск \$label...", Toast.LENGTH_LONG).show()
               }
           }
           EOF
@@ -158,14 +161,13 @@ jobs:
                   }
                   startForeground(1, Notification.Builder(this, channelId)
                       .setContentTitle("Стелс-контейнер работает")
-                      .setContentText("Защита и подмена данных активны")
                       .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
                       .build())
               }
           }
           EOF
 
-      - name: Манифест приложения
+      - name: Манифест
         run: |
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -188,11 +190,11 @@ jobs:
 
       - name: Сборка APK
         run: |
-          chmod +x gradlew || gradle wrapper
+          chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Выгрузка готового APK (v4)
+      - name: Загрузка результата
         uses: actions/upload-artifact@v4
         with:
-          name: Stealth-Container-Final
+          name: Stealth-Container-App
           path: app/build/outputs/apk/debug/app-debug.apk
