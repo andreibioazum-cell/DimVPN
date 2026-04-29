@@ -1,4 +1,4 @@
-name: Ultimate Stealth Container (v6.2 Stable)
+name: Ultimate Stealth Container (v6.3 Stable)
 on: [push, workflow_dispatch]
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
-      - name: Generate Settings.gradle (Fix JitPack 401)
+      - name: Generate Settings.gradle (Modern Style)
         run: |
           cat <<'EOF' > settings.gradle
           pluginManagement {
@@ -35,7 +35,11 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
-                  maven { url 'https://jitpack.io' }
+                  maven { 
+                      url "https://jitpack.io" 
+                      // Игнорируем ошибки авторизации для публичных репо
+                      metadataSources { artifact(); mavenPom() }
+                  }
               }
           }
           rootProject.name = "IsoContainer"
@@ -56,13 +60,13 @@ jobs:
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { 
-                  classpath 'com.android.tools.build:gradle:8.0.2'
+                  classpath 'com.android.tools.build:gradle:8.1.1'
                   classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20" 
               }
           }
           EOF
 
-      - name: Generate App build.gradle (Roblox 64-bit Fix)
+      - name: Generate App build.gradle
         run: |
           cat <<'EOF' > app/build.gradle
           plugins { id 'com.android.application'; id 'kotlin-android' }
@@ -74,8 +78,7 @@ jobs:
                   minSdk 24
                   targetSdk 33
                   versionCode 1
-                  versionName "6.2-FINAL"
-                  // Важно для Roblox и тяжелых игр
+                  versionName "6.3-STABLE"
                   ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
               }
               compileOptions {
@@ -87,13 +90,13 @@ jobs:
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.9.0'
-              // Стабильный движок контейнера
+              // Переходим на стабильную версию BlackBox
               implementation 'com.github.pika-linux:BlackBox:1.6.0'
               implementation 'com.github.tiann:FreeReflection:1.2.0'
           }
           EOF
 
-      - name: Generate Source Code (Kotlin)
+      - name: Generate Source Code (MainActivity)
         run: |
           cat <<'EOF' > app/src/main/java/com/stealth/container/MainActivity.kt
           package com.stealth.container
@@ -115,7 +118,7 @@ jobs:
                       setPadding(40, 40, 40, 40)
                   }
                   val title = TextView(this).apply {
-                      text = "Выберите приложение (Iso-Mode)"
+                      text = "Выберите приложение для запуска"
                       textSize = 18f
                       setPadding(0, 0, 0, 40)
                   }
@@ -148,11 +151,13 @@ jobs:
                       return
                   }
                   startService(Intent(this, FloatingService::class.java))
-                  Toast.makeText(this, "Запуск $label...", Toast.LENGTH_LONG).show()
+                  Toast.makeText(this, "Запуск $label в Iso-режиме...", Toast.LENGTH_LONG).show()
               }
           }
           EOF
 
+      - name: Generate Source Code (FloatingService)
+        run: |
           cat <<'EOF' > app/src/main/java/com/stealth/container/FloatingService.kt
           package com.stealth.container
           import android.app.*
@@ -168,7 +173,7 @@ jobs:
                   super.onCreate()
                   val wm = getSystemService(WINDOW_SERVICE) as WindowManager
                   val view = TextView(this).apply {
-                      text = "● Iso-режим: Германия (Active)"
+                      text = "● Iso-режим: Германия (Активен)"
                       setTextColor(Color.GREEN)
                       setBackgroundColor(Color.parseColor("#CC000000"))
                       setPadding(20, 10, 20, 10)
@@ -190,7 +195,7 @@ jobs:
                   }
                   startForeground(1, Notification.Builder(this, channelId)
                       .setContentTitle("IsoContainer активен")
-                      .setSmallIcon(android.R.drawable.ic_menu_compass)
+                      .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
                       .build())
               }
           }
@@ -216,10 +221,10 @@ jobs:
           </manifest>
           EOF
 
-      - name: Setup Gradle 8.0
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.0
+          gradle-version: 8.1.1
 
       - name: Execute Build
         run: gradle assembleDebug
@@ -227,5 +232,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Stealth-Container-v6.2
+          name: Stealth-Container-v6.3
           path: app/build/outputs/apk/debug/app-debug.apk
