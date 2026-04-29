@@ -1,15 +1,19 @@
-name: Ultimate Stealth Container (Final Clean UI)
+name: Ultimate Stealth Container (v4 Fixed)
 on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout кода
+        uses: actions/checkout@v4
+
       - name: Установка JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Создание структуры проекта
         run: |
@@ -39,7 +43,7 @@ jobs:
                   minSdk 24
                   targetSdk 33
                   versionCode 1
-                  versionName "5.1-FINAL"
+                  versionName "5.2-FINAL-FIX"
               }
           }
           dependencies {
@@ -65,7 +69,6 @@ jobs:
           import android.view.ViewGroup
 
           class MainActivity : AppCompatActivity() {
-              
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
                   
@@ -110,15 +113,13 @@ jobs:
                       startActivityForResult(intent, 100)
                       return
                   }
-
                   startService(Intent(this, FloatingService::class.java))
                   Toast.makeText(this, "Запуск \$label в стелс-режиме...", Toast.LENGTH_LONG).show()
-                  // Движок BlackBox берет управление здесь
               }
           }
           EOF
 
-      - name: Фоновый сервис и Оверлей (Индикатор)
+      - name: Фоновый сервис и Оверлей
         run: |
           cat <<EOF > app/src/main/java/com/stealth/container/FloatingService.kt
           package com.stealth.container
@@ -173,7 +174,6 @@ jobs:
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
               <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
               <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-              
               <application android:label="IsoContainer" android:theme="@style/Theme.AppCompat.Light">
                   <service android:name=".FloatingService" android:foregroundServiceType="specialUse" android:exported="false" />
                   <activity android:name=".MainActivity" android:exported="true">
@@ -185,11 +185,14 @@ jobs:
               </application>
           </manifest>
           EOF
-          gradle wrapper
+
+      - name: Сборка APK
+        run: |
+          chmod +x gradlew || gradle wrapper
           ./gradlew assembleDebug
 
-      - name: Выгрузка готового APK
-        uses: actions/upload-artifact@v3
+      - name: Выгрузка готового APK (v4)
+        uses: actions/upload-artifact@v4
         with:
-          name: Stealth-Container-Final-UI
+          name: Stealth-Container-Final
           path: app/build/outputs/apk/debug/app-debug.apk
