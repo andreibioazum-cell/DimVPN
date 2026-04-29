@@ -1,26 +1,26 @@
-name: Ultimate Stealth Container (Fixed Version)
+name: Ultimate Stealth Container (Gradle Fix)
 on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout репозитория
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Установка JDK 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Создание структуры проекта
+      - name: Create Project Structure
         run: |
           mkdir -p app/src/main/java/com/stealth/container
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
-      - name: Создание настроек и свойств
+      - name: Generate Config Files
         run: |
           echo "include ':app'" > settings.gradle
           cat <<EOF > gradle.properties
@@ -29,7 +29,7 @@ jobs:
           org.gradle.jvmargs=-Xmx2048m
           EOF
 
-      - name: Создание build.gradle (Root)
+      - name: Generate Root build.gradle
         run: |
           cat <<'EOF' > build.gradle
           buildscript {
@@ -47,7 +47,7 @@ jobs:
           }
           EOF
 
-      - name: Создание build.gradle (App)
+      - name: Generate App build.gradle
         run: |
           cat <<'EOF' > app/build.gradle
           plugins { id 'com.android.application'; id 'kotlin-android' }
@@ -59,7 +59,7 @@ jobs:
                   minSdk 24
                   targetSdk 33
                   versionCode 1
-                  versionName "5.6-FIXED"
+                  versionName "5.7-STABLE"
               }
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
@@ -75,7 +75,7 @@ jobs:
           }
           EOF
 
-      - name: Код MainActivity
+      - name: Generate Source Code (Kotlin)
         run: |
           cat <<'EOF' > app/src/main/java/com/stealth/container/MainActivity.kt
           package com.stealth.container
@@ -135,8 +135,6 @@ jobs:
           }
           EOF
 
-      - name: Код Сервиса (Overlay)
-        run: |
           cat <<'EOF' > app/src/main/java/com/stealth/container/FloatingService.kt
           package com.stealth.container
           import android.app.*
@@ -172,15 +170,16 @@ jobs:
                       val chan = NotificationChannel(channelId, "Iso-Service", NotificationManager.IMPORTANCE_LOW)
                       (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(chan)
                   }
-                  startForeground(1, Notification.Builder(this, channelId)
+                  val notification = Notification.Builder(this, channelId)
                       .setContentTitle("Стелс-контейнер работает")
                       .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
-                      .build())
+                      .build()
+                  startForeground(1, notification)
               }
           }
           EOF
 
-      - name: Создание Манифеста
+      - name: Generate Manifest
         run: |
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -194,21 +193,23 @@ jobs:
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHer" />
+                          <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
               </application>
           </manifest>
           EOF
 
-      - name: Сборка с использованием Gradle 8.4
-        run: |
-          gradle wrapper --gradle-version 8.4
-          chmod +x gradlew
-          ./gradlew assembleDebug
+      - name: Setup and Run Gradle Build
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.4
 
-      - name: Выгрузка APK
+      - name: Execute Build
+        run: gradle assembleDebug
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Stealth-Container-v5.6
+          name: Stealth-Container-v5.7
           path: app/build/outputs/apk/debug/app-debug.apk
