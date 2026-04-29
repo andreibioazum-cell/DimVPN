@@ -1,4 +1,4 @@
-name: Ultimate Stealth Container (Gradle Fix)
+name: Ultimate Stealth Container (JitPack Fix)
 on: [push, workflow_dispatch]
 
 jobs:
@@ -20,9 +20,30 @@ jobs:
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
-      - name: Generate Config Files
+      - name: Generate settings.gradle (Modern Style)
         run: |
-          echo "include ':app'" > settings.gradle
+          cat <<'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+                  maven { url "https://jitpack.io" }
+              }
+          }
+          rootProject.name = "IsoContainer"
+          include ':app'
+          EOF
+
+      - name: Generate gradle.properties
+        run: |
           cat <<EOF > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
@@ -33,17 +54,14 @@ jobs:
         run: |
           cat <<'EOF' > build.gradle
           buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { 
-                  classpath 'com.android.tools.build:gradle:8.1.1'
-                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20" 
+              repositories {
+                  google()
+                  mavenCentral()
               }
-          }
-          allprojects { 
-              repositories { 
-                  google(); mavenCentral()
-                  maven { url 'https://jitpack.io' }
-              } 
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.1.1'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20"
+              }
           }
           EOF
 
@@ -59,7 +77,7 @@ jobs:
                   minSdk 24
                   targetSdk 33
                   versionCode 1
-                  versionName "5.7-STABLE"
+                  versionName "5.8-FIXED"
               }
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
@@ -75,7 +93,7 @@ jobs:
           }
           EOF
 
-      - name: Generate Source Code (Kotlin)
+      - name: Generate Source Code
         run: |
           cat <<'EOF' > app/src/main/java/com/stealth/container/MainActivity.kt
           package com.stealth.container
@@ -97,7 +115,7 @@ jobs:
                       setPadding(40, 40, 40, 40)
                   }
                   val title = TextView(this).apply {
-                      text = "Выберите приложение для запуска"
+                      text = "Выберите приложение"
                       textSize = 18f
                       setPadding(0, 0, 0, 40)
                   }
@@ -130,7 +148,7 @@ jobs:
                       return
                   }
                   startService(Intent(this, FloatingService::class.java))
-                  Toast.makeText(this, "Запуск $label...", Toast.LENGTH_LONG).show()
+                  Toast.makeText(this, "Запуск $label в Iso-режиме...", Toast.LENGTH_LONG).show()
               }
           }
           EOF
@@ -150,7 +168,7 @@ jobs:
                   super.onCreate()
                   val wm = getSystemService(WINDOW_SERVICE) as WindowManager
                   val view = TextView(this).apply {
-                      text = "● Iso-режим активен (Германия)"
+                      text = "● Iso-режим: Германия"
                       setTextColor(Color.GREEN)
                       setBackgroundColor(Color.parseColor("#AA000000"))
                       setPadding(15, 5, 15, 5)
@@ -170,11 +188,10 @@ jobs:
                       val chan = NotificationChannel(channelId, "Iso-Service", NotificationManager.IMPORTANCE_LOW)
                       (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(chan)
                   }
-                  val notification = Notification.Builder(this, channelId)
-                      .setContentTitle("Стелс-контейнер работает")
+                  startForeground(1, Notification.Builder(this, channelId)
+                      .setContentTitle("IsoContainer работает")
                       .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
-                      .build()
-                  startForeground(1, notification)
+                      .build())
               }
           }
           EOF
@@ -211,5 +228,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Stealth-Container-v5.7
+          name: Stealth-Container-v5.8
           path: app/build/outputs/apk/debug/app-debug.apk
