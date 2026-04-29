@@ -1,4 +1,4 @@
-name: Ultimate Stealth Container (Core Fix)
+name: Ultimate Stealth Container (Stable Build)
 on: [push, workflow_dispatch]
 
 jobs:
@@ -20,29 +20,23 @@ jobs:
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
-      - name: Generate Config Files
+      - name: Generate Settings and Properties
         run: |
-          # Settings.gradle
-          cat <<'EOF' > settings.gradle
-          rootProject.name = "IsoContainer"
-          include ':app'
-          EOF
-
-          # Gradle.properties
+          echo "include ':app'" > settings.gradle
           cat <<EOF > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
           org.gradle.jvmargs=-Xmx2048m
           EOF
 
-      - name: Generate Root build.gradle
+      - name: Generate Root build.gradle (Stable G7 Style)
         run: |
           cat <<'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { 
-                  classpath 'com.android.tools.build:gradle:8.1.1'
-                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20" 
+                  classpath 'com.android.tools.build:gradle:7.4.2'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10" 
               }
           }
           allprojects { 
@@ -65,7 +59,7 @@ jobs:
                   minSdk 24
                   targetSdk 33
                   versionCode 1
-                  versionName "6.0-STABLE"
+                  versionName "6.1-STABLE"
               }
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
@@ -76,13 +70,14 @@ jobs:
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.9.0'
-              // Используем стабильный форк BlackBox
+              // Используем проверенную библиотеку для обхода ограничений Android
+              implementation 'com.github.tiann:FreeReflection:1.2.0'
+              // Ядро BlackBox (стабильная версия)
               implementation 'com.github.Milk-Way:BlackBox:1.0.3'
-              implementation 'androidx.recyclerview:recyclerview:1.3.0'
           }
           EOF
 
-      - name: Generate Source Code (Kotlin)
+      - name: Generate MainActivity (App Selector)
         run: |
           cat <<'EOF' > app/src/main/java/com/stealth/container/MainActivity.kt
           package com.stealth.container
@@ -137,11 +132,13 @@ jobs:
                       return
                   }
                   startService(Intent(this, FloatingService::class.java))
-                  Toast.makeText(this, "Запуск $label в стелс-режиме...", Toast.LENGTH_LONG).show()
+                  Toast.makeText(this, "Запуск $label в защищенной среде...", Toast.LENGTH_LONG).show()
               }
           }
           EOF
 
+      - name: Generate Floating Service
+        run: |
           cat <<'EOF' > app/src/main/java/com/stealth/container/FloatingService.kt
           package com.stealth.container
           import android.app.*
@@ -157,11 +154,11 @@ jobs:
                   super.onCreate()
                   val wm = getSystemService(WINDOW_SERVICE) as WindowManager
                   val view = TextView(this).apply {
-                      text = "● Iso-режим: Германия"
+                      text = "● Iso-режим: Германия (DPI Bypass)"
                       setTextColor(Color.GREEN)
                       setBackgroundColor(Color.parseColor("#AA000000"))
                       setPadding(15, 5, 15, 5)
-                      textSize = 11f
+                      textSize = 10f
                   }
                   val params = WindowManager.LayoutParams(
                       WindowManager.LayoutParams.WRAP_CONTENT,
@@ -177,10 +174,11 @@ jobs:
                       val chan = NotificationChannel(channelId, "Iso-Service", NotificationManager.IMPORTANCE_LOW)
                       (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(chan)
                   }
-                  startForeground(1, Notification.Builder(this, channelId)
-                      .setContentTitle("IsoContainer активен")
-                      .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
-                      .build())
+                  val notification = Notification.Builder(this, channelId)
+                      .setContentTitle("IsoContainer работает в фоне")
+                      .setSmallIcon(android.R.drawable.ic_menu_compass)
+                      .build()
+                  startForeground(1, notification)
               }
           }
           EOF
@@ -192,6 +190,7 @@ jobs:
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
               <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
               <application android:label="IsoContainer" android:theme="@style/Theme.AppCompat.Light">
                   <service android:name=".FloatingService" android:exported="false" />
@@ -205,16 +204,16 @@ jobs:
           </manifest>
           EOF
 
-      - name: Setup Gradle
+      - name: Setup Gradle 7.5
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.4
+          gradle-version: 7.5
 
       - name: Execute Build
-        run: gradle assembleDebug
+        run: gradle assembleDebug --stacktrace
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Stealth-Container-v6.0
+          name: Stealth-Container-v6.1
           path: app/build/outputs/apk/debug/app-debug.apk
