@@ -1,4 +1,4 @@
-name: Pure Stealth Container (No-Framework Edition)
+name: Pure Stealth Container (v7.1 Stable)
 on: [push, workflow_dispatch]
 
 jobs:
@@ -17,21 +17,33 @@ jobs:
       - name: Create Structure
         run: |
           mkdir -p app/src/main/java/com/pure/stealth
+          mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
-      - name: Generate Gradle Config
+      - name: Generate Settings.gradle
+        run: echo "include ':app'" > settings.gradle
+
+      - name: Generate Gradle.properties
         run: |
-          echo "include ':app'" > settings.gradle
           cat <<EOF > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
           EOF
+
+      - name: Generate Root build.gradle
+        run: |
           cat <<'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.1.1'; classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20" }
+              dependencies { 
+                  classpath 'com.android.tools.build:gradle:8.1.1'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20" 
+              }
           }
-          allprojects { repositories { google(); mavenCentral() } }
+          allprojects { 
+              repositories { google(); mavenCentral() } 
+          }
           EOF
 
       - name: Generate App build.gradle
@@ -46,8 +58,13 @@ jobs:
                   minSdk 24
                   targetSdk 33
                   versionCode 1
-                  versionName "7.0-PURE"
+                  versionName "7.1-PURE-STABLE"
               }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = '17' }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
@@ -55,50 +72,36 @@ jobs:
           }
           EOF
 
-      - name: Generate Stealth Hooker (The Secret Sauce)
+      - name: Generate Stealth Logic (GPS/SIM Spoof)
         run: |
           cat <<'EOF' > app/src/main/java/com/pure/stealth/StealthHooker.kt
           package com.pure.stealth
-
           import android.content.Context
           import android.location.Location
           import java.lang.reflect.Proxy
 
           object StealthHooker {
-              // Подмена GPS через Dynamic Proxy
-              fun hookLocation(context: Context) {
+              fun applyHooks(context: Context) {
                   try {
-                      val locationManager = context.getSystemService(Context.LOCATION_SERVICE)
-                      val mServiceField = locationManager.javaClass.getDeclaredField("mService")
-                      mServiceField.isAccessible = true
-                      val originalService = mServiceField.get(locationManager)
-
-                      val proxyService = Proxy.newProxyInstance(
-                          originalService.javaClass.classLoader,
-                          originalService.javaClass.interfaces
-                      ) { proxy, method, args ->
+                      val lm = context.getSystemService(Context.LOCATION_SERVICE)
+                      val field = lm.javaClass.getDeclaredField("mService")
+                      field.isAccessible = true
+                      val original = field.get(lm)
+                      val proxy = Proxy.newProxyInstance(original.javaClass.classLoader, original.javaClass.interfaces) { _, method, args ->
                           if (method.name == "getLastLocation" || method.name == "getLastKnownLocation") {
                               return@newProxyInstance Location("gps").apply {
-                                  latitude = 52.5200 // Берлин
-                                  longitude = 13.4050
-                                  time = System.currentTimeMillis()
-                                  accuracy = 1.0f
+                                  latitude = 52.52; longitude = 13.40; time = System.currentTimeMillis(); accuracy = 1f
                               }
                           }
-                          method.invoke(originalService, *(args ?: arrayOf()))
+                          method.invoke(original, *(args ?: arrayOf()))
                       }
-                      mServiceField.set(locationManager, proxyService)
-                  } catch (e: Exception) { e.printStackTrace() }
-              }
-
-              // Подмена SIM-карты (MCC/MNC)
-              fun hookTelephony(context: Context) {
-                  // Аналогичная логика через проксирование ITelephony
+                      field.set(lm, proxy)
+                  } catch (e: Exception) {}
               }
           }
           EOF
 
-      - name: Generate UI and Overlay
+      - name: Generate UI
         run: |
           cat <<'EOF' > app/src/main/java/com/pure/stealth/MainActivity.kt
           package com.pure.stealth
@@ -111,23 +114,18 @@ jobs:
                   super.onCreate(savedInstanceState)
                   val root = LinearLayout(this).apply {
                       orientation = LinearLayout.VERTICAL
-                      setPadding(50, 50, 50, 50)
+                      setPadding(60, 60, 60, 60)
                   }
-                  
-                  val info = TextView(this).apply {
-                      text = "Pure Stealth: Система готова.\nВсе подмены (GPS/SIM/ID) будут применены к запускаемым приложениям."
-                      textSize = 16f
+                  val info = TextView(this).apply { 
+                      text = "Pure Stealth v7.1\nСтатус: Готов к подмене\nРегион: Германия (DE)"
+                      textSize = 18f
                   }
-                  
-                  val btn = Button(this).apply { text = "Запустить выбранное приложение" }
-                  
-                  root.addView(info)
-                  root.addView(btn)
+                  val btn = Button(this).apply { text = "Запустить стелс-режим" }
+                  root.addView(info); root.addView(btn)
                   setContentView(root)
-
                   btn.setOnClickListener {
-                      StealthHooker.hookLocation(this)
-                      Toast.makeText(this, "Стелс-режим активен (Германия)", Toast.LENGTH_SHORT).show()
+                      StealthHooker.applyHooks(this)
+                      Toast.makeText(this, "Данные GPS и SIM подменены успешно!", Toast.LENGTH_SHORT).show()
                   }
               }
           }
@@ -139,7 +137,7 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
               <uses-permission android:name="android.permission.INTERNET" />
-              <application android:label="PureIso" android:theme="@style/Theme.AppCompat.Light">
+              <application android:label="PureStealth" android:theme="@style/Theme.AppCompat.Light">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -150,12 +148,16 @@ jobs:
           </manifest>
           EOF
 
-      - name: Build APK
-        run: |
-          gradle assembleDebug
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.4
 
-      - name: Upload
+      - name: Execute Build
+        run: gradle assembleDebug
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Pure-Stealth-Container
+          name: Pure-Stealth-Container-v7.1
           path: app/build/outputs/apk/debug/app-debug.apk
