@@ -1,4 +1,4 @@
-name: Ultimate Stealth Container Fixed
+name: Ultimate Stealth Container (with AndroidX)
 on: [push, workflow_dispatch]
 
 jobs:
@@ -13,10 +13,6 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          # Убрали кэш, так как файлы создаются позже
-
-      - name: Инициализация Gradle Wrapper
-        run: gradle wrapper
 
       - name: Создание структуры проекта
         run: |
@@ -24,17 +20,36 @@ jobs:
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
-      - name: Конфигурация Gradle (Root)
+      - name: Создание settings.gradle
+        run: echo "include ':app'" > settings.gradle
+
+      - name: Создание gradle.properties (AndroidX Fix)
+        run: |
+          cat <<EOF > gradle.properties
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          EOF
+
+      - name: Конфигурация Gradle (Root build.gradle)
         run: |
           cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.1.1'; classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20" }
+              dependencies { 
+                  classpath 'com.android.tools.build:gradle:8.1.1'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20" 
+              }
           }
-          allprojects { repositories { google(); mavenCentral(); maven { url 'https://jitpack.io' } } }
+          allprojects { 
+              repositories { 
+                  google(); mavenCentral()
+                  maven { url 'https://jitpack.io' }
+              } 
+          }
           EOF
 
-      - name: Конфигурация Gradle (App)
+      - name: Конфигурация Gradle (App build.gradle)
         run: |
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application'; id 'kotlin-android' }
@@ -46,17 +61,23 @@ jobs:
                   minSdk 24
                   targetSdk 33
                   versionCode 1
-                  versionName "5.3-FIXED"
+                  versionName "5.5-ANDROIDX-STABLE"
               }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = '17' }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.9.0'
               implementation 'com.github.pika-linux:BlackBox:1.5.0'
               implementation 'androidx.recyclerview:recyclerview:1.3.0'
           }
           EOF
 
-      - name: Основной интерфейс
+      - name: Код MainActivity
         run: |
           cat <<EOF > app/src/main/java/com/stealth/container/MainActivity.kt
           package com.stealth.container
@@ -117,12 +138,12 @@ jobs:
                       return
                   }
                   startService(Intent(this, FloatingService::class.java))
-                  Toast.makeText(this, "Запуск \$label...", Toast.LENGTH_LONG).show()
+                  Toast.makeText(this, "Запуск \$label в защищенной среде...", Toast.LENGTH_LONG).show()
               }
           }
           EOF
 
-      - name: Фоновый сервис и Оверлей
+      - name: Код Сервиса (Оверлей)
         run: |
           cat <<EOF > app/src/main/java/com/stealth/container/FloatingService.kt
           package com.stealth.container
@@ -167,7 +188,7 @@ jobs:
           }
           EOF
 
-      - name: Манифест
+      - name: Создание Манифеста
         run: |
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -189,12 +210,10 @@ jobs:
           EOF
 
       - name: Сборка APK
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        run: gradle assembleDebug
 
-      - name: Загрузка результата
+      - name: Загрузка готового APK
         uses: actions/upload-artifact@v4
         with:
-          name: Stealth-Container-App
+          name: Stealth-Container-Final
           path: app/build/outputs/apk/debug/app-debug.apk
