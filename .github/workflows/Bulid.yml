@@ -1,4 +1,4 @@
-name: Ultimate VPN Stealth (Android 14 Ready)
+name: Ultimate Stealth VPN (v10.0 Stable)
 on: [push, workflow_dispatch]
 
 jobs:
@@ -16,8 +16,7 @@ jobs:
 
       - name: Create Structure
         run: |
-          mkdir -p app/src/main/java/com/iso/vpn
-          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/java/com/stealth/vpn
           mkdir -p app/src/main/res/values
 
       - name: Generate Configs
@@ -41,14 +40,14 @@ jobs:
           cat <<'EOF' > app/build.gradle
           plugins { id 'com.android.application'; id 'kotlin-android' }
           android {
-              namespace 'com.iso.vpn'
+              namespace 'com.stealth.vpn'
               compileSdk 34
               defaultConfig {
-                  applicationId "com.iso.vpn"
+                  applicationId "com.stealth.vpn"
                   minSdk 26
                   targetSdk 34
                   versionCode 1
-                  versionName "9.0-VPN-BYPASS"
+                  versionName "10.0-FIXED"
               }
               compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
               kotlinOptions { jvmTarget = '17' }
@@ -59,21 +58,20 @@ jobs:
           }
           EOF
 
-      - name: Generate VPN Engine (The Bypass Logic)
+      - name: Generate VPN Engine (Stable Bypass)
         run: |
-          cat <<'EOF' > app/src/main/java/com/iso/vpn/LocalVpnService.kt
-          package com.iso.vpn
+          cat <<'EOF' > app/src/main/java/com/stealth/vpn/StealthVpnService.kt
+          package com.stealth.vpn
           import android.net.VpnService
           import android.os.ParcelFileDescriptor
           import android.content.Intent
-          import android.util.Log
+          import java.net.InetAddress
 
-          class LocalVpnService : VpnService() {
+          class StealthVpnService : VpnService() {
               private var vpnInterface: ParcelFileDescriptor? = null
 
               override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-                  val action = intent?.action
-                  if (action == "STOP") {
+                  if (intent?.action == "STOP") {
                       stopVpn()
                       return START_NOT_STICKY
                   }
@@ -83,20 +81,27 @@ jobs:
 
               private fun startVpn() {
                   val builder = Builder()
-                  builder.setSession("StealthVpn")
+                  builder.setSession("StealthKey")
+                      .setMtu(1500)
                       .addAddress("10.0.0.2", 24)
                       .addDnsServer("8.8.8.8")
-                      .addRoute("0.0.0.0", 0)
-                  
-                  // Принудительно направляем только нужные приложения
-                  try {
-                      builder.addAllowedApplication("com.google.android.youtube")
-                      builder.addAllowedApplication("com.roblox.client")
-                      builder.addAllowedApplication("com.supercell.brawlstars")
-                  } catch (e: Exception) {}
+                      .addDnsServer("1.1.1.1")
+                      // Маршрутизируем только DNS трафик, чтобы не ломать скорость в играх
+                      .addRoute("8.8.8.8", 32)
+                      .addRoute("1.1.1.1", 32)
+
+                  // Список приложений для "ключика"
+                  val targetApps = listOf(
+                      "com.google.android.youtube",
+                      "com.roblox.client",
+                      "com.supercell.brawlstars"
+                  )
+
+                  for (app in targetApps) {
+                      try { builder.addAllowedApplication(app) } catch (e: Exception) {}
+                  }
 
                   vpnInterface = builder.establish()
-                  Log.d("VPN", "VPN Started - Key Icon should be visible")
               }
 
               private fun stopVpn() {
@@ -112,74 +117,78 @@ jobs:
           }
           EOF
 
-      - name: Generate MainActivity (Filtered List)
+      - name: Generate MainActivity (Filtered View)
         run: |
-          cat <<'EOF' > app/src/main/java/com/iso/vpn/MainActivity.kt
-          package com.iso.vpn
+          cat <<'EOF' > app/src/main/java/com/stealth/vpn/MainActivity.kt
+          package com.stealth.vpn
           import android.content.Intent
           import android.content.pm.ApplicationInfo
           import android.net.VpnService
           import android.os.Bundle
           import android.widget.*
+          import android.graphics.Color
           import androidx.appcompat.app.AppCompatActivity
 
           class MainActivity : AppCompatActivity() {
-              private val targetApps = listOf(
-                  "com.google.android.youtube",
-                  "com.roblox.client",
-                  "com.supercell.brawlstars"
-              )
+              private val packages = listOf("com.google.android.youtube", "com.roblox.client", "com.supercell.brawlstars")
 
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
-                  val layout = LinearLayout(this).apply {
+                  val root = LinearLayout(this).apply {
                       orientation = LinearLayout.VERTICAL
-                      setPadding(50, 50, 50, 50)
+                      setPadding(60, 60, 60, 60)
+                      setBackgroundColor(Color.parseColor("#121212"))
                   }
 
-                  val title = TextView(this).apply {
-                      text = "Ускоритель: YouTube, Roblox, Brawl"
-                      textSize = 20f
+                  val status = TextView(this).apply {
+                      text = "Ускоритель игр: Статус OFF"
+                      setTextColor(Color.WHITE)
+                      textSize = 18f
                       setPadding(0,0,0,50)
                   }
-                  layout.addView(title)
-
-                  val btnVpn = Button(this).apply { text = "Включить VPN (Обход блокировок)" }
-                  layout.addView(btnVpn)
+                  
+                  val btn = Button(this).apply { text = "Включить обход и ключик" }
+                  
+                  root.addView(status)
+                  root.addView(btn)
 
                   val listView = ListView(this)
-                  layout.addView(listView)
-                  setContentView(layout)
+                  root.addView(listView)
+                  setContentView(root)
 
-                  btnVpn.setOnClickListener {
+                  btn.setOnClickListener {
                       val intent = VpnService.prepare(this)
                       if (intent != null) startActivityForResult(intent, 0)
-                      else startService(Intent(this, LocalVpnService::class.java))
+                      else {
+                          startService(Intent(this, StealthVpnService::class.java))
+                          status.text = "Ускоритель игр: Статус ON (Ключ)"
+                          status.setTextColor(Color.GREEN)
+                      }
                   }
 
-                  // Фильтруем только 3 нужных приложения
-                  val apps = packageManager.getInstalledApplications(0)
-                      .filter { it.packageName in targetApps }
+                  val installedApps = packageManager.getInstalledApplications(0)
+                      .filter { it.packageName in packages }
                   
-                  val adapter = object : ArrayAdapter<ApplicationInfo>(this, android.R.layout.simple_list_item_1, apps) {
-                      override fun getView(p: Int, v: android.view.View?, gr: android.view.ViewGroup): android.view.View {
-                          val view = super.getView(p, v, gr) as TextView
-                          view.text = apps[p].loadLabel(packageManager)
-                          return view
+                  val adapter = object : ArrayAdapter<ApplicationInfo>(this, android.R.layout.simple_list_item_1, installedApps) {
+                      override fun getView(p: Int, v: android.view.View?, g: android.view.ViewGroup): android.view.View {
+                          val tv = super.getView(p, v, g) as TextView
+                          tv.text = installedApps[p].loadLabel(packageManager)
+                          tv.setTextColor(Color.CYAN)
+                          return tv
                       }
                   }
                   listView.adapter = adapter
-                  
-                  listView.setOnItemClickListener { _, _, position, _ ->
-                      val pkg = apps[position].packageName
-                      val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
-                      startActivity(launchIntent)
+
+                  listView.setOnItemClickListener { _, _, pos, _ ->
+                      val launch = packageManager.getLaunchIntentForPackage(installedApps[pos].packageName)
+                      if (launch != null) startActivity(launch)
+                      else Toast.makeText(this, "Приложение не установлено", Toast.LENGTH_SHORT).show()
                   }
               }
 
-              override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-                  super.onActivityResult(requestCode, resultCode, data)
-                  if (resultCode == RESULT_OK) startService(Intent(this, LocalVpnService::class.java))
+              override fun onActivityResult(req: Int, res: Int, data: Intent?) {
+                  super.onActivityResult(req, res, data)
+                  if (res == RESULT_OK) startService(Intent(this, StealthVpnService::class.java))
               }
           }
           EOF
@@ -191,14 +200,12 @@ jobs:
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-              <application android:label="Stealth Key" android:theme="@style/Theme.AppCompat.Light">
-                  <service android:name=".LocalVpnService" 
+              <application android:label="Stealth Games" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <service android:name=".StealthVpnService" 
                       android:permission="android.permission.BIND_VPN_SERVICE"
                       android:foregroundServiceType="specialUse"
                       android:exported="false">
-                      <intent-filter>
-                          <action android:name="android.net.VpnService" />
-                      </intent-filter>
+                      <intent-filter><action android:name="android.net.VpnService" /></intent-filter>
                   </service>
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
@@ -221,5 +228,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: StealthVPN-A14
+          name: StealthVPN-v10-Fixed
           path: app/build/outputs/apk/debug/app-debug.apk
