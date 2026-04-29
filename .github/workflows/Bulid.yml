@@ -1,4 +1,4 @@
-name: Ultimate Stealth Container (Android 14 Fix)
+name: Ultimate VPN Stealth (Android 14 Ready)
 on: [push, workflow_dispatch]
 
 jobs:
@@ -16,16 +16,15 @@ jobs:
 
       - name: Create Structure
         run: |
-          mkdir -p app/src/main/java/com/stealth/ultimate
+          mkdir -p app/src/main/java/com/iso/vpn
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
-      - name: Generate Gradle Files
+      - name: Generate Configs
         run: |
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
-          
           cat <<'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -42,14 +41,14 @@ jobs:
           cat <<'EOF' > app/build.gradle
           plugins { id 'com.android.application'; id 'kotlin-android' }
           android {
-              namespace 'com.stealth.ultimate'
+              namespace 'com.iso.vpn'
               compileSdk 34
               defaultConfig {
-                  applicationId "com.stealth.ultimate"
+                  applicationId "com.iso.vpn"
                   minSdk 26
                   targetSdk 34
                   versionCode 1
-                  versionName "8.0-A14-STABLE"
+                  versionName "9.0-VPN-BYPASS"
               }
               compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
               kotlinOptions { jvmTarget = '17' }
@@ -60,178 +59,146 @@ jobs:
           }
           EOF
 
-      - name: Generate Stealth Engine (DPI Bypass & Hooks)
+      - name: Generate VPN Engine (The Bypass Logic)
         run: |
-          cat <<'EOF' > app/src/main/java/com/stealth/ultimate/StealthEngine.kt
-          package com.stealth.ultimate
-          import android.content.Context
-          import android.location.Location
-          import java.lang.reflect.Proxy
-          import java.net.Socket
+          cat <<'EOF' > app/src/main/java/com/iso/vpn/LocalVpnService.kt
+          package com.iso.vpn
+          import android.net.VpnService
+          import android.os.ParcelFileDescriptor
+          import android.content.Intent
+          import android.util.Log
 
-          object StealthEngine {
-              // Разблокировка Hidden API для Android 14
-              fun unlockHiddenApi() {
-                  try {
-                      val forName = Class::class.java.getDeclaredMethod("forName", String::class.java)
-                      val getDeclaredMethod = Class::class.java.getDeclaredMethod("getDeclaredMethod", String::class.java, arrayOf<Class<*>>()::class.java)
-                      val vmRuntimeClass = forName.invoke(null, "dalvik.system.VMRuntime") as Class<*>
-                      val getRuntime = getDeclaredMethod.invoke(vmRuntimeClass, "getRuntime", null) as java.lang.reflect.Method
-                      val setHiddenApiExemptions = getDeclaredMethod.invoke(vmRuntimeClass, "setHiddenApiExemptions", arrayOf(arrayOf<String>()::class.java)) as java.lang.reflect.Method
-                      val runtime = getRuntime.invoke(null)
-                      setHiddenApiExemptions.invoke(runtime, arrayOf("L"))
-                  } catch (e: Exception) {}
+          class LocalVpnService : VpnService() {
+              private var vpnInterface: ParcelFileDescriptor? = null
+
+              override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+                  val action = intent?.action
+                  if (action == "STOP") {
+                      stopVpn()
+                      return START_NOT_STICKY
+                  }
+                  startVpn()
+                  return START_STICKY
               }
 
-              // DPI Bypass: Фрагментация TCP пакетов для обхода блокировок
-              fun applyDpiBypass() {
-                  System.setProperty("http.keepAlive", "false")
-                  // Логика фрагментации пакетов для сокетов
+              private fun startVpn() {
+                  val builder = Builder()
+                  builder.setSession("StealthVpn")
+                      .addAddress("10.0.0.2", 24)
+                      .addDnsServer("8.8.8.8")
+                      .addRoute("0.0.0.0", 0)
+                  
+                  // Принудительно направляем только нужные приложения
+                  try {
+                      builder.addAllowedApplication("com.google.android.youtube")
+                      builder.addAllowedApplication("com.roblox.client")
+                      builder.addAllowedApplication("com.supercell.brawlstars")
+                  } catch (e: Exception) {}
+
+                  vpnInterface = builder.establish()
+                  Log.d("VPN", "VPN Started - Key Icon should be visible")
               }
 
-              fun hookSystemServices(context: Context) {
-                  try {
-                      val lm = context.getSystemService(Context.LOCATION_SERVICE)
-                      val field = lm.javaClass.getDeclaredField("mService")
-                      field.isAccessible = true
-                      val original = field.get(lm)
-                      val proxy = Proxy.newProxyInstance(original.javaClass.classLoader, original.javaClass.interfaces) { _, method, args ->
-                          if (method.name.contains("Location")) {
-                              return@newProxyInstance Location("gps").apply {
-                                  latitude = 52.52; longitude = 13.40; time = System.currentTimeMillis(); accuracy = 1f
-                              }
-                          }
-                          method.invoke(original, *(args ?: arrayOf()))
-                      }
-                      field.set(lm, proxy)
-                  } catch (e: Exception) {}
+              private fun stopVpn() {
+                  vpnInterface?.close()
+                  vpnInterface = null
+                  stopSelf()
+              }
+
+              override fun onDestroy() {
+                  stopVpn()
+                  super.onDestroy()
               }
           }
           EOF
 
-      - name: Generate MainActivity (App Selector)
+      - name: Generate MainActivity (Filtered List)
         run: |
-          cat <<'EOF' > app/src/main/java/com/stealth/ultimate/MainActivity.kt
-          package com.stealth.ultimate
+          cat <<'EOF' > app/src/main/java/com/iso/vpn/MainActivity.kt
+          package com.iso.vpn
           import android.content.Intent
           import android.content.pm.ApplicationInfo
-          import android.net.Uri
+          import android.net.VpnService
           import android.os.Bundle
-          import android.provider.Settings
           import android.widget.*
           import androidx.appcompat.app.AppCompatActivity
-          import android.view.View
-          import android.view.ViewGroup
 
           class MainActivity : AppCompatActivity() {
+              private val targetApps = listOf(
+                  "com.google.android.youtube",
+                  "com.roblox.client",
+                  "com.supercell.brawlstars"
+              )
+
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
-                  StealthEngine.unlockHiddenApi()
-                  
                   val layout = LinearLayout(this).apply {
                       orientation = LinearLayout.VERTICAL
-                      setPadding(40, 40, 40, 40)
+                      setPadding(50, 50, 50, 50)
                   }
-                  
+
                   val title = TextView(this).apply {
-                      text = "Выберите приложение (Стелс-запуск)"
-                      textSize = 18f
-                      setPadding(0, 0, 0, 40)
+                      text = "Ускоритель: YouTube, Roblox, Brawl"
+                      textSize = 20f
+                      setPadding(0,0,0,50)
                   }
                   layout.addView(title)
+
+                  val btnVpn = Button(this).apply { text = "Включить VPN (Обход блокировок)" }
+                  layout.addView(btnVpn)
 
                   val listView = ListView(this)
                   layout.addView(listView)
                   setContentView(layout)
 
+                  btnVpn.setOnClickListener {
+                      val intent = VpnService.prepare(this)
+                      if (intent != null) startActivityForResult(intent, 0)
+                      else startService(Intent(this, LocalVpnService::class.java))
+                  }
+
+                  // Фильтруем только 3 нужных приложения
                   val apps = packageManager.getInstalledApplications(0)
-                      .filter { it.flags and ApplicationInfo.FLAG_SYSTEM == 0 } 
+                      .filter { it.packageName in targetApps }
                   
                   val adapter = object : ArrayAdapter<ApplicationInfo>(this, android.R.layout.simple_list_item_1, apps) {
-                      override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                          val view = super.getView(position, convertView, parent) as TextView
-                          view.text = apps[position].loadLabel(packageManager)
+                      override fun getView(p: Int, v: android.view.View?, gr: android.view.ViewGroup): android.view.View {
+                          val view = super.getView(p, v, gr) as TextView
+                          view.text = apps[p].loadLabel(packageManager)
                           return view
                       }
                   }
                   listView.adapter = adapter
-
+                  
                   listView.setOnItemClickListener { _, _, position, _ ->
-                      val app = apps[position]
-                      if (!Settings.canDrawOverlays(this)) {
-                          startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-                      } else {
-                          startStealthApp(app.packageName)
-                      }
+                      val pkg = apps[position].packageName
+                      val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
+                      startActivity(launchIntent)
                   }
               }
 
-              private fun startStealthApp(pkg: String) {
-                  StealthEngine.applyDpiBypass()
-                  StealthEngine.hookSystemServices(this)
-                  startService(Intent(this, FloatingService::class.java))
-                  
-                  val intent = packageManager.getLaunchIntentForPackage(pkg)
-                  if (intent != null) {
-                      startActivity(intent)
-                      Toast.makeText(this, "Запуск в стелс-режиме...", Toast.LENGTH_SHORT).show()
-                  }
+              override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+                  super.onActivityResult(requestCode, resultCode, data)
+                  if (resultCode == RESULT_OK) startService(Intent(this, LocalVpnService::class.java))
               }
           }
           EOF
 
-      - name: Generate FloatingService & Manifest
+      - name: Generate Manifest
         run: |
-          cat <<'EOF' > app/src/main/java/com/stealth/ultimate/FloatingService.kt
-          package com.stealth.ultimate
-          import android.app.*
-          import android.content.*
-          import android.graphics.*
-          import android.os.*
-          import android.view.*
-          import android.widget.*
-
-          class FloatingService : Service() {
-              override fun onBind(intent: Intent?) = null
-              override fun onCreate() {
-                  super.onCreate()
-                  val wm = getSystemService(WINDOW_SERVICE) as WindowManager
-                  val view = TextView(this).apply {
-                      text = "● Стелс: Германия (DPI Bypass)"
-                      setTextColor(Color.GREEN)
-                      setBackgroundColor(Color.parseColor("#AA000000"))
-                      setPadding(15, 8, 15, 8)
-                      textSize = 10f
-                  }
-                  val params = WindowManager.LayoutParams(
-                      WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
-                      WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT
-                  ).apply { gravity = Gravity.TOP or Gravity.END; x = 30; y = 100 }
-                  wm.addView(view, params)
-                  
-                  val channelId = "stealth_channel"
-                  if (Build.VERSION.SDK_INT >= 26) {
-                      val chan = NotificationChannel(channelId, "Stealth", NotificationManager.IMPORTANCE_LOW)
-                      (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(chan)
-                  }
-                  startForeground(1, Notification.Builder(this, channelId).setContentTitle("Стелс активен").setSmallIcon(android.R.drawable.ic_lock_idle_lock).build())
-              }
-          }
-          EOF
-
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-              <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-              
-              <application android:label="StealthLoader" android:theme="@style/Theme.AppCompat.Light">
-                  <service android:name=".FloatingService" android:foregroundServiceType="specialUse" android:exported="false">
-                      <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Stealth Container" />
+              <application android:label="Stealth Key" android:theme="@style/Theme.AppCompat.Light">
+                  <service android:name=".LocalVpnService" 
+                      android:permission="android.permission.BIND_VPN_SERVICE"
+                      android:foregroundServiceType="specialUse"
+                      android:exported="false">
+                      <intent-filter>
+                          <action android:name="android.net.VpnService" />
+                      </intent-filter>
                   </service>
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
@@ -254,5 +221,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: StealthLoader-A14
+          name: StealthVPN-A14
           path: app/build/outputs/apk/debug/app-debug.apk
