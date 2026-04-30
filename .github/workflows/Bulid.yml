@@ -1,4 +1,4 @@
-name: Liminal_Dreams_Final
+name: Liminal_Dreams_Working
 on: [push, workflow_dispatch]
 
 jobs:
@@ -539,8 +539,8 @@ jobs:
               @Override
               public void onInteract(GameObject obj){
                   runOnUiThread(()->{
-                      if(obj.interactData.equals("npc_izum"))showDialog(1);
-                      else if(obj.interactData.equals("door_nastya"))showDialog(4);
+                      if(obj.interactData.equals("npc_izum"))displayDialog(1);
+                      else if(obj.interactData.equals("door_nastya"))displayDialog(4);
                       else if(obj.interactData.equals("door_home"))onSubtitle("Дверь заперта.");
                   });
               }
@@ -552,7 +552,7 @@ jobs:
                       txtDreamWarning.setVisibility(View.VISIBLE);
                       ObjectAnimator.ofFloat(fadeOverlay,"alpha",0f,1f).setDuration(2000).start();
                       handler.postDelayed(()->{
-                          showDialog(100);
+                          displayDialog(100);
                           ObjectAnimator.ofFloat(fadeOverlay,"alpha",1f,0f).setDuration(2000).start();
                           handler.postDelayed(()->{fadeOverlay.setVisibility(View.GONE);txtDreamWarning.setVisibility(View.GONE);},2000);
                       },3000);
@@ -567,7 +567,7 @@ jobs:
                   });
               }
 
-              private void showDialog(int id){
+              private void displayDialog(int id){
                   DialogSystem.Dialog dialog=DialogSystem.getDialog(id);
                   if(dialog==null)return;
                   dialogPanel.setVisibility(View.VISIBLE);
@@ -585,7 +585,7 @@ jobs:
                           LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT);
                           lp.setMargins(0,8,0,0);
                           btn.setLayoutParams(lp);
-                          btn.setOnClickListener(v->{dialogPanel.setVisibility(View.GONE);handler.postDelayed(()->showDialog(nextId),500);});
+                          btn.setOnClickListener(v->{dialogPanel.setVisibility(View.GONE);handler.postDelayed(()->displayDialog(nextId),500);});
                           choicesContainer.addView(btn);
                       }
                   }else{
@@ -645,7 +645,7 @@ jobs:
           unzip -q gradle-8.5-bin.zip
           export PATH="$PWD/gradle-8.5/bin:$PATH"
           gradle wrapper --gradle-version 8.5
-          ./gradlew assembleDebug --warning-mode all
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
