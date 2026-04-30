@@ -1,4 +1,4 @@
-name: Liminal_Dreams_Enhanced_Fixed
+name: Liminal_Dreams_Enhanced
 on: [push, workflow_dispatch]
 
 jobs:
@@ -17,21 +17,17 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Project Structure
+      - name: Create Project
         run: |
           mkdir -p app/src/main/java/com/liminal/dreams
           mkdir -p app/src/main/res/{layout,values,drawable}
 
-      - name: Create Config Files
-        run: |
           cat > gradle.properties << 'EOF'
           android.useAndroidX=true
           android.enableJetifier=true
           org.gradle.jvmargs=-Xmx2048m
           EOF
 
-      - name: Create Resources
-        run: |
           cat > app/src/main/res/values/themes.xml << 'EOF'
           <resources>
             <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
@@ -55,9 +51,9 @@ jobs:
 
           cat > app/src/main/res/drawable/dialog_bg.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-            <corners android:radius="6dp"/>
+            <corners android:radius="4dp"/>
             <solid android:color="#DD000000"/>
-            <stroke android:width="1dp" android:color="#444444"/>
+            <stroke android:width="1dp" android:color="#333333"/>
           </shape>
           EOF
 
@@ -65,24 +61,27 @@ jobs:
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="4dp"/>
             <solid android:color="#AA1A1A1A"/>
-            <stroke android:width="1dp" android:color="#666666"/>
+            <stroke android:width="1dp" android:color="#555555"/>
           </shape>
           EOF
 
           cat > app/src/main/res/drawable/crosshair.xml << 'EOF'
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
             <item>
-              <shape android:shape="oval">
-                <solid android:color="#00000000"/>
-                <stroke android:width="2dp" android:color="#AAFFFFFF"/>
-                <size android:width="4dp" android:height="4dp"/>
+              <shape android:shape="rectangle">
+                <size android:width="2dp" android:height="12dp"/>
+                <solid android:color="#AAFFFFFF"/>
+              </shape>
+            </item>
+            <item android:top="5dp">
+              <shape android:shape="rectangle">
+                <size android:width="12dp" android:height="2dp"/>
+                <solid android:color="#AAFFFFFF"/>
               </shape>
             </item>
           </layer-list>
           EOF
 
-      - name: Create Layout
-        run: |
           cat > app/src/main/res/layout/activity_main.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -104,12 +103,19 @@ jobs:
                       android:layout_width="match_parent"
                       android:layout_height="match_parent"/>
 
-                  <View
-                      android:id="@+id/crosshair"
-                      android:layout_width="8dp"
-                      android:layout_height="8dp"
-                      android:layout_centerInParent="true"
-                      android:background="@drawable/crosshair"/>
+                  <TextView
+                      android:id="@+id/txt_interact"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:layout_alignParentTop="true"
+                      android:layout_centerHorizontal="true"
+                      android:layout_marginTop="80dp"
+                      android:background="@drawable/dialog_bg"
+                      android:padding="8dp"
+                      android:text="[E] Взаимодействовать"
+                      android:textColor="#CCCCCC"
+                      android:textSize="12sp"
+                      android:visibility="gone"/>
 
                   <TextView
                       android:id="@+id/txt_subtitle"
@@ -118,11 +124,16 @@ jobs:
                       android:layout_alignParentTop="true"
                       android:layout_marginTop="20dp"
                       android:gravity="center"
-                      android:textColor="#CCCCCC"
+                      android:textColor="#AAAAAA"
                       android:textSize="14sp"
-                      android:shadowColor="#000000"
-                      android:shadowRadius="3"
                       android:visibility="gone"/>
+
+                  <View
+                      android:id="@+id/crosshair"
+                      android:layout_width="12dp"
+                      android:layout_height="12dp"
+                      android:layout_centerInParent="true"
+                      android:background="@drawable/crosshair"/>
 
                   <FrameLayout
                       android:id="@+id/joy_base"
@@ -144,22 +155,6 @@ jobs:
                       android:layout_marginTop="37dp"
                       android:background="@drawable/joy_stick"/>
 
-                  <TextView
-                      android:id="@+id/txt_interact"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:layout_centerHorizontal="true"
-                      android:layout_alignParentTop="true"
-                      android:layout_marginTop="90dp"
-                      android:background="@drawable/dialog_bg"
-                      android:padding="8dp"
-                      android:text="⚙ Нажмите для взаимодействия"
-                      android:textColor="#EEEEEE"
-                      android:textSize="13sp"
-                      android:shadowColor="#000000"
-                      android:shadowRadius="4"
-                      android:visibility="gone"/>
-
                   <LinearLayout
                       android:id="@+id/dialog_panel"
                       android:layout_width="match_parent"
@@ -168,33 +163,30 @@ jobs:
                       android:layout_margin="20dp"
                       android:orientation="vertical"
                       android:background="@drawable/dialog_bg"
-                      android:padding="18dp"
+                      android:padding="15dp"
                       android:visibility="gone">
 
                       <TextView
                           android:id="@+id/txt_dialog_name"
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:textColor="#FFD700"
-                          android:textSize="17sp"
-                          android:textStyle="bold"
-                          android:shadowColor="#000000"
-                          android:shadowRadius="2"/>
+                          android:textColor="#FFFFFF"
+                          android:textSize="16sp"
+                          android:textStyle="bold"/>
 
                       <TextView
                           android:id="@+id/txt_dialog_text"
                           android:layout_width="match_parent"
                           android:layout_height="wrap_content"
-                          android:layout_marginTop="10dp"
-                          android:textColor="#EEEEEE"
-                          android:textSize="15sp"
-                          android:lineSpacingMultiplier="1.2"/>
+                          android:layout_marginTop="8dp"
+                          android:textColor="#DDDDDD"
+                          android:textSize="14sp"/>
 
                       <LinearLayout
                           android:id="@+id/choices_container"
                           android:layout_width="match_parent"
                           android:layout_height="wrap_content"
-                          android:layout_marginTop="12dp"
+                          android:layout_marginTop="10dp"
                           android:orientation="vertical"
                           android:visibility="gone"/>
                   </LinearLayout>
@@ -212,31 +204,27 @@ jobs:
                       android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
                       android:layout_centerInParent="true"
-                      android:text="Вы засыпаете..."
+                      android:text="Сон..."
                       android:textColor="#FFFFFF"
-                      android:textSize="28sp"
+                      android:textSize="24sp"
                       android:textStyle="bold"
-                      android:shadowColor="#FF0000"
-                      android:shadowRadius="8"
                       android:visibility="gone"/>
               </RelativeLayout>
           </FrameLayout>
           EOF
 
-      - name: Create GameObject
-        run: |
           cat > app/src/main/java/com/liminal/dreams/GameObject.java << 'EOF'
           package com.liminal.dreams;
           public class GameObject {
-              public float x,y,z,sx,sy,sz,r,g,b,a=1f;
+              public float x,y,z,sx,sy,sz,r,g,b;
               public String type;
-              public boolean interactable,isOpen=false,isTransparent=false;
+              public boolean interactable;
               public String interactData;
-              public float openProgress=0f;
+              public float rotY=0;
+              public boolean isDoorOpen=false;
               public GameObject(float x,float y,float z,float sx,float sy,float sz,float r,float g,float b,String type){
                   this.x=x;this.y=y;this.z=z;this.sx=sx;this.sy=sy;this.sz=sz;this.r=r;this.g=g;this.b=b;this.type=type;
               }
-              public GameObject setTransparent(float alpha){this.isTransparent=true;this.a=alpha;return this;}
               public float minX(){return x-sx/2f;}
               public float maxX(){return x+sx/2f;}
               public float minY(){return y-sy/2f;}
@@ -250,8 +238,6 @@ jobs:
           }
           EOF
 
-      - name: Create GameData
-        run: |
           cat > app/src/main/java/com/liminal/dreams/GameData.java << 'EOF'
           package com.liminal.dreams;
           import android.content.Context;
@@ -264,13 +250,11 @@ jobs:
               public static float getPlayerX(){return prefs.getFloat("playerX",0f);}
               public static float getPlayerZ(){return prefs.getFloat("playerZ",15f);}
               public static void savePlayerPos(float x,float z){prefs.edit().putFloat("playerX",x).putFloat("playerZ",z).apply();}
-              public static boolean hasReadNote(String id){return prefs.getBoolean("note_"+id,false);}
-              public static void setReadNote(String id){prefs.edit().putBoolean("note_"+id,true).apply();}
+              public static int getStoryProgress(){return prefs.getInt("story",0);}
+              public static void setStoryProgress(int v){prefs.edit().putInt("story",v).apply();}
           }
           EOF
 
-      - name: Create DialogSystem
-        run: |
           cat > app/src/main/java/com/liminal/dreams/DialogSystem.java << 'EOF'
           package com.liminal.dreams;
           import java.util.*;
@@ -286,122 +270,31 @@ jobs:
               }
               private static Map<Integer,Dialog> dialogs=new HashMap<>();
               static {
-                  dialogs.put(0,new Dialog("Изум","Азум! Брат, ты наконец приехал..."));
-                  dialogs.put(1,new Dialog("Изум","Помнишь наше детство здесь? Летние дни были такими простыми...",new String[]{"Где Настя?","Что происходит?"},new int[]{2,3}));
-                  dialogs.put(2,new Dialog("Изум","Настя... Она в своём доме. Ведёт себя очень странно последнее время."));
-                  dialogs.put(3,new Dialog("Изум","Люди пропадают, Азум. Сначала старик Петров, потом Марина. Все говорят про странные сны..."));
-                  dialogs.put(10,new Dialog("Изум","Они видят одно и то же - бесконечные коридоры, фиолетовое небо.",new String[]{"Это просто сны","Мне страшно"},new int[]{11,12}));
-                  dialogs.put(11,new Dialog("Изум","Так я и думал. Пока не увидел это сам. Три ночи подряд."));
-                  dialogs.put(12,new Dialog("Изум","И мне, брат. Поговори с Настей. Она знает больше."));
-                  dialogs.put(4,new Dialog("Настя","Азум... Ты пришёл. Хорошо, что ты здесь."));
-                  dialogs.put(5,new Dialog("Настя","Каждую ночь я просыпаюсь там. В том месте между сном и явью."));
-                  dialogs.put(6,new Dialog("Настя","Бесконечные коридоры. Что-то следит за мной.",new String[]{"Как это началось?","Ты одна?"},new int[]{20,21}));
-                  dialogs.put(20,new Dialog("Настя","Три недели назад... Я нашла старую книгу на чердаке."));
-                  dialogs.put(21,new Dialog("Настя","Нет. Все в деревне. Мы все связаны теперь."));
-                  dialogs.put(22,new Dialog("Настя","Азум, я боюсь. Каждый раз границы стираются..."));
-                  dialogs.put(100,new Dialog("Азум","Где я?.. Это сон? Всё кажется таким... реальным."));
-                  dialogs.put(101,new Dialog("???","Добро пожаловать в Лиминальность."));
-                  dialogs.put(102,new Dialog("Голос","Границы между мирами тонки."));
-                  dialogs.put(103,new Dialog("Эхо Насти","Азум... помоги... я не могу проснуться..."));
-                  dialogs.put(200,new Dialog("Записка","День 1: Странные сны начались после подвала."));
-                  dialogs.put(201,new Dialog("Записка","День 7: Я больше не различаю сон и явь."));
+                  dialogs.put(0,new Dialog("Система","Вы приехали в деревню детства. Что-то не так..."));
+                  dialogs.put(1,new Dialog("Изум","Азум! Братан, наконец-то приехал. Долго ж тебя не было."));
+                  dialogs.put(2,new Dialog("Изум","Помнишь, как мы тут в детстве гоняли?",new String[]{"Где Настя?","Что происходит?"},new int[]{10,11}));
+                  dialogs.put(10,new Dialog("Изум","Настя в доме у озера. Она... странно себя ведёт последнее время."));
+                  dialogs.put(11,new Dialog("Изум","Люди пропадают. По ночам слышны крики. Говорят, что дело в снах."));
+                  dialogs.put(12,new Dialog("Изум","Будь осторожен, братан. Тут что-то не так творится."));
+                  dialogs.put(20,new Dialog("Настя","Азум! Ты пришёл... Я так боялась."));
+                  dialogs.put(21,new Dialog("Настя","Каждую ночь один и тот же кошмар. Бесконечные коридоры, шёпот..."));
+                  dialogs.put(22,new Dialog("Настя","Там что-то есть. Оно следит. Оно приходит за нами.",new String[]{"Успокойся, всё будет хорошо","Расскажи подробнее"},new int[]{23,24}));
+                  dialogs.put(23,new Dialog("Настя","Нет! Ты не понимаешь! Это реально! Я видела следы!"));
+                  dialogs.put(24,new Dialog("Настя","В снах я вижу тебя, Изума, других людей... все мы там."));
+                  dialogs.put(25,new Dialog("Настя","Мне нужно лечь. Я так устала. Не оставляй меня..."));
+                  dialogs.put(100,new Dialog("Азум","Где я?.. Это не деревня. Это... что?"));
+                  dialogs.put(101,new Dialog("???","Добро пожаловать в Лимбо, Азум..."));
+                  dialogs.put(102,new Dialog("???","Здесь твои страхи. Здесь твои воспоминания. Здесь твоя вечность."));
+                  dialogs.put(103,new Dialog("Настя","Азум?! Ты тоже здесь?! Как выбраться?!"));
+                  dialogs.put(104,new Dialog("Изум","Брат... помоги... я не могу проснуться..."));
               }
               public static Dialog getDialog(int id){return dialogs.get(id);}
           }
           EOF
 
-      - name: Create Shaders
-        run: |
-          cat > app/src/main/java/com/liminal/dreams/Shaders.java << 'EOF'
-          package com.liminal.dreams;
-          public class Shaders {
-              public static final String VERTEX_SHADER = 
-                  "#version 300 es\n" +
-                  "layout(location=0)in vec4 aP;\n" +
-                  "layout(location=1)in vec3 aN;\n" +
-                  "uniform mat4 uMVP,uM;\n" +
-                  "uniform vec3 lightDir;\n" +
-                  "out vec3 vN,vP,vLD;\n" +
-                  "out float vShade;\n" +
-                  "void main(){\n" +
-                  "vP=vec3(uM*aP);\n" +
-                  "vN=normalize(mat3(uM)*aN);\n" +
-                  "vLD=lightDir;\n" +
-                  "vec3 wN=normalize(mat3(uM)*aN);\n" +
-                  "float diffuse=max(dot(wN,lightDir),0.0);\n" +
-                  "float ambient=0.35;\n" +
-                  "vShade=ambient+diffuse*0.7;\n" +
-                  "gl_Position=uMVP*aP;\n" +
-                  "}";
-
-              public static final String FRAGMENT_SHADER = 
-                  "#version 300 es\n" +
-                  "precision highp float;\n" +
-                  "in vec3 vN,vP,vLD;\n" +
-                  "in float vShade;\n" +
-                  "uniform vec3 camP,uC,skyColor,sunColor;\n" +
-                  "uniform float uFog,uAlpha;\n" +
-                  "out vec4 fC;\n" +
-                  "void main(){\n" +
-                  "vec3 n=normalize(vN);\n" +
-                  "float diff=max(dot(n,vLD),0.0);\n" +
-                  "vec3 ambient=skyColor*0.3;\n" +
-                  "vec3 diffuseLight=sunColor*diff*0.8;\n" +
-                  "vec3 col=uC*(ambient+diffuseLight);\n" +
-                  "col*=vShade;\n" +
-                  "float dist=length(camP-vP);\n" +
-                  "float fogFactor=1.0-exp(-dist*uFog);\n" +
-                  "vec3 fogColor=mix(skyColor,vec3(0.05,0.05,0.1),0.3);\n" +
-                  "col=mix(col,fogColor,clamp(fogFactor,0.0,0.92));\n" +
-                  "fC=vec4(col,uAlpha);\n" +
-                  "}";
-
-              public static final String SKY_VERTEX_SHADER = 
-                  "#version 300 es\n" +
-                  "layout(location=0)in vec3 aP;\n" +
-                  "out vec3 vDir;\n" +
-                  "uniform mat4 uInvVP;\n" +
-                  "void main(){\n" +
-                  "vec4 p=vec4(aP,1.0);\n" +
-                  "vec4 w=uInvVP*p;\n" +
-                  "vDir=normalize(w.xyz/w.w);\n" +
-                  "gl_Position=p;\n" +
-                  "}";
-
-              public static final String SKY_FRAGMENT_SHADER = 
-                  "#version 300 es\n" +
-                  "precision highp float;\n" +
-                  "in vec3 vDir;\n" +
-                  "uniform float uDream,uTime;\n" +
-                  "out vec4 fC;\n" +
-                  "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}\n" +
-                  "void main(){\n" +
-                  "vec3 d=normalize(vDir);\n" +
-                  "float sunsetFactor=uTime;\n" +
-                  "vec3 horizonColor=mix(vec3(1.0,0.5,0.2),vec3(0.9,0.3,0.1),sunsetFactor);\n" +
-                  "vec3 topColor=mix(vec3(0.3,0.5,0.9),vec3(0.2,0.1,0.4),sunsetFactor);\n" +
-                  "vec3 bottomColor=mix(vec3(0.7,0.4,0.3),vec3(0.1,0.05,0.15),sunsetFactor);\n" +
-                  "float t=clamp(d.y,0.0,1.0);\n" +
-                  "vec3 skyCol=mix(bottomColor,topColor,pow(t,0.7));\n" +
-                  "float horizon=1.0-abs(d.y);\n" +
-                  "skyCol=mix(skyCol,horizonColor,pow(horizon,4.0)*0.6);\n" +
-                  "if(uDream>0.5){\n" +
-                  "skyCol=mix(vec3(0.1,0.0,0.2),vec3(0.3,0.1,0.4),t);\n" +
-                  "skyCol+=vec3(0.2,0.0,0.3)*pow(horizon,3.0);\n" +
-                  "}\n" +
-                  "vec2 uv=d.xz*40.0;\n" +
-                  "vec2 id=floor(uv);\n" +
-                  "float star=step(0.997,hash(id))*(1.0-t)*2.0;\n" +
-                  "float s=smoothstep(0.15,0.0,length(fract(uv)-0.5))*star;\n" +
-                  "skyCol+=vec3(s*1.2);\n" +
-                  "fC=vec4(skyCol,1.0);\n" +
-                  "}";
-          }
-          EOF
-
       - name: Create GameRenderer Part 1
         run: |
-          cat > app/src/main/java/com/liminal/dreams/GameRenderer.java << 'JAVAEOF'
+          cat > app/src/main/java/com/liminal/dreams/GameRenderer.java << 'RENDERER_EOF'
           package com.liminal.dreams;
           import android.opengl.*;
           import java.nio.*;
@@ -416,7 +309,6 @@ jobs:
                   void onDreamEnter();
                   void onSubtitle(String text);
               }
-              
               private final float[] proj=new float[16],view=new float[16],model=new float[16];
               public float pX=0,pY=1.7f,pZ=15,rY=0,rX=0,jX=0,jY=0,vY=0;
               private int prog,skyProg;
@@ -424,116 +316,126 @@ jobs:
               public CopyOnWriteArrayList<GameObject> objects=new CopyOnWriteArrayList<>();
               public float screenW=1,screenH=1;
               public GameEventListener eventListener;
-              private static final float PLAYER_HEIGHT=1.7f,PLAYER_RADIUS=0.4f,LOOK_LIMIT=85f,FLOOR_Y=0f,INTERACT_RANGE=3f;
+              private static final float PLAYER_HEIGHT=1.7f,PLAYER_RADIUS=0.4f,LOOK_LIMIT=80f,FLOOR_Y=0f,INTERACT_RANGE=3f;
               private float camX=0,camY=0,camZ=0;
               private long lastTimeNs=0L;
-              private float bobPhase=0f,timeOfDay=0.7f;
+              private float bobPhase=0f;
               private Random random=new Random();
               public boolean inDream=false;
               public GameObject nearestInteractable=null;
+              private float timeOfDay=0.7f;
+              private float[] sunDir=new float[3];
+              private float[] sunColor=new float[3];
+              private float[] ambientColor=new float[3];
 
               @Override
               public void onSurfaceCreated(GL10 gl,EGLConfig cfg){
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
                   GLES30.glDepthFunc(GLES30.GL_LEQUAL);
-                  GLES30.glEnable(GLES30.GL_BLEND);
-                  GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
-                  
-                  prog=mkProg(Shaders.VERTEX_SHADER,Shaders.FRAGMENT_SHADER);
-                  skyProg=mkProg(Shaders.SKY_VERTEX_SHADER,Shaders.SKY_FRAGMENT_SHADER);
-                  
+                  String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uMVP,uM;out vec3 vN,vP;void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
+                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec3 camP,uC,sunD,sunC,ambC;uniform float uFog;out vec4 fC;void main(){vec3 n=normalize(vN);float diff=max(dot(n,sunD),0.0);vec3 col=uC*(diff*sunC+ambC);float dist=length(camP-vP),fog=1.0-exp(-dist*uFog);vec3 fogCol=mix(vec3(0.05,0.05,0.08),vec3(0.9,0.6,0.4),sunC.r*0.5);col=mix(col,fogCol,clamp(fog,0.0,0.92));float shadow=1.0-smoothstep(-2.0,0.0,vP.y);col*=mix(1.0,0.3,shadow*0.7);fC=vec4(col,1.0);}";
+                  String skyVs="#version 300 es\nlayout(location=0)in vec3 aP;out vec3 vDir;uniform mat4 uInvVP;void main(){vec4 p=vec4(aP,1.0);vec4 w=uInvVP*p;vDir=normalize(w.xyz/w.w);gl_Position=p;}";
+                  String skyFs="#version 300 es\nprecision highp float;in vec3 vDir;uniform float uDream,uTime;out vec4 fC;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}void main(){vec3 d=normalize(vDir);float t=clamp(d.y*0.5+0.5,0.0,1.0);vec3 sunset=vec3(1.0,0.5,0.3);vec3 zenith=vec3(0.3,0.5,0.8);vec3 skyCol=mix(vec3(0.9,0.6,0.4),zenith,t);if(uDream>0.5)skyCol=mix(vec3(0.05,0.0,0.1),vec3(0.2,0.05,0.15),t);vec2 uv=d.xz*30.0;float star=step(0.998,hash(floor(uv)))*smoothstep(0.1,0.0,length(fract(uv)-0.5));skyCol+=vec3(star)*1.5;vec2 cUv=d.xz*0.8+vec2(uTime*0.02,0);float clouds=noise(cUv*3.0)*0.5+noise(cUv*6.0)*0.25;clouds=smoothstep(0.4,0.6,clouds);if(uDream<0.5)skyCol=mix(skyCol,vec3(1.0,0.95,0.9),clouds*0.7);fC=vec4(skyCol,1.0);}";
+                  prog=mkProg(vs,fs);skyProg=mkProg(skyVs,skyFs);
                   float[] vc={-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f};
                   float[] nc={0,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,0,-1,0,0,1,0,0,1,0,0,1,0,0,1,0,0};
                   float[] skyQuad={-1f,-1f,1f,1f,-1f,1f,-1f,1f,1f,1f,1f,1f};
-                  
                   vBuf=ByteBuffer.allocateDirect(vc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vc);vBuf.position(0);
                   nBuf=ByteBuffer.allocateDirect(nc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(nc);nBuf.position(0);
                   skyBuf=ByteBuffer.allocateDirect(skyQuad.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(skyQuad);skyBuf.position(0);
-                  
-                  buildWorld();
-                  lastTimeNs=System.nanoTime();
+                  buildWorld();lastTimeNs=System.nanoTime();
               }
 
               private void buildWorld(){
                   objects.clear();
                   if(!inDream){
-                      objects.add(new GameObject(0,-0.1f,0,200,0.2f,200,0.18f,0.25f,0.18f,"ground"));
-                      objects.add(new GameObject(-10,2,-5,6,4,8,0.45f,0.35f,0.28f,"house"));
-                      objects.add(new GameObject(-10,2,-9,5.8f,3.5f,0.2f,0.5f,0.4f,0.3f,"wall"));
-                      objects.add(new GameObject(-13,2,-5,0.2f,3.5f,7.8f,0.5f,0.4f,0.3f,"wall"));
-                      objects.add(new GameObject(-7,2,-5,0.2f,3.5f,7.8f,0.5f,0.4f,0.3f,"wall"));
-                      objects.add(new GameObject(-13,2,-7,0.15f,1.2f,1.5f,0.4f,0.7f,0.9f,"window").setTransparent(0.3f));
-                      objects.add(new GameObject(-13,2,-3,0.15f,1.2f,1.5f,0.4f,0.7f,0.9f,"window").setTransparent(0.3f));
-                      
-                      GameObject door1=new GameObject(-10,1,-1,1.5f,2.2f,0.3f,0.35f,0.25f,0.18f,"door");
-                      door1.interactable=true;door1.interactData="door_home";objects.add(door1);
-                      
-                      objects.add(new GameObject(10,2,-8,5,4,6,0.4f,0.3f,0.25f,"house"));
-                      objects.add(new GameObject(10,2,-11,4.8f,3.5f,0.2f,0.45f,0.35f,0.28f,"wall"));
-                      objects.add(new GameObject(7.5f,2,-8,0.2f,3.5f,5.8f,0.45f,0.35f,0.28f,"wall"));
-                      objects.add(new GameObject(12.5f,2,-8,0.2f,3.5f,5.8f,0.45f,0.35f,0.28f,"wall"));
-                      objects.add(new GameObject(12.5f,2,-9.5f,0.15f,1.2f,1.5f,0.5f,0.6f,0.8f,"window").setTransparent(0.35f));
-                      objects.add(new GameObject(12.5f,2,-6.5f,0.15f,1.2f,1.5f,0.5f,0.6f,0.8f,"window").setTransparent(0.35f));
-                      
-                      GameObject door2=new GameObject(10,1,-5,1.5f,2.2f,0.3f,0.35f,0.25f,0.18f,"door");
-                      door2.interactable=true;door2.interactData="door_nastya";objects.add(door2);
-                      
-                      for(int i=0;i<20;i++){
-                          float tx=(random.nextFloat()-0.5f)*70-10,tz=(random.nextFloat()-0.5f)*70-20;
-                          if(Math.abs(tx)<18&&Math.abs(tz+5)<18)continue;
-                          float h=random.nextFloat()*2+5;
-                          objects.add(new GameObject(tx,h/2,tz,0.7f,h,0.7f,0.25f,0.18f,0.12f,"tree"));
-                          objects.add(new GameObject(tx,h*0.85f,tz,2.8f,3.5f,2.8f,0.15f,0.35f,0.15f,"leaves"));
-                      }
-                      
-                      GameObject izum=new GameObject(5,0.9f,8,0.45f,1.8f,0.45f,0.85f,0.65f,0.55f,"npc");
-                      izum.interactable=true;izum.interactData="npc_izum";objects.add(izum);
-                      
-                      GameObject note=new GameObject(-15,0.3f,10,0.3f,0.1f,0.3f,0.9f,0.9f,0.8f,"note");
-                      note.interactable=true;note.interactData="note_1";objects.add(note);
-                  }else{
-                      objects.add(new GameObject(0,-0.5f,0,150,1,150,0.08f,0.05f,0.12f,"ground"));
+                      objects.add(new GameObject(0,-0.1f,0,200,0.2f,200,0.2f,0.3f,0.2f,"ground"));
+                      buildHouse(-12,0,-5,0);
+                      buildHouse(15,0,-10,45);
+                      buildHouse(-8,0,20,-30);
                       for(int i=0;i<25;i++){
-                          float x=(random.nextFloat()-0.5f)*90,y=random.nextFloat()*35+12,z=(random.nextFloat()-0.5f)*90;
-                          float size=random.nextFloat()*4+2.5f;
-                          objects.add(new GameObject(x,y,z,size,size,size,0.35f,0.15f,0.45f,"cube"));
+                          float tx=random.nextFloat()*80-40,tz=random.nextFloat()*80-60;
+                          if(Math.abs(tx)<18&&Math.abs(tz)<18)continue;
+                          objects.add(new GameObject(tx,3.5f,tz,0.7f,7,0.7f,0.25f,0.18f,0.12f,"tree"));
+                          objects.add(new GameObject(tx,6f,tz,3f,3.5f,3f,0.15f,0.35f,0.15f,"leaves"));
                       }
-                      for(int i=0;i<35;i++){
-                          float x=(random.nextFloat()-0.5f)*80,z=(random.nextFloat()-0.5f)*80;
-                          float h=random.nextFloat()*4+7;
-                          objects.add(new GameObject(x,h/2,z,0.6f,h,0.6f,0.15f,0.08f,0.2f,"tree"));
+                      GameObject izum=new GameObject(6,0.9f,10,0.5f,1.8f,0.5f,0.85f,0.65f,0.55f,"npc");
+                      izum.interactable=true;izum.interactData="npc_izum";objects.add(izum);
+                  }else{
+                      objects.add(new GameObject(0,-0.5f,0,120,1,120,0.08f,0.05f,0.12f,"ground"));
+                      for(int i=0;i<30;i++){
+                          float x=(random.nextFloat()-0.5f)*100,y=random.nextFloat()*35+12,z=(random.nextFloat()-0.5f)*100,s=random.nextFloat()*4+2;
+                          objects.add(new GameObject(x,y,z,s,s,s,0.35f,0.15f,0.45f,"cube"));
                       }
-                      for(int i=0;i<8;i++){
-                          float x=(random.nextFloat()-0.5f)*60,z=(random.nextFloat()-0.5f)*60;
-                          objects.add(new GameObject(x,5,z,1.5f,10,1.5f,0.2f,0.1f,0.3f,"monolith"));
+                      for(int i=0;i<40;i++){
+                          float x=(random.nextFloat()-0.5f)*70,z=(random.nextFloat()-0.5f)*70;
+                          objects.add(new GameObject(x,3.5f,z,0.6f,7,0.6f,0.12f,0.08f,0.18f,"tree"));
+                      }
+                      for(int cx=-2;cx<=2;cx++){
+                          for(int cz=0;cz<8;cz++){
+                              objects.add(new GameObject(cx*5f,2f,-30f-cz*10f,4,4,8,0.15f,0.1f,0.2f,"corridor"));
+                          }
                       }
                   }
+              }
+
+              private void buildHouse(float x,float y,float z,float rot){
+                  float hw=7,hh=5,hd=9;
+                  GameObject house=new GameObject(x,y+hh/2f,z,hw,hh,hd,0.45f,0.35f,0.28f,"house");
+                  house.rotY=rot;objects.add(house);
+                  GameObject roof=new GameObject(x,y+hh+1.2f,z,hw+0.5f,2.5f,hd+0.5f,0.35f,0.25f,0.2f,"roof");
+                  roof.rotY=rot;objects.add(roof);
+                  double rd=Math.toRadians(rot);
+                  float fx=(float)(x+Math.sin(rd)*(hd/2f+0.5f)),fz=(float)(z-Math.cos(rd)*(hd/2f+0.5f));
+                  GameObject door=new GameObject(fx,y+1.2f,fz,1.8f,2.4f,0.25f,0.35f,0.25f,0.2f,"door");
+                  door.rotY=rot;door.interactable=true;door.interactData="door_house";objects.add(door);
+                  float wx1=(float)(x+Math.cos(rd)*(hw/2f-1.5f)),wz1=(float)(z+Math.sin(rd)*(hw/2f-1.5f));
+                  GameObject win1=new GameObject(wx1,y+hh/2f+0.5f,wz1,1.5f,1.5f,0.15f,0.4f,0.6f,0.7f,"window");
+                  win1.rotY=rot+90;objects.add(win1);
+                  float wx2=(float)(x-Math.cos(rd)*(hw/2f-1.5f)),wz2=(float)(z-Math.sin(rd)*(hw/2f-1.5f));
+                  GameObject win2=new GameObject(wx2,y+hh/2f+0.5f,wz2,1.5f,1.5f,0.15f,0.4f,0.6f,0.7f,"window");
+                  win2.rotY=rot-90;objects.add(win2);
               }
 
               @Override
               public void onSurfaceChanged(GL10 gl,int w,int h){
                   GLES30.glViewport(0,0,w,h);
-                  Matrix.perspectiveM(proj,0,65,(float)w/h,0.1f,250f);
+                  Matrix.perspectiveM(proj,0,65,(float)w/h,0.1f,300f);
                   screenW=w;screenH=h;
               }
 
               @Override
               public void onDrawFrame(GL10 gl){
                   update();
+                  updateLighting();
                   GLES30.glClearColor(0.02f,0.02f,0.05f,1f);
                   GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT|GLES30.GL_DEPTH_BUFFER_BIT);
-                  
                   double rad=Math.toRadians(rY),pitch=Math.toRadians(rX);
-                  float vx=(float)(Math.sin(rad)*Math.cos(pitch));
-                  float vy=(float)Math.sin(pitch);
-                  float vz=(float)(-Math.cos(rad)*Math.cos(pitch));
-                  float bobAmt=(float)Math.sin(bobPhase)*0.06f;
+                  float vx=(float)(Math.sin(rad)*Math.cos(pitch)),vy=(float)Math.sin(pitch),vz=(float)(-Math.cos(rad)*Math.cos(pitch));
+                  float bobAmt=(float)Math.sin(bobPhase)*0.05f;
                   camX=pX;camY=pY+bobAmt;camZ=pZ;
-                  
                   Matrix.setLookAtM(view,0,camX,camY,camZ,camX+vx,camY+vy,camZ+vz,0,1,0);
-                  drawSky();
-                  drawWorld();
-                  checkInteractables();
+                  drawSky();drawWorld();checkInteractables();
+              }
+
+              private void updateLighting(){
+                  if(inDream){
+                      sunDir[0]=0.3f;sunDir[1]=0.5f;sunDir[2]=0.2f;
+                      sunColor[0]=0.5f;sunColor[1]=0.3f;sunColor[2]=0.6f;
+                      ambientColor[0]=0.15f;ambientColor[1]=0.1f;ambientColor[2]=0.2f;
+                  }else{
+                      float angle=(float)Math.toRadians(timeOfDay*180-90);
+                      sunDir[0]=(float)Math.cos(angle)*0.4f;
+                      sunDir[1]=(float)Math.sin(angle);
+                      sunDir[2]=0.3f;
+                      float sunset=Math.max(0,1f-(float)Math.abs(sunDir[1]));
+                      sunColor[0]=0.95f+sunset*0.6f;
+                      sunColor[1]=0.85f-sunset*0.3f;
+                      sunColor[2]=0.7f-sunset*0.4f;
+                      ambientColor[0]=0.3f+sunset*0.4f;
+                      ambientColor[1]=0.35f+sunset*0.2f;
+                      ambientColor[2]=0.45f-sunset*0.2f;
+                  }
               }
 
               private void drawSky(){
@@ -544,7 +446,7 @@ jobs:
                   Matrix.invertM(invVP,0,vp,0);
                   GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(skyProg,"uInvVP"),1,false,invVP,0);
                   GLES30.glUniform1f(GLES30.glGetUniformLocation(skyProg,"uDream"),inDream?1f:0f);
-                  GLES30.glUniform1f(GLES30.glGetUniformLocation(skyProg,"uTime"),timeOfDay);
+                  GLES30.glUniform1f(GLES30.glGetUniformLocation(skyProg,"uTime"),(float)(System.currentTimeMillis()/1000.0));
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,skyBuf);
                   GLES30.glEnableVertexAttribArray(0);
                   GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,0,4);
@@ -553,81 +455,53 @@ jobs:
 
               private void drawWorld(){
                   GLES30.glUseProgram(prog);
-                  int uMVP=GLES30.glGetUniformLocation(prog,"uMVP");
-                  int uM=GLES30.glGetUniformLocation(prog,"uM");
-                  int uC=GLES30.glGetUniformLocation(prog,"uC");
-                  int uFog=GLES30.glGetUniformLocation(prog,"uFog");
-                  int uAlpha=GLES30.glGetUniformLocation(prog,"uAlpha");
-                  
-                  float sunAngle=(float)Math.toRadians(timeOfDay*180-90);
-                  float[] lightDir={
-                      (float)Math.cos(sunAngle)*0.4f,
-                      (float)Math.sin(sunAngle),
-                      0.3f
-                  };
-                  float len=(float)Math.sqrt(lightDir[0]*lightDir[0]+lightDir[1]*lightDir[1]+lightDir[2]*lightDir[2]);
-                  lightDir[0]/=len;lightDir[1]/=len;lightDir[2]/=len;
-                  
-                  GLES30.glUniform3fv(GLES30.glGetUniformLocation(prog,"lightDir"),1,lightDir,0);
+                  int uMVP=GLES30.glGetUniformLocation(prog,"uMVP"),uM=GLES30.glGetUniformLocation(prog,"uM");
+                  int uC=GLES30.glGetUniformLocation(prog,"uC"),uFog=GLES30.glGetUniformLocation(prog,"uFog");
                   GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"camP"),camX,camY,camZ);
-                  GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"skyColor"),0.7f,0.5f,0.4f);
-                  GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"sunColor"),1.0f,0.7f,0.5f);
-                  GLES30.glUniform1f(uFog,inDream?0.015f:0.008f);
-                  
+                  GLES30.glUniform3fv(GLES30.glGetUniformLocation(prog,"sunD"),1,sunDir,0);
+                  GLES30.glUniform3fv(GLES30.glGetUniformLocation(prog,"sunC"),1,sunColor,0);
+                  GLES30.glUniform3fv(GLES30.glGetUniformLocation(prog,"ambC"),1,ambientColor,0);
+                  GLES30.glUniform1f(uFog,inDream?0.025f:0.008f);
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);
                   GLES30.glEnableVertexAttribArray(0);
                   GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,0,nBuf);
                   GLES30.glEnableVertexAttribArray(1);
-                  
                   for(GameObject obj:objects){
-                      if(obj.isTransparent)continue;
-                      drawObject(obj,uMVP,uM,uC,uAlpha);
+                      Matrix.setIdentityM(model,0);
+                      Matrix.translateM(model,0,obj.x,obj.y,obj.z);
+                      if(obj.rotY!=0)Matrix.rotateM(model,0,obj.rotY,0,1,0);
+                      if(obj.type.equals("door")&&obj.isDoorOpen)Matrix.rotateM(model,0,90,0,1,0);
+                      Matrix.scaleM(model,0,obj.sx,obj.sy,obj.sz);
+                      float[] mvp=new float[16];
+                      Matrix.multiplyMM(mvp,0,proj,0,view,0);
+                      Matrix.multiplyMM(mvp,0,mvp,0,model,0);
+                      GLES30.glUniformMatrix4fv(uMVP,1,false,mvp,0);
+                      GLES30.glUniformMatrix4fv(uM,1,false,model,0);
+                      GLES30.glUniform3f(uC,obj.r,obj.g,obj.b);
+                      for(int i=0;i<6;i++)GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
                   }
-                  for(GameObject obj:objects){
-                      if(!obj.isTransparent)continue;
-                      drawObject(obj,uMVP,uM,uC,uAlpha);
-                  }
-              }
-
-              private void drawObject(GameObject obj,int uMVP,int uM,int uC,int uAlpha){
-                  Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0,obj.x,obj.y,obj.z);
-                  if(obj.type.equals("door")&&obj.isOpen){
-                      Matrix.rotateM(model,0,obj.openProgress*90,0,1,0);
-                  }
-                  Matrix.scaleM(model,0,obj.sx,obj.sy,obj.sz);
-                  float[] mvp=new float[16];
-                  Matrix.multiplyMM(mvp,0,proj,0,view,0);
-                  Matrix.multiplyMM(mvp,0,mvp,0,model,0);
-                  GLES30.glUniformMatrix4fv(uMVP,1,false,mvp,0);
-                  GLES30.glUniformMatrix4fv(uM,1,false,model,0);
-                  GLES30.glUniform3f(uC,obj.r,obj.g,obj.b);
-                  GLES30.glUniform1f(uAlpha,obj.a);
-                  for(int i=0;i<6;i++)GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
               }
 
               private void update(){
                   long now=System.nanoTime();
                   if(lastTimeNs==0L)lastTimeNs=now;
-                  float dt=Math.min((now-lastTimeNs)/1_000_000_000f,0.1f);
+                  float dt=(now-lastTimeNs)/1_000_000_000f;
                   lastTimeNs=now;
                   rX=Math.max(-LOOK_LIMIT,Math.min(LOOK_LIMIT,rX));
-                  float s=4f*dt;
+                  float s=3.5f*dt;
                   double rad=Math.toRadians(rY);
                   float mX=((float)Math.sin(rad)*-jY+(float)Math.cos(rad)*jX)*s;
                   float mZ=((float)-Math.cos(rad)*-jY+(float)Math.sin(rad)*jX)*s;
-                  vY-=12f*dt;
+                  vY-=9.8f*dt;
                   float nX=pX+mX,nY=pY+vY*dt,nZ=pZ+mZ,fY=nY-PLAYER_HEIGHT;
                   if(fY<FLOOR_Y){nY=FLOOR_Y+PLAYER_HEIGHT;vY=0;}
                   for(GameObject obj:objects){
-                      if(obj.type.equals("ground")||obj.isTransparent)continue;
-                      if(obj.type.equals("door")&&obj.isOpen)continue;
+                      if(obj.type.equals("ground")||obj.type.equals("window")||(obj.type.equals("door")&&obj.isDoorOpen))continue;
                       boolean overlapXZ=nX+PLAYER_RADIUS>obj.minX()&&nX-PLAYER_RADIUS<obj.maxX()&&nZ+PLAYER_RADIUS>obj.minZ()&&nZ-PLAYER_RADIUS<obj.maxZ();
                       boolean overlapY=fY<obj.maxY()&&nY>obj.minY();
                       if(overlapXZ&&overlapY){
-                          if(pY-PLAYER_HEIGHT>=obj.maxY()-0.1f&&fY<obj.maxY()){
-                              nY=obj.maxY()+PLAYER_HEIGHT;vY=0;
-                          }else{
+                          if(pY-PLAYER_HEIGHT>=obj.maxY()-0.1f&&fY<obj.maxY()){nY=obj.maxY()+PLAYER_HEIGHT;vY=0;}
+                          else{
                               float oX1=(nX+PLAYER_RADIUS)-obj.minX(),oX2=obj.maxX()-(nX-PLAYER_RADIUS);
                               float oZ1=(nZ+PLAYER_RADIUS)-obj.minZ(),oZ2=obj.maxZ()-(nZ-PLAYER_RADIUS);
                               float minO=Math.min(Math.min(oX1,oX2),Math.min(oZ1,oZ2));
@@ -639,12 +513,7 @@ jobs:
                       }
                   }
                   pX=nX;pY=nY;pZ=nZ;
-                  if(Math.abs(jX)>0.1f||Math.abs(jY)>0.1f)bobPhase+=dt*9f;
-                  for(GameObject obj:objects){
-                      if(obj.type.equals("door")&&obj.isOpen&&obj.openProgress<1f){
-                          obj.openProgress=Math.min(1f,obj.openProgress+dt*2f);
-                      }
-                  }
+                  if(Math.abs(jX)>0.1f||Math.abs(jY)>0.1f)bobPhase+=dt*8f;
               }
 
               private void checkInteractables(){
@@ -661,9 +530,13 @@ jobs:
               public void interact(){
                   if(nearestInteractable!=null){
                       if(nearestInteractable.type.equals("door")){
-                          nearestInteractable.isOpen=true;
+                          nearestInteractable.isDoorOpen=!nearestInteractable.isDoorOpen;
+                          if(nearestInteractable.isDoorOpen&&eventListener!=null){
+                              if(nearestInteractable.interactData.equals("door_house"))eventListener.onSubtitle("Дверь открыта");
+                          }
+                      }else if(eventListener!=null){
+                          eventListener.onInteract(nearestInteractable);
                       }
-                      if(eventListener!=null)eventListener.onInteract(nearestInteractable);
                   }
               }
 
@@ -687,7 +560,7 @@ jobs:
                   return sh;
               }
           }
-          JAVAEOF
+          RENDERER_EOF
 
       - name: Create MainActivity
         run: |
@@ -749,8 +622,7 @@ jobs:
                   lookZone.setOnTouchListener((v,e)->{
                       if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}
                       else if(e.getAction()==MotionEvent.ACTION_MOVE){
-                          renderer.rY+=(e.getX()-lx)*0.2f;
-                          renderer.rX+=(ly-e.getY())*0.2f;
+                          renderer.rY+=(e.getX()-lx)*0.15f;renderer.rX+=(ly-e.getY())*0.15f;
                           lx=e.getX();ly=e.getY();
                       }
                       return true;
@@ -767,10 +639,12 @@ jobs:
               @Override
               public void onInteract(GameObject obj){
                   runOnUiThread(()->{
-                      if(obj.interactData.equals("npc_izum"))showDialog(1);
-                      else if(obj.interactData.equals("door_nastya"))showDialog(4);
-                      else if(obj.interactData.equals("door_home"))onSubtitle("Дверь медленно открывается со скрипом...");
-                      else if(obj.interactData.startsWith("note_"))showDialog(200);
+                      if(obj.interactData.equals("npc_izum")){
+                          if(GameData.getStoryProgress()==0){
+                              displayDialog(1);
+                              GameData.setStoryProgress(1);
+                          }else displayDialog(2);
+                      }
                   });
               }
 
@@ -779,28 +653,24 @@ jobs:
                   runOnUiThread(()->{
                       fadeOverlay.setVisibility(View.VISIBLE);
                       txtDreamWarning.setVisibility(View.VISIBLE);
-                      ObjectAnimator.ofFloat(fadeOverlay,"alpha",0f,1f).setDuration(2500).start();
+                      ObjectAnimator.ofFloat(fadeOverlay,"alpha",0f,1f).setDuration(2000).start();
                       handler.postDelayed(()->{
-                          showDialog(100);
-                          ObjectAnimator.ofFloat(fadeOverlay,"alpha",1f,0f).setDuration(2500).start();
-                          handler.postDelayed(()->{
-                              fadeOverlay.setVisibility(View.GONE);
-                              txtDreamWarning.setVisibility(View.GONE);
-                          },2500);
-                      },3500);
+                          displayDialog(100);
+                          ObjectAnimator.ofFloat(fadeOverlay,"alpha",1f,0f).setDuration(2000).start();
+                          handler.postDelayed(()->{fadeOverlay.setVisibility(View.GONE);txtDreamWarning.setVisibility(View.GONE);},2000);
+                      },3000);
                   });
               }
 
               @Override
               public void onSubtitle(String text){
                   runOnUiThread(()->{
-                      txtSubtitle.setText(text);
-                      txtSubtitle.setVisibility(View.VISIBLE);
-                      handler.postDelayed(()->txtSubtitle.setVisibility(View.GONE),3500);
+                      txtSubtitle.setText(text);txtSubtitle.setVisibility(View.VISIBLE);
+                      handler.postDelayed(()->txtSubtitle.setVisibility(View.GONE),3000);
                   });
               }
 
-              private void showDialog(int id){
+              private void displayDialog(int id){
                   DialogSystem.Dialog dialog=DialogSystem.getDialog(id);
                   if(dialog==null)return;
                   dialogPanel.setVisibility(View.VISIBLE);
@@ -814,56 +684,38 @@ jobs:
                           Button btn=new Button(this);
                           btn.setText(dialog.choices[i]);
                           btn.setBackgroundResource(R.drawable.btn_choice);
-                          btn.setTextColor(0xFFEEEEEE);
-                          btn.setPadding(20,15,20,15);
+                          btn.setTextColor(0xFFCCCCCC);
                           LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT);
-                          lp.setMargins(0,10,0,0);
+                          lp.setMargins(0,8,0,0);
                           btn.setLayoutParams(lp);
-                          btn.setOnClickListener(v->{
-                              dialogPanel.setVisibility(View.GONE);
-                              handler.postDelayed(()->showDialog(nextId),500);
-                          });
+                          btn.setOnClickListener(v->{dialogPanel.setVisibility(View.GONE);handler.postDelayed(()->displayDialog(nextId),500);});
                           choicesContainer.addView(btn);
                       }
                   }else{
                       choicesContainer.setVisibility(View.GONE);
-                      handler.postDelayed(()->{
-                          dialogPanel.setVisibility(View.GONE);
-                          if(id==22)handler.postDelayed(this::fadeToSleep,2000);
-                      },4500);
+                      handler.postDelayed(()->{dialogPanel.setVisibility(View.GONE);if(id==25)handler.postDelayed(this::fadeToSleep,2000);},4000);
                   }
               }
 
               private void fadeToSleep(){
                   fadeOverlay.setVisibility(View.VISIBLE);
-                  ObjectAnimator.ofFloat(fadeOverlay,"alpha",0f,1f).setDuration(3500).start();
-                  handler.postDelayed(()->{
-                      renderer.enterDream();
-                      GameData.setInDream(true);
-                  },3500);
+                  ObjectAnimator.ofFloat(fadeOverlay,"alpha",0f,1f).setDuration(3000).start();
+                  handler.postDelayed(()->{renderer.enterDream();GameData.setInDream(true);},3000);
               }
 
               @Override
-              protected void onPause(){
-                  super.onPause();
-                  GameData.savePlayerPos(renderer.pX,renderer.pZ);
-              }
+              protected void onPause(){super.onPause();GameData.savePlayerPos(renderer.pX,renderer.pZ);}
           }
           EOF
 
-      - name: Create Manifest and Gradle
+      - name: Create Gradle Files
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application android:label="Liminal Dreams" android:theme="@style/AppTheme">
-                  <activity android:name=".MainActivity" android:exported="true" 
-                      android:screenOrientation="sensorLandscape" 
-                      android:configChanges="orientation|screenSize|keyboardHidden">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
+                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="sensorLandscape" android:configChanges="orientation|screenSize|keyboardHidden">
+                      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
                   </activity>
               </application>
           </manifest>
@@ -884,18 +736,8 @@ jobs:
           android {
               namespace 'com.liminal.dreams'
               compileSdk 34
-              defaultConfig { 
-                  applicationId 'com.liminal.dreams'
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 2
-                  versionName "2.0"
-              }
+              defaultConfig { applicationId 'com.liminal.dreams'; minSdk 24; targetSdk 34 }
               buildFeatures { buildConfig true }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
@@ -906,10 +748,10 @@ jobs:
           unzip -q gradle-8.5-bin.zip
           export PATH="$PWD/gradle-8.5/bin:$PATH"
           gradle wrapper --gradle-version 8.5
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Liminal_Dreams_Enhanced_Final
+          name: Liminal_Dreams_Enhanced
           path: app/build/outputs/apk/debug/app-debug.apk
