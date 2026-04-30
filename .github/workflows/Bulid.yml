@@ -1,4 +1,4 @@
-name: Liminal_Dreams_Horror_Fixed
+name: Liminal_Dreams_Final
 on: [push, workflow_dispatch]
 
 jobs:
@@ -17,21 +17,18 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Project Structure
+      - name: Create Project
         run: |
           mkdir -p app/src/main/java/com/liminal/dreams
-          mkdir -p app/src/main/res/layout
-          mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/drawable
-          mkdir -p app/libs
+          mkdir -p app/src/main/res/{layout,values,drawable}
 
-          echo "android.useAndroidX=true" > gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2048m" >> gradle.properties
+          cat > gradle.properties << 'EOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
+          EOF
 
-      - name: Create Resources
-        run: |
-          cat <<EOF > app/src/main/res/values/themes.xml
+          cat > app/src/main/res/values/themes.xml << 'EOF'
           <resources>
             <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
               <item name="android:windowFullscreen">true</item>
@@ -39,20 +36,20 @@ jobs:
           </resources>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/joy_base.xml
+          cat > app/src/main/res/drawable/joy_base.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
             <solid android:color="#AA000000"/>
             <stroke android:width="2dp" android:color="#666666"/>
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/joy_stick.xml
+          cat > app/src/main/res/drawable/joy_stick.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
             <solid android:color="#555555"/>
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/dialog_bg.xml
+          cat > app/src/main/res/drawable/dialog_bg.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="4dp"/>
             <solid android:color="#DD000000"/>
@@ -60,7 +57,7 @@ jobs:
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/btn_choice.xml
+          cat > app/src/main/res/drawable/btn_choice.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="4dp"/>
             <solid android:color="#AA1A1A1A"/>
@@ -68,9 +65,7 @@ jobs:
           </shape>
           EOF
 
-      - name: Create Layout
-        run: |
-          cat <<'MAINLAYOUT' > app/src/main/res/layout/activity_main.xml
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
@@ -83,7 +78,6 @@ jobs:
                   android:layout_height="match_parent"/>
 
               <RelativeLayout
-                  android:id="@+id/game_ui"
                   android:layout_width="match_parent"
                   android:layout_height="match_parent">
 
@@ -130,7 +124,7 @@ jobs:
                       android:layout_centerInParent="true"
                       android:background="@drawable/dialog_bg"
                       android:padding="10dp"
-                      android:text="[E] Взаимодействовать"
+                      android:text="Нажмите для взаимодействия"
                       android:textColor="#CCCCCC"
                       android:textSize="14sp"
                       android:visibility="gone"/>
@@ -140,9 +134,7 @@ jobs:
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       android:layout_alignParentBottom="true"
-                      android:layout_marginBottom="20dp"
-                      android:layout_marginLeft="20dp"
-                      android:layout_marginRight="20dp"
+                      android:layout_margin="20dp"
                       android:orientation="vertical"
                       android:background="@drawable/dialog_bg"
                       android:padding="15dp"
@@ -152,7 +144,6 @@ jobs:
                           android:id="@+id/txt_dialog_name"
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="Изум"
                           android:textColor="#FFFFFF"
                           android:textSize="16sp"
                           android:textStyle="bold"/>
@@ -162,7 +153,6 @@ jobs:
                           android:layout_width="match_parent"
                           android:layout_height="wrap_content"
                           android:layout_marginTop="8dp"
-                          android:text="Диалог"
                           android:textColor="#DDDDDD"
                           android:textSize="14sp"/>
 
@@ -195,146 +185,78 @@ jobs:
                       android:visibility="gone"/>
               </RelativeLayout>
           </FrameLayout>
-          MAINLAYOUT
+          EOF
 
-      - name: Create Java Classes
-        run: |
-          cat <<'EOF' > app/src/main/java/com/liminal/dreams/GameObject.java
+          cat > app/src/main/java/com/liminal/dreams/GameObject.java << 'EOF'
           package com.liminal.dreams;
-
           public class GameObject {
-              public float x, y, z, sx, sy, sz, r, g, b;
+              public float x,y,z,sx,sy,sz,r,g,b;
               public String type;
               public boolean interactable;
               public String interactData;
-
-              public GameObject(float x, float y, float z, float sx, float sy, float sz, float r, float g, float b, String type) {
-                  this.x = x; this.y = y; this.z = z;
-                  this.sx = sx; this.sy = sy; this.sz = sz;
-                  this.r = r; this.g = g; this.b = b;
-                  this.type = type;
-                  this.interactable = false;
+              public GameObject(float x,float y,float z,float sx,float sy,float sz,float r,float g,float b,String type){
+                  this.x=x;this.y=y;this.z=z;this.sx=sx;this.sy=sy;this.sz=sz;this.r=r;this.g=g;this.b=b;this.type=type;
               }
-
-              public float minX() { return x - sx / 2f; }
-              public float maxX() { return x + sx / 2f; }
-              public float minY() { return y - sy / 2f; }
-              public float maxY() { return y + sy / 2f; }
-              public float minZ() { return z - sz / 2f; }
-              public float maxZ() { return z + sz / 2f; }
-
-              public boolean isInRange(float px, float pz, float range) {
-                  float dx = x - px;
-                  float dz = z - pz;
-                  return (dx * dx + dz * dz) < (range * range);
+              public float minX(){return x-sx/2f;}
+              public float maxX(){return x+sx/2f;}
+              public float minY(){return y-sy/2f;}
+              public float maxY(){return y+sy/2f;}
+              public float minZ(){return z-sz/2f;}
+              public float maxZ(){return z+sz/2f;}
+              public boolean isInRange(float px,float pz,float range){
+                  float dx=x-px,dz=z-pz;
+                  return(dx*dx+dz*dz)<(range*range);
               }
           }
           EOF
 
-          cat <<'EOF' > app/src/main/java/com/liminal/dreams/GameData.java
+          cat > app/src/main/java/com/liminal/dreams/GameData.java << 'EOF'
           package com.liminal.dreams;
-
           import android.content.Context;
           import android.content.SharedPreferences;
-
           public class GameData {
               private static SharedPreferences prefs;
-
-              public static void init(Context ctx) {
-                  prefs = ctx.getSharedPreferences("liminal_save", Context.MODE_PRIVATE);
-              }
-
-              public static boolean isInDream() {
-                  return prefs.getBoolean("inDream", false);
-              }
-
-              public static void setInDream(boolean val) {
-                  prefs.edit().putBoolean("inDream", val).apply();
-              }
-
-              public static int getStoryProgress() {
-                  return prefs.getInt("storyProgress", 0);
-              }
-
-              public static void setStoryProgress(int val) {
-                  prefs.edit().putInt("storyProgress", val).apply();
-              }
-
-              public static String getLastDialog() {
-                  return prefs.getString("lastDialog", "");
-              }
-
-              public static void setLastDialog(String val) {
-                  prefs.edit().putString("lastDialog", val).apply();
-              }
-
-              public static float getPlayerX() {
-                  return prefs.getFloat("playerX", 0f);
-              }
-
-              public static float getPlayerZ() {
-                  return prefs.getFloat("playerZ", 15f);
-              }
-
-              public static void savePlayerPos(float x, float z) {
-                  prefs.edit().putFloat("playerX", x).putFloat("playerZ", z).apply();
-              }
+              public static void init(Context ctx){prefs=ctx.getSharedPreferences("liminal_save",Context.MODE_PRIVATE);}
+              public static boolean isInDream(){return prefs.getBoolean("inDream",false);}
+              public static void setInDream(boolean val){prefs.edit().putBoolean("inDream",val).apply();}
+              public static float getPlayerX(){return prefs.getFloat("playerX",0f);}
+              public static float getPlayerZ(){return prefs.getFloat("playerZ",15f);}
+              public static void savePlayerPos(float x,float z){prefs.edit().putFloat("playerX",x).putFloat("playerZ",z).apply();}
           }
           EOF
 
-          cat <<'EOF' > app/src/main/java/com/liminal/dreams/DialogSystem.java
+          cat > app/src/main/java/com/liminal/dreams/DialogSystem.java << 'EOF'
           package com.liminal.dreams;
-
           import java.util.*;
-
           public class DialogSystem {
               public static class Dialog {
-                  public String speaker;
-                  public String text;
+                  public String speaker,text;
                   public String[] choices;
                   public int[] nextIds;
-
-                  public Dialog(String speaker, String text) {
-                      this.speaker = speaker;
-                      this.text = text;
-                      this.choices = null;
-                      this.nextIds = null;
-                  }
-
-                  public Dialog(String speaker, String text, String[] choices, int[] nextIds) {
-                      this.speaker = speaker;
-                      this.text = text;
-                      this.choices = choices;
-                      this.nextIds = nextIds;
+                  public Dialog(String speaker,String text){this.speaker=speaker;this.text=text;}
+                  public Dialog(String speaker,String text,String[] choices,int[] nextIds){
+                      this.speaker=speaker;this.text=text;this.choices=choices;this.nextIds=nextIds;
                   }
               }
-
-              private static Map<Integer, Dialog> dialogs = new HashMap<>();
-
+              private static Map<Integer,Dialog> dialogs=new HashMap<>();
               static {
-                  dialogs.put(0, new Dialog("Изум", "Азум, братан! Ты наконец-то приехал."));
-                  dialogs.put(1, new Dialog("Изум", "Помнишь наше детство здесь?",
-                      new String[]{"Где Настя?", "Что происходит?"}, new int[]{2, 3}));
-                  dialogs.put(2, new Dialog("Изум", "Настя в доме. Она странно себя ведёт..."));
-                  dialogs.put(3, new Dialog("Изум", "Люди пропадают. Говорят про сны."));
-                  dialogs.put(4, new Dialog("Настя", "Азум! Каждую ночь одно и то же..."));
-                  dialogs.put(5, new Dialog("Настя", "Бесконечные коридоры. Что-то следит."));
-                  dialogs.put(100, new Dialog("Азум", "Где я? Это сон?"));
-                  dialogs.put(101, new Dialog("Система", "Кубы парят в пустоте."));
+                  dialogs.put(0,new Dialog("Изум","Азум, братан! Ты приехал."));
+                  dialogs.put(1,new Dialog("Изум","Помнишь детство?",new String[]{"Где Настя?","Что происходит?"},new int[]{2,3}));
+                  dialogs.put(2,new Dialog("Изум","Настя в доме. Странно себя ведёт."));
+                  dialogs.put(3,new Dialog("Изум","Люди пропадают. Говорят про сны."));
+                  dialogs.put(4,new Dialog("Настя","Азум! Каждую ночь..."));
+                  dialogs.put(5,new Dialog("Настя","Бесконечные коридоры. Что-то следит."));
+                  dialogs.put(100,new Dialog("Азум","Где я? Это сон?"));
               }
-
-              public static Dialog getDialog(int id) {
-                  return dialogs.get(id);
-              }
+              public static Dialog getDialog(int id){return dialogs.get(id);}
           }
           EOF
 
-          cat <<'EOF' > app/src/main/java/com/liminal/dreams/GameRenderer.java
+      - name: Create GameRenderer
+        run: |
+          cat > app/src/main/java/com/liminal/dreams/GameRenderer.java << 'EOF'
           package com.liminal.dreams;
-
-          import android.opengl.GLES30;
-          import android.opengl.GLSurfaceView;
-          import android.opengl.Matrix;
+          import android.opengl.*;
           import java.nio.*;
           import java.util.*;
           import java.util.concurrent.CopyOnWriteArrayList;
@@ -347,417 +269,350 @@ jobs:
                   void onDreamEnter();
                   void onSubtitle(String text);
               }
-
-              private final float[] proj = new float[16], view = new float[16], model = new float[16];
-              public float pX = 0, pY = 1.7f, pZ = 15, rY = 0, rX = 0, jX = 0, jY = 0, vY = 0;
-              private int prog, skyProg;
-              private FloatBuffer vBuf, nBuf, skyBuf;
-              public CopyOnWriteArrayList<GameObject> objects = new CopyOnWriteArrayList<>();
-              public float screenW = 1, screenH = 1;
+              private final float[] proj=new float[16],view=new float[16],model=new float[16];
+              public float pX=0,pY=1.7f,pZ=15,rY=0,rX=0,jX=0,jY=0,vY=0;
+              private int prog,skyProg;
+              private FloatBuffer vBuf,nBuf,skyBuf;
+              public CopyOnWriteArrayList<GameObject> objects=new CopyOnWriteArrayList<>();
+              public float screenW=1,screenH=1;
               public GameEventListener eventListener;
-
-              private static final float PLAYER_HEIGHT = 1.7f, PLAYER_RADIUS = 0.4f;
-              private static final float LOOK_LIMIT = 80f, FLOOR_Y = 0f, INTERACT_RANGE = 3f;
-
-              private float camX = 0, camY = 0, camZ = 0;
-              private long lastTimeNs = 0L;
-              private float bobPhase = 0f;
-              private Random random = new Random();
-
-              public boolean inDream = false;
-              private float dreamTimer = 0f;
-              public GameObject nearestInteractable = null;
+              private static final float PLAYER_HEIGHT=1.7f,PLAYER_RADIUS=0.4f,LOOK_LIMIT=80f,FLOOR_Y=0f,INTERACT_RANGE=3f;
+              private float camX=0,camY=0,camZ=0;
+              private long lastTimeNs=0L;
+              private float bobPhase=0f;
+              private Random random=new Random();
+              public boolean inDream=false;
+              public GameObject nearestInteractable=null;
 
               @Override
-              public void onSurfaceCreated(GL10 gl, EGLConfig cfg) {
+              public void onSurfaceCreated(GL10 gl,EGLConfig cfg){
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);
                   GLES30.glDepthFunc(GLES30.GL_LEQUAL);
-                  GLES30.glEnable(GLES30.GL_CULL_FACE);
-
-                  String vs = "#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uMVP,uM;out vec3 vN,vP;void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
-                  String fs = "#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec3 camP,uC;uniform float uFog;out vec4 fC;void main(){vec3 n=normalize(vN),lD=normalize(vec3(0.3,1.0,0.2));float diff=max(dot(n,lD),0.0)*0.6+0.3;vec3 col=uC*diff;float dist=length(camP-vP),fog=1.0-exp(-dist*uFog);vec3 fogCol=vec3(0.05,0.05,0.08);col=mix(col,fogCol,clamp(fog,0.0,0.95));fC=vec4(col,1.0);}";
-                  String skyVs = "#version 300 es\nlayout(location=0)in vec3 aP;out vec3 vDir;uniform mat4 uInvVP;void main(){vec4 p=vec4(aP,1.0);vec4 w=uInvVP*p;vDir=normalize(w.xyz/w.w);gl_Position=p;}";
-                  String skyFs = "#version 300 es\nprecision highp float;in vec3 vDir;uniform float uDream;out vec4 fC;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}void main(){vec3 d=normalize(vDir);float t=clamp(d.y*0.5+0.5,0.0,1.0);vec3 skyCol=mix(vec3(0.02,0.02,0.05),vec3(0.1,0.15,0.25),t);if(uDream>0.5)skyCol=mix(vec3(0.05,0.0,0.1),vec3(0.2,0.05,0.15),t);vec2 uv=d.xz*30.0;vec2 id=floor(uv);float star=step(0.998,hash(id));float s=smoothstep(0.1,0.0,length(fract(uv)-0.5))*star*1.5;skyCol+=vec3(s);fC=vec4(skyCol,1.0);}";
-
-                  prog = mkProg(vs, fs);
-                  skyProg = mkProg(skyVs, skyFs);
-
-                  float[] vc = {-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f};
-                  float[] nc = {0,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,0,-1,0,0,1,0,0,1,0,0,1,0,0,1,0,0};
-                  float[] skyQuad = {-1f,-1f,1f,1f,-1f,1f,-1f,1f,1f,1f,1f,1f};
-
-                  vBuf = ByteBuffer.allocateDirect(vc.length * 4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vc);vBuf.position(0);
-                  nBuf = ByteBuffer.allocateDirect(nc.length * 4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(nc);nBuf.position(0);
-                  skyBuf = ByteBuffer.allocateDirect(skyQuad.length * 4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(skyQuad);skyBuf.position(0);
-
-                  buildWorld();
-                  lastTimeNs = System.nanoTime();
+                  String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uMVP,uM;out vec3 vN,vP;void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
+                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec3 camP,uC;uniform float uFog;out vec4 fC;void main(){vec3 n=normalize(vN),lD=normalize(vec3(0.3,1.0,0.2));float diff=max(dot(n,lD),0.0)*0.6+0.3;vec3 col=uC*diff;float dist=length(camP-vP),fog=1.0-exp(-dist*uFog);col=mix(col,vec3(0.05,0.05,0.08),clamp(fog,0.0,0.95));fC=vec4(col,1.0);}";
+                  String skyVs="#version 300 es\nlayout(location=0)in vec3 aP;out vec3 vDir;uniform mat4 uInvVP;void main(){vec4 p=vec4(aP,1.0);vec4 w=uInvVP*p;vDir=normalize(w.xyz/w.w);gl_Position=p;}";
+                  String skyFs="#version 300 es\nprecision highp float;in vec3 vDir;uniform float uDream;out vec4 fC;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}void main(){vec3 d=normalize(vDir);float t=clamp(d.y*0.5+0.5,0.0,1.0);vec3 skyCol=mix(vec3(0.02,0.02,0.05),vec3(0.1,0.15,0.25),t);if(uDream>0.5)skyCol=mix(vec3(0.05,0.0,0.1),vec3(0.2,0.05,0.15),t);vec2 uv=d.xz*30.0;vec2 id=floor(uv);float star=step(0.998,hash(id));float s=smoothstep(0.1,0.0,length(fract(uv)-0.5))*star*1.5;skyCol+=vec3(s);fC=vec4(skyCol,1.0);}";
+                  prog=mkProg(vs,fs);skyProg=mkProg(skyVs,skyFs);
+                  float[] vc={-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f};
+                  float[] nc={0,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,0,-1,0,0,1,0,0,1,0,0,1,0,0,1,0,0};
+                  float[] skyQuad={-1f,-1f,1f,1f,-1f,1f,-1f,1f,1f,1f,1f,1f};
+                  vBuf=ByteBuffer.allocateDirect(vc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vc);vBuf.position(0);
+                  nBuf=ByteBuffer.allocateDirect(nc.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(nc);nBuf.position(0);
+                  skyBuf=ByteBuffer.allocateDirect(skyQuad.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(skyQuad);skyBuf.position(0);
+                  buildWorld();lastTimeNs=System.nanoTime();
               }
 
-              private void buildWorld() {
+              private void buildWorld(){
                   objects.clear();
-                  if (!inDream) {
-                      objects.add(new GameObject(0, -0.1f, 0, 200, 0.2f, 200, 0.15f, 0.2f, 0.15f, "ground"));
-                      objects.add(new GameObject(-10, 2, -5, 6, 4, 8, 0.4f, 0.3f, 0.25f, "house"));
-                      objects.add(new GameObject(-9, 1, -1, 1.5f, 2, 0.3f, 0.3f, 0.2f, 0.15f, "door"));
-                      GameObject door1 = objects.get(objects.size() - 1);
-                      door1.interactable = true;
-                      door1.interactData = "door_home";
-
-                      objects.add(new GameObject(10, 2, -8, 5, 4, 6, 0.35f, 0.25f, 0.2f, "house"));
-                      objects.add(new GameObject(10, 1, -5, 1.5f, 2, 0.3f, 0.3f, 0.2f, 0.15f, "door"));
-                      GameObject door2 = objects.get(objects.size() - 1);
-                      door2.interactable = true;
-                      door2.interactData = "door_nastya";
-
-                      for (int i = 0; i < 15; i++) {
-                          float tx = random.nextFloat() * 60 - 30;
-                          float tz = random.nextFloat() * 60 - 50;
-                          if (Math.abs(tx) < 15 && Math.abs(tz) < 15) continue;
-                          objects.add(new GameObject(tx, 3, tz, 0.6f, 6, 0.6f, 0.2f, 0.15f, 0.1f, "tree"));
-                          objects.add(new GameObject(tx, 5.5f, tz, 2.5f, 3, 2.5f, 0.1f, 0.3f, 0.1f, "leaves"));
+                  if(!inDream){
+                      objects.add(new GameObject(0,-0.1f,0,200,0.2f,200,0.15f,0.2f,0.15f,"ground"));
+                      objects.add(new GameObject(-10,2,-5,6,4,8,0.4f,0.3f,0.25f,"house"));
+                      GameObject door1=new GameObject(-9,1,-1,1.5f,2,0.3f,0.3f,0.2f,0.15f,"door");
+                      door1.interactable=true;door1.interactData="door_home";objects.add(door1);
+                      objects.add(new GameObject(10,2,-8,5,4,6,0.35f,0.25f,0.2f,"house"));
+                      GameObject door2=new GameObject(10,1,-5,1.5f,2,0.3f,0.3f,0.2f,0.15f,"door");
+                      door2.interactable=true;door2.interactData="door_nastya";objects.add(door2);
+                      for(int i=0;i<15;i++){
+                          float tx=random.nextFloat()*60-30,tz=random.nextFloat()*60-50;
+                          if(Math.abs(tx)<15&&Math.abs(tz)<15)continue;
+                          objects.add(new GameObject(tx,3,tz,0.6f,6,0.6f,0.2f,0.15f,0.1f,"tree"));
+                          objects.add(new GameObject(tx,5.5f,tz,2.5f,3,2.5f,0.1f,0.3f,0.1f,"leaves"));
                       }
-
-                      GameObject izum = new GameObject(5, 0.9f, 8, 0.4f, 1.8f, 0.4f, 0.8f, 0.6f, 0.5f, "npc");
-                      izum.interactable = true;
-                      izum.interactData = "npc_izum";
-                      objects.add(izum);
-                  } else {
-                      objects.add(new GameObject(0, -0.5f, 0, 100, 1, 100, 0.05f, 0.05f, 0.1f, "ground"));
-                      for (int i = 0; i < 20; i++) {
-                          float x = (random.nextFloat() - 0.5f) * 80;
-                          float y = random.nextFloat() * 30 + 10;
-                          float z = (random.nextFloat() - 0.5f) * 80;
-                          float size = random.nextFloat() * 3 + 2;
-                          objects.add(new GameObject(x, y, z, size, size, size, 0.3f, 0.1f, 0.4f, "cube"));
+                      GameObject izum=new GameObject(5,0.9f,8,0.4f,1.8f,0.4f,0.8f,0.6f,0.5f,"npc");
+                      izum.interactable=true;izum.interactData="npc_izum";objects.add(izum);
+                  }else{
+                      objects.add(new GameObject(0,-0.5f,0,100,1,100,0.05f,0.05f,0.1f,"ground"));
+                      for(int i=0;i<20;i++){
+                          float x=(random.nextFloat()-0.5f)*80,y=random.nextFloat()*30+10,z=(random.nextFloat()-0.5f)*80,size=random.nextFloat()*3+2;
+                          objects.add(new GameObject(x,y,z,size,size,size,0.3f,0.1f,0.4f,"cube"));
                       }
-                      for (int i = 0; i < 30; i++) {
-                          float x = (random.nextFloat() - 0.5f) * 60;
-                          float z = (random.nextFloat() - 0.5f) * 60;
-                          objects.add(new GameObject(x, 3, z, 0.5f, 6, 0.5f, 0.1f, 0.05f, 0.15f, "tree"));
+                      for(int i=0;i<30;i++){
+                          float x=(random.nextFloat()-0.5f)*60,z=(random.nextFloat()-0.5f)*60;
+                          objects.add(new GameObject(x,3,z,0.5f,6,0.5f,0.1f,0.05f,0.15f,"tree"));
                       }
                   }
               }
 
               @Override
-              public void onSurfaceChanged(GL10 gl, int w, int h) {
-                  GLES30.glViewport(0, 0, w, h);
-                  Matrix.perspectiveM(proj, 0, 60, (float) w / h, 0.1f, 200f);
-                  screenW = w; screenH = h;
+              public void onSurfaceChanged(GL10 gl,int w,int h){
+                  GLES30.glViewport(0,0,w,h);
+                  Matrix.perspectiveM(proj,0,60,(float)w/h,0.1f,200f);
+                  screenW=w;screenH=h;
               }
 
               @Override
-              public void onDrawFrame(GL10 gl) {
+              public void onDrawFrame(GL10 gl){
                   update();
-                  GLES30.glClearColor(0.02f, 0.02f, 0.05f, 1f);
-                  GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
-
-                  double rad = Math.toRadians(rY);
-                  double pitch = Math.toRadians(rX);
-                  float vx = (float) (Math.sin(rad) * Math.cos(pitch));
-                  float vy = (float) Math.sin(pitch);
-                  float vz = (float) (-Math.cos(rad) * Math.cos(pitch));
-
-                  float bobAmt = (float) Math.sin(bobPhase) * 0.05f;
-                  camX = pX; camY = pY + bobAmt; camZ = pZ;
-
-                  Matrix.setLookAtM(view, 0, camX, camY, camZ, camX + vx, camY + vy, camZ + vz, 0, 1, 0);
-
-                  drawSky();
-                  drawWorld();
-                  checkInteractables();
+                  GLES30.glClearColor(0.02f,0.02f,0.05f,1f);
+                  GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT|GLES30.GL_DEPTH_BUFFER_BIT);
+                  double rad=Math.toRadians(rY),pitch=Math.toRadians(rX);
+                  float vx=(float)(Math.sin(rad)*Math.cos(pitch)),vy=(float)Math.sin(pitch),vz=(float)(-Math.cos(rad)*Math.cos(pitch));
+                  float bobAmt=(float)Math.sin(bobPhase)*0.05f;
+                  camX=pX;camY=pY+bobAmt;camZ=pZ;
+                  Matrix.setLookAtM(view,0,camX,camY,camZ,camX+vx,camY+vy,camZ+vz,0,1,0);
+                  drawSky();drawWorld();checkInteractables();
               }
 
-              private void drawSky() {
+              private void drawSky(){
                   GLES30.glDepthMask(false);
                   GLES30.glUseProgram(skyProg);
-                  float[] vp = new float[16], invVP = new float[16];
-                  Matrix.multiplyMM(vp, 0, proj, 0, view, 0);
-                  Matrix.invertM(invVP, 0, vp, 0);
-                  GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(skyProg, "uInvVP"), 1, false, invVP, 0);
-                  GLES30.glUniform1f(GLES30.glGetUniformLocation(skyProg, "uDream"), inDream ? 1f : 0f);
-                  GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 0, skyBuf);
+                  float[] vp=new float[16],invVP=new float[16];
+                  Matrix.multiplyMM(vp,0,proj,0,view,0);
+                  Matrix.invertM(invVP,0,vp,0);
+                  GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(skyProg,"uInvVP"),1,false,invVP,0);
+                  GLES30.glUniform1f(GLES30.glGetUniformLocation(skyProg,"uDream"),inDream?1f:0f);
+                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,skyBuf);
                   GLES30.glEnableVertexAttribArray(0);
-                  GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4);
+                  GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,0,4);
                   GLES30.glDepthMask(true);
               }
 
-              private void drawWorld() {
+              private void drawWorld(){
                   GLES30.glUseProgram(prog);
-                  int uMVP = GLES30.glGetUniformLocation(prog, "uMVP");
-                  int uM = GLES30.glGetUniformLocation(prog, "uM");
-                  int uC = GLES30.glGetUniformLocation(prog, "uC");
-                  int uFog = GLES30.glGetUniformLocation(prog, "uFog");
-                  GLES30.glUniform3f(GLES30.glGetUniformLocation(prog, "camP"), camX, camY, camZ);
-                  GLES30.glUniform1f(uFog, inDream ? 0.02f : 0.01f);
-                  GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 0, vBuf);
+                  int uMVP=GLES30.glGetUniformLocation(prog,"uMVP"),uM=GLES30.glGetUniformLocation(prog,"uM");
+                  int uC=GLES30.glGetUniformLocation(prog,"uC"),uFog=GLES30.glGetUniformLocation(prog,"uFog");
+                  GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"camP"),camX,camY,camZ);
+                  GLES30.glUniform1f(uFog,inDream?0.02f:0.01f);
+                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);
                   GLES30.glEnableVertexAttribArray(0);
-                  GLES30.glVertexAttribPointer(1, 3, GLES30.GL_FLOAT, false, 0, nBuf);
+                  GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,0,nBuf);
                   GLES30.glEnableVertexAttribArray(1);
-
-                  for (GameObject obj : objects) {
-                      Matrix.setIdentityM(model, 0);
-                      Matrix.translateM(model, 0, obj.x, obj.y, obj.z);
-                      Matrix.scaleM(model, 0, obj.sx, obj.sy, obj.sz);
-                      float[] mvp = new float[16];
-                      Matrix.multiplyMM(mvp, 0, proj, 0, view, 0);
-                      Matrix.multiplyMM(mvp, 0, mvp, 0, model, 0);
-                      GLES30.glUniformMatrix4fv(uMVP, 1, false, mvp, 0);
-                      GLES30.glUniformMatrix4fv(uM, 1, false, model, 0);
-                      GLES30.glUniform3f(uC, obj.r, obj.g, obj.b);
-                      for (int i = 0; i < 6; i++) GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, i * 4, 4);
+                  for(GameObject obj:objects){
+                      Matrix.setIdentityM(model,0);
+                      Matrix.translateM(model,0,obj.x,obj.y,obj.z);
+                      Matrix.scaleM(model,0,obj.sx,obj.sy,obj.sz);
+                      float[] mvp=new float[16];
+                      Matrix.multiplyMM(mvp,0,proj,0,view,0);
+                      Matrix.multiplyMM(mvp,0,mvp,0,model,0);
+                      GLES30.glUniformMatrix4fv(uMVP,1,false,mvp,0);
+                      GLES30.glUniformMatrix4fv(uM,1,false,model,0);
+                      GLES30.glUniform3f(uC,obj.r,obj.g,obj.b);
+                      for(int i=0;i<6;i++)GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
                   }
               }
 
-              private void update() {
-                  long now = System.nanoTime();
-                  if (lastTimeNs == 0L) lastTimeNs = now;
-                  float dt = (now - lastTimeNs) / 1_000_000_000f;
-                  lastTimeNs = now;
-
-                  rX = Math.max(-LOOK_LIMIT, Math.min(LOOK_LIMIT, rX));
-                  float s = 3.5f * dt;
-                  double rad = Math.toRadians(rY);
-                  float mX = ((float) Math.sin(rad) * -jY + (float) Math.cos(rad) * jX) * s;
-                  float mZ = ((float) -Math.cos(rad) * -jY + (float) Math.sin(rad) * jX) * s;
-                  vY -= 9.8f * dt;
-                  float nX = pX + mX, nY = pY + vY * dt, nZ = pZ + mZ;
-                  float fY = nY - PLAYER_HEIGHT;
-
-                  if (fY < FLOOR_Y) { nY = FLOOR_Y + PLAYER_HEIGHT; vY = 0; }
-
-                  for (GameObject obj : objects) {
-                      if (obj.type.equals("ground")) continue;
-                      boolean overlapXZ = nX + PLAYER_RADIUS > obj.minX() && nX - PLAYER_RADIUS < obj.maxX() && nZ + PLAYER_RADIUS > obj.minZ() && nZ - PLAYER_RADIUS < obj.maxZ();
-                      boolean overlapY = fY < obj.maxY() && nY > obj.minY();
-                      if (overlapXZ && overlapY) {
-                          if (pY - PLAYER_HEIGHT >= obj.maxY() - 0.1f && fY < obj.maxY()) { nY = obj.maxY() + PLAYER_HEIGHT; vY = 0; }
-                          else {
-                              float oX1 = (nX + PLAYER_RADIUS) - obj.minX(), oX2 = obj.maxX() - (nX - PLAYER_RADIUS);
-                              float oZ1 = (nZ + PLAYER_RADIUS) - obj.minZ(), oZ2 = obj.maxZ() - (nZ - PLAYER_RADIUS);
-                              float minO = Math.min(Math.min(oX1, oX2), Math.min(oZ1, oZ2));
-                              if (minO == oX1) nX = obj.minX() - PLAYER_RADIUS;
-                              else if (minO == oX2) nX = obj.maxX() + PLAYER_RADIUS;
-                              else if (minO == oZ1) nZ = obj.minZ() - PLAYER_RADIUS;
-                              else nZ = obj.maxZ() + PLAYER_RADIUS;
+              private void update(){
+                  long now=System.nanoTime();
+                  if(lastTimeNs==0L)lastTimeNs=now;
+                  float dt=(now-lastTimeNs)/1_000_000_000f;
+                  lastTimeNs=now;
+                  rX=Math.max(-LOOK_LIMIT,Math.min(LOOK_LIMIT,rX));
+                  float s=3.5f*dt;
+                  double rad=Math.toRadians(rY);
+                  float mX=((float)Math.sin(rad)*-jY+(float)Math.cos(rad)*jX)*s;
+                  float mZ=((float)-Math.cos(rad)*-jY+(float)Math.sin(rad)*jX)*s;
+                  vY-=9.8f*dt;
+                  float nX=pX+mX,nY=pY+vY*dt,nZ=pZ+mZ,fY=nY-PLAYER_HEIGHT;
+                  if(fY<FLOOR_Y){nY=FLOOR_Y+PLAYER_HEIGHT;vY=0;}
+                  for(GameObject obj:objects){
+                      if(obj.type.equals("ground"))continue;
+                      boolean overlapXZ=nX+PLAYER_RADIUS>obj.minX()&&nX-PLAYER_RADIUS<obj.maxX()&&nZ+PLAYER_RADIUS>obj.minZ()&&nZ-PLAYER_RADIUS<obj.maxZ();
+                      boolean overlapY=fY<obj.maxY()&&nY>obj.minY();
+                      if(overlapXZ&&overlapY){
+                          if(pY-PLAYER_HEIGHT>=obj.maxY()-0.1f&&fY<obj.maxY()){nY=obj.maxY()+PLAYER_HEIGHT;vY=0;}
+                          else{
+                              float oX1=(nX+PLAYER_RADIUS)-obj.minX(),oX2=obj.maxX()-(nX-PLAYER_RADIUS);
+                              float oZ1=(nZ+PLAYER_RADIUS)-obj.minZ(),oZ2=obj.maxZ()-(nZ-PLAYER_RADIUS);
+                              float minO=Math.min(Math.min(oX1,oX2),Math.min(oZ1,oZ2));
+                              if(minO==oX1)nX=obj.minX()-PLAYER_RADIUS;
+                              else if(minO==oX2)nX=obj.maxX()+PLAYER_RADIUS;
+                              else if(minO==oZ1)nZ=obj.minZ()-PLAYER_RADIUS;
+                              else nZ=obj.maxZ()+PLAYER_RADIUS;
                           }
                       }
                   }
-                  pX = nX; pY = nY; pZ = nZ;
-                  if (Math.abs(jX) > 0.1f || Math.abs(jY) > 0.1f) bobPhase += dt * 8f;
-                  if (inDream) dreamTimer += dt;
+                  pX=nX;pY=nY;pZ=nZ;
+                  if(Math.abs(jX)>0.1f||Math.abs(jY)>0.1f)bobPhase+=dt*8f;
               }
 
-              private void checkInteractables() {
-                  nearestInteractable = null;
-                  float minDist = INTERACT_RANGE;
-                  for (GameObject obj : objects) {
-                      if (obj.interactable && obj.isInRange(pX, pZ, INTERACT_RANGE)) {
-                          float dx = obj.x - pX, dz = obj.z - pZ;
-                          float dist = (float) Math.sqrt(dx * dx + dz * dz);
-                          if (dist < minDist) { minDist = dist; nearestInteractable = obj; }
+              private void checkInteractables(){
+                  nearestInteractable=null;
+                  float minDist=INTERACT_RANGE;
+                  for(GameObject obj:objects){
+                      if(obj.interactable&&obj.isInRange(pX,pZ,INTERACT_RANGE)){
+                          float dx=obj.x-pX,dz=obj.z-pZ,dist=(float)Math.sqrt(dx*dx+dz*dz);
+                          if(dist<minDist){minDist=dist;nearestInteractable=obj;}
                       }
                   }
               }
 
-              public void interact() {
-                  if (nearestInteractable != null && eventListener != null) eventListener.onInteract(nearestInteractable);
+              public void interact(){
+                  if(nearestInteractable!=null&&eventListener!=null)eventListener.onInteract(nearestInteractable);
               }
 
-              public void enterDream() {
-                  inDream = true; dreamTimer = 0f; buildWorld(); pX = 0; pY = 1.7f; pZ = 0;
-                  if (eventListener != null) eventListener.onDreamEnter();
+              public void enterDream(){
+                  inDream=true;buildWorld();pX=0;pY=1.7f;pZ=0;
+                  if(eventListener!=null)eventListener.onDreamEnter();
               }
 
-              public void exitDream() {
-                  inDream = false; buildWorld(); pX = GameData.getPlayerX(); pZ = GameData.getPlayerZ();
-              }
-
-              private int mkProg(String v, String f) {
-                  int p = GLES30.glCreateProgram();
-                  GLES30.glAttachShader(p, mkSh(35633, v));
-                  GLES30.glAttachShader(p, mkSh(35632, f));
+              private int mkProg(String v,String f){
+                  int p=GLES30.glCreateProgram();
+                  GLES30.glAttachShader(p,mkSh(35633,v));
+                  GLES30.glAttachShader(p,mkSh(35632,f));
                   GLES30.glLinkProgram(p);
                   return p;
               }
 
-              private int mkSh(int t, String s) {
-                  int sh = GLES30.glCreateShader(t);
-                  GLES30.glShaderSource(sh, s);
+              private int mkSh(int t,String s){
+                  int sh=GLES30.glCreateShader(t);
+                  GLES30.glShaderSource(sh,s);
                   GLES30.glCompileShader(sh);
                   return sh;
               }
           }
           EOF
 
-          cat <<'EOF' > app/src/main/java/com/liminal/dreams/MainActivity.java
+      - name: Create MainActivity
+        run: |
+          cat > app/src/main/java/com/liminal/dreams/MainActivity.java << 'EOF'
           package com.liminal.dreams;
-
           import android.animation.ObjectAnimator;
           import android.annotation.SuppressLint;
-          import android.os.Bundle;
-          import android.os.Handler;
-          import android.os.Looper;
-          import android.view.MotionEvent;
-          import android.view.View;
+          import android.os.*;
+          import android.view.*;
           import android.widget.*;
           import androidx.appcompat.app.AppCompatActivity;
 
           public class MainActivity extends AppCompatActivity implements GameRenderer.GameEventListener {
               private GameRenderer renderer;
-              private float lx, ly;
-              private View joyBase, joyStick, lookZone, fadeOverlay;
-              private TextView txtInteract, txtSubtitle, txtDialogName, txtDialogText, txtDreamWarning;
-              private LinearLayout dialogPanel, choicesContainer;
-              private Handler handler = new Handler(Looper.getMainLooper());
+              private float lx,ly;
+              private View joyBase,joyStick,lookZone,fadeOverlay;
+              private TextView txtInteract,txtSubtitle,txtDialogName,txtDialogText,txtDreamWarning;
+              private LinearLayout dialogPanel,choicesContainer;
+              private Handler handler=new Handler(Looper.getMainLooper());
 
               @SuppressLint("ClickableViewAccessibility")
               @Override
-              protected void onCreate(Bundle savedInstanceState) {
+              protected void onCreate(Bundle savedInstanceState){
                   super.onCreate(savedInstanceState);
                   setContentView(R.layout.activity_main);
                   GameData.init(this);
-
-                  android.opengl.GLSurfaceView glView = findViewById(R.id.gl_view);
+                  android.opengl.GLSurfaceView glView=findViewById(R.id.gl_view);
                   glView.setEGLContextClientVersion(3);
-                  renderer = new GameRenderer();
-                  renderer.eventListener = this;
-                  renderer.pX = GameData.getPlayerX();
-                  renderer.pZ = GameData.getPlayerZ();
-                  renderer.inDream = GameData.isInDream();
+                  renderer=new GameRenderer();
+                  renderer.eventListener=this;
+                  renderer.pX=GameData.getPlayerX();
+                  renderer.pZ=GameData.getPlayerZ();
+                  renderer.inDream=GameData.isInDream();
                   glView.setRenderer(renderer);
-
-                  joyBase = findViewById(R.id.joy_base);
-                  joyStick = findViewById(R.id.joy_stick);
-                  lookZone = findViewById(R.id.look_zone);
-                  txtInteract = findViewById(R.id.txt_interact);
-                  txtSubtitle = findViewById(R.id.txt_subtitle);
-                  txtDialogName = findViewById(R.id.txt_dialog_name);
-                  txtDialogText = findViewById(R.id.txt_dialog_text);
-                  txtDreamWarning = findViewById(R.id.txt_dream_warning);
-                  dialogPanel = findViewById(R.id.dialog_panel);
-                  choicesContainer = findViewById(R.id.choices_container);
-                  fadeOverlay = findViewById(R.id.fade_overlay);
-
-                  joyBase.setOnTouchListener((v, e) -> {
-                      float cx = v.getWidth() / 2f, cy = v.getHeight() / 2f;
-                      if (e.getAction() == MotionEvent.ACTION_MOVE || e.getAction() == MotionEvent.ACTION_DOWN) {
-                          float dx = e.getX() - cx, dy = e.getY() - cy, d = (float) Math.sqrt(dx * dx + dy * dy);
-                          float lim = cx - joyStick.getWidth() / 2f;
-                          if (d > lim) { dx *= lim / d; dy *= lim / d; }
-                          joyStick.setTranslationX(dx); joyStick.setTranslationY(dy);
-                          renderer.jX = dx / lim; renderer.jY = dy / lim;
-                      } else if (e.getAction() == MotionEvent.ACTION_UP) {
-                          joyStick.setTranslationX(0); joyStick.setTranslationY(0);
-                          renderer.jX = 0; renderer.jY = 0;
+                  joyBase=findViewById(R.id.joy_base);
+                  joyStick=findViewById(R.id.joy_stick);
+                  lookZone=findViewById(R.id.look_zone);
+                  txtInteract=findViewById(R.id.txt_interact);
+                  txtSubtitle=findViewById(R.id.txt_subtitle);
+                  txtDialogName=findViewById(R.id.txt_dialog_name);
+                  txtDialogText=findViewById(R.id.txt_dialog_text);
+                  txtDreamWarning=findViewById(R.id.txt_dream_warning);
+                  dialogPanel=findViewById(R.id.dialog_panel);
+                  choicesContainer=findViewById(R.id.choices_container);
+                  fadeOverlay=findViewById(R.id.fade_overlay);
+                  joyBase.setOnTouchListener((v,e)->{
+                      float cx=v.getWidth()/2f,cy=v.getHeight()/2f;
+                      if(e.getAction()==MotionEvent.ACTION_MOVE||e.getAction()==MotionEvent.ACTION_DOWN){
+                          float dx=e.getX()-cx,dy=e.getY()-cy,d=(float)Math.sqrt(dx*dx+dy*dy),lim=cx-joyStick.getWidth()/2f;
+                          if(d>lim){dx*=lim/d;dy*=lim/d;}
+                          joyStick.setTranslationX(dx);joyStick.setTranslationY(dy);
+                          renderer.jX=dx/lim;renderer.jY=dy/lim;
+                      }else if(e.getAction()==MotionEvent.ACTION_UP){
+                          joyStick.setTranslationX(0);joyStick.setTranslationY(0);
+                          renderer.jX=0;renderer.jY=0;
                       }
                       return true;
                   });
-
-                  lookZone.setOnTouchListener((v, e) -> {
-                      if (e.getAction() == MotionEvent.ACTION_DOWN) { lx = e.getX(); ly = e.getY(); }
-                      else if (e.getAction() == MotionEvent.ACTION_MOVE) {
-                          renderer.rY += (e.getX() - lx) * 0.15f; renderer.rX += (ly - e.getY()) * 0.15f;
-                          lx = e.getX(); ly = e.getY();
+                  lookZone.setOnTouchListener((v,e)->{
+                      if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}
+                      else if(e.getAction()==MotionEvent.ACTION_MOVE){
+                          renderer.rY+=(e.getX()-lx)*0.15f;renderer.rX+=(ly-e.getY())*0.15f;
+                          lx=e.getX();ly=e.getY();
                       }
                       return true;
                   });
-
-                  txtInteract.setOnClickListener(v -> renderer.interact());
-                  handler.postDelayed(this::checkInteractable, 100);
+                  txtInteract.setOnClickListener(v->renderer.interact());
+                  handler.postDelayed(this::checkInteractable,100);
               }
 
-              private void checkInteractable() {
-                  runOnUiThread(() -> txtInteract.setVisibility(renderer.nearestInteractable != null ? View.VISIBLE : View.GONE));
-                  handler.postDelayed(this::checkInteractable, 100);
+              private void checkInteractable(){
+                  runOnUiThread(()->txtInteract.setVisibility(renderer.nearestInteractable!=null?View.VISIBLE:View.GONE));
+                  handler.postDelayed(this::checkInteractable,100);
               }
 
               @Override
-              public void onInteract(GameObject obj) {
-                  runOnUiThread(() -> {
-                      if (obj.interactData.equals("npc_izum")) showDialog(1);
-                      else if (obj.interactData.equals("door_nastya")) showDialog(4);
-                      else if (obj.interactData.equals("door_home")) onSubtitle("Дверь заперта.");
+              public void onInteract(GameObject obj){
+                  runOnUiThread(()->{
+                      if(obj.interactData.equals("npc_izum"))showDialog(1);
+                      else if(obj.interactData.equals("door_nastya"))showDialog(4);
+                      else if(obj.interactData.equals("door_home"))onSubtitle("Дверь заперта.");
                   });
               }
 
               @Override
-              public void onDreamEnter() {
-                  runOnUiThread(() -> {
+              public void onDreamEnter(){
+                  runOnUiThread(()->{
                       fadeOverlay.setVisibility(View.VISIBLE);
                       txtDreamWarning.setVisibility(View.VISIBLE);
-                      ObjectAnimator.ofFloat(fadeOverlay, "alpha", 0f, 1f).setDuration(2000).start();
-                      handler.postDelayed(() -> {
+                      ObjectAnimator.ofFloat(fadeOverlay,"alpha",0f,1f).setDuration(2000).start();
+                      handler.postDelayed(()->{
                           showDialog(100);
-                          ObjectAnimator.ofFloat(fadeOverlay, "alpha", 1f, 0f).setDuration(2000).start();
-                          handler.postDelayed(() -> { fadeOverlay.setVisibility(View.GONE); txtDreamWarning.setVisibility(View.GONE); }, 2000);
-                      }, 3000);
+                          ObjectAnimator.ofFloat(fadeOverlay,"alpha",1f,0f).setDuration(2000).start();
+                          handler.postDelayed(()->{fadeOverlay.setVisibility(View.GONE);txtDreamWarning.setVisibility(View.GONE);},2000);
+                      },3000);
                   });
               }
 
               @Override
-              public void onSubtitle(String text) {
-                  runOnUiThread(() -> {
-                      txtSubtitle.setText(text); txtSubtitle.setVisibility(View.VISIBLE);
-                      handler.postDelayed(() -> txtSubtitle.setVisibility(View.GONE), 3000);
+              public void onSubtitle(String text){
+                  runOnUiThread(()->{
+                      txtSubtitle.setText(text);txtSubtitle.setVisibility(View.VISIBLE);
+                      handler.postDelayed(()->txtSubtitle.setVisibility(View.GONE),3000);
                   });
               }
 
-              private void showDialog(int id) {
-                  DialogSystem.Dialog dialog = DialogSystem.getDialog(id);
-                  if (dialog == null) return;
+              private void showDialog(int id){
+                  DialogSystem.Dialog dialog=DialogSystem.getDialog(id);
+                  if(dialog==null)return;
                   dialogPanel.setVisibility(View.VISIBLE);
                   txtDialogName.setText(dialog.speaker);
                   txtDialogText.setText(dialog.text);
                   choicesContainer.removeAllViews();
-                  if (dialog.choices != null) {
+                  if(dialog.choices!=null){
                       choicesContainer.setVisibility(View.VISIBLE);
-                      for (int i = 0; i < dialog.choices.length; i++) {
-                          final int nextId = dialog.nextIds[i];
-                          Button btn = new Button(this);
+                      for(int i=0;i<dialog.choices.length;i++){
+                          final int nextId=dialog.nextIds[i];
+                          Button btn=new Button(this);
                           btn.setText(dialog.choices[i]);
                           btn.setBackgroundResource(R.drawable.btn_choice);
                           btn.setTextColor(0xFFCCCCCC);
-                          LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                          lp.setMargins(0, 8, 0, 0);
+                          LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT);
+                          lp.setMargins(0,8,0,0);
                           btn.setLayoutParams(lp);
-                          btn.setOnClickListener(v -> { dialogPanel.setVisibility(View.GONE); handler.postDelayed(() -> showDialog(nextId), 500); });
+                          btn.setOnClickListener(v->{dialogPanel.setVisibility(View.GONE);handler.postDelayed(()->showDialog(nextId),500);});
                           choicesContainer.addView(btn);
                       }
-                  } else {
+                  }else{
                       choicesContainer.setVisibility(View.GONE);
-                      handler.postDelayed(() -> { dialogPanel.setVisibility(View.GONE); if (id == 5) handler.postDelayed(() -> fadeToSleep(), 2000); }, 4000);
+                      handler.postDelayed(()->{dialogPanel.setVisibility(View.GONE);if(id==5)handler.postDelayed(this::fadeToSleep,2000);},4000);
                   }
               }
 
-              private void fadeToSleep() {
+              private void fadeToSleep(){
                   fadeOverlay.setVisibility(View.VISIBLE);
-                  ObjectAnimator.ofFloat(fadeOverlay, "alpha", 0f, 1f).setDuration(3000).start();
-                  handler.postDelayed(() -> { renderer.enterDream(); GameData.setInDream(true); }, 3000);
+                  ObjectAnimator.ofFloat(fadeOverlay,"alpha",0f,1f).setDuration(3000).start();
+                  handler.postDelayed(()->{renderer.enterDream();GameData.setInDream(true);},3000);
               }
 
               @Override
-              protected void onPause() { super.onPause(); GameData.savePlayerPos(renderer.pX, renderer.pZ); }
+              protected void onPause(){super.onPause();GameData.savePlayerPos(renderer.pX,renderer.pZ);}
           }
           EOF
 
-      - name: Create Build Files
+      - name: Create Gradle Files
         run: |
-          cat <<EOF > app/src/main/AndroidManifest.xml
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application
-                  android:label="Liminal Dreams"
-                  android:theme="@style/AppTheme">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:screenOrientation="sensorLandscape"
-                      android:configChanges="orientation|screenSize|keyboardHidden">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
+              <application android:label="Liminal Dreams" android:theme="@style/AppTheme">
+                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="sensorLandscape" android:configChanges="orientation|screenSize|keyboardHidden">
+                      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
                   </activity>
               </application>
           </manifest>
@@ -765,35 +620,23 @@ jobs:
 
           echo "include ':app'" > settings.gradle
 
-          cat <<EOF > build.gradle
+          cat > build.gradle << 'EOF'
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
           }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
+          allprojects { repositories { google(); mavenCentral() } }
           EOF
 
-          cat <<EOF > app/build.gradle
-          plugins {
-              id 'com.android.application'
-          }
+          cat > app/build.gradle << 'EOF'
+          plugins { id 'com.android.application' }
           android {
               namespace 'com.liminal.dreams'
               compileSdk 34
-              defaultConfig {
-                  applicationId 'com.liminal.dreams'
-                  minSdk 24
-                  targetSdk 34
-              }
-              buildFeatures {
-                  buildConfig true
-              }
+              defaultConfig { applicationId 'com.liminal.dreams'; minSdk 24; targetSdk 34 }
+              buildFeatures { buildConfig true }
           }
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-          }
+          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
 
       - name: Build APK
@@ -802,7 +645,7 @@ jobs:
           unzip -q gradle-8.5-bin.zip
           export PATH="$PWD/gradle-8.5/bin:$PATH"
           gradle wrapper --gradle-version 8.5
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --warning-mode all
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
