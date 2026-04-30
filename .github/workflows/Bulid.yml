@@ -1,4 +1,4 @@
-name: Enjoer_6.1_Complete_Final
+name: Enjoer_6.1_Enhanced
 on: [push, workflow_dispatch]
 
 jobs:
@@ -110,16 +110,32 @@ jobs:
 
           cat <<EOF > app/src/main/res/drawable/tab_bg.xml
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <corners android:radius="6dp"/>
+            <solid android:color="#CC101820"/>
+            <stroke android:width="1dp" android:color="#00BFFF"/>
+          </shape>
+          EOF
+
+          cat <<EOF > app/src/main/res/drawable/tab_selected.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <corners android:radius="6dp"/>
+            <solid android:color="#00BFFF"/>
+          </shape>
+          EOF
+
+          cat <<EOF > app/src/main/res/drawable/item_card.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="8dp"/>
-            <solid android:color="#DD101820"/>
+            <solid android:color="#AA101820"/>
             <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/tab_bg_selected.xml
+          cat <<EOF > app/src/main/res/drawable/item_equipped.xml
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="8dp"/>
-            <solid android:color="#00BFFF"/>
+            <solid android:color="#AA101820"/>
+            <stroke android:width="3dp" android:color="#FFD700"/>
           </shape>
           EOF
 
@@ -784,7 +800,7 @@ jobs:
                   <TextView
                       android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
-                      android:text="ENGINE 6.1"
+                      android:text="ENGINE 6.1 Enhanced"
                       android:textSize="18sp"
                       android:textColor="#0088CC"
                       android:layout_marginBottom="40dp"/>
@@ -838,16 +854,6 @@ jobs:
                       android:layout_marginBottom="16dp"/>
 
                   <Button
-                      android:id="@+id/btn_login"
-                      android:layout_width="240dp"
-                      android:layout_height="60dp"
-                      android:text="Login"
-                      android:textSize="18sp"
-                      android:textColor="#00BFFF"
-                      android:background="@drawable/btn_blue"
-                      android:layout_marginBottom="16dp"/>
-
-                  <Button
                       android:id="@+id/btn_load_file"
                       android:layout_width="240dp"
                       android:layout_height="60dp"
@@ -856,254 +862,124 @@ jobs:
                       android:textColor="#00BFFF"
                       android:background="@drawable/btn_blue"/>
               </LinearLayout>
+          </FrameLayout>
+          LAYOUT
 
-              <RelativeLayout
-                  android:id="@+id/customize_ui"
+          cat <<'CUSTOMIZE_LAYOUT' > app/src/main/res/layout/activity_customize.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="#02050A">
+
+              <android.opengl.GLSurfaceView
+                  android:id="@+id/preview_gl"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"/>
+
+              <LinearLayout
                   android:layout_width="match_parent"
                   android:layout_height="match_parent"
-                  android:background="#02050A"
-                  android:visibility="gone">
+                  android:orientation="vertical"
+                  android:padding="16dp">
 
                   <LinearLayout
                       android:layout_width="match_parent"
-                      android:layout_height="match_parent"
-                      android:orientation="vertical">
+                      android:layout_height="wrap_content"
+                      android:orientation="horizontal"
+                      android:gravity="center_vertical">
+
+                      <Button
+                          android:id="@+id/btn_back"
+                          android:layout_width="50dp"
+                          android:layout_height="50dp"
+                          android:text="←"
+                          android:textSize="24sp"
+                          android:background="@drawable/btn_blue"
+                          android:textColor="#00BFFF"/>
+
+                      <View
+                          android:layout_width="0dp"
+                          android:layout_height="1dp"
+                          android:layout_weight="1"/>
 
                       <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="60dp"
-                          android:orientation="horizontal"
-                          android:gravity="center_vertical"
-                          android:paddingLeft="16dp"
-                          android:paddingRight="16dp"
-                          android:background="@drawable/panel_bg">
-
-                          <Button
-                              android:id="@+id/btn_customize_back"
-                              android:layout_width="50dp"
-                              android:layout_height="50dp"
-                              android:text="←"
-                              android:textSize="24sp"
-                              android:background="@drawable/btn_blue"
-                              android:textColor="#00BFFF"/>
-
-                          <TextView
-                              android:layout_width="0dp"
-                              android:layout_height="wrap_content"
-                              android:layout_weight="1"
-                              android:text="Customize"
-                              android:textSize="24sp"
-                              android:textColor="#00BFFF"
-                              android:textStyle="bold"
-                              android:gravity="center"/>
+                          android:layout_width="wrap_content"
+                          android:layout_height="wrap_content"
+                          android:background="@drawable/rigid_bg"
+                          android:padding="10dp">
 
                           <TextView
                               android:id="@+id/txt_customize_rigids"
                               android:layout_width="wrap_content"
                               android:layout_height="wrap_content"
-                              android:text="💰 0"
+                              android:text="💰 0 Rigid's"
                               android:textColor="#FFD700"
                               android:textSize="18sp"
-                              android:textStyle="bold"
-                              android:background="@drawable/rigid_bg"
-                              android:padding="8dp"/>
+                              android:textStyle="bold"/>
                       </LinearLayout>
+                  </LinearLayout>
+
+                  <View
+                      android:layout_width="1dp"
+                      android:layout_height="0dp"
+                      android:layout_weight="1"/>
+
+                  <LinearLayout
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:orientation="horizontal"
+                      android:background="@drawable/panel_bg"
+                      android:padding="8dp"
+                      android:layout_marginBottom="16dp">
+
+                      <Button
+                          android:id="@+id/tab_colors"
+                          android:layout_width="0dp"
+                          android:layout_height="50dp"
+                          android:layout_weight="1"
+                          android:text="Colors"
+                          android:background="@drawable/tab_selected"
+                          android:textColor="#000"
+                          android:textStyle="bold"/>
+
+                      <Button
+                          android:id="@+id/tab_packs"
+                          android:layout_width="0dp"
+                          android:layout_height="50dp"
+                          android:layout_weight="1"
+                          android:text="Packs"
+                          android:background="@drawable/tab_bg"
+                          android:textColor="#00BFFF"
+                          android:layout_marginLeft="8dp"/>
+
+                      <Button
+                          android:id="@+id/tab_emotes"
+                          android:layout_width="0dp"
+                          android:layout_height="50dp"
+                          android:layout_weight="1"
+                          android:text="Emotes"
+                          android:background="@drawable/tab_bg"
+                          android:textColor="#00BFFF"
+                          android:layout_marginLeft="8dp"/>
+                  </LinearLayout>
+
+                  <ScrollView
+                      android:id="@+id/content_scroll"
+                      android:layout_width="match_parent"
+                      android:layout_height="300dp"
+                      android:background="@drawable/panel_bg"
+                      android:padding="12dp">
 
                       <LinearLayout
+                          android:id="@+id/content_container"
                           android:layout_width="match_parent"
                           android:layout_height="wrap_content"
-                          android:orientation="horizontal"
-                          android:padding="10dp"
-                          android:gravity="center">
-
-                          <Button
-                              android:id="@+id/tab_appearance"
-                              android:layout_width="0dp"
-                              android:layout_height="50dp"
-                              android:layout_weight="1"
-                              android:text="Appearance"
-                              android:background="@drawable/tab_bg_selected"
-                              android:textColor="#FFFFFF"
-                              android:layout_marginRight="5dp"/>
-
-                          <Button
-                              android:id="@+id/tab_animations"
-                              android:layout_width="0dp"
-                              android:layout_height="50dp"
-                              android:layout_weight="1"
-                              android:text="Animations"
-                              android:background="@drawable/tab_bg"
-                              android:textColor="#FFFFFF"
-                              android:layout_marginLeft="5dp"/>
-                      </LinearLayout>
-
-                      <FrameLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="0dp"
-                          android:layout_weight="1">
-
-                          <ScrollView
-                              android:id="@+id/scroll_appearance"
-                              android:layout_width="match_parent"
-                              android:layout_height="match_parent"
-                              android:padding="16dp">
-
-                              <LinearLayout
-                                  android:layout_width="match_parent"
-                                  android:layout_height="wrap_content"
-                                  android:orientation="vertical">
-
-                                  <FrameLayout
-                                      android:layout_width="200dp"
-                                      android:layout_height="300dp"
-                                      android:layout_gravity="center"
-                                      android:background="@drawable/panel_bg"
-                                      android:layout_marginBottom="20dp">
-
-                                      <android.opengl.GLSurfaceView
-                                          android:id="@+id/preview_view"
-                                          android:layout_width="match_parent"
-                                          android:layout_height="match_parent"/>
-                                  </FrameLayout>
-
-                                  <TextView
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:text="Skin Color (50 Rigid's)"
-                                      android:textColor="#FFFFFF"
-                                      android:textSize="16sp"
-                                      android:textStyle="bold"
-                                      android:layout_marginTop="10dp"/>
-
-                                  <Spinner
-                                      android:id="@+id/spinner_skin"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="50dp"
-                                      android:background="@drawable/panel_bg"
-                                      android:layout_marginTop="8dp"/>
-
-                                  <TextView
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:text="Torso Color (30 Rigid's)"
-                                      android:textColor="#FFFFFF"
-                                      android:textSize="16sp"
-                                      android:textStyle="bold"
-                                      android:layout_marginTop="16dp"/>
-
-                                  <Spinner
-                                      android:id="@+id/spinner_torso"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="50dp"
-                                      android:background="@drawable/panel_bg"
-                                      android:layout_marginTop="8dp"/>
-
-                                  <TextView
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:text="Legs Color (30 Rigid's)"
-                                      android:textColor="#FFFFFF"
-                                      android:textSize="16sp"
-                                      android:textStyle="bold"
-                                      android:layout_marginTop="16dp"/>
-
-                                  <Spinner
-                                      android:id="@+id/spinner_legs"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="50dp"
-                                      android:background="@drawable/panel_bg"
-                                      android:layout_marginTop="8dp"/>
-
-                                  <TextView
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:text="Face Type (100 Rigid's)"
-                                      android:textColor="#FFFFFF"
-                                      android:textSize="16sp"
-                                      android:textStyle="bold"
-                                      android:layout_marginTop="16dp"/>
-
-                                  <Spinner
-                                      android:id="@+id/spinner_face"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="50dp"
-                                      android:background="@drawable/panel_bg"
-                                      android:layout_marginTop="8dp"/>
-
-                                  <Button
-                                      android:id="@+id/btn_apply_appearance"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="60dp"
-                                      android:text="Apply Changes"
-                                      android:background="@drawable/btn_blue_filled"
-                                      android:textColor="#000"
-                                      android:textSize="18sp"
-                                      android:layout_marginTop="30dp"
-                                      android:layout_marginBottom="20dp"/>
-                              </LinearLayout>
-                          </ScrollView>
-
-                          <ScrollView
-                              android:id="@+id/scroll_animations"
-                              android:layout_width="match_parent"
-                              android:layout_height="match_parent"
-                              android:padding="16dp"
-                              android:visibility="gone">
-
-                              <LinearLayout
-                                  android:layout_width="match_parent"
-                                  android:layout_height="wrap_content"
-                                  android:orientation="vertical">
-
-                                  <TextView
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:text="Walk Animation Pack (150 Rigid's)"
-                                      android:textColor="#FFFFFF"
-                                      android:textSize="16sp"
-                                      android:textStyle="bold"
-                                      android:layout_marginTop="10dp"/>
-
-                                  <Spinner
-                                      android:id="@+id/spinner_walk_pack"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="50dp"
-                                      android:background="@drawable/panel_bg"
-                                      android:layout_marginTop="8dp"/>
-
-                                  <TextView
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:text="Jump Animation Pack (150 Rigid's)"
-                                      android:textColor="#FFFFFF"
-                                      android:textSize="16sp"
-                                      android:textStyle="bold"
-                                      android:layout_marginTop="16dp"/>
-
-                                  <Spinner
-                                      android:id="@+id/spinner_jump_pack"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="50dp"
-                                      android:background="@drawable/panel_bg"
-                                      android:layout_marginTop="8dp"/>
-
-                                  <Button
-                                      android:id="@+id/btn_apply_animations"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="60dp"
-                                      android:text="Apply Packs"
-                                      android:background="@drawable/btn_blue_filled"
-                                      android:textColor="#000"
-                                      android:textSize="18sp"
-                                      android:layout_marginTop="30dp"
-                                      android:layout_marginBottom="20dp"/>
-                              </LinearLayout>
-                          </ScrollView>
-                      </FrameLayout>
-                  </LinearLayout>
-              </RelativeLayout>
-          </FrameLayout>
-          LAYOUT
+                          android:orientation="vertical"/>
+                  </ScrollView>
+              </LinearLayout>
+          </RelativeLayout>
+          CUSTOMIZE_LAYOUT
 
           cat <<EOF > app/src/main/java/com/enjoer/game/Block.java
           package com.enjoer.game;
@@ -1145,7 +1021,6 @@ jobs:
               }
 
               public static int getRigids() {
-                  if(isInfiniteRigids()) return 999999;
                   return prefs.getInt("rigids", 0);
               }
 
@@ -1154,23 +1029,7 @@ jobs:
               }
 
               public static void addRigids(int val) {
-                  if(!isInfiniteRigids()) setRigids(getRigids() + val);
-              }
-
-              public static boolean isInfiniteRigids() {
-                  return prefs.getBoolean("infiniteRigids", false);
-              }
-
-              public static void setInfiniteRigids(boolean val) {
-                  prefs.edit().putBoolean("infiniteRigids", val).apply();
-              }
-
-              public static String getUsername() {
-                  return prefs.getString("username", "");
-              }
-
-              public static void setUsername(String val) {
-                  prefs.edit().putString("username", val).apply();
+                  setRigids(getRigids() + val);
               }
 
               public static int getSkinColor() {
@@ -1205,20 +1064,36 @@ jobs:
                   prefs.edit().putInt("faceType", val).apply();
               }
 
-              public static int getWalkPack() {
-                  return prefs.getInt("walkPack", 0);
+              public static int getAnimPack() {
+                  return prefs.getInt("animPack", 0);
               }
 
-              public static void setWalkPack(int val) {
-                  prefs.edit().putInt("walkPack", val).apply();
+              public static void setAnimPack(int val) {
+                  prefs.edit().putInt("animPack", val).apply();
               }
 
-              public static int getJumpPack() {
-                  return prefs.getInt("jumpPack", 0);
+              public static int getEmote() {
+                  return prefs.getInt("emote", 0);
               }
 
-              public static void setJumpPack(int val) {
-                  prefs.edit().putInt("jumpPack", val).apply();
+              public static void setEmote(int val) {
+                  prefs.edit().putInt("emote", val).apply();
+              }
+
+              public static boolean isPackOwned(int pack) {
+                  return prefs.getBoolean("pack_" + pack, pack == 0);
+              }
+
+              public static void ownPack(int pack) {
+                  prefs.edit().putBoolean("pack_" + pack, true).apply();
+              }
+
+              public static boolean isEmoteOwned(int emote) {
+                  return prefs.getBoolean("emote_" + emote, emote == 0);
+              }
+
+              public static void ownEmote(int emote) {
+                  prefs.edit().putBoolean("emote_" + emote, true).apply();
               }
           }
           PREFS
@@ -1398,7 +1273,9 @@ jobs:
                   return Math.max(0f, Math.min(1f, v));
               }
           }
-          SCRIPT          cat <<'RENDERER' > app/src/main/java/com/enjoer/game/GameRenderer.java
+          SCRIPT
+
+          cat <<'RENDERER' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
 
           import android.opengl.GLES30;
@@ -1434,13 +1311,14 @@ jobs:
               private float walkPhase = 0f;
               private float moveMag = 0f; 
               private float charRotation = 0f;
+              private float jumpPhase = 0f;
+              private float previewRotation = 0f;
 
               public int skinColor = 0;
               public int torsoColor = 1;
               public int legsColor = 2;
               public int faceType = 0;
-              public int walkPack = 0;
-              public int jumpPack = 0;
+              public int animPack = 0;
 
               public Block getSelectedBlock(){
                   if(selectedIndex>=0 && selectedIndex<blocks.size()) return blocks.get(selectedIndex);
@@ -1577,8 +1455,6 @@ jobs:
                       "vec3 fogCol=vec3(.02,.06,.14);"+
                       "vec3 c=mix(fin,fogCol,clamp(fog,0.,.82));"+
                       "c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);"+
-                      "vec3 shadow=vec3(0.15,0.15,0.18);"+
-                      "if(vP.y<0.5)c=mix(c,shadow,0.6);"+
                       "fC=vec4(c,uC.a);}";
 
                   String skyVs="#version 300 es\n"+
@@ -1639,7 +1515,7 @@ jobs:
 
               @Override
               public void onDrawFrame(GL10 gl) {
-                  if(!isPreviewMode) update();
+                  update();
                   GLES30.glClearColor(.01f,.015f,.03f,1f);
                   GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT|GLES30.GL_DEPTH_BUFFER_BIT);
 
@@ -1650,8 +1526,10 @@ jobs:
                   float vz=(float)(-Math.cos(rad)*Math.cos(pitch));
 
                   if(isPreviewMode){
-                      camX = 0; camY = 4.5f; camZ = 8f;
-                      Matrix.setLookAtM(view,0, camX,camY,camZ, 0f,2.5f,0f, 0,1,0);
+                      camX = (float)(Math.sin(Math.toRadians(previewRotation)) * 8f);
+                      camY = 8f;
+                      camZ = (float)(Math.cos(Math.toRadians(previewRotation)) * 8f);
+                      Matrix.setLookAtM(view,0, camX,camY,camZ, 0f,3f,0f, 0,1,0);
                   } else if(isEngineMode && !isPlayingLevel){
                       camX = pX; camY = pY; camZ = pZ;
                       Matrix.setLookAtM(view,0, camX,camY,camZ, pX+vx,pY+vy,pZ+vz, 0,1,0);
@@ -1672,7 +1550,7 @@ jobs:
                   }
 
                   Matrix.multiplyMM(vp,0,proj,0,view,0);
-                  if(!isPreviewMode) drawSky();
+                  drawSky();
                   drawWorld(vx,vy,vz);
               }
 
@@ -1742,12 +1620,17 @@ jobs:
                   float dt = (now - lastTimeNs) / 1_000_000_000f;
                   lastTimeNs = now;
 
+                  if(isPreviewMode){
+                      previewRotation += dt * 30f;
+                      walkPhase += dt * 3.2f;
+                      return;
+                  }
+
                   moveMag = (float)Math.min(1.0, Math.sqrt(jX*jX + jY*jY));
 
                   float s=.42f;
                   double rad = Math.toRadians(rY);
                   double pitch = Math.toRadians(rX);
-
                   if(isEngineMode&&!isPlayingLevel){
                       float fx=(float)Math.sin(rad),fz=(float)-Math.cos(rad),fy=(float)Math.sin(pitch);
                       pX+=(fx*-jY+(float)Math.cos(rad)*jX)*s;
@@ -1789,7 +1672,13 @@ jobs:
 
                       if(moveMag > 0.05f){
                           charRotation = (float)Math.toDegrees(Math.atan2(mX, mZ));
-                          walkPhase += dt * 3.2f * moveMag;
+                          walkPhase += dt * 3.2f;
+                      }
+
+                      if(vY != 0f){
+                          jumpPhase += dt * 8f;
+                      } else {
+                          jumpPhase = 0f;
                       }
                   }
               }
@@ -1810,31 +1699,32 @@ jobs:
                   final float headS = 1.15f;
                   final float armH = 1.6f, armW = 0.55f, armD = 0.55f;
 
-                  float footY = pY - PLAYER_HEIGHT;
+                  float footY = isPreviewMode ? -1f : (pY - PLAYER_HEIGHT);
 
                   float armAngle = 0f, legAngle = 0f;
+                  float bodyTilt = 0f;
 
-                  if(onGround && moveMag > 0.05f){
-                      if(walkPack == 0){
-                          int walkFrame = (int)(walkPhase % 4);
+                  if(animPack == 0){
+                      int walkFrame = (int)(walkPhase % 4);
+                      if(onGround && moveMag > 0.05f){
                           if(walkFrame == 0 || walkFrame == 2) { armAngle = 0f; legAngle = 0f; }
                           else if(walkFrame == 1) { armAngle = 35f; legAngle = -35f; }
                           else { armAngle = -35f; legAngle = 35f; }
-                      } else if(walkPack == 1){
-                          armAngle = (float)(Math.sin(walkPhase * 1.8) * 45);
-                          legAngle = (float)(-Math.sin(walkPhase * 1.8) * 45);
-                      } else {
-                          armAngle = (float)(Math.sin(walkPhase * 2.2) * 50);
-                          legAngle = (float)(-Math.sin(walkPhase * 2.2) * 50);
+                      } else if(!onGround) {
+                          armAngle = -140f;
+                          legAngle = 15f;
                       }
-                  } else if(!onGround) {
-                      if(jumpPack == 0){
-                          armAngle = -140f; legAngle = 15f;
-                      } else if(jumpPack == 1){
-                          armAngle = -90f; legAngle = 30f;
-                      } else {
-                          armAngle = -120f; legAngle = 45f;
-                      }
+                  } else if(animPack == 1){
+                      float hover = (float)Math.sin(walkPhase * 1.5f) * 0.5f;
+                      footY += hover;
+                      armAngle = (float)Math.sin(walkPhase * 2f) * 15f;
+                      legAngle = (float)Math.cos(walkPhase * 2f) * 10f;
+                      bodyTilt = (float)Math.sin(walkPhase) * 3f;
+                  }
+
+                  if(vY != 0f && animPack == 0){
+                      float flipAngle = jumpPhase * 360f;
+                      bodyTilt = flipAngle;
                   }
 
                   GLES30.glUniform1f(uSel, 0f);
@@ -1852,25 +1742,32 @@ jobs:
                   float[] torsoCol = palette[Math.max(0,Math.min(5,torsoColor))];
                   float[] legsCol = palette[Math.max(0,Math.min(5,legsColor))];
 
+                  float charX = isPreviewMode ? 0f : pX;
+                  float charZ = isPreviewMode ? 0f : pZ;
+                  float charRot = isPreviewMode ? 0f : charRotation;
+
                   Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  Matrix.rotateM(model,0, charRotation, 0,1,0);
+                  Matrix.translateM(model,0, charX, footY, charZ);
+                  Matrix.rotateM(model,0, charRot, 0,1,0);
+                  Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                   Matrix.translateM(model,0, 0f, legH + torsoH/2f, 0f);
                   Matrix.scaleM(model,0, torsoW, torsoH, torsoD);
                   draw(uM,uMVP,uC, torsoCol[0],torsoCol[1],torsoCol[2], 1f);
 
                   Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  Matrix.rotateM(model,0, charRotation, 0,1,0);
+                  Matrix.translateM(model,0, charX, footY, charZ);
+                  Matrix.rotateM(model,0, charRot, 0,1,0);
+                  Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                   Matrix.translateM(model,0, 0f, legH + torsoH + headS/2f, 0f);
                   Matrix.scaleM(model,0, headS, headS, headS);
                   draw(uM,uMVP,uC, skinCol[0],skinCol[1],skinCol[2], 1f);
 
-                  drawFace(uM,uMVP,uC);
+                  if(!isPreviewMode || true) drawFace(uM,uMVP,uC, charX, footY, charZ, charRot, bodyTilt);
 
                   Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  Matrix.rotateM(model,0, charRotation, 0,1,0);
+                  Matrix.translateM(model,0, charX, footY, charZ);
+                  Matrix.rotateM(model,0, charRot, 0,1,0);
+                  Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                   float shoulderY = legH + torsoH - 0.2f;
                   float shoulderX = -(torsoW/2f + armW/2f);
                   Matrix.translateM(model,0, shoulderX, shoulderY, 0f);
@@ -1880,8 +1777,9 @@ jobs:
                   draw(uM,uMVP,uC, skinCol[0],skinCol[1],skinCol[2], 1f);
 
                   Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  Matrix.rotateM(model,0, charRotation, 0,1,0);
+                  Matrix.translateM(model,0, charX, footY, charZ);
+                  Matrix.rotateM(model,0, charRot, 0,1,0);
+                  Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                   shoulderX = (torsoW/2f + armW/2f);
                   Matrix.translateM(model,0, shoulderX, shoulderY, 0f);
                   Matrix.rotateM(model,0, -armAngle, 1,0,0);
@@ -1890,8 +1788,9 @@ jobs:
                   draw(uM,uMVP,uC, skinCol[0],skinCol[1],skinCol[2], 1f);
 
                   Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  Matrix.rotateM(model,0, charRotation, 0,1,0);
+                  Matrix.translateM(model,0, charX, footY, charZ);
+                  Matrix.rotateM(model,0, charRot, 0,1,0);
+                  Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                   float hipX = -0.35f;
                   Matrix.translateM(model,0, hipX, legH, 0f);
                   Matrix.rotateM(model,0, legAngle, 1,0,0);
@@ -1900,8 +1799,9 @@ jobs:
                   draw(uM,uMVP,uC, legsCol[0],legsCol[1],legsCol[2], 1f);
 
                   Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  Matrix.rotateM(model,0, charRotation, 0,1,0);
+                  Matrix.translateM(model,0, charX, footY, charZ);
+                  Matrix.rotateM(model,0, charRot, 0,1,0);
+                  Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                   hipX = 0.35f;
                   Matrix.translateM(model,0, hipX, legH, 0f);
                   Matrix.rotateM(model,0, -legAngle, 1,0,0);
@@ -1910,9 +1810,8 @@ jobs:
                   draw(uM,uMVP,uC, legsCol[0],legsCol[1],legsCol[2], 1f);
               }
 
-              private void drawFace(int uM, int uMVP, int uC){
+              private void drawFace(int uM, int uMVP, int uC, float charX, float footY, float charZ, float charRot, float bodyTilt){
                   final float legH = 1.6f, torsoH = 1.8f, headS = 1.15f;
-                  float footY = pY - PLAYER_HEIGHT;
                   float faceY = legH + torsoH + headS/2f;
                   float faceZ = headS/2f + 0.01f;
 
@@ -1922,37 +1821,42 @@ jobs:
                   float mouthY = faceY - headS * 0.15f;
 
                   Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  Matrix.rotateM(model,0, charRotation, 0,1,0);
+                  Matrix.translateM(model,0, charX, footY, charZ);
+                  Matrix.rotateM(model,0, charRot, 0,1,0);
+                  Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                   Matrix.translateM(model,0, -eyeX, eyeY, faceZ);
                   Matrix.scaleM(model,0, eyeSize, eyeSize, 0.02f);
                   draw(uM,uMVP,uC, 0f,0f,0f, 1f);
 
                   Matrix.setIdentityM(model,0);
-                  Matrix.translateM(model,0, pX, footY, pZ);
-                  Matrix.rotateM(model,0, charRotation, 0,1,0);
+                  Matrix.translateM(model,0, charX, footY, charZ);
+                  Matrix.rotateM(model,0, charRot, 0,1,0);
+                  Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                   Matrix.translateM(model,0, eyeX, eyeY, faceZ);
                   Matrix.scaleM(model,0, eyeSize, eyeSize, 0.02f);
                   draw(uM,uMVP,uC, 0f,0f,0f, 1f);
 
                   if(faceType == 0){
                       Matrix.setIdentityM(model,0);
-                      Matrix.translateM(model,0, pX, footY, pZ);
-                      Matrix.rotateM(model,0, charRotation, 0,1,0);
+                      Matrix.translateM(model,0, charX, footY, charZ);
+                      Matrix.rotateM(model,0, charRot, 0,1,0);
+                      Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                       Matrix.translateM(model,0, 0f, mouthY, faceZ);
                       Matrix.scaleM(model,0, headS*0.4f, headS*0.08f, 0.02f);
                       draw(uM,uMVP,uC, 0f,0f,0f, 1f);
                   } else if(faceType == 1){
                       Matrix.setIdentityM(model,0);
-                      Matrix.translateM(model,0, pX, footY, pZ);
-                      Matrix.rotateM(model,0, charRotation, 0,1,0);
+                      Matrix.translateM(model,0, charX, footY, charZ);
+                      Matrix.rotateM(model,0, charRot, 0,1,0);
+                      Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                       Matrix.translateM(model,0, 0f, mouthY, faceZ);
                       Matrix.scaleM(model,0, headS*0.5f, headS*0.12f, 0.02f);
                       draw(uM,uMVP,uC, 1f,0f,0f, 1f);
                   } else if(faceType == 2){
                       Matrix.setIdentityM(model,0);
-                      Matrix.translateM(model,0, pX, footY, pZ);
-                      Matrix.rotateM(model,0, charRotation, 0,1,0);
+                      Matrix.translateM(model,0, charX, footY, charZ);
+                      Matrix.rotateM(model,0, charRot, 0,1,0);
+                      Matrix.rotateM(model,0, bodyTilt, 1,0,0);
                       Matrix.translateM(model,0, 0f, mouthY, faceZ);
                       Matrix.scaleM(model,0, headS*0.1f, headS*0.1f, 0.02f);
                       draw(uM,uMVP,uC, 0f,0f,0f, 1f);
@@ -1984,10 +1888,295 @@ jobs:
                   return sh;
               }
           }
-          RENDERER          cat <<'MAINACT' > app/src/main/java/com/enjoer/game/MainActivity.java
+          RENDERER
+
+          cat <<'CUSTOMIZE' > app/src/main/java/com/enjoer/game/CustomizeActivity.java
+          package com.enjoer.game;
+
+          import android.os.Bundle;
+          import android.view.View;
+          import android.widget.*;
+          import androidx.appcompat.app.AppCompatActivity;
+
+          public class CustomizeActivity extends AppCompatActivity {
+              private GameRenderer previewRenderer;
+              private TextView txtRigids;
+              private Button tabColors, tabPacks, tabEmotes;
+              private LinearLayout contentContainer;
+              private int currentTab = 0;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_customize);
+
+                  android.opengl.GLSurfaceView glView = findViewById(R.id.preview_gl);
+                  glView.setEGLContextClientVersion(3);
+                  previewRenderer = new GameRenderer();
+                  previewRenderer.isPreviewMode = true;
+                  previewRenderer.blocks.clear();
+                  glView.setRenderer(previewRenderer);
+
+                  txtRigids = findViewById(R.id.txt_customize_rigids);
+                  tabColors = findViewById(R.id.tab_colors);
+                  tabPacks = findViewById(R.id.tab_packs);
+                  tabEmotes = findViewById(R.id.tab_emotes);
+                  contentContainer = findViewById(R.id.content_container);
+
+                  loadCustomization();
+                  updateRigidsDisplay();
+
+                  findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+
+                  tabColors.setOnClickListener(v -> switchTab(0));
+                  tabPacks.setOnClickListener(v -> switchTab(1));
+                  tabEmotes.setOnClickListener(v -> switchTab(2));
+
+                  switchTab(0);
+              }
+
+              private void loadCustomization(){
+                  previewRenderer.skinColor = PlayerPrefs.getSkinColor();
+                  previewRenderer.torsoColor = PlayerPrefs.getTorsoColor();
+                  previewRenderer.legsColor = PlayerPrefs.getLegsColor();
+                  previewRenderer.faceType = PlayerPrefs.getFaceType();
+                  previewRenderer.animPack = PlayerPrefs.getAnimPack();
+              }
+
+              private void updateRigidsDisplay(){
+                  txtRigids.setText("💰 " + PlayerPrefs.getRigids() + " Rigid's");
+              }
+
+              private void switchTab(int tab){
+                  currentTab = tab;
+                  contentContainer.removeAllViews();
+
+                  tabColors.setBackgroundResource(tab == 0 ? R.drawable.tab_selected : R.drawable.tab_bg);
+                  tabColors.setTextColor(tab == 0 ? 0xFF000000 : 0xFF00BFFF);
+                  tabPacks.setBackgroundResource(tab == 1 ? R.drawable.tab_selected : R.drawable.tab_bg);
+                  tabPacks.setTextColor(tab == 1 ? 0xFF000000 : 0xFF00BFFF);
+                  tabEmotes.setBackgroundResource(tab == 2 ? R.drawable.tab_selected : R.drawable.tab_bg);
+                  tabEmotes.setTextColor(tab == 2 ? 0xFF000000 : 0xFF00BFFF);
+
+                  if(tab == 0) buildColorsTab();
+                  else if(tab == 1) buildPacksTab();
+                  else buildEmotesTab();
+              }
+
+              private void buildColorsTab(){
+                  String[] colorNames = {"Yellow","Blue","Green","Red","White","Black"};
+                  int[] costs = {50, 30, 30};
+                  String[] parts = {"Skin", "Torso", "Legs"};
+
+                  for(int p = 0; p < 3; p++){
+                      final int partIdx = p;
+                      TextView title = new TextView(this);
+                      title.setText(parts[p] + " Color (" + costs[p] + " Rigid's)");
+                      title.setTextColor(0xFFFFFFFF);
+                      title.setTextSize(16);
+                      title.setPadding(0,20,0,10);
+                      contentContainer.addView(title);
+
+                      LinearLayout grid = new LinearLayout(this);
+                      grid.setOrientation(LinearLayout.HORIZONTAL);
+                      
+                      for(int c = 0; c < colorNames.length; c++){
+                          final int colorIdx = c;
+                          Button btn = new Button(this);
+                          btn.setText(colorNames[c]);
+                          btn.setBackgroundResource(R.drawable.btn_blue);
+                          btn.setTextColor(0xFF00BFFF);
+                          LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, 100, 1f);
+                          lp.setMargins(4,4,4,4);
+                          btn.setLayoutParams(lp);
+
+                          btn.setOnClickListener(v -> {
+                              int currentVal = partIdx == 0 ? PlayerPrefs.getSkinColor() :
+                                              partIdx == 1 ? PlayerPrefs.getTorsoColor() :
+                                              PlayerPrefs.getLegsColor();
+
+                              if(currentVal == colorIdx) return;
+
+                              if(PlayerPrefs.getRigids() < costs[partIdx]){
+                                  Toast.makeText(this, "Not enough Rigid's!", Toast.LENGTH_SHORT).show();
+                                  return;
+                              }
+
+                              PlayerPrefs.addRigids(-costs[partIdx]);
+
+                              if(partIdx == 0) PlayerPrefs.setSkinColor(colorIdx);
+                              else if(partIdx == 1) PlayerPrefs.setTorsoColor(colorIdx);
+                              else PlayerPrefs.setLegsColor(colorIdx);
+
+                              loadCustomization();
+                              updateRigidsDisplay();
+                              Toast.makeText(this, "Applied!", Toast.LENGTH_SHORT).show();
+                          });
+
+                          grid.addView(btn);
+                          if((c+1) % 3 == 0){
+                              contentContainer.addView(grid);
+                              grid = new LinearLayout(this);
+                              grid.setOrientation(LinearLayout.HORIZONTAL);
+                          }
+                      }
+                      if(grid.getChildCount() > 0) contentContainer.addView(grid);
+                  }
+              }
+
+              private void buildPacksTab(){
+                  String[] packNames = {"Default Walk", "Fly Pack (Hover & Float)"};
+                  int[] packCosts = {0, 500};
+
+                  for(int i = 0; i < packNames.length; i++){
+                      final int packIdx = i;
+                      LinearLayout card = new LinearLayout(this);
+                      card.setOrientation(LinearLayout.VERTICAL);
+                      card.setBackgroundResource(
+                          PlayerPrefs.getAnimPack() == packIdx ? R.drawable.item_equipped : R.drawable.item_card
+                      );
+                      card.setPadding(16,16,16,16);
+                      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT,
+                          LinearLayout.LayoutParams.WRAP_CONTENT
+                      );
+                      lp.setMargins(0,0,0,16);
+                      card.setLayoutParams(lp);
+
+                      TextView name = new TextView(this);
+                      name.setText(packNames[i]);
+                      name.setTextColor(0xFFFFFFFF);
+                      name.setTextSize(18);
+                      name.setTextStyle(android.graphics.Typeface.BOLD);
+                      card.addView(name);
+
+                      TextView cost = new TextView(this);
+                      cost.setText(packCosts[i] == 0 ? "Free" : packCosts[i] + " Rigid's");
+                      cost.setTextColor(0xFFFFD700);
+                      cost.setTextSize(14);
+                      card.addView(cost);
+
+                      Button btn = new Button(this);
+                      if(PlayerPrefs.isPackOwned(packIdx)){
+                          if(PlayerPrefs.getAnimPack() == packIdx){
+                              btn.setText("Equipped");
+                              btn.setBackgroundResource(R.drawable.btn_green);
+                              btn.setTextColor(0xFF000000);
+                              btn.setEnabled(false);
+                          } else {
+                              btn.setText("Equip");
+                              btn.setBackgroundResource(R.drawable.btn_blue_filled);
+                              btn.setTextColor(0xFF000000);
+                              btn.setOnClickListener(v -> {
+                                  PlayerPrefs.setAnimPack(packIdx);
+                                  loadCustomization();
+                                  Toast.makeText(this, "Equipped!", Toast.LENGTH_SHORT).show();
+                                  switchTab(1);
+                              });
+                          }
+                      } else {
+                          btn.setText("Buy");
+                          btn.setBackgroundResource(R.drawable.btn_blue);
+                          btn.setTextColor(0xFF00BFFF);
+                          btn.setOnClickListener(v -> {
+                              if(PlayerPrefs.getRigids() < packCosts[packIdx]){
+                                  Toast.makeText(this, "Not enough Rigid's!", Toast.LENGTH_SHORT).show();
+                                  return;
+                              }
+                              PlayerPrefs.addRigids(-packCosts[packIdx]);
+                              PlayerPrefs.ownPack(packIdx);
+                              PlayerPrefs.setAnimPack(packIdx);
+                              loadCustomization();
+                              updateRigidsDisplay();
+                              Toast.makeText(this, "Purchased!", Toast.LENGTH_SHORT).show();
+                              switchTab(1);
+                          });
+                      }
+                      card.addView(btn);
+                      contentContainer.addView(card);
+                  }
+              }
+
+              private void buildEmotesTab(){
+                  String[] emoteNames = {"Smile", "Big Smile", "Dot Mouth"};
+                  int[] emoteCosts = {0, 100, 150};
+
+                  for(int i = 0; i < emoteNames.length; i++){
+                      final int emoteIdx = i;
+                      LinearLayout card = new LinearLayout(this);
+                      card.setOrientation(LinearLayout.VERTICAL);
+                      card.setBackgroundResource(
+                          PlayerPrefs.getFaceType() == emoteIdx ? R.drawable.item_equipped : R.drawable.item_card
+                      );
+                      card.setPadding(16,16,16,16);
+                      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT,
+                          LinearLayout.LayoutParams.WRAP_CONTENT
+                      );
+                      lp.setMargins(0,0,0,16);
+                      card.setLayoutParams(lp);
+
+                      TextView name = new TextView(this);
+                      name.setText(emoteNames[i]);
+                      name.setTextColor(0xFFFFFFFF);
+                      name.setTextSize(18);
+                      name.setTextStyle(android.graphics.Typeface.BOLD);
+                      card.addView(name);
+
+                      TextView cost = new TextView(this);
+                      cost.setText(emoteCosts[i] == 0 ? "Free" : emoteCosts[i] + " Rigid's");
+                      cost.setTextColor(0xFFFFD700);
+                      cost.setTextSize(14);
+                      card.addView(cost);
+
+                      Button btn = new Button(this);
+                      if(PlayerPrefs.isEmoteOwned(emoteIdx)){
+                          if(PlayerPrefs.getFaceType() == emoteIdx){
+                              btn.setText("Equipped");
+                              btn.setBackgroundResource(R.drawable.btn_green);
+                              btn.setTextColor(0xFF000000);
+                              btn.setEnabled(false);
+                          } else {
+                              btn.setText("Equip");
+                              btn.setBackgroundResource(R.drawable.btn_blue_filled);
+                              btn.setTextColor(0xFF000000);
+                              btn.setOnClickListener(v -> {
+                                  PlayerPrefs.setFaceType(emoteIdx);
+                                  loadCustomization();
+                                  Toast.makeText(this, "Equipped!", Toast.LENGTH_SHORT).show();
+                                  switchTab(2);
+                              });
+                          }
+                      } else {
+                          btn.setText("Buy");
+                          btn.setBackgroundResource(R.drawable.btn_blue);
+                          btn.setTextColor(0xFF00BFFF);
+                          btn.setOnClickListener(v -> {
+                              if(PlayerPrefs.getRigids() < emoteCosts[emoteIdx]){
+                                  Toast.makeText(this, "Not enough Rigid's!", Toast.LENGTH_SHORT).show();
+                                  return;
+                              }
+                              PlayerPrefs.addRigids(-emoteCosts[emoteIdx]);
+                              PlayerPrefs.ownEmote(emoteIdx);
+                              PlayerPrefs.setFaceType(emoteIdx);
+                              loadCustomization();
+                              updateRigidsDisplay();
+                              Toast.makeText(this, "Purchased!", Toast.LENGTH_SHORT).show();
+                              switchTab(2);
+                          });
+                      }
+                      card.addView(btn);
+                      contentContainer.addView(card);
+                  }
+              }
+          }
+          CUSTOMIZE
+
+          cat <<'MAINACT' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
 
           import android.annotation.SuppressLint;
+          import android.app.AlertDialog;
           import android.content.Intent;
           import android.content.pm.ActivityInfo;
           import android.graphics.drawable.GradientDrawable;
@@ -2007,19 +2196,17 @@ jobs:
 
           public class MainActivity extends AppCompatActivity implements ScriptEngine.Host, GameRenderer.EventHost {
               private GameRenderer ren;
-              private GameRenderer previewRen;
               private float lx,ly;
               private Button[] shapeBtn,distBtn;
               private View[] colorBtn;
-              private View axisPanel,menuUI,gameUI,engineUI,playtestUI,customizeUI;
+              private View axisPanel,menuUI,gameUI,engineUI,playtestUI;
               private Button btnDeselect, btnHide, btnDelete, btnEvents, btnGrid;
-              private TextView txtSizeInfo, txtRigids, txtMenuRigids, txtRigidNotify, txtCustomizeRigids;
+              private TextView txtSizeInfo, txtRigids, txtMenuRigids, txtRigidNotify;
               private ActivityResultLauncher<Intent> saveLauncher,loadLauncher;
               private Handler handler = new Handler(Looper.getMainLooper());
               private int pendingMode = 0;
               private long rigidTimer = 0;
-              private Spinner spinnerSkin, spinnerTorso, spinnerLegs, spinnerFace, spinnerWalkPack, spinnerJumpPack;
-              private int currentTab = 0;
+              private final float LOOK_LIMIT = 80f;
 
               @Override
               public GameRenderer renderer() {
@@ -2063,7 +2250,6 @@ jobs:
                   gameUI=findViewById(R.id.game_ui);
                   engineUI=findViewById(R.id.engine_ui);
                   playtestUI=findViewById(R.id.playtest_ui);
-                  customizeUI=findViewById(R.id.customize_ui);
                   axisPanel=findViewById(R.id.axis_panel);
                   btnDeselect=findViewById(R.id.btn_deselect);
                   btnHide=findViewById(R.id.btn_hide);
@@ -2074,7 +2260,6 @@ jobs:
                   txtRigids=findViewById(R.id.txt_rigids);
                   txtMenuRigids=findViewById(R.id.txt_menu_rigids);
                   txtRigidNotify=findViewById(R.id.txt_rigid_notify);
-                  txtCustomizeRigids=findViewById(R.id.txt_customize_rigids);
 
                   updRigidDisplay();
 
@@ -2167,7 +2352,6 @@ jobs:
                       gameUI.setVisibility(View.VISIBLE);
                       engineUI.setVisibility(View.GONE);
                       playtestUI.setVisibility(View.GONE);
-                      customizeUI.setVisibility(View.GONE);
                       ren.runStartScripts();
                       startRigidTimer();
                       handler.postDelayed(() -> setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE), 50);
@@ -2184,7 +2368,6 @@ jobs:
                       gameUI.setVisibility(View.GONE);
                       engineUI.setVisibility(View.VISIBLE);
                       playtestUI.setVisibility(View.GONE);
-                      customizeUI.setVisibility(View.GONE);
                       updAxis();
                       updSizeInfo();
                       updGridButton();
@@ -2192,15 +2375,9 @@ jobs:
                   });
 
                   findViewById(R.id.btn_customize).setOnClickListener(v->{
-                      loadCustomization();
-                      pendingMode = 3;
-                      menuUI.setVisibility(View.GONE);
-                      customizeUI.setVisibility(View.VISIBLE);
-                      updRigidDisplay();
-                      handler.postDelayed(() -> setupCustomizeUI(), 100);
+                      Intent intent = new Intent(this, CustomizeActivity.class);
+                      startActivity(intent);
                   });
-
-                  findViewById(R.id.btn_login).setOnClickListener(v-> showLoginDialog());
 
                   findViewById(R.id.btn_load_file).setOnClickListener(v->{
                       Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -2216,14 +2393,12 @@ jobs:
                       gameUI.setVisibility(View.GONE);
                       engineUI.setVisibility(View.GONE);
                       playtestUI.setVisibility(View.GONE);
-                      customizeUI.setVisibility(View.GONE);
                       menuUI.setVisibility(View.VISIBLE);
                       updRigidDisplay();
                       setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                   };
                   findViewById(R.id.btn_menu).setOnClickListener(back);
                   findViewById(R.id.btn_engine_menu).setOnClickListener(back);
-                  findViewById(R.id.btn_customize_back).setOnClickListener(back);
 
                   findViewById(R.id.btn_play_level).setOnClickListener(v->{
                       ren.isPlayingLevel=true;
@@ -2373,219 +2548,11 @@ jobs:
                   loadCustomization();
               }
 
-              private void showLoginDialog(){
-                  EditText input = new EditText(this);
-                  input.setHint("Username");
-                  input.setInputType(InputType.TYPE_CLASS_TEXT);
-
-                  new android.app.AlertDialog.Builder(this)
-                      .setTitle("Login")
-                      .setView(input)
-                      .setPositiveButton("Login", (d,w)->{
-                          String username = input.getText().toString().trim();
-                          if(username.equals("Dimasi4ek229secret")){
-                              PlayerPrefs.setUsername(username);
-                              PlayerPrefs.setInfiniteRigids(true);
-                              updRigidDisplay();
-                              Toast.makeText(this,"Welcome, " + username + "! Infinite Rigid's activated!",Toast.LENGTH_LONG).show();
-                          } else if(!username.isEmpty()){
-                              PlayerPrefs.setUsername(username);
-                              PlayerPrefs.setInfiniteRigids(false);
-                              Toast.makeText(this,"Logged in as " + username,Toast.LENGTH_SHORT).show();
-                          }
-                      })
-                      .setNegativeButton("Cancel", null)
-                      .show();
-              }
-
-              private void setupCustomizeUI(){
-                  try {
-                      android.opengl.GLSurfaceView previewView = findViewById(R.id.preview_view);
-                      if(previewView != null && previewRen == null){
-                          previewView.setEGLContextClientVersion(3);
-                          previewRen = new GameRenderer();
-                          previewRen.isPreviewMode = true;
-                          previewRen.skinColor = ren.skinColor;
-                          previewRen.torsoColor = ren.torsoColor;
-                          previewRen.legsColor = ren.legsColor;
-                          previewRen.faceType = ren.faceType;
-                          previewRen.walkPack = ren.walkPack;
-                          previewRen.jumpPack = ren.jumpPack;
-                          previewView.setRenderer(previewRen);
-                      }
-
-                      String[] colorNames = {"Yellow","Blue","Green","Red","White","Black"};
-                      
-                      spinnerSkin = findViewById(R.id.spinner_skin);
-                      ArrayAdapter<String> a1 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
-                      a1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                      spinnerSkin.setAdapter(a1);
-                      spinnerSkin.setSelection(PlayerPrefs.getSkinColor());
-                      spinnerSkin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                          @Override
-                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                              if(previewRen != null) previewRen.skinColor = position;
-                          }
-                          @Override
-                          public void onNothingSelected(AdapterView<?> parent) {}
-                      });
-
-                      spinnerTorso = findViewById(R.id.spinner_torso);
-                      ArrayAdapter<String> a2 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
-                      a2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                      spinnerTorso.setAdapter(a2);
-                      spinnerTorso.setSelection(PlayerPrefs.getTorsoColor());
-                      spinnerTorso.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                          @Override
-                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                              if(previewRen != null) previewRen.torsoColor = position;
-                          }
-                          @Override
-                          public void onNothingSelected(AdapterView<?> parent) {}
-                      });
-
-                      spinnerLegs = findViewById(R.id.spinner_legs);
-                      ArrayAdapter<String> a3 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
-                      a3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                      spinnerLegs.setAdapter(a3);
-                      spinnerLegs.setSelection(PlayerPrefs.getLegsColor());
-                      spinnerLegs.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                          @Override
-                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                              if(previewRen != null) previewRen.legsColor = position;
-                          }
-                          @Override
-                          public void onNothingSelected(AdapterView<?> parent) {}
-                      });
-
-                      spinnerFace = findViewById(R.id.spinner_face);
-                      String[] faceNames = {"Smile", "Big Smile", "Dot"};
-                      ArrayAdapter<String> a4 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,faceNames);
-                      a4.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                      spinnerFace.setAdapter(a4);
-                      spinnerFace.setSelection(PlayerPrefs.getFaceType());
-                      spinnerFace.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                          @Override
-                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                              if(previewRen != null) previewRen.faceType = position;
-                          }
-                          @Override
-                          public void onNothingSelected(AdapterView<?> parent) {}
-                      });
-
-                      spinnerWalkPack = findViewById(R.id.spinner_walk_pack);
-                      String[] walkPacks = {"Basic Walk", "Smooth Walk", "Fast Walk"};
-                      ArrayAdapter<String> a5 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,walkPacks);
-                      a5.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                      spinnerWalkPack.setAdapter(a5);
-                      spinnerWalkPack.setSelection(PlayerPrefs.getWalkPack());
-                      spinnerWalkPack.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                          @Override
-                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                              if(previewRen != null) previewRen.walkPack = position;
-                          }
-                          @Override
-                          public void onNothingSelected(AdapterView<?> parent) {}
-                      });
-
-                      spinnerJumpPack = findViewById(R.id.spinner_jump_pack);
-                      String[] jumpPacks = {"Basic Jump", "Mid Jump", "High Jump"};
-                      ArrayAdapter<String> a6 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,jumpPacks);
-                      a6.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                      spinnerJumpPack.setAdapter(a6);
-                      spinnerJumpPack.setSelection(PlayerPrefs.getJumpPack());
-                      spinnerJumpPack.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                          @Override
-                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                              if(previewRen != null) previewRen.jumpPack = position;
-                          }
-                          @Override
-                          public void onNothingSelected(AdapterView<?> parent) {}
-                      });
-
-                      Button tabAppearance = findViewById(R.id.tab_appearance);
-                      Button tabAnimations = findViewById(R.id.tab_animations);
-                      ScrollView scrollAppearance = findViewById(R.id.scroll_appearance);
-                      ScrollView scrollAnimations = findViewById(R.id.scroll_animations);
-
-                      tabAppearance.setOnClickListener(v->{
-                          currentTab = 0;
-                          tabAppearance.setBackgroundResource(R.drawable.tab_bg_selected);
-                          tabAppearance.setTextColor(0xFFFFFFFF);
-                          tabAnimations.setBackgroundResource(R.drawable.tab_bg);
-                          tabAnimations.setTextColor(0xFFFFFFFF);
-                          scrollAppearance.setVisibility(View.VISIBLE);
-                          scrollAnimations.setVisibility(View.GONE);
-                      });
-
-                      tabAnimations.setOnClickListener(v->{
-                          currentTab = 1;
-                          tabAnimations.setBackgroundResource(R.drawable.tab_bg_selected);
-                          tabAnimations.setTextColor(0xFFFFFFFF);
-                          tabAppearance.setBackgroundResource(R.drawable.tab_bg);
-                          tabAppearance.setTextColor(0xFFFFFFFF);
-                          scrollAnimations.setVisibility(View.VISIBLE);
-                          scrollAppearance.setVisibility(View.GONE);
-                      });
-
-                      findViewById(R.id.btn_apply_appearance).setOnClickListener(v->{
-                          int cost = 0;
-                          int oldSkin = PlayerPrefs.getSkinColor();
-                          int oldTorso = PlayerPrefs.getTorsoColor();
-                          int oldLegs = PlayerPrefs.getLegsColor();
-                          int oldFace = PlayerPrefs.getFaceType();
-
-                          int newSkin = spinnerSkin.getSelectedItemPosition();
-                          int newTorso = spinnerTorso.getSelectedItemPosition();
-                          int newLegs = spinnerLegs.getSelectedItemPosition();
-                          int newFace = spinnerFace.getSelectedItemPosition();
-
-                          if(newSkin != oldSkin) cost += 50;
-                          if(newTorso != oldTorso) cost += 30;
-                          if(newLegs != oldLegs) cost += 30;
-                          if(newFace != oldFace) cost += 100;
-
-                          if(cost > 0 && !PlayerPrefs.isInfiniteRigids() && cost > PlayerPrefs.getRigids()){
-                              Toast.makeText(this,"Not enough Rigid's!",Toast.LENGTH_SHORT).show();
-                              return;
-                          }
-
-                          if(!PlayerPrefs.isInfiniteRigids()) PlayerPrefs.addRigids(-cost);
-                          PlayerPrefs.setSkinColor(newSkin);
-                          PlayerPrefs.setTorsoColor(newTorso);
-                          PlayerPrefs.setLegsColor(newLegs);
-                          PlayerPrefs.setFaceType(newFace);
-                          loadCustomization();
-                          updRigidDisplay();
-                          Toast.makeText(this,"Appearance applied!",Toast.LENGTH_SHORT).show();
-                      });
-
-                      findViewById(R.id.btn_apply_animations).setOnClickListener(v->{
-                          int cost = 0;
-                          int oldWalk = PlayerPrefs.getWalkPack();
-                          int oldJump = PlayerPrefs.getJumpPack();
-
-                          int newWalk = spinnerWalkPack.getSelectedItemPosition();
-                          int newJump = spinnerJumpPack.getSelectedItemPosition();
-
-                          if(newWalk != oldWalk) cost += 150;
-                          if(newJump != oldJump) cost += 150;
-
-                          if(cost > 0 && !PlayerPrefs.isInfiniteRigids() && cost > PlayerPrefs.getRigids()){
-                              Toast.makeText(this,"Not enough Rigid's!",Toast.LENGTH_SHORT).show();
-                              return;
-                          }
-
-                          if(!PlayerPrefs.isInfiniteRigids()) PlayerPrefs.addRigids(-cost);
-                          PlayerPrefs.setWalkPack(newWalk);
-                          PlayerPrefs.setJumpPack(newJump);
-                          loadCustomization();
-                          updRigidDisplay();
-                          Toast.makeText(this,"Animation packs applied!",Toast.LENGTH_SHORT).show();
-                      });
-                  } catch(Exception e) {
-                      e.printStackTrace();
-                  }
+              @Override
+              protected void onResume() {
+                  super.onResume();
+                  loadCustomization();
+                  updRigidDisplay();
               }
 
               private void startRigidTimer(){
@@ -2600,7 +2567,7 @@ jobs:
               private final Runnable rigidCheckRunnable = new Runnable() {
                   @Override
                   public void run() {
-                      if(pendingMode == 1 && !ren.isEngineMode && !PlayerPrefs.isInfiniteRigids()){
+                      if(pendingMode == 1 && !ren.isEngineMode){
                           long elapsed = System.currentTimeMillis() - rigidTimer;
                           if(elapsed >= 180000){
                               PlayerPrefs.addRigids(10);
@@ -2623,10 +2590,8 @@ jobs:
               private void updRigidDisplay(){
                   runOnUiThread(()->{
                       int r = PlayerPrefs.getRigids();
-                      String text = PlayerPrefs.isInfiniteRigids() ? "💰 ∞ Rigid's" : "💰 " + r + " Rigid's";
-                      txtRigids.setText(text);
-                      txtMenuRigids.setText(text);
-                      txtCustomizeRigids.setText(PlayerPrefs.isInfiniteRigids() ? "💰 ∞" : "💰 " + r);
+                      txtRigids.setText("💰 " + r + " Rigid's");
+                      txtMenuRigids.setText("💰 " + r + " Rigid's");
                   });
               }
 
@@ -2635,8 +2600,7 @@ jobs:
                   ren.torsoColor = PlayerPrefs.getTorsoColor();
                   ren.legsColor = PlayerPrefs.getLegsColor();
                   ren.faceType = PlayerPrefs.getFaceType();
-                  ren.walkPack = PlayerPrefs.getWalkPack();
-                  ren.jumpPack = PlayerPrefs.getJumpPack();
+                  ren.animPack = PlayerPrefs.getAnimPack();
               }
 
               private void showScriptDialog(){
@@ -2649,7 +2613,7 @@ jobs:
                   );
                   input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
 
-                  new android.app.AlertDialog.Builder(this)
+                  new AlertDialog.Builder(this)
                       .setTitle("Script")
                       .setView(input)
                       .setPositiveButton("Run", (d,w)->{
@@ -2687,7 +2651,7 @@ jobs:
                   root.addView(t2); root.addView(e2);
                   root.addView(t3); root.addView(e3);
 
-                  new android.app.AlertDialog.Builder(this)
+                  new AlertDialog.Builder(this)
                       .setTitle("Block Events")
                       .setView(root)
                       .setPositiveButton("Save", (d,w)->{
@@ -2777,7 +2741,8 @@ jobs:
                           lx=e.getX();ly=e.getY();
                       }else if(e.getAction()==MotionEvent.ACTION_MOVE){
                           ren.rY+=(e.getX()-lx)*.25f;
-                          ren.rX+=(ly-e.getY())*.25f;
+                          float newRX = ren.rX + (ly-e.getY())*.25f;
+                          ren.rX = Math.max(-LOOK_LIMIT, Math.min(LOOK_LIMIT, newRX));
                           lx=e.getX();ly=e.getY();
                       }
                       return true;
@@ -2812,7 +2777,7 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application
-                  android:label="Enjoer 6.1 Final"
+                  android:label="Enjoer 6.1 Enhanced"
                   android:theme="@style/AppTheme">
                   <activity
                       android:name="com.enjoer.game.MainActivity"
@@ -2823,6 +2788,10 @@ jobs:
                           <category android:name="android.intent.category.LAUNCHER"/>
                       </intent-filter>
                   </activity>
+                  <activity
+                      android:name="com.enjoer.game.CustomizeActivity"
+                      android:exported="false"
+                      android:screenOrientation="portrait"/>
               </application>
           </manifest>
           EOF
@@ -2876,5 +2845,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_6.1_Complete_Final
+          name: Enjoer_6.1_Enhanced
           path: app/build/outputs/apk/debug/app-debug.apk
