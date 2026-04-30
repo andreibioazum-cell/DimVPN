@@ -1,4 +1,4 @@
-name: Enjoer_6.1_Enhanced_Fixed
+name: Enjoer_6.1_Complete_Final
 on: [push, workflow_dispatch]
 
 jobs:
@@ -838,6 +838,16 @@ jobs:
                       android:layout_marginBottom="16dp"/>
 
                   <Button
+                      android:id="@+id/btn_login"
+                      android:layout_width="240dp"
+                      android:layout_height="60dp"
+                      android:text="Login"
+                      android:textSize="18sp"
+                      android:textColor="#00BFFF"
+                      android:background="@drawable/btn_blue"
+                      android:layout_marginBottom="16dp"/>
+
+                  <Button
                       android:id="@+id/btn_load_file"
                       android:layout_width="240dp"
                       android:layout_height="60dp"
@@ -913,7 +923,7 @@ jobs:
                               android:layout_weight="1"
                               android:text="Appearance"
                               android:background="@drawable/tab_bg_selected"
-                              android:textColor="#000"
+                              android:textColor="#FFFFFF"
                               android:layout_marginRight="5dp"/>
 
                           <Button
@@ -923,7 +933,7 @@ jobs:
                               android:layout_weight="1"
                               android:text="Animations"
                               android:background="@drawable/tab_bg"
-                              android:textColor="#00BFFF"
+                              android:textColor="#FFFFFF"
                               android:layout_marginLeft="5dp"/>
                       </LinearLayout>
 
@@ -943,12 +953,18 @@ jobs:
                                   android:layout_height="wrap_content"
                                   android:orientation="vertical">
 
-                                  <android.opengl.GLSurfaceView
-                                      android:id="@+id/preview_view"
+                                  <FrameLayout
                                       android:layout_width="200dp"
                                       android:layout_height="300dp"
                                       android:layout_gravity="center"
-                                      android:layout_marginBottom="20dp"/>
+                                      android:background="@drawable/panel_bg"
+                                      android:layout_marginBottom="20dp">
+
+                                      <android.opengl.GLSurfaceView
+                                          android:id="@+id/preview_view"
+                                          android:layout_width="match_parent"
+                                          android:layout_height="match_parent"/>
+                                  </FrameLayout>
 
                                   <TextView
                                       android:layout_width="match_parent"
@@ -1129,6 +1145,7 @@ jobs:
               }
 
               public static int getRigids() {
+                  if(isInfiniteRigids()) return 999999;
                   return prefs.getInt("rigids", 0);
               }
 
@@ -1137,7 +1154,23 @@ jobs:
               }
 
               public static void addRigids(int val) {
-                  setRigids(getRigids() + val);
+                  if(!isInfiniteRigids()) setRigids(getRigids() + val);
+              }
+
+              public static boolean isInfiniteRigids() {
+                  return prefs.getBoolean("infiniteRigids", false);
+              }
+
+              public static void setInfiniteRigids(boolean val) {
+                  prefs.edit().putBoolean("infiniteRigids", val).apply();
+              }
+
+              public static String getUsername() {
+                  return prefs.getString("username", "");
+              }
+
+              public static void setUsername(String val) {
+                  prefs.edit().putString("username", val).apply();
               }
 
               public static int getSkinColor() {
@@ -1365,9 +1398,7 @@ jobs:
                   return Math.max(0f, Math.min(1f, v));
               }
           }
-          SCRIPT
-
-          cat <<'RENDERER' > app/src/main/java/com/enjoer/game/GameRenderer.java
+          SCRIPT          cat <<'RENDERER' > app/src/main/java/com/enjoer/game/GameRenderer.java
           package com.enjoer.game;
 
           import android.opengl.GLES30;
@@ -1641,7 +1672,7 @@ jobs:
                   }
 
                   Matrix.multiplyMM(vp,0,proj,0,view,0);
-                  drawSky();
+                  if(!isPreviewMode) drawSky();
                   drawWorld(vx,vy,vz);
               }
 
@@ -1953,9 +1984,7 @@ jobs:
                   return sh;
               }
           }
-          RENDERER
-
-          cat <<'MAINACT' > app/src/main/java/com/enjoer/game/MainActivity.java
+          RENDERER          cat <<'MAINACT' > app/src/main/java/com/enjoer/game/MainActivity.java
           package com.enjoer.game;
 
           import android.annotation.SuppressLint;
@@ -2168,8 +2197,10 @@ jobs:
                       menuUI.setVisibility(View.GONE);
                       customizeUI.setVisibility(View.VISIBLE);
                       updRigidDisplay();
-                      setupCustomizeUI();
+                      handler.postDelayed(() -> setupCustomizeUI(), 100);
                   });
+
+                  findViewById(R.id.btn_login).setOnClickListener(v-> showLoginDialog());
 
                   findViewById(R.id.btn_load_file).setOnClickListener(v->{
                       Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -2342,188 +2373,219 @@ jobs:
                   loadCustomization();
               }
 
+              private void showLoginDialog(){
+                  EditText input = new EditText(this);
+                  input.setHint("Username");
+                  input.setInputType(InputType.TYPE_CLASS_TEXT);
+
+                  new android.app.AlertDialog.Builder(this)
+                      .setTitle("Login")
+                      .setView(input)
+                      .setPositiveButton("Login", (d,w)->{
+                          String username = input.getText().toString().trim();
+                          if(username.equals("Dimasi4ek229secret")){
+                              PlayerPrefs.setUsername(username);
+                              PlayerPrefs.setInfiniteRigids(true);
+                              updRigidDisplay();
+                              Toast.makeText(this,"Welcome, " + username + "! Infinite Rigid's activated!",Toast.LENGTH_LONG).show();
+                          } else if(!username.isEmpty()){
+                              PlayerPrefs.setUsername(username);
+                              PlayerPrefs.setInfiniteRigids(false);
+                              Toast.makeText(this,"Logged in as " + username,Toast.LENGTH_SHORT).show();
+                          }
+                      })
+                      .setNegativeButton("Cancel", null)
+                      .show();
+              }
+
               private void setupCustomizeUI(){
-                  android.opengl.GLSurfaceView previewView = findViewById(R.id.preview_view);
-                  previewView.setEGLContextClientVersion(3);
-                  previewRen = new GameRenderer();
-                  previewRen.isPreviewMode = true;
-                  previewRen.skinColor = ren.skinColor;
-                  previewRen.torsoColor = ren.torsoColor;
-                  previewRen.legsColor = ren.legsColor;
-                  previewRen.faceType = ren.faceType;
-                  previewRen.walkPack = ren.walkPack;
-                  previewRen.jumpPack = ren.jumpPack;
-                  previewView.setRenderer(previewRen);
-
-                  String[] colorNames = {"Yellow","Blue","Green","Red","White","Black"};
-                  
-                  spinnerSkin = findViewById(R.id.spinner_skin);
-                  ArrayAdapter<String> a1 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
-                  a1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                  spinnerSkin.setAdapter(a1);
-                  spinnerSkin.setSelection(PlayerPrefs.getSkinColor());
-                  spinnerSkin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                      @Override
-                      public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                          previewRen.skinColor = position;
-                      }
-                      @Override
-                      public void onNothingSelected(AdapterView<?> parent) {}
-                  });
-
-                  spinnerTorso = findViewById(R.id.spinner_torso);
-                  ArrayAdapter<String> a2 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
-                  a2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                  spinnerTorso.setAdapter(a2);
-                  spinnerTorso.setSelection(PlayerPrefs.getTorsoColor());
-                  spinnerTorso.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                      @Override
-                      public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                          previewRen.torsoColor = position;
-                      }
-                      @Override
-                      public void onNothingSelected(AdapterView<?> parent) {}
-                  });
-
-                  spinnerLegs = findViewById(R.id.spinner_legs);
-                  ArrayAdapter<String> a3 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
-                  a3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                  spinnerLegs.setAdapter(a3);
-                  spinnerLegs.setSelection(PlayerPrefs.getLegsColor());
-                  spinnerLegs.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                      @Override
-                      public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                          previewRen.legsColor = position;
-                      }
-                      @Override
-                      public void onNothingSelected(AdapterView<?> parent) {}
-                  });
-
-                  spinnerFace = findViewById(R.id.spinner_face);
-                  String[] faceNames = {"Smile", "Big Smile", "Dot"};
-                  ArrayAdapter<String> a4 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,faceNames);
-                  a4.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                  spinnerFace.setAdapter(a4);
-                  spinnerFace.setSelection(PlayerPrefs.getFaceType());
-                  spinnerFace.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                      @Override
-                      public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                          previewRen.faceType = position;
-                      }
-                      @Override
-                      public void onNothingSelected(AdapterView<?> parent) {}
-                  });
-
-                  spinnerWalkPack = findViewById(R.id.spinner_walk_pack);
-                  String[] walkPacks = {"Basic Walk", "Smooth Walk", "Fast Walk"};
-                  ArrayAdapter<String> a5 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,walkPacks);
-                  a5.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                  spinnerWalkPack.setAdapter(a5);
-                  spinnerWalkPack.setSelection(PlayerPrefs.getWalkPack());
-                  spinnerWalkPack.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                      @Override
-                      public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                          previewRen.walkPack = position;
-                      }
-                      @Override
-                      public void onNothingSelected(AdapterView<?> parent) {}
-                  });
-
-                  spinnerJumpPack = findViewById(R.id.spinner_jump_pack);
-                  String[] jumpPacks = {"Basic Jump", "Mid Jump", "High Jump"};
-                  ArrayAdapter<String> a6 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,jumpPacks);
-                  a6.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                  spinnerJumpPack.setAdapter(a6);
-                  spinnerJumpPack.setSelection(PlayerPrefs.getJumpPack());
-                  spinnerJumpPack.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                      @Override
-                      public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                          previewRen.jumpPack = position;
-                      }
-                      @Override
-                      public void onNothingSelected(AdapterView<?> parent) {}
-                  });
-
-                  Button tabAppearance = findViewById(R.id.tab_appearance);
-                  Button tabAnimations = findViewById(R.id.tab_animations);
-                  ScrollView scrollAppearance = findViewById(R.id.scroll_appearance);
-                  ScrollView scrollAnimations = findViewById(R.id.scroll_animations);
-
-                  tabAppearance.setOnClickListener(v->{
-                      currentTab = 0;
-                      tabAppearance.setBackgroundResource(R.drawable.tab_bg_selected);
-                      tabAppearance.setTextColor(0xFF000000);
-                      tabAnimations.setBackgroundResource(R.drawable.tab_bg);
-                      tabAnimations.setTextColor(0xFF00BFFF);
-                      scrollAppearance.setVisibility(View.VISIBLE);
-                      scrollAnimations.setVisibility(View.GONE);
-                  });
-
-                  tabAnimations.setOnClickListener(v->{
-                      currentTab = 1;
-                      tabAnimations.setBackgroundResource(R.drawable.tab_bg_selected);
-                      tabAnimations.setTextColor(0xFF000000);
-                      tabAppearance.setBackgroundResource(R.drawable.tab_bg);
-                      tabAppearance.setTextColor(0xFF00BFFF);
-                      scrollAnimations.setVisibility(View.VISIBLE);
-                      scrollAppearance.setVisibility(View.GONE);
-                  });
-
-                  findViewById(R.id.btn_apply_appearance).setOnClickListener(v->{
-                      int cost = 0;
-                      int oldSkin = PlayerPrefs.getSkinColor();
-                      int oldTorso = PlayerPrefs.getTorsoColor();
-                      int oldLegs = PlayerPrefs.getLegsColor();
-                      int oldFace = PlayerPrefs.getFaceType();
-
-                      int newSkin = spinnerSkin.getSelectedItemPosition();
-                      int newTorso = spinnerTorso.getSelectedItemPosition();
-                      int newLegs = spinnerLegs.getSelectedItemPosition();
-                      int newFace = spinnerFace.getSelectedItemPosition();
-
-                      if(newSkin != oldSkin) cost += 50;
-                      if(newTorso != oldTorso) cost += 30;
-                      if(newLegs != oldLegs) cost += 30;
-                      if(newFace != oldFace) cost += 100;
-
-                      if(cost > PlayerPrefs.getRigids()){
-                          Toast.makeText(this,"Not enough Rigid's!",Toast.LENGTH_SHORT).show();
-                          return;
+                  try {
+                      android.opengl.GLSurfaceView previewView = findViewById(R.id.preview_view);
+                      if(previewView != null && previewRen == null){
+                          previewView.setEGLContextClientVersion(3);
+                          previewRen = new GameRenderer();
+                          previewRen.isPreviewMode = true;
+                          previewRen.skinColor = ren.skinColor;
+                          previewRen.torsoColor = ren.torsoColor;
+                          previewRen.legsColor = ren.legsColor;
+                          previewRen.faceType = ren.faceType;
+                          previewRen.walkPack = ren.walkPack;
+                          previewRen.jumpPack = ren.jumpPack;
+                          previewView.setRenderer(previewRen);
                       }
 
-                      PlayerPrefs.addRigids(-cost);
-                      PlayerPrefs.setSkinColor(newSkin);
-                      PlayerPrefs.setTorsoColor(newTorso);
-                      PlayerPrefs.setLegsColor(newLegs);
-                      PlayerPrefs.setFaceType(newFace);
-                      loadCustomization();
-                      updRigidDisplay();
-                      Toast.makeText(this,"Appearance applied!",Toast.LENGTH_SHORT).show();
-                  });
+                      String[] colorNames = {"Yellow","Blue","Green","Red","White","Black"};
+                      
+                      spinnerSkin = findViewById(R.id.spinner_skin);
+                      ArrayAdapter<String> a1 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
+                      a1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                      spinnerSkin.setAdapter(a1);
+                      spinnerSkin.setSelection(PlayerPrefs.getSkinColor());
+                      spinnerSkin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                          @Override
+                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                              if(previewRen != null) previewRen.skinColor = position;
+                          }
+                          @Override
+                          public void onNothingSelected(AdapterView<?> parent) {}
+                      });
 
-                  findViewById(R.id.btn_apply_animations).setOnClickListener(v->{
-                      int cost = 0;
-                      int oldWalk = PlayerPrefs.getWalkPack();
-                      int oldJump = PlayerPrefs.getJumpPack();
+                      spinnerTorso = findViewById(R.id.spinner_torso);
+                      ArrayAdapter<String> a2 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
+                      a2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                      spinnerTorso.setAdapter(a2);
+                      spinnerTorso.setSelection(PlayerPrefs.getTorsoColor());
+                      spinnerTorso.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                          @Override
+                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                              if(previewRen != null) previewRen.torsoColor = position;
+                          }
+                          @Override
+                          public void onNothingSelected(AdapterView<?> parent) {}
+                      });
 
-                      int newWalk = spinnerWalkPack.getSelectedItemPosition();
-                      int newJump = spinnerJumpPack.getSelectedItemPosition();
+                      spinnerLegs = findViewById(R.id.spinner_legs);
+                      ArrayAdapter<String> a3 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,colorNames);
+                      a3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                      spinnerLegs.setAdapter(a3);
+                      spinnerLegs.setSelection(PlayerPrefs.getLegsColor());
+                      spinnerLegs.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                          @Override
+                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                              if(previewRen != null) previewRen.legsColor = position;
+                          }
+                          @Override
+                          public void onNothingSelected(AdapterView<?> parent) {}
+                      });
 
-                      if(newWalk != oldWalk) cost += 150;
-                      if(newJump != oldJump) cost += 150;
+                      spinnerFace = findViewById(R.id.spinner_face);
+                      String[] faceNames = {"Smile", "Big Smile", "Dot"};
+                      ArrayAdapter<String> a4 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,faceNames);
+                      a4.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                      spinnerFace.setAdapter(a4);
+                      spinnerFace.setSelection(PlayerPrefs.getFaceType());
+                      spinnerFace.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                          @Override
+                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                              if(previewRen != null) previewRen.faceType = position;
+                          }
+                          @Override
+                          public void onNothingSelected(AdapterView<?> parent) {}
+                      });
 
-                      if(cost > PlayerPrefs.getRigids()){
-                          Toast.makeText(this,"Not enough Rigid's!",Toast.LENGTH_SHORT).show();
-                          return;
-                      }
+                      spinnerWalkPack = findViewById(R.id.spinner_walk_pack);
+                      String[] walkPacks = {"Basic Walk", "Smooth Walk", "Fast Walk"};
+                      ArrayAdapter<String> a5 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,walkPacks);
+                      a5.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                      spinnerWalkPack.setAdapter(a5);
+                      spinnerWalkPack.setSelection(PlayerPrefs.getWalkPack());
+                      spinnerWalkPack.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                          @Override
+                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                              if(previewRen != null) previewRen.walkPack = position;
+                          }
+                          @Override
+                          public void onNothingSelected(AdapterView<?> parent) {}
+                      });
 
-                      PlayerPrefs.addRigids(-cost);
-                      PlayerPrefs.setWalkPack(newWalk);
-                      PlayerPrefs.setJumpPack(newJump);
-                      loadCustomization();
-                      updRigidDisplay();
-                      Toast.makeText(this,"Animation packs applied!",Toast.LENGTH_SHORT).show();
-                  });
+                      spinnerJumpPack = findViewById(R.id.spinner_jump_pack);
+                      String[] jumpPacks = {"Basic Jump", "Mid Jump", "High Jump"};
+                      ArrayAdapter<String> a6 = new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,jumpPacks);
+                      a6.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                      spinnerJumpPack.setAdapter(a6);
+                      spinnerJumpPack.setSelection(PlayerPrefs.getJumpPack());
+                      spinnerJumpPack.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                          @Override
+                          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                              if(previewRen != null) previewRen.jumpPack = position;
+                          }
+                          @Override
+                          public void onNothingSelected(AdapterView<?> parent) {}
+                      });
+
+                      Button tabAppearance = findViewById(R.id.tab_appearance);
+                      Button tabAnimations = findViewById(R.id.tab_animations);
+                      ScrollView scrollAppearance = findViewById(R.id.scroll_appearance);
+                      ScrollView scrollAnimations = findViewById(R.id.scroll_animations);
+
+                      tabAppearance.setOnClickListener(v->{
+                          currentTab = 0;
+                          tabAppearance.setBackgroundResource(R.drawable.tab_bg_selected);
+                          tabAppearance.setTextColor(0xFFFFFFFF);
+                          tabAnimations.setBackgroundResource(R.drawable.tab_bg);
+                          tabAnimations.setTextColor(0xFFFFFFFF);
+                          scrollAppearance.setVisibility(View.VISIBLE);
+                          scrollAnimations.setVisibility(View.GONE);
+                      });
+
+                      tabAnimations.setOnClickListener(v->{
+                          currentTab = 1;
+                          tabAnimations.setBackgroundResource(R.drawable.tab_bg_selected);
+                          tabAnimations.setTextColor(0xFFFFFFFF);
+                          tabAppearance.setBackgroundResource(R.drawable.tab_bg);
+                          tabAppearance.setTextColor(0xFFFFFFFF);
+                          scrollAnimations.setVisibility(View.VISIBLE);
+                          scrollAppearance.setVisibility(View.GONE);
+                      });
+
+                      findViewById(R.id.btn_apply_appearance).setOnClickListener(v->{
+                          int cost = 0;
+                          int oldSkin = PlayerPrefs.getSkinColor();
+                          int oldTorso = PlayerPrefs.getTorsoColor();
+                          int oldLegs = PlayerPrefs.getLegsColor();
+                          int oldFace = PlayerPrefs.getFaceType();
+
+                          int newSkin = spinnerSkin.getSelectedItemPosition();
+                          int newTorso = spinnerTorso.getSelectedItemPosition();
+                          int newLegs = spinnerLegs.getSelectedItemPosition();
+                          int newFace = spinnerFace.getSelectedItemPosition();
+
+                          if(newSkin != oldSkin) cost += 50;
+                          if(newTorso != oldTorso) cost += 30;
+                          if(newLegs != oldLegs) cost += 30;
+                          if(newFace != oldFace) cost += 100;
+
+                          if(cost > 0 && !PlayerPrefs.isInfiniteRigids() && cost > PlayerPrefs.getRigids()){
+                              Toast.makeText(this,"Not enough Rigid's!",Toast.LENGTH_SHORT).show();
+                              return;
+                          }
+
+                          if(!PlayerPrefs.isInfiniteRigids()) PlayerPrefs.addRigids(-cost);
+                          PlayerPrefs.setSkinColor(newSkin);
+                          PlayerPrefs.setTorsoColor(newTorso);
+                          PlayerPrefs.setLegsColor(newLegs);
+                          PlayerPrefs.setFaceType(newFace);
+                          loadCustomization();
+                          updRigidDisplay();
+                          Toast.makeText(this,"Appearance applied!",Toast.LENGTH_SHORT).show();
+                      });
+
+                      findViewById(R.id.btn_apply_animations).setOnClickListener(v->{
+                          int cost = 0;
+                          int oldWalk = PlayerPrefs.getWalkPack();
+                          int oldJump = PlayerPrefs.getJumpPack();
+
+                          int newWalk = spinnerWalkPack.getSelectedItemPosition();
+                          int newJump = spinnerJumpPack.getSelectedItemPosition();
+
+                          if(newWalk != oldWalk) cost += 150;
+                          if(newJump != oldJump) cost += 150;
+
+                          if(cost > 0 && !PlayerPrefs.isInfiniteRigids() && cost > PlayerPrefs.getRigids()){
+                              Toast.makeText(this,"Not enough Rigid's!",Toast.LENGTH_SHORT).show();
+                              return;
+                          }
+
+                          if(!PlayerPrefs.isInfiniteRigids()) PlayerPrefs.addRigids(-cost);
+                          PlayerPrefs.setWalkPack(newWalk);
+                          PlayerPrefs.setJumpPack(newJump);
+                          loadCustomization();
+                          updRigidDisplay();
+                          Toast.makeText(this,"Animation packs applied!",Toast.LENGTH_SHORT).show();
+                      });
+                  } catch(Exception e) {
+                      e.printStackTrace();
+                  }
               }
 
               private void startRigidTimer(){
@@ -2538,7 +2600,7 @@ jobs:
               private final Runnable rigidCheckRunnable = new Runnable() {
                   @Override
                   public void run() {
-                      if(pendingMode == 1 && !ren.isEngineMode){
+                      if(pendingMode == 1 && !ren.isEngineMode && !PlayerPrefs.isInfiniteRigids()){
                           long elapsed = System.currentTimeMillis() - rigidTimer;
                           if(elapsed >= 180000){
                               PlayerPrefs.addRigids(10);
@@ -2561,9 +2623,10 @@ jobs:
               private void updRigidDisplay(){
                   runOnUiThread(()->{
                       int r = PlayerPrefs.getRigids();
-                      txtRigids.setText("💰 " + r + " Rigid's");
-                      txtMenuRigids.setText("💰 " + r + " Rigid's");
-                      txtCustomizeRigids.setText("💰 " + r);
+                      String text = PlayerPrefs.isInfiniteRigids() ? "💰 ∞ Rigid's" : "💰 " + r + " Rigid's";
+                      txtRigids.setText(text);
+                      txtMenuRigids.setText(text);
+                      txtCustomizeRigids.setText(PlayerPrefs.isInfiniteRigids() ? "💰 ∞" : "💰 " + r);
                   });
               }
 
@@ -2813,5 +2876,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_6.1_Final
+          name: Enjoer_6.1_Complete_Final
           path: app/build/outputs/apk/debug/app-debug.apk
