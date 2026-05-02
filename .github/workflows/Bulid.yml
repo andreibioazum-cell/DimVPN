@@ -27,15 +27,15 @@ jobs:
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
 
-          cat <<EOF > app/src/main/res/values/themes.xml
+          cat > app/src/main/res/values/themes.xml << 'THEMES'
           <resources>
             <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
               <item name="android:windowFullscreen">true</item>
             </style>
           </resources>
-          EOF
+          THEMES
 
-          cat <<EOF > app/src/main/res/drawable/btn_blue.xml
+          cat > app/src/main/res/drawable/btn_blue.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#101820"/>
@@ -43,14 +43,14 @@ jobs:
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/btn_blue_filled.xml
+          cat > app/src/main/res/drawable/btn_blue_filled.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#00BFFF"/>
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/btn_red.xml
+          cat > app/src/main/res/drawable/btn_red.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#101820"/>
@@ -58,21 +58,14 @@ jobs:
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/btn_green.xml
+          cat > app/src/main/res/drawable/btn_green.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#44FF44"/>
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/btn_gold.xml
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-            <corners android:radius="12dp"/>
-            <solid android:color="#FFD700"/>
-          </shape>
-          EOF
-
-          cat <<EOF > app/src/main/res/drawable/btn_purple.xml
+          cat > app/src/main/res/drawable/btn_purple.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#101820"/>
@@ -80,20 +73,20 @@ jobs:
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/joy_base.xml
+          cat > app/src/main/res/drawable/joy_base.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
             <solid android:color="#CC101820"/>
             <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/joy_stick.xml
+          cat > app/src/main/res/drawable/joy_stick.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
             <solid android:color="#00BFFF"/>
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/panel_bg.xml
+          cat > app/src/main/res/drawable/panel_bg.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="8dp"/>
             <solid android:color="#E6101820"/>
@@ -101,22 +94,22 @@ jobs:
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/color_btn.xml
+          cat > app/src/main/res/drawable/color_btn.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
             <solid android:color="#FFF"/>
             <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/crosshair.xml
+          cat > app/src/main/res/drawable/crosshair.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-            <solid android:color="#8800BFFF"/>
+            <solid android:color="#AA00BFFF"/>
             <stroke android:width="2dp" android:color="#FF00BFFF"/>
             <size android:width="12dp" android:height="12dp"/>
           </shape>
           EOF
 
-          cat <<EOF > app/src/main/res/drawable/ridix_bg.xml
+          cat > app/src/main/res/drawable/ridix_bg.xml << 'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#CC0A1428"/>
@@ -124,7 +117,7 @@ jobs:
           </shape>
           EOF
 
-          cat <<'LAYOUT' > app/src/main/res/layout/activity_main.xml
+          cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
           <?xml version="1.0" encoding="utf-8"?>
           <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
@@ -136,7 +129,6 @@ jobs:
                   android:layout_width="match_parent"
                   android:layout_height="match_parent"/>
 
-              <!-- GAME UI -->
               <RelativeLayout
                   android:id="@+id/game_ui"
                   android:layout_width="match_parent"
@@ -150,11 +142,11 @@ jobs:
 
                   <Button
                       android:id="@+id/btn_menu"
-                      android:layout_width="50dp"
+                      android:layout_width="70dp"
                       android:layout_height="50dp"
                       android:layout_margin="10dp"
                       android:text="Menu"
-                      android:textSize="11sp"
+                      android:textSize="12sp"
                       android:background="@drawable/btn_blue"
                       android:textColor="#00BFFF"/>
 
@@ -199,7 +191,6 @@ jobs:
                       android:background="@drawable/crosshair"/>
               </RelativeLayout>
 
-              <!-- ENGINE UI -->
               <RelativeLayout
                   android:id="@+id/engine_ui"
                   android:layout_width="match_parent"
@@ -220,17 +211,14 @@ jobs:
 
                       <Button
                           android:id="@+id/btn_engine_menu"
-                          android:layout_width="50dp"
+                          android:layout_width="70dp"
                           android:layout_height="50dp"
                           android:text="Menu"
-                          android:textSize="11sp"
+                          android:textSize="12sp"
                           android:background="@drawable/btn_blue"
                           android:textColor="#00BFFF"/>
 
-                      <View
-                          android:layout_width="0dp"
-                          android:layout_height="1dp"
-                          android:layout_weight="1"/>
+                      <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
 
                       <Button
                           android:id="@+id/btn_run_script"
@@ -253,7 +241,7 @@ jobs:
 
                       <Button
                           android:id="@+id/btn_play_level"
-                          android:layout_width="50dp"
+                          android:layout_width="60dp"
                           android:layout_height="50dp"
                           android:text="Play"
                           android:textSize="12sp"
@@ -283,12 +271,11 @@ jobs:
                       android:background="@drawable/joy_stick"/>
 
                   <ScrollView
-                      android:id="@+id/tools_scroll"
                       android:layout_width="210dp"
                       android:layout_height="match_parent"
                       android:layout_alignParentRight="true"
-                      android:layout_marginRight="10dp"
                       android:layout_marginTop="70dp"
+                      android:layout_marginRight="10dp"
                       android:layout_marginBottom="10dp">
 
                       <LinearLayout
@@ -298,307 +285,57 @@ jobs:
                           android:background="@drawable/panel_bg"
                           android:padding="10dp">
 
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="Shape"
-                              android:textColor="#FFFFFF"
-                              android:textStyle="bold"/>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Shape" android:textColor="#FFF" android:textStyle="bold"/>
 
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="6dp">
-
-                              <Button
-                                  android:id="@+id/shape_square"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Square"
-                                  android:background="@drawable/btn_blue_filled"
-                                  android:textColor="#000"/>
-
-                              <Button
-                                  android:id="@+id/shape_rectangle"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Rect"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+                              <Button android:id="@+id/shape_square" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Square" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
+                              <Button android:id="@+id/shape_rectangle" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Rect" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
                           </LinearLayout>
 
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="4dp">
-
-                              <Button
-                                  android:id="@+id/shape_circle"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Circle"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
-
-                              <Button
-                                  android:id="@+id/shape_triangle"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Triangle"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
+                              <Button android:id="@+id/shape_circle" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Circle" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                              <Button android:id="@+id/shape_triangle" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Triangle" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
                           </LinearLayout>
 
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="Size X / Y / Z"
-                              android:textColor="#FFFFFF"
-                              android:textStyle="bold"
-                              android:layout_marginTop="10dp"/>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Size X/Y/Z" android:textColor="#FFF" android:textStyle="bold" android:layout_marginTop="10dp"/>
 
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="6dp">
-
-                              <Button
-                                  android:id="@+id/size_x_minus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="X-"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
-
-                              <Button
-                                  android:id="@+id/size_x_plus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="X+"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+                              <Button android:id="@+id/size_x_minus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="X-" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                              <Button android:id="@+id/size_x_plus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="X+" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
+                              <Button android:id="@+id/size_y_minus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Y-" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                              <Button android:id="@+id/size_y_plus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Y+" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
+                              <Button android:id="@+id/size_z_minus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Z-" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                              <Button android:id="@+id/size_z_plus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Z+" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
                           </LinearLayout>
 
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="4dp">
+                          <TextView android:id="@+id/txt_size_info" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="4 x 4 x 4" android:textColor="#AEEBFF" android:layout_marginTop="6dp"/>
 
-                              <Button
-                                  android:id="@+id/size_y_minus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Y-"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
+                          <Button android:id="@+id/btn_grid" android:layout_width="match_parent" android:layout_height="36dp" android:text="Grid: On" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:layout_marginTop="8dp"/>
 
-                              <Button
-                                  android:id="@+id/size_y_plus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Y+"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="8dp">
+                              <View android:id="@+id/color_red" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#FF2222"/>
+                              <View android:id="@+id/color_green" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#22FF22" android:layout_marginLeft="5dp"/>
+                              <View android:id="@+id/color_blue" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#2288FF" android:layout_marginLeft="5dp"/>
+                              <View android:id="@+id/color_yellow" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#FFFF22" android:layout_marginLeft="5dp"/>
+                              <View android:id="@+id/color_white" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#FFFFFF" android:layout_marginLeft="5dp"/>
+                              <View android:id="@+id/color_black" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#222222" android:layout_marginLeft="5dp"/>
                           </LinearLayout>
 
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="4dp">
-
-                              <Button
-                                  android:id="@+id/size_z_minus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Z-"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
-
-                              <Button
-                                  android:id="@+id/size_z_plus"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="Z+"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
+                              <Button android:id="@+id/dist_near" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="3" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                              <Button android:id="@+id/dist_mid" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="6" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:layout_marginLeft="4dp"/>
+                              <Button android:id="@+id/dist_far" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="12" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
                           </LinearLayout>
 
-                          <TextView
-                              android:id="@+id/txt_size_info"
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="4 x 4 x 4"
-                              android:textColor="#AEEBFF"
-                              android:layout_marginTop="6dp"/>
-
-                          <Button
-                              android:id="@+id/btn_grid"
-                              android:layout_width="match_parent"
-                              android:layout_height="36dp"
-                              android:text="Grid: On"
-                              android:background="@drawable/btn_blue_filled"
-                              android:textColor="#000"
-                              android:layout_marginTop="8dp"/>
-
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:gravity="center"
-                              android:layout_marginTop="8dp">
-
-                              <View
-                                  android:id="@+id/color_red"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#FF2222"/>
-
-                              <View
-                                  android:id="@+id/color_green"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#22FF22"
-                                  android:layout_marginLeft="5dp"/>
-
-                              <View
-                                  android:id="@+id/color_blue"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#2288FF"
-                                  android:layout_marginLeft="5dp"/>
-
-                              <View
-                                  android:id="@+id/color_yellow"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#FFFF22"
-                                  android:layout_marginLeft="5dp"/>
-
-                              <View
-                                  android:id="@+id/color_white"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#FFFFFF"
-                                  android:layout_marginLeft="5dp"/>
-
-                              <View
-                                  android:id="@+id/color_black"
-                                  android:layout_width="26dp"
-                                  android:layout_height="26dp"
-                                  android:background="@drawable/color_btn"
-                                  android:backgroundTint="#222222"
-                                  android:layout_marginLeft="5dp"/>
-                          </LinearLayout>
-
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:layout_marginTop="8dp">
-
-                              <Button
-                                  android:id="@+id/dist_near"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="3"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"/>
-
-                              <Button
-                                  android:id="@+id/dist_mid"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="6"
-                                  android:background="@drawable/btn_blue_filled"
-                                  android:textColor="#000"
-                                  android:layout_marginLeft="4dp"/>
-
-                              <Button
-                                  android:id="@+id/dist_far"
-                                  android:layout_width="0dp"
-                                  android:layout_height="36dp"
-                                  android:layout_weight="1"
-                                  android:text="12"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:layout_marginLeft="4dp"/>
-                          </LinearLayout>
-
-                          <Button
-                              android:id="@+id/btn_place"
-                              android:layout_width="match_parent"
-                              android:layout_height="44dp"
-                              android:text="+ Place"
-                              android:background="@drawable/btn_blue_filled"
-                              android:textColor="#000"
-                              android:layout_marginTop="12dp"/>
-
-                          <Button
-                              android:id="@+id/btn_block_events"
-                              android:layout_width="match_parent"
-                              android:layout_height="36dp"
-                              android:text="Events"
-                              android:background="@drawable/btn_blue"
-                              android:textColor="#00BFFF"
-                              android:layout_marginTop="8dp"
-                              android:visibility="gone"/>
-
-                          <Button
-                              android:id="@+id/btn_hide"
-                              android:layout_width="match_parent"
-                              android:layout_height="36dp"
-                              android:text="Hide"
-                              android:background="@drawable/btn_blue"
-                              android:textColor="#00BFFF"
-                              android:layout_marginTop="8dp"
-                              android:visibility="gone"/>
-
-                          <Button
-                              android:id="@+id/btn_delete"
-                              android:layout_width="match_parent"
-                              android:layout_height="36dp"
-                              android:text="Delete"
-                              android:background="@drawable/btn_red"
-                              android:textColor="#FF4444"
-                              android:layout_marginTop="8dp"
-                              android:visibility="gone"/>
-
-                          <Button
-                              android:id="@+id/btn_deselect"
-                              android:layout_width="match_parent"
-                              android:layout_height="36dp"
-                              android:text="Deselect"
-                              android:background="@drawable/btn_blue"
-                              android:textColor="#00BFFF"
-                              android:layout_marginTop="8dp"
-                              android:visibility="gone"/>
+                          <Button android:id="@+id/btn_place" android:layout_width="match_parent" android:layout_height="44dp" android:text="+ Place" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:layout_marginTop="12dp"/>
+                          <Button android:id="@+id/btn_block_events" android:layout_width="match_parent" android:layout_height="36dp" android:text="Events" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginTop="8dp" android:visibility="gone"/>
+                          <Button android:id="@+id/btn_hide" android:layout_width="match_parent" android:layout_height="36dp" android:text="Hide" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginTop="8dp" android:visibility="gone"/>
+                          <Button android:id="@+id/btn_delete" android:layout_width="match_parent" android:layout_height="36dp" android:text="Delete" android:background="@drawable/btn_red" android:textColor="#FF4444" android:layout_marginTop="8dp" android:visibility="gone"/>
+                          <Button android:id="@+id/btn_deselect" android:layout_width="match_parent" android:layout_height="36dp" android:text="Deselect" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginTop="8dp" android:visibility="gone"/>
                       </LinearLayout>
                   </ScrollView>
 
@@ -613,139 +350,34 @@ jobs:
                       android:background="@drawable/panel_bg"
                       android:padding="6dp"
                       android:visibility="gone">
-
-                      <Button
-                          android:id="@+id/axis_x_minus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="X-"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#FF4444"
-                          android:textSize="12sp"/>
-
-                      <Button
-                          android:id="@+id/axis_x_plus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="X+"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#FF4444"
-                          android:textSize="12sp"
-                          android:layout_marginLeft="4dp"/>
-
-                      <Button
-                          android:id="@+id/axis_y_minus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="Y-"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#44FF44"
-                          android:textSize="12sp"
-                          android:layout_marginLeft="10dp"/>
-
-                      <Button
-                          android:id="@+id/axis_y_plus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="Y+"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#44FF44"
-                          android:textSize="12sp"
-                          android:layout_marginLeft="4dp"/>
-
-                      <Button
-                          android:id="@+id/axis_z_minus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="Z-"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#4488FF"
-                          android:textSize="12sp"
-                          android:layout_marginLeft="10dp"/>
-
-                      <Button
-                          android:id="@+id/axis_z_plus"
-                          android:layout_width="44dp"
-                          android:layout_height="44dp"
-                          android:text="Z+"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#4488FF"
-                          android:textSize="12sp"
-                          android:layout_marginLeft="4dp"/>
+                      <Button android:id="@+id/axis_x_minus" android:layout_width="44dp" android:layout_height="44dp" android:text="X-" android:background="@drawable/btn_blue" android:textColor="#FF4444" android:textSize="12sp"/>
+                      <Button android:id="@+id/axis_x_plus" android:layout_width="44dp" android:layout_height="44dp" android:text="X+" android:background="@drawable/btn_blue" android:textColor="#FF4444" android:textSize="12sp" android:layout_marginLeft="4dp"/>
+                      <Button android:id="@+id/axis_y_minus" android:layout_width="44dp" android:layout_height="44dp" android:text="Y-" android:background="@drawable/btn_blue" android:textColor="#44FF44" android:textSize="12sp" android:layout_marginLeft="10dp"/>
+                      <Button android:id="@+id/axis_y_plus" android:layout_width="44dp" android:layout_height="44dp" android:text="Y+" android:background="@drawable/btn_blue" android:textColor="#44FF44" android:textSize="12sp" android:layout_marginLeft="4dp"/>
+                      <Button android:id="@+id/axis_z_minus" android:layout_width="44dp" android:layout_height="44dp" android:text="Z-" android:background="@drawable/btn_blue" android:textColor="#4488FF" android:textSize="12sp" android:layout_marginLeft="10dp"/>
+                      <Button android:id="@+id/axis_z_plus" android:layout_width="44dp" android:layout_height="44dp" android:text="Z+" android:background="@drawable/btn_blue" android:textColor="#4488FF" android:textSize="12sp" android:layout_marginLeft="4dp"/>
                   </LinearLayout>
 
-                  <View
-                      android:id="@+id/crosshair_engine"
-                      android:layout_width="12dp"
-                      android:layout_height="12dp"
-                      android:layout_centerInParent="true"
-                      android:background="@drawable/crosshair"/>
+                  <View android:id="@+id/crosshair_engine" android:layout_width="12dp" android:layout_height="12dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
               </RelativeLayout>
 
-              <!-- PLAYTEST UI -->
               <RelativeLayout
                   android:id="@+id/playtest_ui"
                   android:layout_width="match_parent"
                   android:layout_height="match_parent"
                   android:visibility="gone">
 
-                  <View
-                      android:id="@+id/playtest_look_zone"
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent"/>
+                  <View android:id="@+id/playtest_look_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
 
-                  <Button
-                      android:id="@+id/btn_stop_playtest"
-                      android:layout_width="50dp"
-                      android:layout_height="50dp"
-                      android:layout_margin="10dp"
-                      android:text="Stop"
-                      android:textSize="11sp"
-                      android:background="@drawable/btn_red"
-                      android:textColor="#FFF"/>
+                  <Button android:id="@+id/btn_stop_playtest" android:layout_width="70dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Stop" android:textSize="12sp" android:background="@drawable/btn_red" android:textColor="#FFF"/>
 
-                  <FrameLayout
-                      android:id="@+id/playtest_joy_base"
-                      android:layout_width="126dp"
-                      android:layout_height="126dp"
-                      android:layout_alignParentBottom="true"
-                      android:layout_alignParentLeft="true"
-                      android:layout_marginLeft="36dp"
-                      android:layout_marginBottom="36dp"
-                      android:background="@drawable/joy_base"/>
+                  <FrameLayout android:id="@+id/playtest_joy_base" android:layout_width="126dp" android:layout_height="126dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="36dp" android:layout_marginBottom="36dp" android:background="@drawable/joy_base"/>
+                  <View android:id="@+id/playtest_joy_stick" android:layout_width="54dp" android:layout_height="54dp" android:layout_alignLeft="@id/playtest_joy_base" android:layout_alignTop="@id/playtest_joy_base" android:layout_marginLeft="36dp" android:layout_marginTop="36dp" android:background="@drawable/joy_stick"/>
 
-                  <View
-                      android:id="@+id/playtest_joy_stick"
-                      android:layout_width="54dp"
-                      android:layout_height="54dp"
-                      android:layout_alignLeft="@id/playtest_joy_base"
-                      android:layout_alignTop="@id/playtest_joy_base"
-                      android:layout_marginLeft="36dp"
-                      android:layout_marginTop="36dp"
-                      android:background="@drawable/joy_stick"/>
-
-                  <Button
-                      android:id="@+id/btn_playtest_jump"
-                      android:layout_width="90dp"
-                      android:layout_height="90dp"
-                      android:layout_alignParentRight="true"
-                      android:layout_alignParentBottom="true"
-                      android:layout_marginRight="40dp"
-                      android:layout_marginBottom="40dp"
-                      android:text="Jump"
-                      android:textSize="14sp"
-                      android:background="@drawable/btn_blue"
-                      android:textColor="#FFF"/>
-
-                  <View
-                      android:id="@+id/crosshair_playtest"
-                      android:layout_width="12dp"
-                      android:layout_height="12dp"
-                      android:layout_centerInParent="true"
-                      android:background="@drawable/crosshair"/>
+                  <Button android:id="@+id/btn_playtest_jump" android:layout_width="90dp" android:layout_height="90dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="40dp" android:layout_marginBottom="40dp" android:text="Jump" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#FFF"/>
+                  <View android:id="@+id/crosshair_playtest" android:layout_width="12dp" android:layout_height="12dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
               </RelativeLayout>
 
-              <!-- MAIN MENU -->
               <LinearLayout
                   android:id="@+id/menu_ui"
                   android:layout_width="match_parent"
@@ -754,90 +386,20 @@ jobs:
                   android:gravity="center"
                   android:background="#02050A">
 
-                  <TextView
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="Enjoer"
-                      android:textSize="52sp"
-                      android:textColor="#00BFFF"
-                      android:textStyle="bold"/>
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Enjoer" android:textSize="52sp" android:textColor="#00BFFF" android:textStyle="bold"/>
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Engine 6.3" android:textSize="18sp" android:textColor="#0088CC" android:layout_marginBottom="16dp"/>
 
-                  <TextView
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="Engine 6.3"
-                      android:textSize="18sp"
-                      android:textColor="#0088CC"
-                      android:layout_marginBottom="20dp"/>
-
-                  <!-- Ridix display in lobby -->
-                  <LinearLayout
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:background="@drawable/ridix_bg"
-                      android:padding="10dp"
-                      android:orientation="horizontal"
-                      android:gravity="center_vertical"
-                      android:layout_marginBottom="40dp">
-
-                      <TextView
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text="Ridix: "
-                          android:textColor="#FFD700"
-                          android:textSize="16sp"/>
-
-                      <TextView
-                          android:id="@+id/txt_ridix_lobby"
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text="0"
-                          android:textColor="#FFD700"
-                          android:textSize="16sp"
-                          android:textStyle="bold"/>
+                  <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/ridix_bg" android:padding="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="32dp">
+                      <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ridix: " android:textColor="#FFD700" android:textSize="16sp"/>
+                      <TextView android:id="@+id/txt_ridix_lobby" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFD700" android:textSize="16sp" android:textStyle="bold"/>
                   </LinearLayout>
 
-                  <Button
-                      android:id="@+id/btn_play"
-                      android:layout_width="240dp"
-                      android:layout_height="60dp"
-                      android:text="Play"
-                      android:textSize="18sp"
-                      android:textColor="#000"
-                      android:background="@drawable/btn_blue_filled"
-                      android:layout_marginBottom="16dp"/>
-
-                  <Button
-                      android:id="@+id/btn_engine"
-                      android:layout_width="240dp"
-                      android:layout_height="60dp"
-                      android:text="Editor"
-                      android:textSize="18sp"
-                      android:textColor="#00BFFF"
-                      android:background="@drawable/btn_blue"
-                      android:layout_marginBottom="16dp"/>
-
-                  <Button
-                      android:id="@+id/btn_customize_lobby"
-                      android:layout_width="240dp"
-                      android:layout_height="60dp"
-                      android:text="Customize"
-                      android:textSize="18sp"
-                      android:textColor="#AA44FF"
-                      android:background="@drawable/btn_purple"
-                      android:layout_marginBottom="16dp"/>
-
-                  <Button
-                      android:id="@+id/btn_load_file"
-                      android:layout_width="240dp"
-                      android:layout_height="60dp"
-                      android:text="Import .json"
-                      android:textSize="16sp"
-                      android:textColor="#00BFFF"
-                      android:background="@drawable/btn_blue"/>
+                  <Button android:id="@+id/btn_play" android:layout_width="240dp" android:layout_height="60dp" android:text="Play" android:textSize="18sp" android:textColor="#000" android:background="@drawable/btn_blue_filled" android:layout_marginBottom="16dp"/>
+                  <Button android:id="@+id/btn_engine" android:layout_width="240dp" android:layout_height="60dp" android:text="Editor" android:textSize="18sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue" android:layout_marginBottom="16dp"/>
+                  <Button android:id="@+id/btn_customize_lobby" android:layout_width="240dp" android:layout_height="60dp" android:text="Customize" android:textSize="18sp" android:textColor="#AA44FF" android:background="@drawable/btn_purple" android:layout_marginBottom="16dp"/>
+                  <Button android:id="@+id/btn_load_file" android:layout_width="240dp" android:layout_height="60dp" android:text="Import .json" android:textSize="16sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue"/>
               </LinearLayout>
 
-              <!-- CUSTOMIZE SCREEN -->
               <FrameLayout
                   android:id="@+id/customize_ui"
                   android:layout_width="match_parent"
@@ -845,327 +407,66 @@ jobs:
                   android:background="#EE02050A"
                   android:visibility="gone">
 
-                  <ScrollView
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent">
+                  <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+                      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
 
-                      <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:orientation="vertical"
-                          android:padding="20dp">
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Customize" android:textSize="28sp" android:textColor="#AA44FF" android:textStyle="bold" android:gravity="center" android:layout_marginBottom="8dp"/>
 
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="Customize"
-                              android:textSize="28sp"
-                              android:textColor="#AA44FF"
-                              android:textStyle="bold"
-                              android:gravity="center"
-                              android:layout_marginBottom="8dp"/>
-
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:gravity="center"
-                              android:background="@drawable/ridix_bg"
-                              android:padding="12dp"
-                              android:layout_marginBottom="20dp">
-
-                              <TextView
-                                  android:layout_width="wrap_content"
-                                  android:layout_height="wrap_content"
-                                  android:text="Ridix: "
-                                  android:textColor="#FFD700"
-                                  android:textSize="18sp"/>
-
-                              <TextView
-                                  android:id="@+id/txt_ridix_shop"
-                                  android:layout_width="wrap_content"
-                                  android:layout_height="wrap_content"
-                                  android:text="0"
-                                  android:textColor="#FFD700"
-                                  android:textSize="18sp"
-                                  android:textStyle="bold"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:background="@drawable/ridix_bg" android:padding="12dp" android:layout_marginBottom="20dp">
+                              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ridix: " android:textColor="#FFD700" android:textSize="18sp"/>
+                              <TextView android:id="@+id/txt_ridix_shop" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFD700" android:textSize="18sp" android:textStyle="bold"/>
                           </LinearLayout>
 
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="Character colors"
-                              android:textColor="#FFFFFF"
-                              android:textSize="18sp"
-                              android:textStyle="bold"
-                              android:layout_marginBottom="12dp"/>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Character colors" android:textColor="#FFF" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp"/>
 
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="vertical"
-                              android:background="@drawable/panel_bg"
-                              android:padding="12dp"
-                              android:layout_marginBottom="16dp">
-
-                              <TextView
-                                  android:layout_width="match_parent"
-                                  android:layout_height="wrap_content"
-                                  android:text="Skin"
-                                  android:textColor="#AEEBFF"
-                                  android:layout_marginBottom="6dp"/>
-
-                              <LinearLayout
-                                  android:id="@+id/skin_colors"
-                                  android:layout_width="match_parent"
-                                  android:layout_height="wrap_content"
-                                  android:orientation="horizontal"
-                                  android:layout_marginBottom="12dp"/>
-
-                              <TextView
-                                  android:layout_width="match_parent"
-                                  android:layout_height="wrap_content"
-                                  android:text="Torso"
-                                  android:textColor="#AEEBFF"
-                                  android:layout_marginBottom="6dp"/>
-
-                              <LinearLayout
-                                  android:id="@+id/torso_colors"
-                                  android:layout_width="match_parent"
-                                  android:layout_height="wrap_content"
-                                  android:orientation="horizontal"
-                                  android:layout_marginBottom="12dp"/>
-
-                              <TextView
-                                  android:layout_width="match_parent"
-                                  android:layout_height="wrap_content"
-                                  android:text="Legs"
-                                  android:textColor="#AEEBFF"
-                                  android:layout_marginBottom="6dp"/>
-
-                              <LinearLayout
-                                  android:id="@+id/legs_colors"
-                                  android:layout_width="match_parent"
-                                  android:layout_height="wrap_content"
-                                  android:orientation="horizontal"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="16dp">
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Skin" android:textColor="#AEEBFF" android:layout_marginBottom="6dp"/>
+                              <LinearLayout android:id="@+id/skin_colors" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp"/>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Torso" android:textColor="#AEEBFF" android:layout_marginBottom="6dp"/>
+                              <LinearLayout android:id="@+id/torso_colors" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp"/>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Legs" android:textColor="#AEEBFF" android:layout_marginBottom="6dp"/>
+                              <LinearLayout android:id="@+id/legs_colors" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal"/>
                           </LinearLayout>
 
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="Animation packs"
-                              android:textColor="#FFFFFF"
-                              android:textSize="18sp"
-                              android:textStyle="bold"
-                              android:layout_marginBottom="12dp"/>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Animation packs" android:textColor="#FFF" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp"/>
 
-                          <!-- Default Pack -->
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:background="@drawable/panel_bg"
-                              android:padding="12dp"
-                              android:layout_marginBottom="10dp"
-                              android:gravity="center_vertical">
-
-                              <LinearLayout
-                                  android:layout_width="0dp"
-                                  android:layout_height="wrap_content"
-                                  android:layout_weight="1"
-                                  android:orientation="vertical">
-
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Default"
-                                      android:textColor="#FFFFFF"
-                                      android:textSize="16sp"
-                                      android:textStyle="bold"/>
-
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Walk, jump, idle"
-                                      android:textColor="#888"
-                                      android:textSize="12sp"/>
-
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Free"
-                                      android:textColor="#44FF44"
-                                      android:textSize="12sp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="10dp" android:gravity="center_vertical">
+                              <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Default" android:textColor="#FFF" android:textSize="16sp" android:textStyle="bold"/>
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Walk, jump, idle" android:textColor="#888" android:textSize="12sp"/>
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Free" android:textColor="#44FF44" android:textSize="12sp"/>
                               </LinearLayout>
-
-                              <Button
-                                  android:id="@+id/btn_pack_default"
-                                  android:layout_width="90dp"
-                                  android:layout_height="40dp"
-                                  android:text="Equip"
-                                  android:background="@drawable/btn_blue_filled"
-                                  android:textColor="#000"
-                                  android:textSize="12sp"/>
+                              <Button android:id="@+id/btn_pack_default" android:layout_width="90dp" android:layout_height="40dp" android:text="Equip" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:textSize="12sp"/>
                           </LinearLayout>
 
-                          <!-- Fly Pack -->
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:background="@drawable/panel_bg"
-                              android:padding="12dp"
-                              android:layout_marginBottom="10dp"
-                              android:gravity="center_vertical">
-
-                              <LinearLayout
-                                  android:layout_width="0dp"
-                                  android:layout_height="wrap_content"
-                                  android:layout_weight="1"
-                                  android:orientation="vertical">
-
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Fly pack"
-                                      android:textColor="#00BFFF"
-                                      android:textSize="16sp"
-                                      android:textStyle="bold"/>
-
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Hover, fly idle, air moves"
-                                      android:textColor="#888"
-                                      android:textSize="12sp"/>
-
-                                  <TextView
-                                      android:id="@+id/txt_fly_price"
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="50 Ridix"
-                                      android:textColor="#FFD700"
-                                      android:textSize="12sp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="10dp" android:gravity="center_vertical">
+                              <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Fly pack" android:textColor="#00BFFF" android:textSize="16sp" android:textStyle="bold"/>
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hover, fly idle, air moves" android:textColor="#888" android:textSize="12sp"/>
+                                  <TextView android:id="@+id/txt_fly_price" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50 Ridix" android:textColor="#FFD700" android:textSize="12sp"/>
                               </LinearLayout>
-
-                              <Button
-                                  android:id="@+id/btn_pack_fly"
-                                  android:layout_width="90dp"
-                                  android:layout_height="40dp"
-                                  android:text="Buy"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:textSize="12sp"/>
+                              <Button android:id="@+id/btn_pack_fly" android:layout_width="90dp" android:layout_height="40dp" android:text="Buy" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:textSize="12sp"/>
                           </LinearLayout>
 
-                          <!-- Combat Pack -->
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:background="@drawable/panel_bg"
-                              android:padding="12dp"
-                              android:layout_marginBottom="10dp"
-                              android:gravity="center_vertical">
-
-                              <LinearLayout
-                                  android:layout_width="0dp"
-                                  android:layout_height="wrap_content"
-                                  android:layout_weight="1"
-                                  android:orientation="vertical">
-
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Combat pack"
-                                      android:textColor="#FF4444"
-                                      android:textSize="16sp"
-                                      android:textStyle="bold"/>
-
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Battle stance, power walk"
-                                      android:textColor="#888"
-                                      android:textSize="12sp"/>
-
-                                  <TextView
-                                      android:id="@+id/txt_combat_price"
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="50 Ridix"
-                                      android:textColor="#FFD700"
-                                      android:textSize="12sp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="10dp" android:gravity="center_vertical">
+                              <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Combat pack" android:textColor="#FF4444" android:textSize="16sp" android:textStyle="bold"/>
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Battle stance, power walk" android:textColor="#888" android:textSize="12sp"/>
+                                  <TextView android:id="@+id/txt_combat_price" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50 Ridix" android:textColor="#FFD700" android:textSize="12sp"/>
                               </LinearLayout>
-
-                              <Button
-                                  android:id="@+id/btn_pack_combat"
-                                  android:layout_width="90dp"
-                                  android:layout_height="40dp"
-                                  android:text="Buy"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:textSize="12sp"/>
+                              <Button android:id="@+id/btn_pack_combat" android:layout_width="90dp" android:layout_height="40dp" android:text="Buy" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:textSize="12sp"/>
                           </LinearLayout>
 
-                          <!-- Dance Pack -->
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:background="@drawable/panel_bg"
-                              android:padding="12dp"
-                              android:layout_marginBottom="20dp"
-                              android:gravity="center_vertical">
-
-                              <LinearLayout
-                                  android:layout_width="0dp"
-                                  android:layout_height="wrap_content"
-                                  android:layout_weight="1"
-                                  android:orientation="vertical">
-
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Dance pack"
-                                      android:textColor="#FF88FF"
-                                      android:textSize="16sp"
-                                      android:textStyle="bold"/>
-
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Bouncy walk, spin jump"
-                                      android:textColor="#888"
-                                      android:textSize="12sp"/>
-
-                                  <TextView
-                                      android:id="@+id/txt_dance_price"
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="50 Ridix"
-                                      android:textColor="#FFD700"
-                                      android:textSize="12sp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="20dp" android:gravity="center_vertical">
+                              <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dance pack" android:textColor="#FF88FF" android:textSize="16sp" android:textStyle="bold"/>
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Bouncy walk, spin jump" android:textColor="#888" android:textSize="12sp"/>
+                                  <TextView android:id="@+id/txt_dance_price" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50 Ridix" android:textColor="#FFD700" android:textSize="12sp"/>
                               </LinearLayout>
-
-                              <Button
-                                  android:id="@+id/btn_pack_dance"
-                                  android:layout_width="90dp"
-                                  android:layout_height="40dp"
-                                  android:text="Buy"
-                                  android:background="@drawable/btn_blue"
-                                  android:textColor="#00BFFF"
-                                  android:textSize="12sp"/>
+                              <Button android:id="@+id/btn_pack_dance" android:layout_width="90dp" android:layout_height="40dp" android:text="Buy" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:textSize="12sp"/>
                           </LinearLayout>
 
-                          <Button
-                              android:id="@+id/btn_close_customize"
-                              android:layout_width="match_parent"
-                              android:layout_height="56dp"
-                              android:text="Back"
-                              android:textSize="16sp"
-                              android:background="@drawable/btn_blue"
-                              android:textColor="#00BFFF"/>
+                          <Button android:id="@+id/btn_close_customize" android:layout_width="match_parent" android:layout_height="56dp" android:text="Back" android:textSize="16sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
                       </LinearLayout>
                   </ScrollView>
               </FrameLayout>
@@ -1173,7 +474,7 @@ jobs:
           </FrameLayout>
           LAYOUT
 
-          cat <<EOF > app/src/main/java/com/enjoer/game/Block.java
+          cat > app/src/main/java/com/enjoer/game/Block.java << 'EOF'
           package com.enjoer.game;
           public class Block {
               public float x,y,z,sx,sy,sz,r,g,b;
@@ -1193,14 +494,11 @@ jobs:
           }
           EOF
 
-          cat <<'SCRIPT' > app/src/main/java/com/enjoer/game/ScriptEngine.java
+          cat > app/src/main/java/com/enjoer/game/ScriptEngine.java << 'EOF'
           package com.enjoer.game;
           import java.util.Locale;
           public class ScriptEngine {
-              public interface Host {
-                  GameRenderer renderer();
-                  void toast(String text);
-              }
+              public interface Host { GameRenderer renderer(); void toast(String text); }
               public static void run(Host host,String script) throws Exception {
                   if(script==null)return;
                   for(String raw:script.split("\\r?\\n")){
@@ -1215,16 +513,16 @@ jobs:
                   if(line.equals("block.hide")){Block b=ren.getSelectedBlock();if(b!=null)b.hidden=true;return;}
                   if(line.equals("block.show")){Block b=ren.getSelectedBlock();if(b!=null)b.hidden=false;return;}
                   if(line.equals("block.delete")){ren.deleteSelected();return;}
-                  if(line.startsWith("player.teleport(")&&line.endsWith(")")){String[]a=args(line);if(a.length!=3)throw new Exception("3 args");ren.pX=f(a[0]);ren.pY=f(a[1]);ren.pZ=f(a[2]);ren.vY=0;return;}
-                  if(line.startsWith("player.rotate(")&&line.endsWith(")")){String[]a=args(line);if(a.length!=2)throw new Exception("2 args");ren.rY=f(a[0]);ren.rX=f(a[1]);return;}
+                  if(line.startsWith("player.teleport(")&&line.endsWith(")")){String[]a=args(line);ren.pX=f(a[0]);ren.pY=f(a[1]);ren.pZ=f(a[2]);ren.vY=0;return;}
+                  if(line.startsWith("player.rotate(")&&line.endsWith(")")){String[]a=args(line);ren.rY=f(a[0]);ren.rX=f(a[1]);return;}
                   if(line.startsWith("phone.toast(")&&line.endsWith(")")){host.toast(stripQ(argsText(line)[0]));return;}
                   if(line.startsWith("phone.grid(")&&line.endsWith(")")){ren.gridEnabled=parseBool(args(line)[0]);return;}
-                  if(line.startsWith("block.color(")&&line.endsWith(")")){String[]a=args(line);if(a.length!=3)throw new Exception("3 args");Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.r=c(f(a[0]));b.g=c(f(a[1]));b.b=c(f(a[2]));return;}
-                  if(line.startsWith("block.move(")&&line.endsWith(")")){String[]a=args(line);if(a.length!=3)throw new Exception("3 args");ren.moveSelected(f(a[0]),f(a[1]),f(a[2]));return;}
-                  if(line.startsWith("block.size(")&&line.endsWith(")")){String[]a=args(line);if(a.length!=3)throw new Exception("3 args");Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.sx=Math.max(.5f,f(a[0]));b.sy=Math.max(.5f,f(a[1]));b.sz=Math.max(.5f,f(a[2]));if(b.y-b.sy/2f<0)b.y=b.sy/2f;return;}
-                  if(line.startsWith("block.teleport(")&&line.endsWith(")")){String[]a=args(line);if(a.length!=3)throw new Exception("3 args");Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.x=f(a[0]);b.y=f(a[1]);b.z=f(a[2]);if(b.y-b.sy/2f<0)b.y=b.sy/2f;return;}
+                  if(line.startsWith("block.color(")&&line.endsWith(")")){String[]a=args(line);Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.r=c(f(a[0]));b.g=c(f(a[1]));b.b=c(f(a[2]));return;}
+                  if(line.startsWith("block.move(")&&line.endsWith(")")){String[]a=args(line);ren.moveSelected(f(a[0]),f(a[1]),f(a[2]));return;}
+                  if(line.startsWith("block.size(")&&line.endsWith(")")){String[]a=args(line);Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.sx=Math.max(.5f,f(a[0]));b.sy=Math.max(.5f,f(a[1]));b.sz=Math.max(.5f,f(a[2]));if(b.y-b.sy/2f<0)b.y=b.sy/2f;return;}
+                  if(line.startsWith("block.teleport(")&&line.endsWith(")")){String[]a=args(line);Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.x=f(a[0]);b.y=f(a[1]);b.z=f(a[2]);if(b.y-b.sy/2f<0)b.y=b.sy/2f;return;}
                   if(line.startsWith("block.shape(")&&line.endsWith(")")){Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.shape=stripQ(argsText(line)[0]).toLowerCase(Locale.US);return;}
-                  if(line.startsWith("world.place(")&&line.endsWith(")")){String[]a=args(line);if(a.length!=9)throw new Exception("9 args");ren.blocks.add(new Block(f(a[0]),f(a[1]),f(a[2]),Math.max(.5f,f(a[3])),Math.max(.5f,f(a[4])),Math.max(.5f,f(a[5])),c(f(a[6])),c(f(a[7])),c(f(a[8]))));return;}
+                  if(line.startsWith("world.place(")&&line.endsWith(")")){String[]a=args(line);ren.blocks.add(new Block(f(a[0]),f(a[1]),f(a[2]),Math.max(.5f,f(a[3])),Math.max(.5f,f(a[4])),Math.max(.5f,f(a[5])),c(f(a[6])),c(f(a[7])),c(f(a[8]))));return;}
                   throw new Exception("Unknown: "+line);
               }
               private static boolean parseBool(String s){s=s.trim().toLowerCase(Locale.US);return s.equals("true")||s.equals("1")||s.equals("on");}
@@ -1234,11 +532,10 @@ jobs:
               private static float f(String s){return Float.parseFloat(s.trim());}
               private static float c(float v){return Math.max(0,Math.min(1,v));}
           }
-          SCRIPT
+          EOF
 
-          cat <<'RENDERER' > app/src/main/java/com/enjoer/game/GameRenderer.java
+          cat > app/src/main/java/com/enjoer/game/GameRenderer.java << 'EOF'
           package com.enjoer.game;
-
           import android.opengl.GLES30;
           import android.opengl.GLSurfaceView;
           import android.opengl.Matrix;
@@ -1268,8 +565,7 @@ jobs:
               public float charLegsR=0.1f,charLegsG=0.8f,charLegsB=0.2f;
 
               private static final float FLOOR_Y=0f,PLAYER_HEIGHT=5.2f,PLAYER_RADIUS=0.85f;
-              // Camera sits at torso level of the player
-              private static final float CAM_TARGET_OFFSET_Y=3.0f; // look at torso, not feet
+              private static final float CAM_TARGET_Y=3.0f;
               private static final float CAM_DIST=14f;
 
               private float camX,camY,camZ;
@@ -1318,20 +614,20 @@ jobs:
 
               public int raycastBlock(float tx,float ty){
                   float ndcX=(2f*tx/screenW)-1f,ndcY=1f-(2f*ty/screenH);
-                  float[] iP=new float[16],iV=new float[16];Matrix.invertM(iP,0,proj,0);Matrix.invertM(iV,0,view,0);
-                  float[] n={ndcX,ndcY,-1,1},f={ndcX,ndcY,1,1},t=new float[4];
+                  float[]iP=new float[16],iV=new float[16];Matrix.invertM(iP,0,proj,0);Matrix.invertM(iV,0,view,0);
+                  float[]n={ndcX,ndcY,-1,1},ff={ndcX,ndcY,1,1},t=new float[4];
                   Matrix.multiplyMV(t,0,iP,0,n,0);for(int i=0;i<4;i++)t[i]/=t[3];
-                  float[] nW=new float[4];Matrix.multiplyMV(nW,0,iV,0,t,0);
-                  Matrix.multiplyMV(t,0,iP,0,f,0);for(int i=0;i<4;i++)t[i]/=t[3];
-                  float[] fW=new float[4];Matrix.multiplyMV(fW,0,iV,0,t,0);
+                  float[]nW=new float[4];Matrix.multiplyMV(nW,0,iV,0,t,0);
+                  Matrix.multiplyMV(t,0,iP,0,ff,0);for(int i=0;i<4;i++)t[i]/=t[3];
+                  float[]fW=new float[4];Matrix.multiplyMV(fW,0,iV,0,t,0);
                   float dx=fW[0]-nW[0],dy=fW[1]-nW[1],dz=fW[2]-nW[2],len=(float)Math.sqrt(dx*dx+dy*dy+dz*dz);
                   dx/=len;dy/=len;dz/=len;
                   int closest=-1;float cD=Float.MAX_VALUE;
                   for(int i=0;i<blocks.size();i++){
                       Block b=blocks.get(i);
                       float mn=(b.minX()-nW[0])/(dx==0?.0001f:dx),mx=(b.maxX()-nW[0])/(dx==0?.0001f:dx);if(mn>mx){float tmp=mn;mn=mx;mx=tmp;}
-                      float yn=(b.minY()-nW[1])/(dy==0?.0001f:dy),yx=(b.maxY()-nW[1])/(dy==0?.0001f:dy);if(yn>yx){float tmp=yn;yn=yx;yx=tmp;}
-                      if(mn>yx||yn>mx)continue;if(yn>mn)mn=yn;if(yx<mx)mx=yx;
+                      float yn=(b.minY()-nW[1])/(dy==0?.0001f:dy),yx2=(b.maxY()-nW[1])/(dy==0?.0001f:dy);if(yn>yx2){float tmp=yn;yn=yx2;yx2=tmp;}
+                      if(mn>yx2||yn>mx)continue;if(yn>mn)mn=yn;if(yx2<mx)mx=yx2;
                       float zn=(b.minZ()-nW[2])/(dz==0?.0001f:dz),zx=(b.maxZ()-nW[2])/(dz==0?.0001f:dz);if(zn>zx){float tmp=zn;zn=zx;zx=tmp;}
                       if(mn>zx||zn>mx)continue;if(zn>mn)mn=zn;
                       if(mn>0&&mn<cD){cD=mn;closest=i;}
@@ -1342,18 +638,14 @@ jobs:
               @Override
               public void onSurfaceCreated(GL10 gl,EGLConfig cfg){
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);GLES30.glDepthFunc(GLES30.GL_LEQUAL);
-
                   String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uMVP,uM;out vec3 vN,vP;void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
                   String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec3 camP;uniform vec4 uC;uniform float uSel,isFloor;out vec4 fC;void main(){vec3 n=normalize(vN),vD=normalize(camP-vP),lD=normalize(vec3(.4,1.,.2));float diff=max(dot(n,lD),0.),ao=clamp(vP.y*.08+.6,.3,1.);vec3 h=normalize(lD+vD);float spec=pow(max(dot(n,h),0.),48.)*.6;vec3 col=uC.rgb;if(uSel>.5)col+=vec3(0.,.5,.8);vec3 amb=vec3(.05,.08,.13)*ao;vec3 fin=col*(diff*vec3(1.,.97,.92)+amb)+spec;if(isFloor>.5){vec2 g=fract(vP.xz*.2);float ln=step(.97,g.x)+step(.97,g.y);fin=mix(fin,vec3(0.,.4,.8),clamp(ln,0.,1.)*.45);}float dist=length(camP-vP),fog=1.-exp(-dist*.006);vec3 c=mix(fin,vec3(.02,.06,.14),clamp(fog,0.,.82));c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);fC=vec4(c,uC.a);}";
                   String svs="#version 300 es\nlayout(location=0)in vec3 aP;out vec3 vDir;uniform mat4 uInvVP;void main(){vec4 w=uInvVP*vec4(aP,1.0);vDir=normalize(w.xyz/w.w);gl_Position=vec4(aP,1.0);}";
                   String sfs="#version 300 es\nprecision highp float;in vec3 vDir;out vec4 fC;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}void main(){vec3 d=normalize(vDir);float t=clamp(d.y*.5+.5,0.,1.);vec3 col=mix(vec3(.005,.008,.02),vec3(.03,.16,.36),t);vec3 da=abs(d);vec2 uv=(da.y>da.x&&da.y>da.z)?d.xz:(da.x>da.z?d.yz:d.xy);uv*=55.;vec2 id=floor(uv),gv=fract(uv)-.5;float rnd=hash(id),star=step(.995,rnd),s=smoothstep(.18,0.,length(gv))*star*(0.7+0.3*sin(rnd*100.))*2.8;col+=mix(vec3(1.,.95,.85),vec3(.8,.9,1.),hash(id+4.3))*s;fC=vec4(col,1.);}";
-
                   prog=mkProg(vs,fs);skyProg=mkProg(svs,sfs);
-
-                  float[] vc={-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,.5f,.5f};
-                  float[] nc={0,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,0,-1,0,0,1,0,0,1,0,0,1,0,0,1,0,0};
-                  float[] sq={-1f,-1f,1f,1f,-1f,1f,-1f,1f,1f,1f,1f,1f};
-
+                  float[]vc={-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,.5f,.5f};
+                  float[]nc={0,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,0,-1,0,0,1,0,0,1,0,0,1,0,0,1,0,0};
+                  float[]sq={-1f,-1f,1f,1f,-1f,1f,-1f,1f,1f,1f,1f,1f};
                   vBuf=mkFB(vc);nBuf=mkFB(nc);skyBuf=mkFB(sq);
                   loadBuiltInLevel();lastTimeNs=System.nanoTime();
               }
@@ -1367,14 +659,10 @@ jobs:
                   update();
                   GLES30.glClearColor(.01f,.015f,.03f,1f);
                   GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT|GLES30.GL_DEPTH_BUFFER_BIT);
-
-                  // Forward direction (horizontal only for camera positioning)
                   float rYrad=(float)Math.toRadians(rY);
                   float fwdX=(float)Math.sin(rYrad);
                   float fwdZ=(float)-Math.cos(rYrad);
-
                   if(isEngineMode&&!isPlayingLevel){
-                      // Engine: first-person, use pitch too
                       float rXrad=(float)Math.toRadians(rX);
                       float vx=fwdX*(float)Math.cos(rXrad);
                       float vy=(float)Math.sin(rXrad);
@@ -1382,30 +670,17 @@ jobs:
                       camX=pX;camY=pY;camZ=pZ;
                       Matrix.setLookAtM(view,0,camX,camY,camZ,pX+vx,pY+vy,pZ+vz,0,1,0);
                   } else {
-                      // Third-person camera:
-                      // Target = player torso (not feet, not head)
-                      float targetY = pY - PLAYER_HEIGHT + CAM_TARGET_OFFSET_Y;
-
-                      // rX controls vertical angle of camera orbit, range -80..+80
+                      float targetY=pY-PLAYER_HEIGHT+CAM_TARGET_Y;
                       float rXrad=(float)Math.toRadians(rX);
-                      // Camera offset from target:
-                      // horizontal distance = CAM_DIST * cos(rX)
-                      // vertical offset    = CAM_DIST * sin(rX)  (positive rX = camera up = looking down)
-                      float hDist = CAM_DIST*(float)Math.cos(rXrad);
-                      float vOff  = CAM_DIST*(float)Math.sin(rXrad);
-
-                      // Camera is behind the player (opposite forward)
-                      camX = pX - fwdX*hDist;
-                      camY = targetY + vOff;
-                      camZ = pZ - fwdZ*hDist;
-
-                      // Clamp camera above floor
-                      if(camY < 0.3f) camY = 0.3f;
-
-                      Matrix.setLookAtM(view,0, camX,camY,camZ, pX,targetY,pZ, 0,1,0);
+                      float hDist=CAM_DIST*(float)Math.cos(rXrad);
+                      float vOff=CAM_DIST*(float)Math.sin(rXrad);
+                      camX=pX-fwdX*hDist;
+                      camY=targetY+vOff;
+                      camZ=pZ-fwdZ*hDist;
+                      if(camY<0.3f)camY=0.3f;
+                      Matrix.setLookAtM(view,0,camX,camY,camZ,pX,targetY,pZ,0,1,0);
                   }
-
-                  float[] vp=new float[16];Matrix.multiplyMM(vp,0,proj,0,view,0);
+                  float[]vp=new float[16];Matrix.multiplyMM(vp,0,proj,0,view,0);
                   drawSky(vp);drawWorld(vp);
               }
 
@@ -1424,11 +699,8 @@ jobs:
                   GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"camP"),camX,camY,camZ);
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);GLES30.glEnableVertexAttribArray(0);
                   GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,0,nBuf);GLES30.glEnableVertexAttribArray(1);
-
-                  // Floor
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,0,-.05f,0);Matrix.scaleM(model,0,800,.1f,800);
                   GLES30.glUniform1f(uSel,0f);GLES30.glUniform1f(uFloor,1f);draw(vp,uM,uMVP,uC,.05f,.07f,.11f,1f);
-
                   GLES30.glUniform1f(uFloor,0f);
                   for(int i=0;i<blocks.size();i++){
                       Block b=blocks.get(i);if(b.hidden)continue;
@@ -1436,19 +708,17 @@ jobs:
                       GLES30.glUniform1f(uSel,(i==selectedIndex&&isEngineMode&&!isPlayingLevel)?1f:0f);
                       draw(vp,uM,uMVP,uC,b.r,b.g,b.b,1f);
                   }
-
                   if(isEngineMode&&!isPlayingLevel&&selectedIndex<0){
                       float rYrad=(float)Math.toRadians(rY),rXrad=(float)Math.toRadians(rX);
-                      float vx=(float)(Math.sin(rYrad)*Math.cos(rXrad));float vy=(float)Math.sin(rXrad);float vz=(float)(-Math.cos(rYrad)*Math.cos(rXrad));
-                      float px=snap(pX+vx*placeDist),py=snap(pY+vy*placeDist),pz=snap(pZ+vz*placeDist);
-                      if(py-blockSY/2f<FLOOR_Y)py=FLOOR_Y+blockSY/2f;
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py,pz);Matrix.scaleM(model,0,blockSX,blockSY,blockSZ);
+                      float vx=(float)(Math.sin(rYrad)*Math.cos(rXrad));float vy2=(float)Math.sin(rXrad);float vz=(float)(-Math.cos(rYrad)*Math.cos(rXrad));
+                      float px=snap(pX+vx*placeDist),py2=snap(pY+vy2*placeDist),pz=snap(pZ+vz*placeDist);
+                      if(py2-blockSY/2f<FLOOR_Y)py2=FLOOR_Y+blockSY/2f;
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,blockSX,blockSY,blockSZ);
                       GLES30.glEnable(GLES30.GL_BLEND);GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
                       GLES30.glUniform1f(uSel,0f);draw(vp,uM,uMVP,uC,blockR,blockG,blockB,.4f);
                       GLES30.glDisable(GLES30.GL_BLEND);
                   }
-
-                  if(!(isEngineMode&&!isPlayingLevel)) drawPlayerChar(vp,uM,uMVP,uC);
+                  if(!(isEngineMode&&!isPlayingLevel))drawPlayerChar(vp,uM,uMVP,uC);
               }
 
               private void update(){
@@ -1458,7 +728,6 @@ jobs:
                   lastTimeNs=now;
                   moveMag=(float)Math.min(1.0,Math.sqrt(jX*jX+jY*jY));
                   float s=.42f,rYrad=(float)Math.toRadians(rY);
-
                   if(isEngineMode&&!isPlayingLevel){
                       float rXrad=(float)Math.toRadians(rX);
                       float fx=(float)Math.sin(rYrad),fz=(float)-Math.cos(rYrad),fy=(float)Math.sin(rXrad);
@@ -1466,13 +735,11 @@ jobs:
                       pZ+=(fz*-jY+(float)Math.sin(rYrad)*jX)*s;
                       pY+=fy*-jY*s;
                   } else if(animPack==1){
-                      // Fly: hover at fixed height, gravity off
                       float targetY=FLOOR_Y+PLAYER_HEIGHT+2.5f;
                       pY+=(targetY-pY)*dt*4f;
                       float mX=((float)Math.sin(rYrad)*-jY+(float)Math.cos(rYrad)*jX)*s;
                       float mZ=((float)-Math.cos(rYrad)*-jY+(float)Math.sin(rYrad)*jX)*s;
-                      pX+=mX;pZ+=mZ;vY=0;
-                      hoverPhase+=dt*1.8f;
+                      pX+=mX;pZ+=mZ;vY=0;hoverPhase+=dt*1.8f;
                       if(moveMag>0.05f){charRotation=(float)Math.toDegrees(Math.atan2(mX,mZ));walkPhase+=dt*5f*moveMag;}
                   } else {
                       float mX=((float)Math.sin(rYrad)*-jY+(float)Math.cos(rYrad)*jX)*s;
@@ -1514,10 +781,10 @@ jobs:
               private void drawPlayerChar(float[]vp,int uM,int uMVP,int uC){
                   GLES30.glUniform1f(GLES30.glGetUniformLocation(prog,"uSel"),0f);
                   switch(animPack){
-                      case 1: drawFly(vp,uM,uMVP,uC); break;
-                      case 2: drawCombat(vp,uM,uMVP,uC); break;
-                      case 3: drawDance(vp,uM,uMVP,uC); break;
-                      default: drawDefault(vp,uM,uMVP,uC); break;
+                      case 1:drawFly(vp,uM,uMVP,uC);break;
+                      case 2:drawCombat(vp,uM,uMVP,uC);break;
+                      case 3:drawDance(vp,uM,uMVP,uC);break;
+                      default:drawDefault(vp,uM,uMVP,uC);break;
                   }
               }
 
@@ -1525,76 +792,31 @@ jobs:
                   final float lH=1.6f,lW=0.7f,lD=0.7f,tH=1.8f,tW=1.4f,tD=0.8f,hS=1.15f,aH=1.6f,aW=0.55f,aD=0.55f;
                   float footY=pY-PLAYER_HEIGHT;
                   boolean og=isOnGround();
-
-                  // Walk: arm swings naturally
                   float walkSwing=(float)Math.sin(walkPhase)*38f*moveMag*(og?1f:0f);
-                  // Jump: arms spread outward (rotate on Z axis) when in air
-                  float jumpSpread=jumpPhase*55f; // arms splay outward
+                  float jumpSpread=jumpPhase*55f;
                   float legAngle=(float)Math.sin(walkPhase)*(-28f)*moveMag*(og?1f:0f);
-
-                  // Torso
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);
-                  Matrix.rotateM(model,0,charRotation,0,1,0);
-                  Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);
-                  draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
-
-                  // Head
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);
-                  Matrix.rotateM(model,0,charRotation,0,1,0);
-                  Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);
-                  draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
                   float sY=lH+tH-0.2f;
-
-                  // Left arm: forward/back swing + outward spread on jump
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);
-                  Matrix.rotateM(model,0,charRotation,0,1,0);
-                  Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);
-                  Matrix.rotateM(model,0,walkSwing,1,0,0);   // forward/back
-                  Matrix.rotateM(model,0,-jumpSpread,0,0,1); // spread outward (left = -Z rot)
-                  Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);
-                  draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-
-                  // Right arm
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);
-                  Matrix.rotateM(model,0,charRotation,0,1,0);
-                  Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);
-                  Matrix.rotateM(model,0,-walkSwing,1,0,0);
-                  Matrix.rotateM(model,0,jumpSpread,0,0,1); // spread outward (right = +Z rot)
-                  Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);
-                  draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-
-                  // Left leg
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);
-                  Matrix.rotateM(model,0,charRotation,0,1,0);
-                  Matrix.translateM(model,0,-0.35f,lH,0);
-                  Matrix.rotateM(model,0,legAngle,1,0,0);
-                  Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);
-                  draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
-
-                  // Right leg
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);
-                  Matrix.rotateM(model,0,charRotation,0,1,0);
-                  Matrix.translateM(model,0,0.35f,lH,0);
-                  Matrix.rotateM(model,0,-legAngle,1,0,0);
-                  Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);
-                  draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,walkSwing,1,0,0);Matrix.rotateM(model,0,-jumpSpread,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,-walkSwing,1,0,0);Matrix.rotateM(model,0,jumpSpread,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,lH,0);Matrix.rotateM(model,0,legAngle,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,lH,0);Matrix.rotateM(model,0,-legAngle,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
               }
 
               private void drawFly(float[]vp,int uM,int uMVP,int uC){
                   final float lH=1.6f,lW=0.7f,lD=0.7f,tH=1.8f,tW=1.4f,tD=0.8f,hS=1.15f,aH=1.6f,aW=0.55f,aD=0.55f;
                   float footY=pY-PLAYER_HEIGHT;
                   float hover=(float)Math.sin(hoverPhase)*0.15f;
-                  float aAngle=-40f+(float)Math.sin(hoverPhase)*8f+(float)Math.sin(walkPhase)*15f*moveMag;
-                  float lAngle=-18f+(float)Math.sin(hoverPhase*.7f)*5f;
-
+                  float aA=-40f+(float)Math.sin(hoverPhase)*8f+(float)Math.sin(walkPhase)*15f*moveMag;
+                  float lA=-18f+(float)Math.sin(hoverPhase*.7f)*5f;
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
                   float sY=lH+tH-0.2f;
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aAngle,1,0,0);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aAngle,1,0,0);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,lH,0);Matrix.rotateM(model,0,lAngle,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,lH,0);Matrix.rotateM(model,0,lAngle,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,lH,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,lH,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
               }
 
               private void drawCombat(float[]vp,int uM,int uMVP,int uC){
@@ -1615,10 +837,10 @@ jobs:
               private void drawDance(float[]vp,int uM,int uMVP,int uC){
                   final float lH=1.6f,lW=0.7f,lD=0.7f,tH=1.8f,tW=1.4f,tD=0.8f,hS=1.15f,aH=1.6f,aW=0.55f,aD=0.55f;
                   float footY=pY-PLAYER_HEIGHT;boolean og=isOnGround();
-                  float b=(float)Math.sin(walkPhase*2f)*10f;
+                  float b2=(float)Math.sin(walkPhase*2f)*10f;
                   float sw=(float)Math.sin(walkPhase)*50f*moveMag*(og?1f:0f);
                   float jumpSpread=jumpPhase*65f;
-                  float aL=sw+b,aR=-sw+b,lA=(float)Math.sin(walkPhase)*(-35f)*moveMag*(og?1f:0f);
+                  float aL=sw+b2,aR=-sw+b2,lA=(float)Math.sin(walkPhase)*(-35f)*moveMag*(og?1f:0f);
                   float sway=(float)Math.sin(walkPhase)*6f*moveMag;
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.rotateM(model,0,sway,0,0,1);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
@@ -1640,11 +862,10 @@ jobs:
               private int mkProg(String v,String f){int p=GLES30.glCreateProgram();GLES30.glAttachShader(p,mkSh(35633,v));GLES30.glAttachShader(p,mkSh(35632,f));GLES30.glLinkProgram(p);return p;}
               private int mkSh(int t,String s){int sh=GLES30.glCreateShader(t);GLES30.glShaderSource(sh,s);GLES30.glCompileShader(sh);return sh;}
           }
-          RENDERER
+          EOF
 
-          cat <<'MAINACT' > app/src/main/java/com/enjoer/game/MainActivity.java
+          cat > app/src/main/java/com/enjoer/game/MainActivity.java << 'EOF'
           package com.enjoer.game;
-
           import android.annotation.SuppressLint;
           import android.app.AlertDialog;
           import android.content.Intent;
@@ -1672,27 +893,25 @@ jobs:
           public class MainActivity extends AppCompatActivity implements ScriptEngine.Host, GameRenderer.EventHost {
               private GameRenderer ren;
               private float lx,ly;
-              private Button[] shapeBtn,distBtn;
-              private View[] colorBtn;
+              private Button[]shapeBtn,distBtn;
+              private View[]colorBtn;
               private View axisPanel,menuUI,gameUI,engineUI,playtestUI,customizeUI;
               private Button btnDeselect,btnHide,btnDelete,btnEvents,btnGrid;
               private TextView txtSizeInfo,txtRidixLobby,txtRidixShop;
               private ActivityResultLauncher<Intent> saveLauncher,loadLauncher;
               private Handler handler=new Handler(Looper.getMainLooper());
               private int pendingMode=0;
-
               private int ridix=0;
               private Runnable ridixTimer;
               private static final int RIDIX_SEC=50,RIDIX_REWARD=15,PACK_PRICE=50;
               private boolean ownedFly=false,ownedCombat=false,ownedDance=false;
               private int equippedPack=0;
-
-              private static final float[][] SKIN_C={{1f,.85f,.15f},{1f,.7f,.5f},{.6f,.35f,.15f},{1f,.55f,.3f},{.85f,.75f,.65f},{.3f,.2f,.1f}};
-              private static final float[][] TORSO_C={{.1f,.4f,1f},{1f,.1f,.1f},{.1f,.8f,.1f},{.8f,0f,.8f},{1f,.5f,0f},{.9f,.9f,.9f}};
-              private static final float[][] LEGS_C={{.1f,.8f,.2f},{.1f,.1f,.6f},{.5f,.5f,.5f},{0f,0f,0f},{.8f,.6f,0f},{.5f,0f,0f}};
-              private static final int[] SKIN_I={0xFFD8B420,0xFFFFB280,0xFF996028,0xFFFF8C4C,0xFFDAC0A6,0xFF4D3318};
-              private static final int[] TORSO_I={0xFF1A66FF,0xFFFF1A1A,0xFF1ACC1A,0xFFCC00CC,0xFFFF8000,0xFFE6E6E6};
-              private static final int[] LEGS_I={0xFF1ACC33,0xFF1A1A99,0xFF808080,0xFF111111,0xFFCC9900,0xFF800000};
+              private static final float[][]SKIN_C={{1f,.85f,.15f},{1f,.7f,.5f},{.6f,.35f,.15f},{1f,.55f,.3f},{.85f,.75f,.65f},{.3f,.2f,.1f}};
+              private static final float[][]TORSO_C={{.1f,.4f,1f},{1f,.1f,.1f},{.1f,.8f,.1f},{.8f,0f,.8f},{1f,.5f,0f},{.9f,.9f,.9f}};
+              private static final float[][]LEGS_C={{.1f,.8f,.2f},{.1f,.1f,.6f},{.5f,.5f,.5f},{0f,0f,0f},{.8f,.6f,0f},{.5f,0f,0f}};
+              private static final int[]SKIN_I={0xFFD8B420,0xFFFFB280,0xFF996028,0xFFFF8C4C,0xFFDAC0A6,0xFF4D3318};
+              private static final int[]TORSO_I={0xFF1A66FF,0xFFFF1A1A,0xFF1ACC1A,0xFFCC00CC,0xFFFF8000,0xFFE6E6E6};
+              private static final int[]LEGS_I={0xFF1ACC33,0xFF1A1A99,0xFF808080,0xFF111111,0xFFCC9900,0xFF800000};
 
               @Override public GameRenderer renderer(){return ren;}
               @Override public void toast(String t){runOnUiThread(()->Toast.makeText(this,t,Toast.LENGTH_SHORT).show());}
@@ -1707,16 +926,25 @@ jobs:
                   });
               }
 
+              private boolean getOwned(int pack){if(pack==1)return ownedFly;if(pack==2)return ownedCombat;if(pack==3)return ownedDance;return true;}
+              private void setOwned(int pack,boolean v){if(pack==1)ownedFly=v;else if(pack==2)ownedCombat=v;else if(pack==3)ownedDance=v;}
+
+              private void buyOrEquip(int pack,String name){
+                  if(getOwned(pack)){equippedPack=pack;applyPack();savePrefs();updCustPacks();Toast.makeText(this,name+" equipped",Toast.LENGTH_SHORT).show();}
+                  else if(ridix>=PACK_PRICE){ridix-=PACK_PRICE;setOwned(pack,true);equippedPack=pack;applyPack();savePrefs();updRidix();updCustPacks();Toast.makeText(this,name+" purchased!",Toast.LENGTH_SHORT).show();}
+                  else Toast.makeText(this,"Need "+PACK_PRICE+" Ridix",Toast.LENGTH_SHORT).show();
+              }
+
+              interface CP{void pick(int i);}
+
               @SuppressLint("ClickableViewAccessibility")
               @Override
               protected void onCreate(Bundle s){
                   super.onCreate(s);setContentView(R.layout.activity_main);
                   loadPrefs();
-
                   android.opengl.GLSurfaceView gv=findViewById(R.id.gl_view);
                   gv.setEGLContextClientVersion(3);
                   ren=new GameRenderer();ren.eventHost=this;gv.setRenderer(ren);
-
                   menuUI=findViewById(R.id.menu_ui);gameUI=findViewById(R.id.game_ui);
                   engineUI=findViewById(R.id.engine_ui);playtestUI=findViewById(R.id.playtest_ui);
                   customizeUI=findViewById(R.id.customize_ui);axisPanel=findViewById(R.id.axis_panel);
@@ -1724,7 +952,6 @@ jobs:
                   btnDelete=findViewById(R.id.btn_delete);btnEvents=findViewById(R.id.btn_block_events);
                   btnGrid=findViewById(R.id.btn_grid);txtSizeInfo=findViewById(R.id.txt_size_info);
                   txtRidixLobby=findViewById(R.id.txt_ridix_lobby);txtRidixShop=findViewById(R.id.txt_ridix_shop);
-
                   updRidix();setupCustomize();
 
                   saveLauncher=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),res->{
@@ -1767,7 +994,6 @@ jobs:
                       ren.runStartScripts();startRidixTimer();
                       handler.postDelayed(()->setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE),50);
                   });
-
                   findViewById(R.id.btn_engine).setOnClickListener(v->{
                       pendingMode=2;ren.isEngineMode=true;ren.isPlayingLevel=false;
                       ren.blocks.clear();ren.pX=0;ren.pY=20;ren.pZ=35;ren.selectedIndex=-1;stopRidixTimer();
@@ -1776,112 +1002,68 @@ jobs:
                       updAxis();updSizeInfo();updGridBtn();
                       handler.postDelayed(()->setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE),50);
                   });
-
-                  findViewById(R.id.btn_customize_lobby).setOnClickListener(v->{
-                      menuUI.setVisibility(View.GONE);customizeUI.setVisibility(View.VISIBLE);updCustPacks();updRidix();
-                  });
-
+                  findViewById(R.id.btn_customize_lobby).setOnClickListener(v->{menuUI.setVisibility(View.GONE);customizeUI.setVisibility(View.VISIBLE);updCustPacks();updRidix();});
                   findViewById(R.id.btn_load_file).setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");loadLauncher.launch(i);});
-
-                  View.OnClickListener back=v->{
-                      pendingMode=0;ren.isPlayingLevel=false;stopRidixTimer();
-                      gameUI.setVisibility(View.GONE);engineUI.setVisibility(View.GONE);
-                      playtestUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);
-                      setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-                  };
+                  View.OnClickListener back=v->{pendingMode=0;ren.isPlayingLevel=false;stopRidixTimer();gameUI.setVisibility(View.GONE);engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);};
                   findViewById(R.id.btn_menu).setOnClickListener(back);
                   findViewById(R.id.btn_engine_menu).setOnClickListener(back);
-
                   findViewById(R.id.btn_close_customize).setOnClickListener(v->{customizeUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);});
-
-                  findViewById(R.id.btn_play_level).setOnClickListener(v->{
-                      ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;applyPack();
-                      engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);ren.runStartScripts();
-                  });
-                  findViewById(R.id.btn_stop_playtest).setOnClickListener(v->{
-                      ren.isPlayingLevel=false;ren.pX=0;ren.pY=20;ren.pZ=35;
-                      playtestUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);updAxis();
-                  });
+                  findViewById(R.id.btn_play_level).setOnClickListener(v->{ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;applyPack();engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);ren.runStartScripts();});
+                  findViewById(R.id.btn_stop_playtest).setOnClickListener(v->{ren.isPlayingLevel=false;ren.pX=0;ren.pY=20;ren.pZ=35;playtestUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);updAxis();});
                   findViewById(R.id.btn_save).setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");i.putExtra(Intent.EXTRA_TITLE,"level.json");saveLauncher.launch(i);});
                   findViewById(R.id.btn_run_script).setOnClickListener(v->showScriptDialog());
                   btnGrid.setOnClickListener(v->{ren.gridEnabled=!ren.gridEnabled;updGridBtn();});
-
                   findViewById(R.id.btn_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN&&ren.isOnGround())ren.vY=.55f;return true;});
                   findViewById(R.id.btn_playtest_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN&&ren.isOnGround())ren.vY=.55f;return true;});
-
                   findViewById(R.id.btn_place).setOnClickListener(v->{if(ren.selectedIndex<0)ren.placeBlock();});
                   btnDelete.setOnClickListener(v->{ren.deleteSelected();updAxis();});
                   btnDeselect.setOnClickListener(v->{ren.selectedIndex=-1;updAxis();});
                   btnHide.setOnClickListener(v->{if(ren.selectedIndex>=0){ren.toggleHideSelected();updAxis();}});
                   btnEvents.setOnClickListener(v->showBlockEventsDialog());
-
                   axisBtn(R.id.axis_x_plus,1,0,0);axisBtn(R.id.axis_x_minus,-1,0,0);
                   axisBtn(R.id.axis_y_plus,0,1,0);axisBtn(R.id.axis_y_minus,0,-1,0);
                   axisBtn(R.id.axis_z_plus,0,0,1);axisBtn(R.id.axis_z_minus,0,0,-1);
-
                   shapeBtn=new Button[]{findViewById(R.id.shape_square),findViewById(R.id.shape_rectangle),findViewById(R.id.shape_circle),findViewById(R.id.shape_triangle)};
                   findViewById(R.id.shape_square).setOnClickListener(v->setShape("square",4,4,4,0));
                   findViewById(R.id.shape_rectangle).setOnClickListener(v->setShape("rectangle",8,4,4,1));
                   findViewById(R.id.shape_circle).setOnClickListener(v->setShape("circle",4,4,4,2));
                   findViewById(R.id.shape_triangle).setOnClickListener(v->setShape("triangle",4,4,4,3));
-
                   findViewById(R.id.size_x_minus).setOnClickListener(v->{ren.blockSX=Math.max(.5f,ren.blockSX-.5f);updSizeInfo();});
                   findViewById(R.id.size_x_plus).setOnClickListener(v->{ren.blockSX+=.5f;updSizeInfo();});
                   findViewById(R.id.size_y_minus).setOnClickListener(v->{ren.blockSY=Math.max(.5f,ren.blockSY-.5f);updSizeInfo();});
                   findViewById(R.id.size_y_plus).setOnClickListener(v->{ren.blockSY+=.5f;updSizeInfo();});
                   findViewById(R.id.size_z_minus).setOnClickListener(v->{ren.blockSZ=Math.max(.5f,ren.blockSZ-.5f);updSizeInfo();});
                   findViewById(R.id.size_z_plus).setOnClickListener(v->{ren.blockSZ=Math.max(.5f,ren.blockSZ+.5f);updSizeInfo();});
-
                   distBtn=new Button[]{findViewById(R.id.dist_near),findViewById(R.id.dist_mid),findViewById(R.id.dist_far)};
                   float[]dists={3f,6f,12f};
                   for(int i=0;i<3;i++){final int ii=i;distBtn[i].setOnClickListener(v->{ren.placeDist=dists[ii];updBtnGrp(distBtn,ii);});}
-
                   colorBtn=new View[]{findViewById(R.id.color_red),findViewById(R.id.color_green),findViewById(R.id.color_blue),findViewById(R.id.color_yellow),findViewById(R.id.color_white),findViewById(R.id.color_black)};
                   float[][]cols={{1f,.2f,.2f},{.2f,1f,.2f},{.2f,.5f,1f},{1f,1f,.2f},{1f,1f,1f},{0f,0f,0f}};
                   for(int i=0;i<cols.length;i++){final int ii=i;colorBtn[i].setOnClickListener(v->{ren.blockR=cols[ii][0];ren.blockG=cols[ii][1];ren.blockB=cols[ii][2];if(ren.selectedIndex>=0&&ren.selectedIndex<ren.blocks.size()){Block b=ren.blocks.get(ren.selectedIndex);b.r=ren.blockR;b.g=ren.blockG;b.b=ren.blockB;}updColSel(ii);});}
-
                   setupJoy(findViewById(R.id.joy_base),findViewById(R.id.joy_stick));
                   setupJoy(findViewById(R.id.engine_joy_base),findViewById(R.id.engine_joy_stick));
                   setupJoy(findViewById(R.id.playtest_joy_base),findViewById(R.id.playtest_joy_stick));
                   setupLook(findViewById(R.id.look_zone));
                   setupLook(findViewById(R.id.playtest_look_zone));
-
                   findViewById(R.id.engine_touch_zone).setOnTouchListener((v,e)->{
                       if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}
-                      else if(e.getAction()==MotionEvent.ACTION_UP){
-                          if(Math.abs(e.getX()-lx)<25&&Math.abs(e.getY()-ly)<25){
-                              int hit=ren.raycastBlock(e.getX(),e.getY());ren.selectedIndex=hit;
-                              if(hit>=0){Block b=ren.blocks.get(hit);ren.blockR=b.r;ren.blockG=b.g;ren.blockB=b.b;ren.blockSX=b.sx;ren.blockSY=b.sy;ren.blockSZ=b.sz;ren.blockShape=b.shape;ren.handleTapBlock(hit);updSizeInfo();}
-                              updAxis();
-                          }
-                      }else if(e.getAction()==MotionEvent.ACTION_MOVE){ren.rY+=(e.getX()-lx)*.2f;ren.rX=Math.max(-85,Math.min(85,ren.rX-(e.getY()-ly)*.2f));lx=e.getX();ly=e.getY();}
+                      else if(e.getAction()==MotionEvent.ACTION_UP){if(Math.abs(e.getX()-lx)<25&&Math.abs(e.getY()-ly)<25){int hit=ren.raycastBlock(e.getX(),e.getY());ren.selectedIndex=hit;if(hit>=0){Block b=ren.blocks.get(hit);ren.blockR=b.r;ren.blockG=b.g;ren.blockB=b.b;ren.blockSX=b.sx;ren.blockSY=b.sy;ren.blockSZ=b.sz;ren.blockShape=b.shape;ren.handleTapBlock(hit);updSizeInfo();}updAxis();}}
+                      else if(e.getAction()==MotionEvent.ACTION_MOVE){ren.rY+=(e.getX()-lx)*.2f;ren.rX=Math.max(-85,Math.min(85,ren.rX-(e.getY()-ly)*.2f));lx=e.getX();ly=e.getY();}
                       return true;
                   });
-
                   updSizeInfo();updAxis();updGridBtn();
               }
 
               private void setupCustomize(){
-                  buildColorRow(findViewById(R.id.skin_colors),SKIN_I,(i)->{ren.charSkinR=SKIN_C[i][0];ren.charSkinG=SKIN_C[i][1];ren.charSkinB=SKIN_C[i][2];savePrefs();});
-                  buildColorRow(findViewById(R.id.torso_colors),TORSO_I,(i)->{ren.charTorsoR=TORSO_C[i][0];ren.charTorsoG=TORSO_C[i][1];ren.charTorsoB=TORSO_C[i][2];savePrefs();});
-                  buildColorRow(findViewById(R.id.legs_colors),LEGS_I,(i)->{ren.charLegsR=LEGS_C[i][0];ren.charLegsG=LEGS_C[i][1];ren.charLegsB=LEGS_C[i][2];savePrefs();});
-
+                  buildColorRow(findViewById(R.id.skin_colors),SKIN_I,i->{ren.charSkinR=SKIN_C[i][0];ren.charSkinG=SKIN_C[i][1];ren.charSkinB=SKIN_C[i][2];savePrefs();});
+                  buildColorRow(findViewById(R.id.torso_colors),TORSO_I,i->{ren.charTorsoR=TORSO_C[i][0];ren.charTorsoG=TORSO_C[i][1];ren.charTorsoB=TORSO_C[i][2];savePrefs();});
+                  buildColorRow(findViewById(R.id.legs_colors),LEGS_I,i->{ren.charLegsR=LEGS_C[i][0];ren.charLegsG=LEGS_C[i][1];ren.charLegsB=LEGS_C[i][2];savePrefs();});
                   findViewById(R.id.btn_pack_default).setOnClickListener(v->{equippedPack=0;applyPack();savePrefs();updCustPacks();Toast.makeText(this,"Default equipped",Toast.LENGTH_SHORT).show();});
-                  findViewById(R.id.btn_pack_fly).setOnClickListener(v->buyOrEquip(1,&ownedFly,"Fly"));
-                  findViewById(R.id.btn_pack_combat).setOnClickListener(v->buyOrEquip(2,&ownedCombat,"Combat"));
-                  findViewById(R.id.btn_pack_dance).setOnClickListener(v->buyOrEquip(3,&ownedDance,"Dance"));
+                  findViewById(R.id.btn_pack_fly).setOnClickListener(v->buyOrEquip(1,"Fly"));
+                  findViewById(R.id.btn_pack_combat).setOnClickListener(v->buyOrEquip(2,"Combat"));
+                  findViewById(R.id.btn_pack_dance).setOnClickListener(v->buyOrEquip(3,"Dance"));
               }
 
-              private boolean getOwned(int pack){if(pack==1)return ownedFly;if(pack==2)return ownedCombat;if(pack==3)return ownedDance;return true;}
-              private void setOwned(int pack,boolean v){if(pack==1)ownedFly=v;else if(pack==2)ownedCombat=v;else if(pack==3)ownedDance=v;}
-
-              private void buyOrEquip(int pack,String name){
-                  if(getOwned(pack)){equippedPack=pack;applyPack();savePrefs();updCustPacks();Toast.makeText(this,name+" equipped",Toast.LENGTH_SHORT).show();}
-                  else if(ridix>=PACK_PRICE){ridix-=PACK_PRICE;setOwned(pack,true);equippedPack=pack;applyPack();savePrefs();updRidix();updCustPacks();Toast.makeText(this,name+" purchased!",Toast.LENGTH_SHORT).show();}
-                  else Toast.makeText(this,"Need "+PACK_PRICE+" Ridix",Toast.LENGTH_SHORT).show();
-              }
-
-              interface CP{void pick(int i);}
               private void buildColorRow(LinearLayout row,int[]colors,CP cb){
                   row.removeAllViews();int dp=(int)(8*getResources().getDisplayMetrics().density);
                   for(int i=0;i<colors.length;i++){final int ii=i;View dot=new View(this);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp*5,dp*5);lp.setMargins(dp/2,0,dp/2,0);dot.setLayoutParams(lp);GradientDrawable gd=new GradientDrawable();gd.setShape(GradientDrawable.OVAL);gd.setColor(colors[i]);gd.setStroke(4,0xFF00BFFF);dot.setBackground(gd);dot.setOnClickListener(v->{cb.pick(ii);Toast.makeText(this,"Applied",Toast.LENGTH_SHORT).show();});row.addView(dot);}
@@ -1891,10 +1073,10 @@ jobs:
                   Button bd=findViewById(R.id.btn_pack_default),bf=findViewById(R.id.btn_pack_fly),bc=findViewById(R.id.btn_pack_combat),bda=findViewById(R.id.btn_pack_dance);
                   TextView tf=findViewById(R.id.txt_fly_price),tc=findViewById(R.id.txt_combat_price),td=findViewById(R.id.txt_dance_price);
                   bd.setText(equippedPack==0?"Equipped":"Equip");bd.setBackgroundResource(equippedPack==0?R.drawable.btn_blue_filled:R.drawable.btn_blue);bd.setTextColor(equippedPack==0?0xFF000000:0xFF00BFFF);
-                  updPackBtn(bf,tf,1,"Fly");updPackBtn(bc,tc,2,"Combat");updPackBtn(bda,td,3,"Dance");
+                  updPackBtn(bf,tf,1);updPackBtn(bc,tc,2);updPackBtn(bda,td,3);
               }
 
-              private void updPackBtn(Button btn,TextView price,int pack,String name){
+              private void updPackBtn(Button btn,TextView price,int pack){
                   if(getOwned(pack)){btn.setText(equippedPack==pack?"Equipped":"Equip");btn.setBackgroundResource(equippedPack==pack?R.drawable.btn_blue_filled:R.drawable.btn_blue);btn.setTextColor(equippedPack==pack?0xFF000000:0xFF00BFFF);price.setText("Owned");}
                   else{btn.setText("Buy");btn.setBackgroundResource(R.drawable.btn_blue);btn.setTextColor(0xFF00BFFF);price.setText(PACK_PRICE+" Ridix");}
               }
@@ -1908,13 +1090,9 @@ jobs:
               }
               private void stopRidixTimer(){if(ridixTimer!=null){handler.removeCallbacks(ridixTimer);ridixTimer=null;}}
               private void updRidix(){String s=String.valueOf(ridix);if(txtRidixLobby!=null)txtRidixLobby.setText(s);if(txtRidixShop!=null)txtRidixShop.setText(s);}
-
               private void savePrefs(){SharedPreferences.Editor ed=getSharedPreferences("enjoer",MODE_PRIVATE).edit();ed.putInt("ridix",ridix);ed.putBoolean("fly",ownedFly);ed.putBoolean("combat",ownedCombat);ed.putBoolean("dance",ownedDance);ed.putInt("pack",equippedPack);ed.putFloat("sR",ren!=null?ren.charSkinR:1f);ed.putFloat("sG",ren!=null?ren.charSkinG:.85f);ed.putFloat("sB",ren!=null?ren.charSkinB:.15f);ed.putFloat("tR",ren!=null?ren.charTorsoR:.1f);ed.putFloat("tG",ren!=null?ren.charTorsoG:.4f);ed.putFloat("tB",ren!=null?ren.charTorsoB:1f);ed.putFloat("lR",ren!=null?ren.charLegsR:.1f);ed.putFloat("lG",ren!=null?ren.charLegsG:.8f);ed.putFloat("lB",ren!=null?ren.charLegsB:.2f);ed.apply();}
-
               private void loadPrefs(){SharedPreferences sp=getSharedPreferences("enjoer",MODE_PRIVATE);ridix=sp.getInt("ridix",0);ownedFly=sp.getBoolean("fly",false);ownedCombat=sp.getBoolean("combat",false);ownedDance=sp.getBoolean("dance",false);equippedPack=sp.getInt("pack",0);}
-
               private void applyPrefsToRen(){SharedPreferences sp=getSharedPreferences("enjoer",MODE_PRIVATE);ren.charSkinR=sp.getFloat("sR",1f);ren.charSkinG=sp.getFloat("sG",.85f);ren.charSkinB=sp.getFloat("sB",.15f);ren.charTorsoR=sp.getFloat("tR",.1f);ren.charTorsoG=sp.getFloat("tG",.4f);ren.charTorsoB=sp.getFloat("tB",1f);ren.charLegsR=sp.getFloat("lR",.1f);ren.charLegsG=sp.getFloat("lG",.8f);ren.charLegsB=sp.getFloat("lB",.2f);ren.animPack=equippedPack;}
-
               @Override protected void onResume(){super.onResume();if(ren!=null)applyPrefsToRen();}
               @Override protected void onPause(){super.onPause();stopRidixTimer();savePrefs();}
 
@@ -1936,45 +1114,18 @@ jobs:
 
               private void setShape(String sh,float sx,float sy,float sz,int i){ren.blockShape=sh;ren.blockSX=sx;ren.blockSY=sy;ren.blockSZ=sz;updBtnGrp(shapeBtn,i);updSizeInfo();}
               private void resetP(){ren.pX=0;ren.pY=7;ren.pZ=15;ren.vY=0;}
-
-              private void axisBtn(int id,float dx,float dy,float dz){
-                  findViewById(id).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN||e.getAction()==MotionEvent.ACTION_MOVE){float step=ren.gridEnabled?ren.gridSize:.5f;ren.moveSelected(dx*step,dy*step,dz*step);}return true;});
-              }
-
-              private void updAxis(){
-                  runOnUiThread(()->{boolean sel=ren.selectedIndex>=0;axisPanel.setVisibility(sel?View.VISIBLE:View.GONE);btnDeselect.setVisibility(sel?View.VISIBLE:View.GONE);btnHide.setVisibility(sel?View.VISIBLE:View.GONE);btnDelete.setVisibility(sel?View.VISIBLE:View.GONE);btnEvents.setVisibility(sel?View.VISIBLE:View.GONE);if(sel){Block b=ren.blocks.get(ren.selectedIndex);btnHide.setText(b.hidden?"Show":"Hide");}});
-              }
-
+              private void axisBtn(int id,float dx,float dy,float dz){findViewById(id).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN||e.getAction()==MotionEvent.ACTION_MOVE){float step=ren.gridEnabled?ren.gridSize:.5f;ren.moveSelected(dx*step,dy*step,dz*step);}return true;});}
+              private void updAxis(){runOnUiThread(()->{boolean sel=ren.selectedIndex>=0;axisPanel.setVisibility(sel?View.VISIBLE:View.GONE);btnDeselect.setVisibility(sel?View.VISIBLE:View.GONE);btnHide.setVisibility(sel?View.VISIBLE:View.GONE);btnDelete.setVisibility(sel?View.VISIBLE:View.GONE);btnEvents.setVisibility(sel?View.VISIBLE:View.GONE);if(sel){Block b=ren.blocks.get(ren.selectedIndex);btnHide.setText(b.hidden?"Show":"Hide");}});}
               private void updSizeInfo(){runOnUiThread(()->txtSizeInfo.setText(String.format(java.util.Locale.US,"%.1f x %.1f x %.1f",ren.blockSX,ren.blockSY,ren.blockSZ)));}
-
-              private void updGridBtn(){
-                  runOnUiThread(()->{if(ren.gridEnabled){btnGrid.setText("Grid: On");btnGrid.setBackgroundResource(R.drawable.btn_blue_filled);btnGrid.setTextColor(0xFF000000);}else{btnGrid.setText("Grid: Off");btnGrid.setBackgroundResource(R.drawable.btn_blue);btnGrid.setTextColor(0xFF00BFFF);}});
-              }
-
-              private void setupJoy(View base,View stick){
-                  base.setOnTouchListener((v,e)->{
-                      float cx=v.getWidth()/2f,cy=v.getHeight()/2f;
-                      if(e.getAction()==MotionEvent.ACTION_MOVE||e.getAction()==MotionEvent.ACTION_DOWN){float dx=e.getX()-cx,dy=e.getY()-cy,d=(float)Math.sqrt(dx*dx+dy*dy),lim=cx-stick.getWidth()/2f;if(d>lim){dx*=lim/d;dy*=lim/d;}stick.setTranslationX(dx);stick.setTranslationY(dy);ren.jX=dx/lim;ren.jY=dy/lim;}
-                      else if(e.getAction()==MotionEvent.ACTION_UP){stick.setTranslationX(0);stick.setTranslationY(0);ren.jX=0;ren.jY=0;}
-                      return true;
-                  });
-              }
-
-              private void setupLook(View z){
-                  z.setOnTouchListener((v,e)->{
-                      if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}
-                      else if(e.getAction()==MotionEvent.ACTION_MOVE){ren.rY+=(e.getX()-lx)*.25f;ren.rX=Math.max(-80,Math.min(80,ren.rX-(e.getY()-ly)*.25f));lx=e.getX();ly=e.getY();}
-                      return true;
-                  });
-              }
-
+              private void updGridBtn(){runOnUiThread(()->{if(ren.gridEnabled){btnGrid.setText("Grid: On");btnGrid.setBackgroundResource(R.drawable.btn_blue_filled);btnGrid.setTextColor(0xFF000000);}else{btnGrid.setText("Grid: Off");btnGrid.setBackgroundResource(R.drawable.btn_blue);btnGrid.setTextColor(0xFF00BFFF);}});}
+              private void setupJoy(View base,View stick){base.setOnTouchListener((v,e)->{float cx=v.getWidth()/2f,cy=v.getHeight()/2f;if(e.getAction()==MotionEvent.ACTION_MOVE||e.getAction()==MotionEvent.ACTION_DOWN){float dx=e.getX()-cx,dy=e.getY()-cy,d=(float)Math.sqrt(dx*dx+dy*dy),lim=cx-stick.getWidth()/2f;if(d>lim){dx*=lim/d;dy*=lim/d;}stick.setTranslationX(dx);stick.setTranslationY(dy);ren.jX=dx/lim;ren.jY=dy/lim;}else if(e.getAction()==MotionEvent.ACTION_UP){stick.setTranslationX(0);stick.setTranslationY(0);ren.jX=0;ren.jY=0;}return true;});}
+              private void setupLook(View z){z.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}else if(e.getAction()==MotionEvent.ACTION_MOVE){ren.rY+=(e.getX()-lx)*.25f;ren.rX=Math.max(-80,Math.min(80,ren.rX-(e.getY()-ly)*.25f));lx=e.getX();ly=e.getY();}return true;});}
               private void updBtnGrp(Button[]btns,int sel){for(int i=0;i<btns.length;i++){if(i==sel){btns[i].setBackgroundResource(R.drawable.btn_blue_filled);btns[i].setTextColor(0xFF000000);}else{btns[i].setBackgroundResource(R.drawable.btn_blue);btns[i].setTextColor(0xFF00BFFF);}}}
-
               private void updColSel(int sel){for(int i=0;i<colorBtn.length;i++){try{GradientDrawable bg=(GradientDrawable)colorBtn[i].getBackground();if(i==sel)bg.setStroke(6,0xFFFFFFFF);else bg.setStroke(2,0xFF00BFFF);}catch(Exception ignored){}}}
           }
-          MAINACT
+          EOF
 
-          cat <<EOF > app/src/main/AndroidManifest.xml
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application android:label="Enjoer 6.3" android:theme="@style/AppTheme">
@@ -1986,14 +1137,24 @@ jobs:
           EOF
 
           echo "include ':app'" > settings.gradle
-          cat <<EOF > build.gradle
-          buildscript{repositories{google();mavenCentral()}dependencies{classpath 'com.android.tools.build:gradle:8.2.2'}}
-          allprojects{repositories{google();mavenCentral()}}
+
+          cat > build.gradle << 'EOF'
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
           EOF
-          cat <<EOF > app/build.gradle
-          plugins{id 'com.android.application'}
-          android{namespace 'com.enjoer.game';compileSdk 34;defaultConfig{applicationId 'com.enjoer.game';minSdk 24;targetSdk 34};buildFeatures{buildConfig true}}
-          dependencies{implementation 'androidx.appcompat:appcompat:1.6.1'}
+
+          cat > app/build.gradle << 'EOF'
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.enjoer.game'
+              compileSdk 34
+              defaultConfig { applicationId 'com.enjoer.game'; minSdk 24; targetSdk 34 }
+              buildFeatures { buildConfig true }
+          }
+          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
 
       - name: Build APK
