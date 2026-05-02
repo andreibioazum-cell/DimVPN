@@ -1,4 +1,4 @@
-name: Enjoer_6.3_Fixed
+name: Enjoer_6.4
 on: [push, workflow_dispatch]
 
 jobs:
@@ -35,87 +35,87 @@ jobs:
           </resources>
           THEMES
 
-          cat > app/src/main/res/drawable/btn_blue.xml << 'EOF'
+          cat > app/src/main/res/drawable/btn_blue.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#101820"/>
             <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
-          EOF
+          ENDF
 
-          cat > app/src/main/res/drawable/btn_blue_filled.xml << 'EOF'
+          cat > app/src/main/res/drawable/btn_blue_filled.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#00BFFF"/>
           </shape>
-          EOF
+          ENDF
 
-          cat > app/src/main/res/drawable/btn_red.xml << 'EOF'
+          cat > app/src/main/res/drawable/btn_red.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#101820"/>
             <stroke android:width="2dp" android:color="#FF4444"/>
           </shape>
-          EOF
+          ENDF
 
-          cat > app/src/main/res/drawable/btn_green.xml << 'EOF'
+          cat > app/src/main/res/drawable/btn_green.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
-            <solid android:color="#44FF44"/>
+            <solid android:color="#101820"/>
+            <stroke android:width="2dp" android:color="#44FF44"/>
           </shape>
-          EOF
+          ENDF
 
-          cat > app/src/main/res/drawable/btn_purple.xml << 'EOF'
+          cat > app/src/main/res/drawable/btn_purple.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#101820"/>
             <stroke android:width="2dp" android:color="#AA44FF"/>
           </shape>
-          EOF
+          ENDF
 
-          cat > app/src/main/res/drawable/joy_base.xml << 'EOF'
+          cat > app/src/main/res/drawable/joy_base.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
             <solid android:color="#CC101820"/>
             <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
-          EOF
+          ENDF
 
-          cat > app/src/main/res/drawable/joy_stick.xml << 'EOF'
+          cat > app/src/main/res/drawable/joy_stick.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
             <solid android:color="#00BFFF"/>
           </shape>
-          EOF
+          ENDF
 
-          cat > app/src/main/res/drawable/panel_bg.xml << 'EOF'
+          cat > app/src/main/res/drawable/panel_bg.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="8dp"/>
             <solid android:color="#E6101820"/>
             <stroke android:width="1dp" android:color="#00BFFF"/>
           </shape>
-          EOF
+          ENDF
 
-          cat > app/src/main/res/drawable/color_btn.xml << 'EOF'
+          cat > app/src/main/res/drawable/color_btn.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
             <solid android:color="#FFF"/>
             <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
-          EOF
+          ENDF
 
-          cat > app/src/main/res/drawable/crosshair.xml << 'EOF'
+          cat > app/src/main/res/drawable/crosshair.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-            <solid android:color="#AA00BFFF"/>
-            <stroke android:width="2dp" android:color="#FF00BFFF"/>
-            <size android:width="12dp" android:height="12dp"/>
+            <solid android:color="#FF00BFFF"/>
+            <size android:width="10dp" android:height="10dp"/>
           </shape>
-          EOF
+          ENDF
 
-          cat > app/src/main/res/drawable/ridix_bg.xml << 'EOF'
+          cat > app/src/main/res/drawable/ridix_bg.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="12dp"/>
             <solid android:color="#CC0A1428"/>
             <stroke android:width="2dp" android:color="#FFD700"/>
           </shape>
-          EOF
+          ENDF
 
           cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
           <?xml version="1.0" encoding="utf-8"?>
@@ -129,176 +129,42 @@ jobs:
                   android:layout_width="match_parent"
                   android:layout_height="match_parent"/>
 
+              <!-- GAME UI -->
               <RelativeLayout
                   android:id="@+id/game_ui"
                   android:layout_width="match_parent"
                   android:layout_height="match_parent"
                   android:visibility="gone">
-
-                  <View
-                      android:id="@+id/look_zone"
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent"/>
-
-                  <Button
-                      android:id="@+id/btn_menu"
-                      android:layout_width="70dp"
-                      android:layout_height="50dp"
-                      android:layout_margin="10dp"
-                      android:text="Menu"
-                      android:textSize="12sp"
-                      android:background="@drawable/btn_blue"
-                      android:textColor="#00BFFF"/>
-
-                  <FrameLayout
-                      android:id="@+id/joy_base"
-                      android:layout_width="126dp"
-                      android:layout_height="126dp"
-                      android:layout_alignParentBottom="true"
-                      android:layout_alignParentLeft="true"
-                      android:layout_marginLeft="36dp"
-                      android:layout_marginBottom="36dp"
-                      android:background="@drawable/joy_base"/>
-
-                  <View
-                      android:id="@+id/joy_stick"
-                      android:layout_width="54dp"
-                      android:layout_height="54dp"
-                      android:layout_alignLeft="@id/joy_base"
-                      android:layout_alignTop="@id/joy_base"
-                      android:layout_marginLeft="36dp"
-                      android:layout_marginTop="36dp"
-                      android:background="@drawable/joy_stick"/>
-
-                  <Button
-                      android:id="@+id/btn_jump"
-                      android:layout_width="90dp"
-                      android:layout_height="90dp"
-                      android:layout_alignParentRight="true"
-                      android:layout_alignParentBottom="true"
-                      android:layout_marginRight="40dp"
-                      android:layout_marginBottom="40dp"
-                      android:text="Jump"
-                      android:textSize="14sp"
-                      android:background="@drawable/btn_blue"
-                      android:textColor="#FFF"/>
-
-                  <View
-                      android:id="@+id/crosshair_game"
-                      android:layout_width="12dp"
-                      android:layout_height="12dp"
-                      android:layout_centerInParent="true"
-                      android:background="@drawable/crosshair"/>
+                  <View android:id="@+id/look_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
+                  <Button android:id="@+id/btn_menu" android:layout_width="80dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Menu" android:textSize="13sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                  <FrameLayout android:id="@+id/joy_base" android:layout_width="126dp" android:layout_height="126dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="36dp" android:layout_marginBottom="36dp" android:background="@drawable/joy_base"/>
+                  <View android:id="@+id/joy_stick" android:layout_width="54dp" android:layout_height="54dp" android:layout_alignLeft="@id/joy_base" android:layout_alignTop="@id/joy_base" android:layout_marginLeft="36dp" android:layout_marginTop="36dp" android:background="@drawable/joy_stick"/>
+                  <Button android:id="@+id/btn_jump" android:layout_width="90dp" android:layout_height="90dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="40dp" android:layout_marginBottom="40dp" android:text="Jump" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#FFF"/>
+                  <View android:id="@+id/crosshair_game" android:layout_width="10dp" android:layout_height="10dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
               </RelativeLayout>
 
+              <!-- ENGINE UI -->
               <RelativeLayout
                   android:id="@+id/engine_ui"
                   android:layout_width="match_parent"
                   android:layout_height="match_parent"
                   android:visibility="gone">
-
-                  <View
-                      android:id="@+id/engine_touch_zone"
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent"/>
-
-                  <LinearLayout
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:layout_alignParentTop="true"
-                      android:orientation="horizontal"
-                      android:padding="10dp">
-
-                      <Button
-                          android:id="@+id/btn_engine_menu"
-                          android:layout_width="70dp"
-                          android:layout_height="50dp"
-                          android:text="Menu"
-                          android:textSize="12sp"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#00BFFF"/>
-
+                  <View android:id="@+id/engine_touch_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentTop="true" android:orientation="horizontal" android:padding="10dp">
+                      <Button android:id="@+id/btn_engine_menu" android:layout_width="80dp" android:layout_height="50dp" android:text="Menu" android:textSize="13sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
                       <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
-
-                      <Button
-                          android:id="@+id/btn_run_script"
-                          android:layout_width="90dp"
-                          android:layout_height="50dp"
-                          android:text="Script"
-                          android:textSize="12sp"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#00BFFF"/>
-
-                      <Button
-                          android:id="@+id/btn_save"
-                          android:layout_width="90dp"
-                          android:layout_height="50dp"
-                          android:text="Export"
-                          android:textSize="12sp"
-                          android:background="@drawable/btn_blue"
-                          android:textColor="#00BFFF"
-                          android:layout_marginLeft="8dp"/>
-
-                      <Button
-                          android:id="@+id/btn_play_level"
-                          android:layout_width="60dp"
-                          android:layout_height="50dp"
-                          android:text="Play"
-                          android:textSize="12sp"
-                          android:background="@drawable/btn_green"
-                          android:textColor="#000"
-                          android:layout_marginLeft="10dp"/>
+                      <Button android:id="@+id/btn_save" android:layout_width="90dp" android:layout_height="50dp" android:text="Export" android:textSize="12sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="8dp"/>
+                      <Button android:id="@+id/btn_play_level" android:layout_width="80dp" android:layout_height="50dp" android:text="Play" android:textSize="13sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="10dp"/>
                   </LinearLayout>
-
-                  <FrameLayout
-                      android:id="@+id/engine_joy_base"
-                      android:layout_width="108dp"
-                      android:layout_height="108dp"
-                      android:layout_alignParentBottom="true"
-                      android:layout_alignParentLeft="true"
-                      android:layout_marginLeft="27dp"
-                      android:layout_marginBottom="27dp"
-                      android:background="@drawable/joy_base"/>
-
-                  <View
-                      android:id="@+id/engine_joy_stick"
-                      android:layout_width="45dp"
-                      android:layout_height="45dp"
-                      android:layout_alignLeft="@id/engine_joy_base"
-                      android:layout_alignTop="@id/engine_joy_base"
-                      android:layout_marginLeft="31dp"
-                      android:layout_marginTop="31dp"
-                      android:background="@drawable/joy_stick"/>
-
-                  <ScrollView
-                      android:layout_width="210dp"
-                      android:layout_height="match_parent"
-                      android:layout_alignParentRight="true"
-                      android:layout_marginTop="70dp"
-                      android:layout_marginRight="10dp"
-                      android:layout_marginBottom="10dp">
-
-                      <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:orientation="vertical"
-                          android:background="@drawable/panel_bg"
-                          android:padding="10dp">
-
+                  <FrameLayout android:id="@+id/engine_joy_base" android:layout_width="108dp" android:layout_height="108dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="27dp" android:layout_marginBottom="27dp" android:background="@drawable/joy_base"/>
+                  <View android:id="@+id/engine_joy_stick" android:layout_width="45dp" android:layout_height="45dp" android:layout_alignLeft="@id/engine_joy_base" android:layout_alignTop="@id/engine_joy_base" android:layout_marginLeft="31dp" android:layout_marginTop="31dp" android:background="@drawable/joy_stick"/>
+                  <ScrollView android:layout_width="210dp" android:layout_height="match_parent" android:layout_alignParentRight="true" android:layout_marginTop="70dp" android:layout_marginRight="10dp" android:layout_marginBottom="10dp">
+                      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/panel_bg" android:padding="10dp">
                           <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Shape" android:textColor="#FFF" android:textStyle="bold"/>
-
                           <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
                               <Button android:id="@+id/shape_square" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Square" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
-                              <Button android:id="@+id/shape_rectangle" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Rect" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
                           </LinearLayout>
-
-                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
-                              <Button android:id="@+id/shape_circle" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Circle" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
-                              <Button android:id="@+id/shape_triangle" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Triangle" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
-                          </LinearLayout>
-
                           <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Size X/Y/Z" android:textColor="#FFF" android:textStyle="bold" android:layout_marginTop="10dp"/>
-
                           <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
                               <Button android:id="@+id/size_x_minus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="X-" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
                               <Button android:id="@+id/size_x_plus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="X+" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
@@ -311,11 +177,8 @@ jobs:
                               <Button android:id="@+id/size_z_minus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Z-" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
                               <Button android:id="@+id/size_z_plus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Z+" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
                           </LinearLayout>
-
                           <TextView android:id="@+id/txt_size_info" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="4 x 4 x 4" android:textColor="#AEEBFF" android:layout_marginTop="6dp"/>
-
                           <Button android:id="@+id/btn_grid" android:layout_width="match_parent" android:layout_height="36dp" android:text="Grid: On" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:layout_marginTop="8dp"/>
-
                           <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="8dp">
                               <View android:id="@+id/color_red" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#FF2222"/>
                               <View android:id="@+id/color_green" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#22FF22" android:layout_marginLeft="5dp"/>
@@ -324,32 +187,17 @@ jobs:
                               <View android:id="@+id/color_white" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#FFFFFF" android:layout_marginLeft="5dp"/>
                               <View android:id="@+id/color_black" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#222222" android:layout_marginLeft="5dp"/>
                           </LinearLayout>
-
                           <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
-                              <Button android:id="@+id/dist_near" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="3" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
-                              <Button android:id="@+id/dist_mid" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="6" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:layout_marginLeft="4dp"/>
-                              <Button android:id="@+id/dist_far" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="12" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                              <Button android:id="@+id/dist_far" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="12" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
+                              <Button android:id="@+id/dist_vfar" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="15" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
                           </LinearLayout>
-
                           <Button android:id="@+id/btn_place" android:layout_width="match_parent" android:layout_height="44dp" android:text="+ Place" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:layout_marginTop="12dp"/>
-                          <Button android:id="@+id/btn_block_events" android:layout_width="match_parent" android:layout_height="36dp" android:text="Events" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginTop="8dp" android:visibility="gone"/>
                           <Button android:id="@+id/btn_hide" android:layout_width="match_parent" android:layout_height="36dp" android:text="Hide" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginTop="8dp" android:visibility="gone"/>
                           <Button android:id="@+id/btn_delete" android:layout_width="match_parent" android:layout_height="36dp" android:text="Delete" android:background="@drawable/btn_red" android:textColor="#FF4444" android:layout_marginTop="8dp" android:visibility="gone"/>
                           <Button android:id="@+id/btn_deselect" android:layout_width="match_parent" android:layout_height="36dp" android:text="Deselect" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginTop="8dp" android:visibility="gone"/>
                       </LinearLayout>
                   </ScrollView>
-
-                  <LinearLayout
-                      android:id="@+id/axis_panel"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:layout_alignParentBottom="true"
-                      android:layout_centerHorizontal="true"
-                      android:layout_marginBottom="20dp"
-                      android:orientation="horizontal"
-                      android:background="@drawable/panel_bg"
-                      android:padding="6dp"
-                      android:visibility="gone">
+                  <LinearLayout android:id="@+id/axis_panel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="20dp" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="6dp" android:visibility="gone">
                       <Button android:id="@+id/axis_x_minus" android:layout_width="44dp" android:layout_height="44dp" android:text="X-" android:background="@drawable/btn_blue" android:textColor="#FF4444" android:textSize="12sp"/>
                       <Button android:id="@+id/axis_x_plus" android:layout_width="44dp" android:layout_height="44dp" android:text="X+" android:background="@drawable/btn_blue" android:textColor="#FF4444" android:textSize="12sp" android:layout_marginLeft="4dp"/>
                       <Button android:id="@+id/axis_y_minus" android:layout_width="44dp" android:layout_height="44dp" android:text="Y-" android:background="@drawable/btn_blue" android:textColor="#44FF44" android:textSize="12sp" android:layout_marginLeft="10dp"/>
@@ -357,68 +205,51 @@ jobs:
                       <Button android:id="@+id/axis_z_minus" android:layout_width="44dp" android:layout_height="44dp" android:text="Z-" android:background="@drawable/btn_blue" android:textColor="#4488FF" android:textSize="12sp" android:layout_marginLeft="10dp"/>
                       <Button android:id="@+id/axis_z_plus" android:layout_width="44dp" android:layout_height="44dp" android:text="Z+" android:background="@drawable/btn_blue" android:textColor="#4488FF" android:textSize="12sp" android:layout_marginLeft="4dp"/>
                   </LinearLayout>
-
-                  <View android:id="@+id/crosshair_engine" android:layout_width="12dp" android:layout_height="12dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
+                  <View android:id="@+id/crosshair_engine" android:layout_width="10dp" android:layout_height="10dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
               </RelativeLayout>
 
-              <RelativeLayout
-                  android:id="@+id/playtest_ui"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:visibility="gone">
-
+              <!-- PLAYTEST UI -->
+              <RelativeLayout android:id="@+id/playtest_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
                   <View android:id="@+id/playtest_look_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
-
-                  <Button android:id="@+id/btn_stop_playtest" android:layout_width="70dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Stop" android:textSize="12sp" android:background="@drawable/btn_red" android:textColor="#FFF"/>
-
+                  <Button android:id="@+id/btn_stop_playtest" android:layout_width="80dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Stop" android:textSize="13sp" android:background="@drawable/btn_red" android:textColor="#FF4444"/>
                   <FrameLayout android:id="@+id/playtest_joy_base" android:layout_width="126dp" android:layout_height="126dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="36dp" android:layout_marginBottom="36dp" android:background="@drawable/joy_base"/>
                   <View android:id="@+id/playtest_joy_stick" android:layout_width="54dp" android:layout_height="54dp" android:layout_alignLeft="@id/playtest_joy_base" android:layout_alignTop="@id/playtest_joy_base" android:layout_marginLeft="36dp" android:layout_marginTop="36dp" android:background="@drawable/joy_stick"/>
-
                   <Button android:id="@+id/btn_playtest_jump" android:layout_width="90dp" android:layout_height="90dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="40dp" android:layout_marginBottom="40dp" android:text="Jump" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#FFF"/>
-                  <View android:id="@+id/crosshair_playtest" android:layout_width="12dp" android:layout_height="12dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
+                  <View android:id="@+id/crosshair_playtest" android:layout_width="10dp" android:layout_height="10dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
               </RelativeLayout>
 
-              <LinearLayout
-                  android:id="@+id/menu_ui"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:orientation="vertical"
-                  android:gravity="center"
-                  android:background="#02050A">
-
+              <!-- MAIN MENU -->
+              <LinearLayout android:id="@+id/menu_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#02050A">
                   <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Enjoer" android:textSize="52sp" android:textColor="#00BFFF" android:textStyle="bold"/>
-                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Engine 6.3" android:textSize="18sp" android:textColor="#0088CC" android:layout_marginBottom="16dp"/>
-
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Engine 6.4" android:textSize="18sp" android:textColor="#0088CC" android:layout_marginBottom="16dp"/>
                   <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/ridix_bg" android:padding="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="32dp">
                       <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ridix: " android:textColor="#FFD700" android:textSize="16sp"/>
                       <TextView android:id="@+id/txt_ridix_lobby" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFD700" android:textSize="16sp" android:textStyle="bold"/>
                   </LinearLayout>
-
                   <Button android:id="@+id/btn_play" android:layout_width="240dp" android:layout_height="60dp" android:text="Play" android:textSize="18sp" android:textColor="#000" android:background="@drawable/btn_blue_filled" android:layout_marginBottom="16dp"/>
                   <Button android:id="@+id/btn_engine" android:layout_width="240dp" android:layout_height="60dp" android:text="Editor" android:textSize="18sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue" android:layout_marginBottom="16dp"/>
                   <Button android:id="@+id/btn_customize_lobby" android:layout_width="240dp" android:layout_height="60dp" android:text="Customize" android:textSize="18sp" android:textColor="#AA44FF" android:background="@drawable/btn_purple" android:layout_marginBottom="16dp"/>
                   <Button android:id="@+id/btn_load_file" android:layout_width="240dp" android:layout_height="60dp" android:text="Import .json" android:textSize="16sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue"/>
               </LinearLayout>
 
-              <FrameLayout
-                  android:id="@+id/customize_ui"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:background="#EE02050A"
-                  android:visibility="gone">
-
+              <!-- CUSTOMIZE -->
+              <FrameLayout android:id="@+id/customize_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#EE02050A" android:visibility="gone">
                   <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
                       <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
-
                           <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Customize" android:textSize="28sp" android:textColor="#AA44FF" android:textStyle="bold" android:gravity="center" android:layout_marginBottom="8dp"/>
-
                           <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:background="@drawable/ridix_bg" android:padding="12dp" android:layout_marginBottom="20dp">
                               <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ridix: " android:textColor="#FFD700" android:textSize="18sp"/>
                               <TextView android:id="@+id/txt_ridix_shop" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFD700" android:textSize="18sp" android:textStyle="bold"/>
                           </LinearLayout>
 
-                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Character colors" android:textColor="#FFF" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp"/>
+                          <!-- Promo code -->
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Promo code" android:textColor="#FFF" android:textSize="16sp" android:textStyle="bold" android:layout_marginBottom="8dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="10dp" android:layout_marginBottom="20dp">
+                              <EditText android:id="@+id/et_promo" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:hint="Enter code" android:textColor="#FFF" android:textColorHint="#555" android:background="@null" android:textSize="14sp"/>
+                              <Button android:id="@+id/btn_promo" android:layout_width="80dp" android:layout_height="48dp" android:text="Apply" android:textSize="12sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                          </LinearLayout>
 
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Character colors" android:textColor="#FFF" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp"/>
                           <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="16dp">
                               <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Skin" android:textColor="#AEEBFF" android:layout_marginBottom="6dp"/>
                               <LinearLayout android:id="@+id/skin_colors" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp"/>
@@ -494,46 +325,6 @@ jobs:
           }
           EOF
 
-          cat > app/src/main/java/com/enjoer/game/ScriptEngine.java << 'EOF'
-          package com.enjoer.game;
-          import java.util.Locale;
-          public class ScriptEngine {
-              public interface Host { GameRenderer renderer(); void toast(String text); }
-              public static void run(Host host,String script) throws Exception {
-                  if(script==null)return;
-                  for(String raw:script.split("\\r?\\n")){
-                      String line=raw.trim();
-                      if(line.isEmpty()||line.startsWith("//")||line.startsWith("#"))continue;
-                      exec(host,line);
-                  }
-              }
-              private static void exec(Host host,String line) throws Exception {
-                  GameRenderer ren=host.renderer();
-                  if(line.equals("player.jump")){ren.vY=0.55f;return;}
-                  if(line.equals("block.hide")){Block b=ren.getSelectedBlock();if(b!=null)b.hidden=true;return;}
-                  if(line.equals("block.show")){Block b=ren.getSelectedBlock();if(b!=null)b.hidden=false;return;}
-                  if(line.equals("block.delete")){ren.deleteSelected();return;}
-                  if(line.startsWith("player.teleport(")&&line.endsWith(")")){String[]a=args(line);ren.pX=f(a[0]);ren.pY=f(a[1]);ren.pZ=f(a[2]);ren.vY=0;return;}
-                  if(line.startsWith("player.rotate(")&&line.endsWith(")")){String[]a=args(line);ren.rY=f(a[0]);ren.rX=f(a[1]);return;}
-                  if(line.startsWith("phone.toast(")&&line.endsWith(")")){host.toast(stripQ(argsText(line)[0]));return;}
-                  if(line.startsWith("phone.grid(")&&line.endsWith(")")){ren.gridEnabled=parseBool(args(line)[0]);return;}
-                  if(line.startsWith("block.color(")&&line.endsWith(")")){String[]a=args(line);Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.r=c(f(a[0]));b.g=c(f(a[1]));b.b=c(f(a[2]));return;}
-                  if(line.startsWith("block.move(")&&line.endsWith(")")){String[]a=args(line);ren.moveSelected(f(a[0]),f(a[1]),f(a[2]));return;}
-                  if(line.startsWith("block.size(")&&line.endsWith(")")){String[]a=args(line);Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.sx=Math.max(.5f,f(a[0]));b.sy=Math.max(.5f,f(a[1]));b.sz=Math.max(.5f,f(a[2]));if(b.y-b.sy/2f<0)b.y=b.sy/2f;return;}
-                  if(line.startsWith("block.teleport(")&&line.endsWith(")")){String[]a=args(line);Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.x=f(a[0]);b.y=f(a[1]);b.z=f(a[2]);if(b.y-b.sy/2f<0)b.y=b.sy/2f;return;}
-                  if(line.startsWith("block.shape(")&&line.endsWith(")")){Block b=ren.getSelectedBlock();if(b==null)throw new Exception("No block");b.shape=stripQ(argsText(line)[0]).toLowerCase(Locale.US);return;}
-                  if(line.startsWith("world.place(")&&line.endsWith(")")){String[]a=args(line);ren.blocks.add(new Block(f(a[0]),f(a[1]),f(a[2]),Math.max(.5f,f(a[3])),Math.max(.5f,f(a[4])),Math.max(.5f,f(a[5])),c(f(a[6])),c(f(a[7])),c(f(a[8]))));return;}
-                  throw new Exception("Unknown: "+line);
-              }
-              private static boolean parseBool(String s){s=s.trim().toLowerCase(Locale.US);return s.equals("true")||s.equals("1")||s.equals("on");}
-              private static String[]args(String l){int s=l.indexOf('('),e=l.lastIndexOf(')');String b=l.substring(s+1,e).trim();if(b.isEmpty())return new String[0];String[]a=b.split(",");for(int i=0;i<a.length;i++)a[i]=a[i].trim();return a;}
-              private static String[]argsText(String l){int s=l.indexOf('('),e=l.lastIndexOf(')');return new String[]{l.substring(s+1,e).trim()};}
-              private static String stripQ(String s){s=s.trim();if(s.length()>1&&(s.charAt(0)=='"'||s.charAt(0)=='\''))return s.substring(1,s.length()-1);return s;}
-              private static float f(String s){return Float.parseFloat(s.trim());}
-              private static float c(float v){return Math.max(0,Math.min(1,v));}
-          }
-          EOF
-
           cat > app/src/main/java/com/enjoer/game/GameRenderer.java << 'EOF'
           package com.enjoer.game;
           import android.opengl.GLES30;
@@ -552,21 +343,21 @@ jobs:
               public boolean isEngineMode=false,isPlayingLevel=false,gridEnabled=true;
               private int prog,skyProg;
               private FloatBuffer vBuf,nBuf,skyBuf;
-              public float blockR=0.8f,blockG=0.3f,blockB=0.3f,blockSX=4,blockSY=4,blockSZ=4,placeDist=6f;
-              public String blockShape="square";
+              public float blockR=0.2f,blockG=0.5f,blockB=1f,blockSX=4,blockSY=4,blockSZ=4,placeDist=12f;
               public final float gridSize=2f;
               public CopyOnWriteArrayList<Block> blocks=new CopyOnWriteArrayList<>();
               public int selectedIndex=-1;
               public float screenW=1,screenH=1;
               public EventHost eventHost;
               public int animPack=0;
-              public float charSkinR=1f,charSkinG=0.85f,charSkinB=0.15f;
+              public float charSkinR=1f,charSkinG=0.75f,charSkinB=0.5f;
               public float charTorsoR=0.1f,charTorsoG=0.4f,charTorsoB=1f;
               public float charLegsR=0.1f,charLegsG=0.8f,charLegsB=0.2f;
 
               private static final float FLOOR_Y=0f,PLAYER_HEIGHT=5.2f,PLAYER_RADIUS=0.85f;
-              private static final float CAM_TARGET_Y=3.0f;
-              private static final float CAM_DIST=14f;
+              // Camera: look at torso, orbit at fixed distance
+              private static final float CAM_TARGET_Y_OFF=3.0f;
+              private static final float CAM_DIST=14.7f; // 14 * 1.05
 
               private float camX,camY,camZ;
               private long lastTimeNs=0L;
@@ -580,24 +371,37 @@ jobs:
 
               public void loadBuiltInLevel(){
                   blocks.clear();
-                  Block b=new Block(0,2,-10,8,4,8,0.9f,0.2f,0.2f);b.shape="square";blocks.add(b);
+                  Block b=new Block(0,2,-10,8,4,8,0.9f,0.2f,0.2f);
+                  blocks.add(b);
               }
 
               public void runStartScripts(){
-                  for(Block b:blocks){if(!b.started){b.started=true;if(eventHost!=null&&b.onStartScript!=null&&!b.onStartScript.trim().isEmpty())eventHost.runBlockScript(b,b.onStartScript);}}
+                  for(Block b:blocks){
+                      if(!b.started){
+                          b.started=true;
+                          if(eventHost!=null&&b.onStartScript!=null&&!b.onStartScript.trim().isEmpty())
+                              eventHost.runBlockScript(b,b.onStartScript);
+                      }
+                  }
               }
 
               public void handleTapBlock(int i){
-                  if(i>=0&&i<blocks.size()){Block b=blocks.get(i);if(eventHost!=null&&b.onTapScript!=null&&!b.onTapScript.trim().isEmpty())eventHost.runBlockScript(b,b.onTapScript);}
+                  if(i>=0&&i<blocks.size()){
+                      Block b=blocks.get(i);
+                      if(eventHost!=null&&b.onTapScript!=null&&!b.onTapScript.trim().isEmpty())
+                          eventHost.runBlockScript(b,b.onTapScript);
+                  }
               }
 
               public void placeBlock(){
-                  float vx=(float)(Math.sin(Math.toRadians(rY))*Math.cos(Math.toRadians(rX)));
-                  float vy=(float)Math.sin(Math.toRadians(rX));
-                  float vz=(float)(-Math.cos(Math.toRadians(rY))*Math.cos(Math.toRadians(rX)));
+                  float rYr=(float)Math.toRadians(rY),rXr=(float)Math.toRadians(rX);
+                  float vx=(float)(Math.sin(rYr)*Math.cos(rXr));
+                  float vy=(float)Math.sin(rXr);
+                  float vz=(float)(-Math.cos(rYr)*Math.cos(rXr));
                   float nx=snap(pX+vx*placeDist),ny=snap(pY+vy*placeDist),nz=snap(pZ+vz*placeDist);
                   if(ny-blockSY/2f<FLOOR_Y)ny=FLOOR_Y+blockSY/2f;
-                  Block b=new Block(nx,ny,nz,blockSX,blockSY,blockSZ,blockR,blockG,blockB);b.shape=blockShape;blocks.add(b);
+                  Block b=new Block(nx,ny,nz,blockSX,blockSY,blockSZ,blockR,blockG,blockB);
+                  blocks.add(b);
               }
 
               public void deleteSelected(){if(selectedIndex>=0&&selectedIndex<blocks.size()){blocks.remove(selectedIndex);selectedIndex=-1;}}
@@ -610,26 +414,30 @@ jobs:
                   }
               }
 
-              public void toggleHideSelected(){if(selectedIndex>=0&&selectedIndex<blocks.size())blocks.get(selectedIndex).hidden=!blocks.get(selectedIndex).hidden;}
+              public void toggleHideSelected(){
+                  if(selectedIndex>=0&&selectedIndex<blocks.size())
+                      blocks.get(selectedIndex).hidden=!blocks.get(selectedIndex).hidden;
+              }
 
               public int raycastBlock(float tx,float ty){
                   float ndcX=(2f*tx/screenW)-1f,ndcY=1f-(2f*ty/screenH);
-                  float[]iP=new float[16],iV=new float[16];Matrix.invertM(iP,0,proj,0);Matrix.invertM(iV,0,view,0);
-                  float[]n={ndcX,ndcY,-1,1},ff={ndcX,ndcY,1,1},t=new float[4];
-                  Matrix.multiplyMV(t,0,iP,0,n,0);for(int i=0;i<4;i++)t[i]/=t[3];
+                  float[]iP=new float[16],iV=new float[16];
+                  Matrix.invertM(iP,0,proj,0);Matrix.invertM(iV,0,view,0);
+                  float[]nn={ndcX,ndcY,-1,1},ff={ndcX,ndcY,1,1},t=new float[4];
+                  Matrix.multiplyMV(t,0,iP,0,nn,0);for(int i=0;i<4;i++)t[i]/=t[3];
                   float[]nW=new float[4];Matrix.multiplyMV(nW,0,iV,0,t,0);
                   Matrix.multiplyMV(t,0,iP,0,ff,0);for(int i=0;i<4;i++)t[i]/=t[3];
                   float[]fW=new float[4];Matrix.multiplyMV(fW,0,iV,0,t,0);
-                  float dx=fW[0]-nW[0],dy=fW[1]-nW[1],dz=fW[2]-nW[2],len=(float)Math.sqrt(dx*dx+dy*dy+dz*dz);
-                  dx/=len;dy/=len;dz/=len;
+                  float dx=fW[0]-nW[0],dy=fW[1]-nW[1],dz=fW[2]-nW[2];
+                  float len=(float)Math.sqrt(dx*dx+dy*dy+dz*dz);dx/=len;dy/=len;dz/=len;
                   int closest=-1;float cD=Float.MAX_VALUE;
                   for(int i=0;i<blocks.size();i++){
                       Block b=blocks.get(i);
-                      float mn=(b.minX()-nW[0])/(dx==0?.0001f:dx),mx=(b.maxX()-nW[0])/(dx==0?.0001f:dx);if(mn>mx){float tmp=mn;mn=mx;mx=tmp;}
+                      float mn=(b.minX()-nW[0])/(dx==0?.0001f:dx),mx2=(b.maxX()-nW[0])/(dx==0?.0001f:dx);if(mn>mx2){float tmp=mn;mn=mx2;mx2=tmp;}
                       float yn=(b.minY()-nW[1])/(dy==0?.0001f:dy),yx2=(b.maxY()-nW[1])/(dy==0?.0001f:dy);if(yn>yx2){float tmp=yn;yn=yx2;yx2=tmp;}
-                      if(mn>yx2||yn>mx)continue;if(yn>mn)mn=yn;if(yx2<mx)mx=yx2;
+                      if(mn>yx2||yn>mx2)continue;if(yn>mn)mn=yn;if(yx2<mx2)mx2=yx2;
                       float zn=(b.minZ()-nW[2])/(dz==0?.0001f:dz),zx=(b.maxZ()-nW[2])/(dz==0?.0001f:dz);if(zn>zx){float tmp=zn;zn=zx;zx=tmp;}
-                      if(mn>zx||zn>mx)continue;if(zn>mn)mn=zn;
+                      if(mn>zx||zn>mx2)continue;if(zn>mn)mn=zn;
                       if(mn>0&&mn<cD){cD=mn;closest=i;}
                   }
                   return closest;
@@ -637,87 +445,221 @@ jobs:
 
               @Override
               public void onSurfaceCreated(GL10 gl,EGLConfig cfg){
-                  GLES30.glEnable(GLES30.GL_DEPTH_TEST);GLES30.glDepthFunc(GLES30.GL_LEQUAL);
-                  String vs="#version 300 es\nlayout(location=0)in vec4 aP;layout(location=1)in vec3 aN;uniform mat4 uMVP,uM;out vec3 vN,vP;void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
-                  String fs="#version 300 es\nprecision highp float;in vec3 vN,vP;uniform vec3 camP;uniform vec4 uC;uniform float uSel,isFloor;out vec4 fC;void main(){vec3 n=normalize(vN),vD=normalize(camP-vP),lD=normalize(vec3(.4,1.,.2));float diff=max(dot(n,lD),0.),ao=clamp(vP.y*.08+.6,.3,1.);vec3 h=normalize(lD+vD);float spec=pow(max(dot(n,h),0.),48.)*.6;vec3 col=uC.rgb;if(uSel>.5)col+=vec3(0.,.5,.8);vec3 amb=vec3(.05,.08,.13)*ao;vec3 fin=col*(diff*vec3(1.,.97,.92)+amb)+spec;if(isFloor>.5){vec2 g=fract(vP.xz*.2);float ln=step(.97,g.x)+step(.97,g.y);fin=mix(fin,vec3(0.,.4,.8),clamp(ln,0.,1.)*.45);}float dist=length(camP-vP),fog=1.-exp(-dist*.006);vec3 c=mix(fin,vec3(.02,.06,.14),clamp(fog,0.,.82));c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);fC=vec4(c,uC.a);}";
-                  String svs="#version 300 es\nlayout(location=0)in vec3 aP;out vec3 vDir;uniform mat4 uInvVP;void main(){vec4 w=uInvVP*vec4(aP,1.0);vDir=normalize(w.xyz/w.w);gl_Position=vec4(aP,1.0);}";
-                  String sfs="#version 300 es\nprecision highp float;in vec3 vDir;out vec4 fC;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}void main(){vec3 d=normalize(vDir);float t=clamp(d.y*.5+.5,0.,1.);vec3 col=mix(vec3(.005,.008,.02),vec3(.03,.16,.36),t);vec3 da=abs(d);vec2 uv=(da.y>da.x&&da.y>da.z)?d.xz:(da.x>da.z?d.yz:d.xy);uv*=55.;vec2 id=floor(uv),gv=fract(uv)-.5;float rnd=hash(id),star=step(.995,rnd),s=smoothstep(.18,0.,length(gv))*star*(0.7+0.3*sin(rnd*100.))*2.8;col+=mix(vec3(1.,.95,.85),vec3(.8,.9,1.),hash(id+4.3))*s;fC=vec4(col,1.);}";
-                  prog=mkProg(vs,fs);skyProg=mkProg(svs,sfs);
-                  float[]vc={-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,-.5f,.5f,-.5f,.5f,-.5f,.5f,.5f};
-                  float[]nc={0,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,0,-1,0,0,1,0,0,1,0,0,1,0,0,1,0,0};
+                  GLES30.glEnable(GLES30.GL_DEPTH_TEST);
+                  GLES30.glDepthFunc(GLES30.GL_LEQUAL);
+
+                  // Vertex shader
+                  String vs=""+
+                  "#version 300 es\n"+
+                  "layout(location=0)in vec4 aP;"+
+                  "layout(location=1)in vec3 aN;"+
+                  "uniform mat4 uMVP,uM;"+
+                  "out vec3 vN,vP;"+
+                  "void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
+
+                  // Fragment shader
+                  String fs=""+
+                  "#version 300 es\n"+
+                  "precision highp float;"+
+                  "in vec3 vN,vP;"+
+                  "uniform vec3 camP;"+
+                  "uniform vec4 uC;"+
+                  "uniform float uSel,isFloor;"+
+                  "out vec4 fC;"+
+                  "void main(){"+
+                  "vec3 n=normalize(vN),vD=normalize(camP-vP),lD=normalize(vec3(0.4,1.0,0.2));"+
+                  "float diff=max(dot(n,lD),0.0);"+
+                  "float ao=clamp(vP.y*0.08+0.6,0.3,1.0);"+
+                  "vec3 h=normalize(lD+vD);"+
+                  "float spec=pow(max(dot(n,h),0.0),48.0)*0.6;"+
+                  "vec3 col=uC.rgb;"+
+                  "if(uSel>0.5)col+=vec3(0.0,0.5,0.8);"+
+                  "vec3 amb=vec3(0.05,0.08,0.13)*ao;"+
+                  "vec3 fin=col*(diff*vec3(1.0,0.97,0.92)+amb)+spec;"+
+                  "if(isFloor>0.5){"+
+                  "vec2 gv=fract(vP.xz*0.2);"+
+                  "float ln=step(0.96,gv.x)+step(0.96,gv.y);"+
+                  "fin=mix(fin,vec3(0.0,0.4,0.8),clamp(ln,0.0,1.0)*0.4);"+
+                  "}"+
+                  "float dist=length(camP-vP);"+
+                  "float fog=1.0-exp(-dist*0.006);"+
+                  "vec3 fc=vec3(0.02,0.06,0.14);"+
+                  "vec3 c=mix(fin,fc,clamp(fog,0.0,0.82));"+
+                  "c=(c*(2.51*c+0.03))/(c*(2.43*c+0.59)+0.14);"+
+                  "fC=vec4(c,uC.a);"+
+                  "}";
+
+                  // Sky vertex
+                  String svs=""+
+                  "#version 300 es\n"+
+                  "layout(location=0)in vec3 aP;"+
+                  "out vec3 vDir;"+
+                  "uniform mat4 uInvVP;"+
+                  "void main(){"+
+                  "vec4 w=uInvVP*vec4(aP,1.0);"+
+                  "vDir=normalize(w.xyz/w.w);"+
+                  "gl_Position=vec4(aP,1.0);"+
+                  "}";
+
+                  // Sky fragment
+                  String sfs=""+
+                  "#version 300 es\n"+
+                  "precision highp float;"+
+                  "in vec3 vDir;"+
+                  "out vec4 fC;"+
+                  "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}"+
+                  "void main(){"+
+                  "vec3 d=normalize(vDir);"+
+                  "float t=clamp(d.y*0.5+0.5,0.0,1.0);"+
+                  "vec3 col=mix(vec3(0.005,0.008,0.02),vec3(0.03,0.16,0.36),t);"+
+                  "vec3 da=abs(d);"+
+                  "vec2 uv=(da.y>da.x&&da.y>da.z)?d.xz:(da.x>da.z?d.yz:d.xy);"+
+                  "uv*=55.0;"+
+                  "vec2 id=floor(uv),gv=fract(uv)-0.5;"+
+                  "float rnd=hash(id);"+
+                  "float star=step(0.995,rnd);"+
+                  "float s=smoothstep(0.18,0.0,length(gv))*star*(0.7+0.3*sin(rnd*100.0))*2.8;"+
+                  "col+=mix(vec3(1.0,0.95,0.85),vec3(0.8,0.9,1.0),hash(id+4.3))*s;"+
+                  "fC=vec4(col,1.0);"+
+                  "}";
+
+                  prog=mkProg(vs,fs);
+                  skyProg=mkProg(svs,sfs);
+
+                  float[]vc={
+                      -.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,
+                      -.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,
+                      -.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,
+                      -.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,
+                      -.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,
+                      .5f,.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f
+                  };
+                  float[]nc={
+                      0,0,1,0,0,1,0,0,1,0,0,1,
+                      0,0,-1,0,0,-1,0,0,-1,0,0,-1,
+                      0,1,0,0,1,0,0,1,0,0,1,0,
+                      0,-1,0,0,-1,0,0,-1,0,0,-1,0,
+                      -1,0,0,-1,0,0,-1,0,0,-1,0,0,
+                      1,0,0,1,0,0,1,0,0,1,0,0
+                  };
                   float[]sq={-1f,-1f,1f,1f,-1f,1f,-1f,1f,1f,1f,1f,1f};
+
                   vBuf=mkFB(vc);nBuf=mkFB(nc);skyBuf=mkFB(sq);
-                  loadBuiltInLevel();lastTimeNs=System.nanoTime();
+                  loadBuiltInLevel();
+                  lastTimeNs=System.nanoTime();
               }
 
-              private FloatBuffer mkFB(float[]d){FloatBuffer b=ByteBuffer.allocateDirect(d.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(d);b.position(0);return b;}
+              private FloatBuffer mkFB(float[]d){
+                  FloatBuffer b=ByteBuffer.allocateDirect(d.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+                  b.put(d);b.position(0);return b;
+              }
 
-              @Override public void onSurfaceChanged(GL10 gl,int w,int h){GLES30.glViewport(0,0,w,h);Matrix.perspectiveM(proj,0,55,(float)w/h,.1f,500f);screenW=w;screenH=h;}
+              @Override
+              public void onSurfaceChanged(GL10 gl,int w,int h){
+                  GLES30.glViewport(0,0,w,h);
+                  Matrix.perspectiveM(proj,0,55,(float)w/h,0.1f,500f);
+                  screenW=w;screenH=h;
+              }
 
               @Override
               public void onDrawFrame(GL10 gl){
                   update();
-                  GLES30.glClearColor(.01f,.015f,.03f,1f);
+                  GLES30.glClearColor(0.01f,0.015f,0.03f,1f);
                   GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT|GLES30.GL_DEPTH_BUFFER_BIT);
-                  float rYrad=(float)Math.toRadians(rY);
-                  float fwdX=(float)Math.sin(rYrad);
-                  float fwdZ=(float)-Math.cos(rYrad);
+
+                  float rYr=(float)Math.toRadians(rY);
+                  float fwdX=(float)Math.sin(rYr);
+                  float fwdZ=(float)-Math.cos(rYr);
+
                   if(isEngineMode&&!isPlayingLevel){
-                      float rXrad=(float)Math.toRadians(rX);
-                      float vx=fwdX*(float)Math.cos(rXrad);
-                      float vy=(float)Math.sin(rXrad);
-                      float vz=fwdZ*(float)Math.cos(rXrad);
+                      float rXr=(float)Math.toRadians(rX);
+                      float vx=fwdX*(float)Math.cos(rXr);
+                      float vy=(float)Math.sin(rXr);
+                      float vz=fwdZ*(float)Math.cos(rXr);
                       camX=pX;camY=pY;camZ=pZ;
                       Matrix.setLookAtM(view,0,camX,camY,camZ,pX+vx,pY+vy,pZ+vz,0,1,0);
                   } else {
-                      float targetY=pY-PLAYER_HEIGHT+CAM_TARGET_Y;
-                      float rXrad=(float)Math.toRadians(rX);
-                      float hDist=CAM_DIST*(float)Math.cos(rXrad);
-                      float vOff=CAM_DIST*(float)Math.sin(rXrad);
+                      // Orbital third-person camera
+                      // targetY = player torso level
+                      float targetY=pY-PLAYER_HEIGHT+CAM_TARGET_Y_OFF;
+                      // rX: positive = look down (camera goes up), negative = look up (camera goes down)
+                      // Invert so dragging down = camera goes down, looking up at player
+                      float rXr=(float)Math.toRadians(rX);
+                      float hDist=CAM_DIST*(float)Math.cos(rXr);
+                      // negative sin so that positive rX moves camera up (looking down)
+                      float vOff=CAM_DIST*(float)Math.sin(rXr);
                       camX=pX-fwdX*hDist;
                       camY=targetY+vOff;
                       camZ=pZ-fwdZ*hDist;
-                      if(camY<0.3f)camY=0.3f;
+                      if(camY<0.2f)camY=0.2f;
                       Matrix.setLookAtM(view,0,camX,camY,camZ,pX,targetY,pZ,0,1,0);
                   }
-                  float[]vp=new float[16];Matrix.multiplyMM(vp,0,proj,0,view,0);
-                  drawSky(vp);drawWorld(vp);
+
+                  float[]vp=new float[16];
+                  Matrix.multiplyMM(vp,0,proj,0,view,0);
+                  drawSky(vp);
+                  drawWorld(vp);
               }
 
               private void drawSky(float[]vp){
-                  GLES30.glDepthMask(false);GLES30.glUseProgram(skyProg);
+                  GLES30.glDepthMask(false);
+                  GLES30.glUseProgram(skyProg);
                   float[]inv=new float[16];Matrix.invertM(inv,0,vp,0);
                   GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(skyProg,"uInvVP"),1,false,inv,0);
-                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,skyBuf);GLES30.glEnableVertexAttribArray(0);
-                  GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,0,4);GLES30.glDepthMask(true);
+                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,skyBuf);
+                  GLES30.glEnableVertexAttribArray(0);
+                  GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,0,4);
+                  GLES30.glDepthMask(true);
               }
 
               private void drawWorld(float[]vp){
                   GLES30.glUseProgram(prog);
-                  int uMVP=GLES30.glGetUniformLocation(prog,"uMVP"),uM=GLES30.glGetUniformLocation(prog,"uM"),uC=GLES30.glGetUniformLocation(prog,"uC");
-                  int uSel=GLES30.glGetUniformLocation(prog,"uSel"),uFloor=GLES30.glGetUniformLocation(prog,"isFloor");
+                  int uMVP=GLES30.glGetUniformLocation(prog,"uMVP");
+                  int uM=GLES30.glGetUniformLocation(prog,"uM");
+                  int uC=GLES30.glGetUniformLocation(prog,"uC");
+                  int uSel=GLES30.glGetUniformLocation(prog,"uSel");
+                  int uFloor=GLES30.glGetUniformLocation(prog,"isFloor");
                   GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"camP"),camX,camY,camZ);
-                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);GLES30.glEnableVertexAttribArray(0);
-                  GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,0,nBuf);GLES30.glEnableVertexAttribArray(1);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,0,-.05f,0);Matrix.scaleM(model,0,800,.1f,800);
-                  GLES30.glUniform1f(uSel,0f);GLES30.glUniform1f(uFloor,1f);draw(vp,uM,uMVP,uC,.05f,.07f,.11f,1f);
+                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);
+                  GLES30.glEnableVertexAttribArray(0);
+                  GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,0,nBuf);
+                  GLES30.glEnableVertexAttribArray(1);
+
+                  // Floor - slightly above 0 to avoid z-fighting
+                  Matrix.setIdentityM(model,0);
+                  Matrix.translateM(model,0,0f,0f,0f);
+                  Matrix.scaleM(model,0,800f,0.05f,800f);
+                  GLES30.glUniform1f(uSel,0f);
+                  GLES30.glUniform1f(uFloor,1f);
+                  draw(vp,uM,uMVP,uC,0.05f,0.09f,0.14f,1f);
+
                   GLES30.glUniform1f(uFloor,0f);
                   for(int i=0;i<blocks.size();i++){
                       Block b=blocks.get(i);if(b.hidden)continue;
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,b.x,b.y,b.z);Matrix.scaleM(model,0,b.sx,b.sy,b.sz);
+                      Matrix.setIdentityM(model,0);
+                      Matrix.translateM(model,0,b.x,b.y,b.z);
+                      Matrix.scaleM(model,0,b.sx,b.sy,b.sz);
                       GLES30.glUniform1f(uSel,(i==selectedIndex&&isEngineMode&&!isPlayingLevel)?1f:0f);
                       draw(vp,uM,uMVP,uC,b.r,b.g,b.b,1f);
                   }
+
                   if(isEngineMode&&!isPlayingLevel&&selectedIndex<0){
-                      float rYrad=(float)Math.toRadians(rY),rXrad=(float)Math.toRadians(rX);
-                      float vx=(float)(Math.sin(rYrad)*Math.cos(rXrad));float vy2=(float)Math.sin(rXrad);float vz=(float)(-Math.cos(rYrad)*Math.cos(rXrad));
-                      float px=snap(pX+vx*placeDist),py2=snap(pY+vy2*placeDist),pz=snap(pZ+vz*placeDist);
+                      float rYr=(float)Math.toRadians(rY),rXr=(float)Math.toRadians(rX);
+                      float vx2=(float)(Math.sin(rYr)*Math.cos(rXr));
+                      float vy2=(float)Math.sin(rXr);
+                      float vz2=(float)(-Math.cos(rYr)*Math.cos(rXr));
+                      float px=snap(pX+vx2*placeDist),py2=snap(pY+vy2*placeDist),pz=snap(pZ+vz2*placeDist);
                       if(py2-blockSY/2f<FLOOR_Y)py2=FLOOR_Y+blockSY/2f;
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,blockSX,blockSY,blockSZ);
-                      GLES30.glEnable(GLES30.GL_BLEND);GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
-                      GLES30.glUniform1f(uSel,0f);draw(vp,uM,uMVP,uC,blockR,blockG,blockB,.4f);
+                      Matrix.setIdentityM(model,0);
+                      Matrix.translateM(model,0,px,py2,pz);
+                      Matrix.scaleM(model,0,blockSX,blockSY,blockSZ);
+                      GLES30.glEnable(GLES30.GL_BLEND);
+                      GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
+                      GLES30.glUniform1f(uSel,0f);
+                      draw(vp,uM,uMVP,uC,blockR,blockG,blockB,0.4f);
                       GLES30.glDisable(GLES30.GL_BLEND);
                   }
+
                   if(!(isEngineMode&&!isPlayingLevel))drawPlayerChar(vp,uM,uMVP,uC);
               }
 
@@ -727,36 +669,50 @@ jobs:
                   float dt=Math.min((now-lastTimeNs)/1e9f,0.05f);
                   lastTimeNs=now;
                   moveMag=(float)Math.min(1.0,Math.sqrt(jX*jX+jY*jY));
-                  float s=.42f,rYrad=(float)Math.toRadians(rY);
+                  float s=0.42f;
+                  float rYr=(float)Math.toRadians(rY);
+
                   if(isEngineMode&&!isPlayingLevel){
-                      float rXrad=(float)Math.toRadians(rX);
-                      float fx=(float)Math.sin(rYrad),fz=(float)-Math.cos(rYrad),fy=(float)Math.sin(rXrad);
-                      pX+=(fx*-jY+(float)Math.cos(rYrad)*jX)*s;
-                      pZ+=(fz*-jY+(float)Math.sin(rYrad)*jX)*s;
+                      float rXr=(float)Math.toRadians(rX);
+                      float fx=(float)Math.sin(rYr),fz=(float)-Math.cos(rYr),fy=(float)Math.sin(rXr);
+                      pX+=(fx*-jY+(float)Math.cos(rYr)*jX)*s;
+                      pZ+=(fz*-jY+(float)Math.sin(rYr)*jX)*s;
                       pY+=fy*-jY*s;
                   } else if(animPack==1){
                       float targetY=FLOOR_Y+PLAYER_HEIGHT+2.5f;
                       pY+=(targetY-pY)*dt*4f;
-                      float mX=((float)Math.sin(rYrad)*-jY+(float)Math.cos(rYrad)*jX)*s;
-                      float mZ=((float)-Math.cos(rYrad)*-jY+(float)Math.sin(rYrad)*jX)*s;
-                      pX+=mX;pZ+=mZ;vY=0;hoverPhase+=dt*1.8f;
+                      float mX=((float)Math.sin(rYr)*-jY+(float)Math.cos(rYr)*jX)*s;
+                      float mZ=((float)-Math.cos(rYr)*-jY+(float)Math.sin(rYr)*jX)*s;
+                      pX+=mX;pZ+=mZ;vY=0;
+                      hoverPhase+=dt*1.8f;
                       if(moveMag>0.05f){charRotation=(float)Math.toDegrees(Math.atan2(mX,mZ));walkPhase+=dt*5f*moveMag;}
                   } else {
-                      float mX=((float)Math.sin(rYrad)*-jY+(float)Math.cos(rYrad)*jX)*s;
-                      float mZ=((float)-Math.cos(rYrad)*-jY+(float)Math.sin(rYrad)*jX)*s;
-                      vY-=.025f;
+                      float mX=((float)Math.sin(rYr)*-jY+(float)Math.cos(rYr)*jX)*s;
+                      float mZ=((float)-Math.cos(rYr)*-jY+(float)Math.sin(rYr)*jX)*s;
+                      vY-=0.025f;
                       float nX=pX+mX,nY=pY+vY,nZ=pZ+mZ,fY=nY-PLAYER_HEIGHT;
                       if(fY<FLOOR_Y){nY=FLOOR_Y+PLAYER_HEIGHT;vY=0;}
                       for(Block b:blocks){
                           boolean oxz=nX+PLAYER_RADIUS>b.minX()&&nX-PLAYER_RADIUS<b.maxX()&&nZ+PLAYER_RADIUS>b.minZ()&&nZ-PLAYER_RADIUS<b.maxZ();
-                          boolean oy=fY<b.maxY()-.1f&&nY>b.minY()+.1f;
-                          boolean touch=oxz&&(oy||Math.abs(fY-b.maxY())<.2f);
-                          if(touch&&!b.touchingPlayer){b.touchingPlayer=true;if(eventHost!=null&&b.onTouchScript!=null&&!b.onTouchScript.trim().isEmpty())eventHost.runBlockScript(b,b.onTouchScript);}
-                          else if(!touch)b.touchingPlayer=false;
+                          boolean oy=fY<b.maxY()-0.1f&&nY>b.minY()+0.1f;
+                          boolean touch=oxz&&(oy||Math.abs(fY-b.maxY())<0.2f);
+                          if(touch&&!b.touchingPlayer){
+                              b.touchingPlayer=true;
+                              if(eventHost!=null&&b.onTouchScript!=null&&!b.onTouchScript.trim().isEmpty())
+                                  eventHost.runBlockScript(b,b.onTouchScript);
+                          } else if(!touch)b.touchingPlayer=false;
                           if(oxz){
-                              if(pY-PLAYER_HEIGHT>=b.maxY()-.15f&&fY<b.maxY()){nY=b.maxY()+PLAYER_HEIGHT;vY=0;}
+                              if(pY-PLAYER_HEIGHT>=b.maxY()-0.15f&&fY<b.maxY()){nY=b.maxY()+PLAYER_HEIGHT;vY=0;}
                               else if(pY<b.minY()&&nY>b.minY()){nY=b.minY();vY=0;}
-                              else if(oy){float ox1=(nX+PLAYER_RADIUS)-b.minX(),ox2=b.maxX()-(nX-PLAYER_RADIUS),oz1=(nZ+PLAYER_RADIUS)-b.minZ(),oz2=b.maxZ()-(nZ-PLAYER_RADIUS),mo=Math.min(Math.min(ox1,ox2),Math.min(oz1,oz2));if(mo==ox1)nX=b.minX()-PLAYER_RADIUS;else if(mo==ox2)nX=b.maxX()+PLAYER_RADIUS;else if(mo==oz1)nZ=b.minZ()-PLAYER_RADIUS;else nZ=b.maxZ()+PLAYER_RADIUS;}
+                              else if(oy){
+                                  float ox1=(nX+PLAYER_RADIUS)-b.minX(),ox2=b.maxX()-(nX-PLAYER_RADIUS);
+                                  float oz1=(nZ+PLAYER_RADIUS)-b.minZ(),oz2=b.maxZ()-(nZ-PLAYER_RADIUS);
+                                  float mo=Math.min(Math.min(ox1,ox2),Math.min(oz1,oz2));
+                                  if(mo==ox1)nX=b.minX()-PLAYER_RADIUS;
+                                  else if(mo==ox2)nX=b.maxX()+PLAYER_RADIUS;
+                                  else if(mo==oz1)nZ=b.minZ()-PLAYER_RADIUS;
+                                  else nZ=b.maxZ()+PLAYER_RADIUS;
+                              }
                           }
                       }
                       pX=nX;pY=nY;pZ=nZ;
@@ -773,8 +729,12 @@ jobs:
               }
 
               public boolean isOnGround(){
-                  if(pY-PLAYER_HEIGHT<=FLOOR_Y+.1f)return true;
-                  for(Block b:blocks){if(pX+PLAYER_RADIUS>b.minX()&&pX-PLAYER_RADIUS<b.maxX()&&pZ+PLAYER_RADIUS>b.minZ()&&pZ-PLAYER_RADIUS<b.maxZ()&&Math.abs((pY-PLAYER_HEIGHT)-b.maxY())<.15f)return true;}
+                  if(pY-PLAYER_HEIGHT<=FLOOR_Y+0.1f)return true;
+                  for(Block b:blocks){
+                      if(pX+PLAYER_RADIUS>b.minX()&&pX-PLAYER_RADIUS<b.maxX()&&
+                         pZ+PLAYER_RADIUS>b.minZ()&&pZ-PLAYER_RADIUS<b.maxZ()&&
+                         Math.abs((pY-PLAYER_HEIGHT)-b.maxY())<0.15f)return true;
+                  }
                   return false;
               }
 
@@ -792,44 +752,59 @@ jobs:
                   final float lH=1.6f,lW=0.7f,lD=0.7f,tH=1.8f,tW=1.4f,tD=0.8f,hS=1.15f,aH=1.6f,aW=0.55f,aD=0.55f;
                   float footY=pY-PLAYER_HEIGHT;
                   boolean og=isOnGround();
-                  float walkSwing=(float)Math.sin(walkPhase)*38f*moveMag*(og?1f:0f);
-                  float jumpSpread=jumpPhase*55f;
-                  float legAngle=(float)Math.sin(walkPhase)*(-28f)*moveMag*(og?1f:0f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  float ws=(float)Math.sin(walkPhase)*38f*moveMag*(og?1f:0f);
+                  // Jump: arms spread sideways (Z-axis rotation)
+                  float jsp=jumpPhase*60f;
+                  float la=(float)Math.sin(walkPhase)*(-28f)*moveMag*(og?1f:0f);
+
+                  // Torso
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);
+                  draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
+                  // Head
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);
+                  draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+
                   float sY=lH+tH-0.2f;
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,walkSwing,1,0,0);Matrix.rotateM(model,0,-jumpSpread,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,-walkSwing,1,0,0);Matrix.rotateM(model,0,jumpSpread,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,lH,0);Matrix.rotateM(model,0,legAngle,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,lH,0);Matrix.rotateM(model,0,-legAngle,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  // Left arm: walk swing + sideways jump spread
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,ws,1,0,0);Matrix.rotateM(model,0,-jsp,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);
+                  draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  // Right arm
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,-ws,1,0,0);Matrix.rotateM(model,0,jsp,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);
+                  draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  // Left leg
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,lH,0);Matrix.rotateM(model,0,la,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);
+                  draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  // Right leg
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,lH,0);Matrix.rotateM(model,0,-la,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);
+                  draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
               }
 
               private void drawFly(float[]vp,int uM,int uMVP,int uC){
                   final float lH=1.6f,lW=0.7f,lD=0.7f,tH=1.8f,tW=1.4f,tD=0.8f,hS=1.15f,aH=1.6f,aW=0.55f,aD=0.55f;
                   float footY=pY-PLAYER_HEIGHT;
-                  float hover=(float)Math.sin(hoverPhase)*0.15f;
+                  float hov=(float)Math.sin(hoverPhase)*0.15f;
                   float aA=-40f+(float)Math.sin(hoverPhase)*8f+(float)Math.sin(walkPhase)*15f*moveMag;
-                  float lA=-18f+(float)Math.sin(hoverPhase*.7f)*5f;
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  float lA=-18f+(float)Math.sin(hoverPhase*0.7f)*5f;
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
                   float sY=lH+tH-0.2f;
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,lH,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hover,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,lH,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,lH,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,lH,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
               }
 
               private void drawCombat(float[]vp,int uM,int uMVP,int uC){
                   final float lH=1.6f,lW=0.75f,lD=0.75f,tH=1.9f,tW=1.55f,tD=0.9f,hS=1.15f,aH=1.65f,aW=0.6f,aD=0.6f;
                   float footY=pY-PLAYER_HEIGHT;boolean og=isOnGround();
                   float sw=(float)Math.sin(walkPhase)*25f*moveMag*(og?1f:0f);
-                  float jumpSpread=jumpPhase*55f;
+                  float jsp=jumpPhase*60f;
                   float aA=-30f+sw,lA=(float)Math.sin(walkPhase)*(-30f)*moveMag*(og?1f:0f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
                   float sY=lH+tH-0.2f;
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.rotateM(model,0,-jumpSpread,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,-aA+20f,1,0,0);Matrix.rotateM(model,0,jumpSpread,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.rotateM(model,0,-jsp,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,-aA+20f,1,0,0);Matrix.rotateM(model,0,jsp,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.38f,lH,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.38f,lH,0);Matrix.rotateM(model,0,-lA,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
               }
@@ -839,28 +814,38 @@ jobs:
                   float footY=pY-PLAYER_HEIGHT;boolean og=isOnGround();
                   float b2=(float)Math.sin(walkPhase*2f)*10f;
                   float sw=(float)Math.sin(walkPhase)*50f*moveMag*(og?1f:0f);
-                  float jumpSpread=jumpPhase*65f;
+                  float jsp=jumpPhase*65f;
                   float aL=sw+b2,aR=-sw+b2,lA=(float)Math.sin(walkPhase)*(-35f)*moveMag*(og?1f:0f);
                   float sway=(float)Math.sin(walkPhase)*6f*moveMag;
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.rotateM(model,0,sway,0,0,1);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
                   float sY=lH+tH-0.2f;
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aL,1,0,0);Matrix.rotateM(model,0,-jumpSpread,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aR,1,0,0);Matrix.rotateM(model,0,jumpSpread,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aL,1,0,0);Matrix.rotateM(model,0,-jsp,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aR,1,0,0);Matrix.rotateM(model,0,jsp,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,lH,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,lH,0);Matrix.rotateM(model,0,-lA,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
               }
 
               private void draw(float[]vp,int uM,int uMVP,int uC,float r,float g,float b,float a){
                   GLES30.glUniformMatrix4fv(uM,1,false,model,0);
-                  float[]res=new float[16];Matrix.multiplyMM(res,0,vp,0,model,0);
+                  float[]res=new float[16];
+                  Matrix.multiplyMM(res,0,vp,0,model,0);
                   GLES30.glUniformMatrix4fv(uMVP,1,false,res,0);
                   GLES30.glUniform4f(uC,r,g,b,a);
                   for(int i=0;i<6;i++)GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
               }
 
-              private int mkProg(String v,String f){int p=GLES30.glCreateProgram();GLES30.glAttachShader(p,mkSh(35633,v));GLES30.glAttachShader(p,mkSh(35632,f));GLES30.glLinkProgram(p);return p;}
-              private int mkSh(int t,String s){int sh=GLES30.glCreateShader(t);GLES30.glShaderSource(sh,s);GLES30.glCompileShader(sh);return sh;}
+              private int mkProg(String v,String f){
+                  int p=GLES30.glCreateProgram();
+                  GLES30.glAttachShader(p,mkSh(GLES30.GL_VERTEX_SHADER,v));
+                  GLES30.glAttachShader(p,mkSh(GLES30.GL_FRAGMENT_SHADER,f));
+                  GLES30.glLinkProgram(p);return p;
+              }
+              private int mkSh(int t,String s){
+                  int sh=GLES30.glCreateShader(t);
+                  GLES30.glShaderSource(sh,s);
+                  GLES30.glCompileShader(sh);return sh;
+              }
           }
           EOF
 
@@ -875,7 +860,6 @@ jobs:
           import android.os.Bundle;
           import android.os.Handler;
           import android.os.Looper;
-          import android.text.InputType;
           import android.view.MotionEvent;
           import android.view.View;
           import android.widget.Button;
@@ -890,38 +874,35 @@ jobs:
           import org.json.JSONObject;
           import java.io.*;
 
-          public class MainActivity extends AppCompatActivity implements ScriptEngine.Host, GameRenderer.EventHost {
+          public class MainActivity extends AppCompatActivity implements GameRenderer.EventHost {
               private GameRenderer ren;
               private float lx,ly;
-              private Button[]shapeBtn,distBtn;
+              private Button[]distBtn;
               private View[]colorBtn;
               private View axisPanel,menuUI,gameUI,engineUI,playtestUI,customizeUI;
-              private Button btnDeselect,btnHide,btnDelete,btnEvents,btnGrid;
+              private Button btnHide,btnDelete,btnDeselect,btnGrid;
               private TextView txtSizeInfo,txtRidixLobby,txtRidixShop;
               private ActivityResultLauncher<Intent> saveLauncher,loadLauncher;
               private Handler handler=new Handler(Looper.getMainLooper());
               private int pendingMode=0;
               private int ridix=0;
+              private boolean infiniteRidix=false;
               private Runnable ridixTimer;
               private static final int RIDIX_SEC=50,RIDIX_REWARD=15,PACK_PRICE=50;
               private boolean ownedFly=false,ownedCombat=false,ownedDance=false;
               private int equippedPack=0;
-              private static final float[][]SKIN_C={{1f,.85f,.15f},{1f,.7f,.5f},{.6f,.35f,.15f},{1f,.55f,.3f},{.85f,.75f,.65f},{.3f,.2f,.1f}};
-              private static final float[][]TORSO_C={{.1f,.4f,1f},{1f,.1f,.1f},{.1f,.8f,.1f},{.8f,0f,.8f},{1f,.5f,0f},{.9f,.9f,.9f}};
-              private static final float[][]LEGS_C={{.1f,.8f,.2f},{.1f,.1f,.6f},{.5f,.5f,.5f},{0f,0f,0f},{.8f,.6f,0f},{.5f,0f,0f}};
-              private static final int[]SKIN_I={0xFFD8B420,0xFFFFB280,0xFF996028,0xFFFF8C4C,0xFFDAC0A6,0xFF4D3318};
-              private static final int[]TORSO_I={0xFF1A66FF,0xFFFF1A1A,0xFF1ACC1A,0xFFCC00CC,0xFFFF8000,0xFFE6E6E6};
-              private static final int[]LEGS_I={0xFF1ACC33,0xFF1A1A99,0xFF808080,0xFF111111,0xFFCC9900,0xFF800000};
-
-              @Override public GameRenderer renderer(){return ren;}
-              @Override public void toast(String t){runOnUiThread(()->Toast.makeText(this,t,Toast.LENGTH_SHORT).show());}
+              private static final float[][]SKIN_C={{1f,.75f,.5f},{1f,.6f,.4f},{.55f,.3f,.1f},{1f,.85f,.7f},{.85f,.7f,.6f},{.25f,.15f,.08f}};
+              private static final float[][]TORSO_C={{.1f,.4f,1f},{1f,.1f,.1f},{.1f,.8f,.1f},{.8f,0f,.8f},{1f,.5f,0f},{.15f,.15f,.15f}};
+              private static final float[][]LEGS_C={{.1f,.8f,.2f},{.1f,.1f,.6f},{.5f,.5f,.5f},{.05f,.05f,.05f},{.8f,.6f,0f},{.5f,0f,0f}};
+              private static final int[]SKIN_I={0xFFFFBF80,0xFFFF9966,0xFF8C4D19,0xFFFFD9B3,0xFFD9B299,0xFF402613};
+              private static final int[]TORSO_I={0xFF1A66FF,0xFFFF1A1A,0xFF1ACC1A,0xFFCC00CC,0xFFFF8000,0xFF262626};
+              private static final int[]LEGS_I={0xFF1ACC33,0xFF1A1A99,0xFF808080,0xFF0D0D0D,0xFFCC9900,0xFF800000};
 
               @Override
               public void runBlockScript(Block block,String script){
                   runOnUiThread(()->{
                       int old=ren.selectedIndex,idx=ren.blocks.indexOf(block);
                       if(idx>=0)ren.selectedIndex=idx;
-                      try{ScriptEngine.run(this,script);}catch(Exception e){Toast.makeText(this,e.getMessage(),Toast.LENGTH_LONG).show();}
                       ren.selectedIndex=old;updAxis();
                   });
               }
@@ -930,9 +911,16 @@ jobs:
               private void setOwned(int pack,boolean v){if(pack==1)ownedFly=v;else if(pack==2)ownedCombat=v;else if(pack==3)ownedDance=v;}
 
               private void buyOrEquip(int pack,String name){
-                  if(getOwned(pack)){equippedPack=pack;applyPack();savePrefs();updCustPacks();Toast.makeText(this,name+" equipped",Toast.LENGTH_SHORT).show();}
-                  else if(ridix>=PACK_PRICE){ridix-=PACK_PRICE;setOwned(pack,true);equippedPack=pack;applyPack();savePrefs();updRidix();updCustPacks();Toast.makeText(this,name+" purchased!",Toast.LENGTH_SHORT).show();}
-                  else Toast.makeText(this,"Need "+PACK_PRICE+" Ridix",Toast.LENGTH_SHORT).show();
+                  if(getOwned(pack)){
+                      equippedPack=pack;applyPack();savePrefs();updCustPacks();
+                      Toast.makeText(this,name+" equipped",Toast.LENGTH_SHORT).show();
+                  } else if(infiniteRidix||ridix>=PACK_PRICE){
+                      if(!infiniteRidix)ridix-=PACK_PRICE;
+                      setOwned(pack,true);equippedPack=pack;applyPack();savePrefs();updRidix();updCustPacks();
+                      Toast.makeText(this,name+" purchased!",Toast.LENGTH_SHORT).show();
+                  } else {
+                      Toast.makeText(this,"Need "+PACK_PRICE+" Ridix",Toast.LENGTH_SHORT).show();
+                  }
               }
 
               interface CP{void pick(int i);}
@@ -940,17 +928,20 @@ jobs:
               @SuppressLint("ClickableViewAccessibility")
               @Override
               protected void onCreate(Bundle s){
-                  super.onCreate(s);setContentView(R.layout.activity_main);
+                  super.onCreate(s);
+                  setContentView(R.layout.activity_main);
                   loadPrefs();
+
                   android.opengl.GLSurfaceView gv=findViewById(R.id.gl_view);
                   gv.setEGLContextClientVersion(3);
                   ren=new GameRenderer();ren.eventHost=this;gv.setRenderer(ren);
+
                   menuUI=findViewById(R.id.menu_ui);gameUI=findViewById(R.id.game_ui);
                   engineUI=findViewById(R.id.engine_ui);playtestUI=findViewById(R.id.playtest_ui);
                   customizeUI=findViewById(R.id.customize_ui);axisPanel=findViewById(R.id.axis_panel);
-                  btnDeselect=findViewById(R.id.btn_deselect);btnHide=findViewById(R.id.btn_hide);
-                  btnDelete=findViewById(R.id.btn_delete);btnEvents=findViewById(R.id.btn_block_events);
-                  btnGrid=findViewById(R.id.btn_grid);txtSizeInfo=findViewById(R.id.txt_size_info);
+                  btnHide=findViewById(R.id.btn_hide);btnDelete=findViewById(R.id.btn_delete);
+                  btnDeselect=findViewById(R.id.btn_deselect);btnGrid=findViewById(R.id.btn_grid);
+                  txtSizeInfo=findViewById(R.id.txt_size_info);
                   txtRidixLobby=findViewById(R.id.txt_ridix_lobby);txtRidixShop=findViewById(R.id.txt_ridix_shop);
                   updRidix();setupCustomize();
 
@@ -959,7 +950,13 @@ jobs:
                           try{
                               OutputStream out=getContentResolver().openOutputStream(res.getData().getData());
                               JSONArray arr=new JSONArray();
-                              for(Block b:ren.blocks){JSONObject o=new JSONObject();o.put("x",b.x);o.put("y",b.y);o.put("z",b.z);o.put("sx",b.sx);o.put("sy",b.sy);o.put("sz",b.sz);o.put("r",b.r);o.put("g",b.g);o.put("b",b.b);o.put("hidden",b.hidden);o.put("shape",b.shape);o.put("onStartScript",b.onStartScript);o.put("onTouchScript",b.onTouchScript);o.put("onTapScript",b.onTapScript);arr.put(o);}
+                              for(Block b:ren.blocks){
+                                  JSONObject o=new JSONObject();
+                                  o.put("x",b.x);o.put("y",b.y);o.put("z",b.z);
+                                  o.put("sx",b.sx);o.put("sy",b.sy);o.put("sz",b.sz);
+                                  o.put("r",b.r);o.put("g",b.g);o.put("b",b.b);
+                                  o.put("hidden",b.hidden);arr.put(o);
+                              }
                               JSONObject root=new JSONObject();root.put("blocks",arr);root.put("gridEnabled",ren.gridEnabled);
                               out.write(root.toString().getBytes());out.close();
                               Toast.makeText(this,"Exported!",Toast.LENGTH_SHORT).show();
@@ -971,11 +968,17 @@ jobs:
                       if(res.getResultCode()==RESULT_OK&&res.getData()!=null){
                           try{
                               InputStream in=getContentResolver().openInputStream(res.getData().getData());
-                              BufferedReader rd=new BufferedReader(new InputStreamReader(in));StringBuilder sb=new StringBuilder();String ln;
+                              BufferedReader rd=new BufferedReader(new InputStreamReader(in));
+                              StringBuilder sb=new StringBuilder();String ln;
                               while((ln=rd.readLine())!=null)sb.append(ln);in.close();
-                              JSONObject root=new JSONObject(sb.toString());JSONArray arr=root.getJSONArray("blocks");
+                              JSONObject root=new JSONObject(sb.toString());
+                              JSONArray arr=root.getJSONArray("blocks");
                               ren.blocks.clear();
-                              for(int i=0;i<arr.length();i++){JSONObject o=arr.getJSONObject(i);Block b=new Block((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),(float)o.getDouble("sx"),(float)o.getDouble("sy"),(float)o.getDouble("sz"),(float)o.getDouble("r"),(float)o.getDouble("g"),(float)o.getDouble("b"));b.hidden=o.optBoolean("hidden",false);b.shape=o.optString("shape","square");b.onStartScript=o.optString("onStartScript","");b.onTouchScript=o.optString("onTouchScript","");b.onTapScript=o.optString("onTapScript","");ren.blocks.add(b);}
+                              for(int i=0;i<arr.length();i++){
+                                  JSONObject o=arr.getJSONObject(i);
+                                  Block b=new Block((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),(float)o.getDouble("sx"),(float)o.getDouble("sy"),(float)o.getDouble("sz"),(float)o.getDouble("r"),(float)o.getDouble("g"),(float)o.getDouble("b"));
+                                  b.hidden=o.optBoolean("hidden",false);ren.blocks.add(b);
+                              }
                               ren.gridEnabled=root.optBoolean("gridEnabled",true);updGridBtn();
                               pendingMode=1;ren.isEngineMode=false;ren.isPlayingLevel=false;resetP();applyPack();
                               menuUI.setVisibility(View.GONE);gameUI.setVisibility(View.VISIBLE);
@@ -994,6 +997,7 @@ jobs:
                       ren.runStartScripts();startRidixTimer();
                       handler.postDelayed(()->setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE),50);
                   });
+
                   findViewById(R.id.btn_engine).setOnClickListener(v->{
                       pendingMode=2;ren.isEngineMode=true;ren.isPlayingLevel=false;
                       ren.blocks.clear();ren.pX=0;ren.pY=20;ren.pZ=35;ren.selectedIndex=-1;stopRidixTimer();
@@ -1002,55 +1006,102 @@ jobs:
                       updAxis();updSizeInfo();updGridBtn();
                       handler.postDelayed(()->setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE),50);
                   });
-                  findViewById(R.id.btn_customize_lobby).setOnClickListener(v->{menuUI.setVisibility(View.GONE);customizeUI.setVisibility(View.VISIBLE);updCustPacks();updRidix();});
-                  findViewById(R.id.btn_load_file).setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");loadLauncher.launch(i);});
-                  View.OnClickListener back=v->{pendingMode=0;ren.isPlayingLevel=false;stopRidixTimer();gameUI.setVisibility(View.GONE);engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);};
+
+                  findViewById(R.id.btn_customize_lobby).setOnClickListener(v->{
+                      menuUI.setVisibility(View.GONE);customizeUI.setVisibility(View.VISIBLE);updCustPacks();updRidix();
+                  });
+
+                  findViewById(R.id.btn_load_file).setOnClickListener(v->{
+                      Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");loadLauncher.launch(i);
+                  });
+
+                  View.OnClickListener back=v->{
+                      pendingMode=0;ren.isPlayingLevel=false;stopRidixTimer();
+                      gameUI.setVisibility(View.GONE);engineUI.setVisibility(View.GONE);
+                      playtestUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);
+                      setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                  };
                   findViewById(R.id.btn_menu).setOnClickListener(back);
                   findViewById(R.id.btn_engine_menu).setOnClickListener(back);
                   findViewById(R.id.btn_close_customize).setOnClickListener(v->{customizeUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);});
-                  findViewById(R.id.btn_play_level).setOnClickListener(v->{ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;applyPack();engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);ren.runStartScripts();});
-                  findViewById(R.id.btn_stop_playtest).setOnClickListener(v->{ren.isPlayingLevel=false;ren.pX=0;ren.pY=20;ren.pZ=35;playtestUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);updAxis();});
-                  findViewById(R.id.btn_save).setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");i.putExtra(Intent.EXTRA_TITLE,"level.json");saveLauncher.launch(i);});
-                  findViewById(R.id.btn_run_script).setOnClickListener(v->showScriptDialog());
+
+                  findViewById(R.id.btn_play_level).setOnClickListener(v->{
+                      ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;applyPack();
+                      engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);ren.runStartScripts();
+                  });
+                  findViewById(R.id.btn_stop_playtest).setOnClickListener(v->{
+                      ren.isPlayingLevel=false;ren.pX=0;ren.pY=20;ren.pZ=35;
+                      playtestUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);updAxis();
+                  });
+                  findViewById(R.id.btn_save).setOnClickListener(v->{
+                      Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");i.putExtra(Intent.EXTRA_TITLE,"level.json");saveLauncher.launch(i);
+                  });
+
                   btnGrid.setOnClickListener(v->{ren.gridEnabled=!ren.gridEnabled;updGridBtn();});
-                  findViewById(R.id.btn_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN&&ren.isOnGround())ren.vY=.55f;return true;});
-                  findViewById(R.id.btn_playtest_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN&&ren.isOnGround())ren.vY=.55f;return true;});
+
+                  findViewById(R.id.btn_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN&&ren.isOnGround())ren.vY=0.55f;return true;});
+                  findViewById(R.id.btn_playtest_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN&&ren.isOnGround())ren.vY=0.55f;return true;});
+
                   findViewById(R.id.btn_place).setOnClickListener(v->{if(ren.selectedIndex<0)ren.placeBlock();});
                   btnDelete.setOnClickListener(v->{ren.deleteSelected();updAxis();});
                   btnDeselect.setOnClickListener(v->{ren.selectedIndex=-1;updAxis();});
                   btnHide.setOnClickListener(v->{if(ren.selectedIndex>=0){ren.toggleHideSelected();updAxis();}});
-                  btnEvents.setOnClickListener(v->showBlockEventsDialog());
+
                   axisBtn(R.id.axis_x_plus,1,0,0);axisBtn(R.id.axis_x_minus,-1,0,0);
                   axisBtn(R.id.axis_y_plus,0,1,0);axisBtn(R.id.axis_y_minus,0,-1,0);
                   axisBtn(R.id.axis_z_plus,0,0,1);axisBtn(R.id.axis_z_minus,0,0,-1);
-                  shapeBtn=new Button[]{findViewById(R.id.shape_square),findViewById(R.id.shape_rectangle),findViewById(R.id.shape_circle),findViewById(R.id.shape_triangle)};
-                  findViewById(R.id.shape_square).setOnClickListener(v->setShape("square",4,4,4,0));
-                  findViewById(R.id.shape_rectangle).setOnClickListener(v->setShape("rectangle",8,4,4,1));
-                  findViewById(R.id.shape_circle).setOnClickListener(v->setShape("circle",4,4,4,2));
-                  findViewById(R.id.shape_triangle).setOnClickListener(v->setShape("triangle",4,4,4,3));
-                  findViewById(R.id.size_x_minus).setOnClickListener(v->{ren.blockSX=Math.max(.5f,ren.blockSX-.5f);updSizeInfo();});
-                  findViewById(R.id.size_x_plus).setOnClickListener(v->{ren.blockSX+=.5f;updSizeInfo();});
-                  findViewById(R.id.size_y_minus).setOnClickListener(v->{ren.blockSY=Math.max(.5f,ren.blockSY-.5f);updSizeInfo();});
-                  findViewById(R.id.size_y_plus).setOnClickListener(v->{ren.blockSY+=.5f;updSizeInfo();});
-                  findViewById(R.id.size_z_minus).setOnClickListener(v->{ren.blockSZ=Math.max(.5f,ren.blockSZ-.5f);updSizeInfo();});
-                  findViewById(R.id.size_z_plus).setOnClickListener(v->{ren.blockSZ=Math.max(.5f,ren.blockSZ+.5f);updSizeInfo();});
-                  distBtn=new Button[]{findViewById(R.id.dist_near),findViewById(R.id.dist_mid),findViewById(R.id.dist_far)};
-                  float[]dists={3f,6f,12f};
-                  for(int i=0;i<3;i++){final int ii=i;distBtn[i].setOnClickListener(v->{ren.placeDist=dists[ii];updBtnGrp(distBtn,ii);});}
-                  colorBtn=new View[]{findViewById(R.id.color_red),findViewById(R.id.color_green),findViewById(R.id.color_blue),findViewById(R.id.color_yellow),findViewById(R.id.color_white),findViewById(R.id.color_black)};
-                  float[][]cols={{1f,.2f,.2f},{.2f,1f,.2f},{.2f,.5f,1f},{1f,1f,.2f},{1f,1f,1f},{0f,0f,0f}};
-                  for(int i=0;i<cols.length;i++){final int ii=i;colorBtn[i].setOnClickListener(v->{ren.blockR=cols[ii][0];ren.blockG=cols[ii][1];ren.blockB=cols[ii][2];if(ren.selectedIndex>=0&&ren.selectedIndex<ren.blocks.size()){Block b=ren.blocks.get(ren.selectedIndex);b.r=ren.blockR;b.g=ren.blockG;b.b=ren.blockB;}updColSel(ii);});}
+
+                  // Shape - only square
+                  findViewById(R.id.shape_square).setOnClickListener(v->{ren.blockSX=4;ren.blockSY=4;ren.blockSZ=4;updSizeInfo();});
+
+                  findViewById(R.id.size_x_minus).setOnClickListener(v->{ren.blockSX=Math.max(0.5f,ren.blockSX-0.5f);updSizeInfo();});
+                  findViewById(R.id.size_x_plus).setOnClickListener(v->{ren.blockSX+=0.5f;updSizeInfo();});
+                  findViewById(R.id.size_y_minus).setOnClickListener(v->{ren.blockSY=Math.max(0.5f,ren.blockSY-0.5f);updSizeInfo();});
+                  findViewById(R.id.size_y_plus).setOnClickListener(v->{ren.blockSY+=0.5f;updSizeInfo();});
+                  findViewById(R.id.size_z_minus).setOnClickListener(v->{ren.blockSZ=Math.max(0.5f,ren.blockSZ-0.5f);updSizeInfo();});
+                  findViewById(R.id.size_z_plus).setOnClickListener(v->{ren.blockSZ=Math.max(0.5f,ren.blockSZ+0.5f);updSizeInfo();});
+
+                  distBtn=new Button[]{findViewById(R.id.dist_far),findViewById(R.id.dist_vfar)};
+                  float[]dists={12f,15f};
+                  for(int i=0;i<2;i++){final int ii=i;distBtn[i].setOnClickListener(v->{ren.placeDist=dists[ii];updBtnGrp(distBtn,ii);});}
+
+                  colorBtn=new View[]{
+                      findViewById(R.id.color_red),findViewById(R.id.color_green),
+                      findViewById(R.id.color_blue),findViewById(R.id.color_yellow),
+                      findViewById(R.id.color_white),findViewById(R.id.color_black)
+                  };
+                  float[][]cols={{1f,0.2f,0.2f},{0.2f,1f,0.2f},{0.2f,0.5f,1f},{1f,1f,0.2f},{1f,1f,1f},{0f,0f,0f}};
+                  for(int i=0;i<cols.length;i++){
+                      final int ii=i;
+                      colorBtn[i].setOnClickListener(v->{
+                          ren.blockR=cols[ii][0];ren.blockG=cols[ii][1];ren.blockB=cols[ii][2];
+                          if(ren.selectedIndex>=0&&ren.selectedIndex<ren.blocks.size()){Block b=ren.blocks.get(ren.selectedIndex);b.r=ren.blockR;b.g=ren.blockG;b.b=ren.blockB;}
+                          updColSel(ii);
+                      });
+                  }
+
                   setupJoy(findViewById(R.id.joy_base),findViewById(R.id.joy_stick));
                   setupJoy(findViewById(R.id.engine_joy_base),findViewById(R.id.engine_joy_stick));
                   setupJoy(findViewById(R.id.playtest_joy_base),findViewById(R.id.playtest_joy_stick));
                   setupLook(findViewById(R.id.look_zone));
                   setupLook(findViewById(R.id.playtest_look_zone));
+
                   findViewById(R.id.engine_touch_zone).setOnTouchListener((v,e)->{
                       if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}
-                      else if(e.getAction()==MotionEvent.ACTION_UP){if(Math.abs(e.getX()-lx)<25&&Math.abs(e.getY()-ly)<25){int hit=ren.raycastBlock(e.getX(),e.getY());ren.selectedIndex=hit;if(hit>=0){Block b=ren.blocks.get(hit);ren.blockR=b.r;ren.blockG=b.g;ren.blockB=b.b;ren.blockSX=b.sx;ren.blockSY=b.sy;ren.blockSZ=b.sz;ren.blockShape=b.shape;ren.handleTapBlock(hit);updSizeInfo();}updAxis();}}
-                      else if(e.getAction()==MotionEvent.ACTION_MOVE){ren.rY+=(e.getX()-lx)*.2f;ren.rX=Math.max(-85,Math.min(85,ren.rX-(e.getY()-ly)*.2f));lx=e.getX();ly=e.getY();}
+                      else if(e.getAction()==MotionEvent.ACTION_UP){
+                          if(Math.abs(e.getX()-lx)<25&&Math.abs(e.getY()-ly)<25){
+                              int hit=ren.raycastBlock(e.getX(),e.getY());ren.selectedIndex=hit;
+                              if(hit>=0){Block b=ren.blocks.get(hit);ren.blockR=b.r;ren.blockG=b.g;ren.blockB=b.b;ren.blockSX=b.sx;ren.blockSY=b.sy;ren.blockSZ=b.sz;updSizeInfo();}
+                              updAxis();
+                          }
+                      } else if(e.getAction()==MotionEvent.ACTION_MOVE){
+                          ren.rY+=(e.getX()-lx)*0.2f;
+                          ren.rX=Math.max(-80,Math.min(80,ren.rX-(e.getY()-ly)*0.2f));
+                          lx=e.getX();ly=e.getY();
+                      }
                       return true;
                   });
+
                   updSizeInfo();updAxis();updGridBtn();
               }
 
@@ -1058,15 +1109,36 @@ jobs:
                   buildColorRow(findViewById(R.id.skin_colors),SKIN_I,i->{ren.charSkinR=SKIN_C[i][0];ren.charSkinG=SKIN_C[i][1];ren.charSkinB=SKIN_C[i][2];savePrefs();});
                   buildColorRow(findViewById(R.id.torso_colors),TORSO_I,i->{ren.charTorsoR=TORSO_C[i][0];ren.charTorsoG=TORSO_C[i][1];ren.charTorsoB=TORSO_C[i][2];savePrefs();});
                   buildColorRow(findViewById(R.id.legs_colors),LEGS_I,i->{ren.charLegsR=LEGS_C[i][0];ren.charLegsG=LEGS_C[i][1];ren.charLegsB=LEGS_C[i][2];savePrefs();});
+
                   findViewById(R.id.btn_pack_default).setOnClickListener(v->{equippedPack=0;applyPack();savePrefs();updCustPacks();Toast.makeText(this,"Default equipped",Toast.LENGTH_SHORT).show();});
                   findViewById(R.id.btn_pack_fly).setOnClickListener(v->buyOrEquip(1,"Fly"));
                   findViewById(R.id.btn_pack_combat).setOnClickListener(v->buyOrEquip(2,"Combat"));
                   findViewById(R.id.btn_pack_dance).setOnClickListener(v->buyOrEquip(3,"Dance"));
+
+                  // Promo code
+                  findViewById(R.id.btn_promo).setOnClickListener(v->{
+                      EditText et=findViewById(R.id.et_promo);
+                      String code=et.getText().toString().trim();
+                      if(code.equals("Dimasi4ek229")){
+                          infiniteRidix=true;savePrefs();updRidix();
+                          et.setText("");
+                          Toast.makeText(this,"Infinite Ridix activated!",Toast.LENGTH_LONG).show();
+                      } else {
+                          Toast.makeText(this,"Invalid code",Toast.LENGTH_SHORT).show();
+                      }
+                  });
               }
 
               private void buildColorRow(LinearLayout row,int[]colors,CP cb){
-                  row.removeAllViews();int dp=(int)(8*getResources().getDisplayMetrics().density);
-                  for(int i=0;i<colors.length;i++){final int ii=i;View dot=new View(this);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp*5,dp*5);lp.setMargins(dp/2,0,dp/2,0);dot.setLayoutParams(lp);GradientDrawable gd=new GradientDrawable();gd.setShape(GradientDrawable.OVAL);gd.setColor(colors[i]);gd.setStroke(4,0xFF00BFFF);dot.setBackground(gd);dot.setOnClickListener(v->{cb.pick(ii);Toast.makeText(this,"Applied",Toast.LENGTH_SHORT).show();});row.addView(dot);}
+                  row.removeAllViews();
+                  int dp=(int)(8*getResources().getDisplayMetrics().density);
+                  for(int i=0;i<colors.length;i++){
+                      final int ii=i;View dot=new View(this);
+                      LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp*5,dp*5);lp.setMargins(dp/2,0,dp/2,0);dot.setLayoutParams(lp);
+                      GradientDrawable gd=new GradientDrawable();gd.setShape(GradientDrawable.OVAL);gd.setColor(colors[i]);gd.setStroke(3,0xFF00BFFF);dot.setBackground(gd);
+                      dot.setOnClickListener(vv->{cb.pick(ii);Toast.makeText(this,"Applied",Toast.LENGTH_SHORT).show();});
+                      row.addView(dot);
+                  }
               }
 
               private void updCustPacks(){
@@ -1077,58 +1149,149 @@ jobs:
               }
 
               private void updPackBtn(Button btn,TextView price,int pack){
-                  if(getOwned(pack)){btn.setText(equippedPack==pack?"Equipped":"Equip");btn.setBackgroundResource(equippedPack==pack?R.drawable.btn_blue_filled:R.drawable.btn_blue);btn.setTextColor(equippedPack==pack?0xFF000000:0xFF00BFFF);price.setText("Owned");}
-                  else{btn.setText("Buy");btn.setBackgroundResource(R.drawable.btn_blue);btn.setTextColor(0xFF00BFFF);price.setText(PACK_PRICE+" Ridix");}
+                  if(getOwned(pack)){
+                      btn.setText(equippedPack==pack?"Equipped":"Equip");
+                      btn.setBackgroundResource(equippedPack==pack?R.drawable.btn_blue_filled:R.drawable.btn_blue);
+                      btn.setTextColor(equippedPack==pack?0xFF000000:0xFF00BFFF);
+                      price.setText("Owned");
+                  } else {
+                      btn.setText("Buy");btn.setBackgroundResource(R.drawable.btn_blue);btn.setTextColor(0xFF00BFFF);
+                      price.setText(PACK_PRICE+" Ridix");
+                  }
               }
 
               private void applyPack(){if(ren!=null)ren.animPack=equippedPack;}
 
               private void startRidixTimer(){
                   stopRidixTimer();
-                  ridixTimer=new Runnable(){@Override public void run(){ridix+=RIDIX_REWARD;savePrefs();updRidix();Toast.makeText(MainActivity.this,"+"+RIDIX_REWARD+" Ridix",Toast.LENGTH_SHORT).show();handler.postDelayed(this,RIDIX_SEC*1000L);}};
+                  ridixTimer=new Runnable(){
+                      @Override public void run(){
+                          if(!infiniteRidix){ridix+=RIDIX_REWARD;savePrefs();}
+                          updRidix();
+                          Toast.makeText(MainActivity.this,"+"+RIDIX_REWARD+" Ridix",Toast.LENGTH_SHORT).show();
+                          handler.postDelayed(this,RIDIX_SEC*1000L);
+                      }
+                  };
                   handler.postDelayed(ridixTimer,RIDIX_SEC*1000L);
               }
               private void stopRidixTimer(){if(ridixTimer!=null){handler.removeCallbacks(ridixTimer);ridixTimer=null;}}
-              private void updRidix(){String s=String.valueOf(ridix);if(txtRidixLobby!=null)txtRidixLobby.setText(s);if(txtRidixShop!=null)txtRidixShop.setText(s);}
-              private void savePrefs(){SharedPreferences.Editor ed=getSharedPreferences("enjoer",MODE_PRIVATE).edit();ed.putInt("ridix",ridix);ed.putBoolean("fly",ownedFly);ed.putBoolean("combat",ownedCombat);ed.putBoolean("dance",ownedDance);ed.putInt("pack",equippedPack);ed.putFloat("sR",ren!=null?ren.charSkinR:1f);ed.putFloat("sG",ren!=null?ren.charSkinG:.85f);ed.putFloat("sB",ren!=null?ren.charSkinB:.15f);ed.putFloat("tR",ren!=null?ren.charTorsoR:.1f);ed.putFloat("tG",ren!=null?ren.charTorsoG:.4f);ed.putFloat("tB",ren!=null?ren.charTorsoB:1f);ed.putFloat("lR",ren!=null?ren.charLegsR:.1f);ed.putFloat("lG",ren!=null?ren.charLegsG:.8f);ed.putFloat("lB",ren!=null?ren.charLegsB:.2f);ed.apply();}
-              private void loadPrefs(){SharedPreferences sp=getSharedPreferences("enjoer",MODE_PRIVATE);ridix=sp.getInt("ridix",0);ownedFly=sp.getBoolean("fly",false);ownedCombat=sp.getBoolean("combat",false);ownedDance=sp.getBoolean("dance",false);equippedPack=sp.getInt("pack",0);}
-              private void applyPrefsToRen(){SharedPreferences sp=getSharedPreferences("enjoer",MODE_PRIVATE);ren.charSkinR=sp.getFloat("sR",1f);ren.charSkinG=sp.getFloat("sG",.85f);ren.charSkinB=sp.getFloat("sB",.15f);ren.charTorsoR=sp.getFloat("tR",.1f);ren.charTorsoG=sp.getFloat("tG",.4f);ren.charTorsoB=sp.getFloat("tB",1f);ren.charLegsR=sp.getFloat("lR",.1f);ren.charLegsG=sp.getFloat("lG",.8f);ren.charLegsB=sp.getFloat("lB",.2f);ren.animPack=equippedPack;}
+
+              private void updRidix(){
+                  String s=infiniteRidix?"Inf":String.valueOf(ridix);
+                  if(txtRidixLobby!=null)txtRidixLobby.setText(s);
+                  if(txtRidixShop!=null)txtRidixShop.setText(s);
+              }
+
+              private void savePrefs(){
+                  SharedPreferences.Editor ed=getSharedPreferences("enjoer",MODE_PRIVATE).edit();
+                  ed.putInt("ridix",ridix);ed.putBoolean("fly",ownedFly);ed.putBoolean("combat",ownedCombat);
+                  ed.putBoolean("dance",ownedDance);ed.putInt("pack",equippedPack);ed.putBoolean("infRidix",infiniteRidix);
+                  ed.putFloat("sR",ren!=null?ren.charSkinR:1f);ed.putFloat("sG",ren!=null?ren.charSkinG:0.75f);ed.putFloat("sB",ren!=null?ren.charSkinB:0.5f);
+                  ed.putFloat("tR",ren!=null?ren.charTorsoR:0.1f);ed.putFloat("tG",ren!=null?ren.charTorsoG:0.4f);ed.putFloat("tB",ren!=null?ren.charTorsoB:1f);
+                  ed.putFloat("lR",ren!=null?ren.charLegsR:0.1f);ed.putFloat("lG",ren!=null?ren.charLegsG:0.8f);ed.putFloat("lB",ren!=null?ren.charLegsB:0.2f);
+                  ed.apply();
+              }
+
+              private void loadPrefs(){
+                  SharedPreferences sp=getSharedPreferences("enjoer",MODE_PRIVATE);
+                  ridix=sp.getInt("ridix",0);ownedFly=sp.getBoolean("fly",false);
+                  ownedCombat=sp.getBoolean("combat",false);ownedDance=sp.getBoolean("dance",false);
+                  equippedPack=sp.getInt("pack",0);infiniteRidix=sp.getBoolean("infRidix",false);
+              }
+
+              private void applyPrefsToRen(){
+                  SharedPreferences sp=getSharedPreferences("enjoer",MODE_PRIVATE);
+                  ren.charSkinR=sp.getFloat("sR",1f);ren.charSkinG=sp.getFloat("sG",0.75f);ren.charSkinB=sp.getFloat("sB",0.5f);
+                  ren.charTorsoR=sp.getFloat("tR",0.1f);ren.charTorsoG=sp.getFloat("tG",0.4f);ren.charTorsoB=sp.getFloat("tB",1f);
+                  ren.charLegsR=sp.getFloat("lR",0.1f);ren.charLegsG=sp.getFloat("lG",0.8f);ren.charLegsB=sp.getFloat("lB",0.2f);
+                  ren.animPack=equippedPack;
+              }
+
               @Override protected void onResume(){super.onResume();if(ren!=null)applyPrefsToRen();}
               @Override protected void onPause(){super.onPause();stopRidixTimer();savePrefs();}
 
-              private void showScriptDialog(){
-                  EditText et=new EditText(this);et.setMinLines(8);et.setText("phone.toast(\"Hello\")\nplayer.jump\n");et.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-                  new AlertDialog.Builder(this).setTitle("Script").setView(et).setPositiveButton("Run",(d,w)->{try{ScriptEngine.run(this,et.getText().toString());updAxis();updSizeInfo();updGridBtn();Toast.makeText(this,"Done",Toast.LENGTH_SHORT).show();}catch(Exception ex){Toast.makeText(this,ex.getMessage(),Toast.LENGTH_LONG).show();}}).setNegativeButton("Close",null).show();
-              }
-
-              private void showBlockEventsDialog(){
-                  if(ren.selectedIndex<0||ren.selectedIndex>=ren.blocks.size())return;
-                  Block b=ren.blocks.get(ren.selectedIndex);
-                  LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);int p=(int)(12*getResources().getDisplayMetrics().density);root.setPadding(p,p,p,p);
-                  TextView t1=new TextView(this);t1.setText("On Start");EditText e1=new EditText(this);e1.setMinLines(3);e1.setText(b.onStartScript);
-                  TextView t2=new TextView(this);t2.setText("On Touch");EditText e2=new EditText(this);e2.setMinLines(3);e2.setText(b.onTouchScript);
-                  TextView t3=new TextView(this);t3.setText("On Tap");EditText e3=new EditText(this);e3.setMinLines(3);e3.setText(b.onTapScript);
-                  root.addView(t1);root.addView(e1);root.addView(t2);root.addView(e2);root.addView(t3);root.addView(e3);
-                  new AlertDialog.Builder(this).setTitle("Events").setView(root).setPositiveButton("Save",(d,w)->{b.onStartScript=e1.getText().toString();b.onTouchScript=e2.getText().toString();b.onTapScript=e3.getText().toString();Toast.makeText(this,"Saved",Toast.LENGTH_SHORT).show();}).setNegativeButton("Close",null).show();
-              }
-
-              private void setShape(String sh,float sx,float sy,float sz,int i){ren.blockShape=sh;ren.blockSX=sx;ren.blockSY=sy;ren.blockSZ=sz;updBtnGrp(shapeBtn,i);updSizeInfo();}
               private void resetP(){ren.pX=0;ren.pY=7;ren.pZ=15;ren.vY=0;}
-              private void axisBtn(int id,float dx,float dy,float dz){findViewById(id).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN||e.getAction()==MotionEvent.ACTION_MOVE){float step=ren.gridEnabled?ren.gridSize:.5f;ren.moveSelected(dx*step,dy*step,dz*step);}return true;});}
-              private void updAxis(){runOnUiThread(()->{boolean sel=ren.selectedIndex>=0;axisPanel.setVisibility(sel?View.VISIBLE:View.GONE);btnDeselect.setVisibility(sel?View.VISIBLE:View.GONE);btnHide.setVisibility(sel?View.VISIBLE:View.GONE);btnDelete.setVisibility(sel?View.VISIBLE:View.GONE);btnEvents.setVisibility(sel?View.VISIBLE:View.GONE);if(sel){Block b=ren.blocks.get(ren.selectedIndex);btnHide.setText(b.hidden?"Show":"Hide");}});}
-              private void updSizeInfo(){runOnUiThread(()->txtSizeInfo.setText(String.format(java.util.Locale.US,"%.1f x %.1f x %.1f",ren.blockSX,ren.blockSY,ren.blockSZ)));}
-              private void updGridBtn(){runOnUiThread(()->{if(ren.gridEnabled){btnGrid.setText("Grid: On");btnGrid.setBackgroundResource(R.drawable.btn_blue_filled);btnGrid.setTextColor(0xFF000000);}else{btnGrid.setText("Grid: Off");btnGrid.setBackgroundResource(R.drawable.btn_blue);btnGrid.setTextColor(0xFF00BFFF);}});}
-              private void setupJoy(View base,View stick){base.setOnTouchListener((v,e)->{float cx=v.getWidth()/2f,cy=v.getHeight()/2f;if(e.getAction()==MotionEvent.ACTION_MOVE||e.getAction()==MotionEvent.ACTION_DOWN){float dx=e.getX()-cx,dy=e.getY()-cy,d=(float)Math.sqrt(dx*dx+dy*dy),lim=cx-stick.getWidth()/2f;if(d>lim){dx*=lim/d;dy*=lim/d;}stick.setTranslationX(dx);stick.setTranslationY(dy);ren.jX=dx/lim;ren.jY=dy/lim;}else if(e.getAction()==MotionEvent.ACTION_UP){stick.setTranslationX(0);stick.setTranslationY(0);ren.jX=0;ren.jY=0;}return true;});}
-              private void setupLook(View z){z.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}else if(e.getAction()==MotionEvent.ACTION_MOVE){ren.rY+=(e.getX()-lx)*.25f;ren.rX=Math.max(-80,Math.min(80,ren.rX-(e.getY()-ly)*.25f));lx=e.getX();ly=e.getY();}return true;});}
-              private void updBtnGrp(Button[]btns,int sel){for(int i=0;i<btns.length;i++){if(i==sel){btns[i].setBackgroundResource(R.drawable.btn_blue_filled);btns[i].setTextColor(0xFF000000);}else{btns[i].setBackgroundResource(R.drawable.btn_blue);btns[i].setTextColor(0xFF00BFFF);}}}
-              private void updColSel(int sel){for(int i=0;i<colorBtn.length;i++){try{GradientDrawable bg=(GradientDrawable)colorBtn[i].getBackground();if(i==sel)bg.setStroke(6,0xFFFFFFFF);else bg.setStroke(2,0xFF00BFFF);}catch(Exception ignored){}}}
+
+              private void axisBtn(int id,float dx,float dy,float dz){
+                  findViewById(id).setOnTouchListener((v,e)->{
+                      if(e.getAction()==MotionEvent.ACTION_DOWN||e.getAction()==MotionEvent.ACTION_MOVE){
+                          float step=ren.gridEnabled?ren.gridSize:0.5f;ren.moveSelected(dx*step,dy*step,dz*step);
+                      }
+                      return true;
+                  });
+              }
+
+              private void updAxis(){
+                  runOnUiThread(()->{
+                      boolean sel=ren.selectedIndex>=0;
+                      axisPanel.setVisibility(sel?View.VISIBLE:View.GONE);
+                      btnDeselect.setVisibility(sel?View.VISIBLE:View.GONE);
+                      btnHide.setVisibility(sel?View.VISIBLE:View.GONE);
+                      btnDelete.setVisibility(sel?View.VISIBLE:View.GONE);
+                      if(sel){Block b=ren.blocks.get(ren.selectedIndex);btnHide.setText(b.hidden?"Show":"Hide");}
+                  });
+              }
+
+              private void updSizeInfo(){
+                  runOnUiThread(()->txtSizeInfo.setText(String.format(java.util.Locale.US,"%.1f x %.1f x %.1f",ren.blockSX,ren.blockSY,ren.blockSZ)));
+              }
+
+              private void updGridBtn(){
+                  runOnUiThread(()->{
+                      if(ren.gridEnabled){btnGrid.setText("Grid: On");btnGrid.setBackgroundResource(R.drawable.btn_blue_filled);btnGrid.setTextColor(0xFF000000);}
+                      else{btnGrid.setText("Grid: Off");btnGrid.setBackgroundResource(R.drawable.btn_blue);btnGrid.setTextColor(0xFF00BFFF);}
+                  });
+              }
+
+              private void setupJoy(View base,View stick){
+                  base.setOnTouchListener((v,e)->{
+                      float cx=v.getWidth()/2f,cy=v.getHeight()/2f;
+                      if(e.getAction()==MotionEvent.ACTION_MOVE||e.getAction()==MotionEvent.ACTION_DOWN){
+                          float dx=e.getX()-cx,dy=e.getY()-cy,d=(float)Math.sqrt(dx*dx+dy*dy),lim=cx-stick.getWidth()/2f;
+                          if(d>lim){dx*=lim/d;dy*=lim/d;}
+                          stick.setTranslationX(dx);stick.setTranslationY(dy);ren.jX=dx/lim;ren.jY=dy/lim;
+                      } else if(e.getAction()==MotionEvent.ACTION_UP){
+                          stick.setTranslationX(0);stick.setTranslationY(0);ren.jX=0;ren.jY=0;
+                      }
+                      return true;
+                  });
+              }
+
+              private void setupLook(View z){
+                  z.setOnTouchListener((v,e)->{
+                      if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}
+                      else if(e.getAction()==MotionEvent.ACTION_MOVE){
+                          ren.rY+=(e.getX()-lx)*0.25f;
+                          // Inverted: swipe up = rX increases = camera goes up = look down at player
+                          ren.rX=Math.max(-80,Math.min(80,ren.rX+(e.getY()-ly)*0.25f));
+                          lx=e.getX();ly=e.getY();
+                      }
+                      return true;
+                  });
+              }
+
+              private void updBtnGrp(Button[]btns,int sel){
+                  for(int i=0;i<btns.length;i++){
+                      if(i==sel){btns[i].setBackgroundResource(R.drawable.btn_blue_filled);btns[i].setTextColor(0xFF000000);}
+                      else{btns[i].setBackgroundResource(R.drawable.btn_blue);btns[i].setTextColor(0xFF00BFFF);}
+                  }
+              }
+
+              private void updColSel(int sel){
+                  for(int i=0;i<colorBtn.length;i++){
+                      try{
+                          GradientDrawable bg=(GradientDrawable)colorBtn[i].getBackground();
+                          if(i==sel)bg.setStroke(6,0xFFFFFFFF);else bg.setStroke(2,0xFF00BFFF);
+                      }catch(Exception ignored){}
+                  }
+              }
           }
           EOF
 
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="Enjoer 6.3" android:theme="@style/AppTheme">
+              <application android:label="Enjoer 6.4" android:theme="@style/AppTheme">
                   <activity android:name="com.enjoer.game.MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden">
                       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
                   </activity>
@@ -1168,5 +1331,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_6.3_Fixed
+          name: Enjoer_6.4
           path: app/build/outputs/apk/debug/app-debug.apk
