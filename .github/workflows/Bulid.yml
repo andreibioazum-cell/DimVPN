@@ -326,7 +326,8 @@ jobs:
               private long lastTimeNs=0L;
               private float walkPhase=0f,moveMag=0f,charRotation=0f,jumpPhase=0f;
               private boolean wasOnGround=true;
-              private float hoverPhase=0f,flyTargetY=0f;
+              private float hoverPhase=0f;
+              public float flyTargetY=0f;
               private float blinkTimer=0f,blinkDur=0f;
               private boolean blinking=false;
               private float nextBlink=3f;
