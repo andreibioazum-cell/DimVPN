@@ -1,4 +1,4 @@
-name: Enjoer_6.5
+name: Enjoer_6.5_Fixed
 on: [push, workflow_dispatch]
 
 jobs:
@@ -63,14 +63,6 @@ jobs:
             <corners android:radius="12dp"/>
             <solid android:color="#101820"/>
             <stroke android:width="2dp" android:color="#44FF44"/>
-          </shape>
-          ENDF
-
-          cat > app/src/main/res/drawable/btn_purple.xml << 'ENDF'
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-            <corners android:radius="12dp"/>
-            <solid android:color="#101820"/>
-            <stroke android:width="2dp" android:color="#AA44FF"/>
           </shape>
           ENDF
 
@@ -218,9 +210,9 @@ jobs:
                       <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ridix: " android:textColor="#FFD700" android:textSize="16sp"/>
                       <TextView android:id="@+id/txt_ridix_lobby" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFD700" android:textSize="16sp" android:textStyle="bold"/>
                   </LinearLayout>
-                  <Button android:id="@+id/btn_play" android:layout_width="240dp" android:layout_height="60dp" android:text="Play" android:textSize="18sp" android:textColor="#000" android:background="@drawable/btn_blue_filled" android:layout_marginBottom="16dp"/>
+                  <Button android:id="@+id/btn_play" android:layout_width="240dp" android:layout_height="60dp" android:text="Play" android:textSize="18sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue" android:layout_marginBottom="16dp"/>
                   <Button android:id="@+id/btn_engine" android:layout_width="240dp" android:layout_height="60dp" android:text="Editor" android:textSize="18sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue" android:layout_marginBottom="16dp"/>
-                  <Button android:id="@+id/btn_customize_lobby" android:layout_width="240dp" android:layout_height="60dp" android:text="Customize" android:textSize="18sp" android:textColor="#AA44FF" android:background="@drawable/btn_purple" android:layout_marginBottom="16dp"/>
+                  <Button android:id="@+id/btn_customize_lobby" android:layout_width="240dp" android:layout_height="60dp" android:text="Customize" android:textSize="18sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue" android:layout_marginBottom="16dp"/>
                   <Button android:id="@+id/btn_load_file" android:layout_width="240dp" android:layout_height="60dp" android:text="Import .json" android:textSize="16sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue"/>
               </LinearLayout>
 
@@ -286,9 +278,6 @@ jobs:
           public class Block {
               public float x,y,z,sx,sy,sz,r,g,b;
               public boolean hidden=false;
-              public String shape="square";
-              public String onStartScript="",onTouchScript="",onTapScript="";
-              public boolean started=false,touchingPlayer=false;
               public Block(float x,float y,float z,float sx,float sy,float sz,float r,float g,float b){
                   this.x=x;this.y=y;this.z=z;this.sx=sx;this.sy=sy;this.sz=sz;this.r=r;this.g=g;this.b=b;
               }
@@ -312,8 +301,6 @@ jobs:
           import javax.microedition.khronos.opengles.GL10;
 
           public class GameRenderer implements GLSurfaceView.Renderer {
-              public interface EventHost { void runBlockScript(Block block,String script); }
-
               private final float[] proj=new float[16],view=new float[16],model=new float[16];
               public float pX=0,pY=6,pZ=15,rY=0,rX=0,jX=0,jY=0,vY=0;
               public boolean isEngineMode=false,isPlayingLevel=false,gridEnabled=true;
@@ -324,26 +311,22 @@ jobs:
               public CopyOnWriteArrayList<Block> blocks=new CopyOnWriteArrayList<>();
               public int selectedIndex=-1;
               public float screenW=1,screenH=1;
-              public EventHost eventHost;
               public int animPack=0;
-              // Skin: bright warm tone
+              
               public float charSkinR=1.0f,charSkinG=0.82f,charSkinB=0.6f;
               public float charTorsoR=0.1f,charTorsoG=0.4f,charTorsoB=1f;
               public float charLegsR=0.1f,charLegsG=0.8f,charLegsB=0.2f;
-              // Face: 0=smile,1=cool,2=angry,3=surprised
               public int faceType=0;
 
               private static final float FLOOR_Y=0f,PLAYER_HEIGHT=5.2f,PLAYER_RADIUS=0.85f;
-              private static final float CAM_TARGET_Y_OFF=3.0f;
-              private static final float CAM_DIST=14.7f;
+              private static final float CAM_TARGET_Y_OFF=3.0f,CAM_DIST=14.7f;
+              private static final float LEG_H=1.6f,LEG_W=0.7f,LEG_D=0.7f,TORSO_H=1.8f,TORSO_W=1.4f,TORSO_D=0.8f,HEAD_S=1.15f,ARM_H=1.6f,ARM_W=0.55f,ARM_D=0.55f;
 
               private float camX,camY,camZ;
               private long lastTimeNs=0L;
-              private float walkPhase=0f,moveMag=0f,charRotation=0f;
-              private float jumpPhase=0f;
+              private float walkPhase=0f,moveMag=0f,charRotation=0f,jumpPhase=0f;
               private boolean wasOnGround=true;
-              private float hoverPhase=0f;
-              // Blink
+              private float hoverPhase=0f,flyTargetY=0f;
               private float blinkTimer=0f,blinkDur=0f;
               private boolean blinking=false;
               private float nextBlink=3f;
@@ -354,14 +337,6 @@ jobs:
               public void loadBuiltInLevel(){
                   blocks.clear();
                   Block b=new Block(0,2,-10,8,4,8,0.9f,0.2f,0.2f);blocks.add(b);
-              }
-
-              public void runStartScripts(){
-                  for(Block b:blocks){if(!b.started){b.started=true;if(eventHost!=null&&!b.onStartScript.trim().isEmpty())eventHost.runBlockScript(b,b.onStartScript);}}
-              }
-
-              public void handleTapBlock(int i){
-                  if(i>=0&&i<blocks.size()){Block b=blocks.get(i);if(eventHost!=null&&!b.onTapScript.trim().isEmpty())eventHost.runBlockScript(b,b.onTapScript);}
               }
 
               public void placeBlock(){
@@ -411,44 +386,36 @@ jobs:
               public void onSurfaceCreated(GL10 gl,EGLConfig cfg){
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);GLES30.glDepthFunc(GLES30.GL_LEQUAL);
 
-                  // Improved lighting: stronger ambient + multiple light directions
                   String vs=
                   "#version 300 es\n"+
                   "layout(location=0)in vec4 aP;layout(location=1)in vec3 aN;"+
                   "uniform mat4 uMVP,uM;out vec3 vN,vP;"+
                   "void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
 
-                  // Brighter, multi-light fragment shader - no dark sides
                   String fs=
                   "#version 300 es\nprecision highp float;"+
                   "in vec3 vN,vP;uniform vec3 camP;uniform vec4 uC;uniform float uSel,isFloor;out vec4 fC;"+
                   "void main(){"+
                   "vec3 n=normalize(vN);"+
                   "vec3 vD=normalize(camP-vP);"+
-                  // Main light
                   "vec3 lD1=normalize(vec3(0.5,1.0,0.3));"+
                   "float d1=max(dot(n,lD1),0.0);"+
-                  // Fill light from opposite side
                   "vec3 lD2=normalize(vec3(-0.5,0.5,-0.3));"+
                   "float d2=max(dot(n,lD2),0.0)*0.45;"+
-                  // Rim light from below-back
                   "vec3 lD3=normalize(vec3(0.0,-0.5,-1.0));"+
                   "float d3=max(dot(n,lD3),0.0)*0.2;"+
                   "float ao=clamp(vP.y*0.06+0.7,0.55,1.0);"+
                   "vec3 h=normalize(lD1+vD);float spec=pow(max(dot(n,h),0.0),64.0)*0.5;"+
                   "vec3 col=uC.rgb;if(uSel>0.5)col+=vec3(0.0,0.5,0.8);"+
-                  // Brighter ambient
-                  "vec3 amb=vec3(0.18,0.22,0.28)*ao;"+
+                  "vec3 amb=vec3(0.16,0.20,0.26)*ao;"+
                   "vec3 fin=col*(d1*vec3(1.0,0.98,0.94)+d2*vec3(0.7,0.75,0.85)+d3*vec3(0.3,0.4,0.5)+amb)+spec;"+
                   "if(isFloor>0.5){"+
                   "vec2 gv=fract(vP.xz*0.2);float ln=step(0.95,gv.x)+step(0.95,gv.y);"+
-                  // Floor 15% less bright
                   "vec3 floorCol=fin*0.85;"+
                   "fin=mix(floorCol,vec3(0.0,0.35,0.65),clamp(ln,0.0,1.0)*0.4);"+
                   "}"+
                   "float dist=length(camP-vP);float fog=1.0-exp(-dist*0.005);"+
                   "vec3 c=mix(fin,vec3(0.03,0.08,0.18),clamp(fog,0.0,0.75));"+
-                  // Tone mapping - brighter
                   "c=c*1.3;c=(c*(2.51*c+0.03))/(c*(2.43*c+0.59)+0.14);"+
                   "fC=vec4(c,uC.a);}";
 
@@ -535,7 +502,6 @@ jobs:
                   GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"camP"),camX,camY,camZ);
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);GLES30.glEnableVertexAttribArray(0);
                   GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,0,nBuf);GLES30.glEnableVertexAttribArray(1);
-                  // Floor
                   Matrix.setIdentityM(model,0);Matrix.scaleM(model,0,800f,0.04f,800f);
                   GLES30.glUniform1f(uSel,0f);GLES30.glUniform1f(uFloor,1f);draw(vp,uM,uMVP,uC,0.07f,0.12f,0.2f,1f);
                   GLES30.glUniform1f(uFloor,0f);
@@ -563,7 +529,6 @@ jobs:
                   if(lastTimeNs==0L)lastTimeNs=now;
                   float dt=Math.min((now-lastTimeNs)/1e9f,0.05f);lastTimeNs=now;
                   moveMag=(float)Math.min(1.0,Math.sqrt(jX*jX+jY*jY));
-                  // Blink timer
                   blinkTimer+=dt;
                   if(!blinking&&blinkTimer>nextBlink){blinking=true;blinkDur=0.12f;blinkTimer=0;nextBlink=2f+(float)(Math.random()*4f);}
                   if(blinking){blinkDur-=dt;if(blinkDur<=0)blinking=false;}
@@ -573,12 +538,11 @@ jobs:
                       float fx=(float)Math.sin(rYr),fz=(float)-Math.cos(rYr),fy=(float)Math.sin(rXr);
                       pX+=(fx*-jY+(float)Math.cos(rYr)*jX)*s;pZ+=(fz*-jY+(float)Math.sin(rYr)*jX)*s;pY+=fy*-jY*s;
                   } else if(animPack==1){
-                      // Fly pack
-                      float targetY=FLOOR_Y+PLAYER_HEIGHT+2.5f;
-                      pY+=(targetY-pY)*dt*4f;
+                      flyTargetY+=(flyTargetY-pY)*dt*3f;
+                      pY+=(flyTargetY-pY)*dt*4f;
                       float mX=((float)Math.sin(rYr)*-jY+(float)Math.cos(rYr)*jX)*s;
                       float mZ=((float)-Math.cos(rYr)*-jY+(float)Math.sin(rYr)*jX)*s;
-                      pX+=mX;pZ+=mZ;vY=0;hoverPhase+=dt*1.8f;
+                      pX+=mX;pZ+=mZ;hoverPhase+=dt*1.8f;
                       if(moveMag>0.05f){charRotation=(float)Math.toDegrees(Math.atan2(mX,mZ));walkPhase+=dt*5f*moveMag;}
                   } else {
                       float mX=((float)Math.sin(rYr)*-jY+(float)Math.cos(rYr)*jX)*s;
@@ -589,9 +553,6 @@ jobs:
                       for(Block b:blocks){
                           boolean oxz=nX+PLAYER_RADIUS>b.minX()&&nX-PLAYER_RADIUS<b.maxX()&&nZ+PLAYER_RADIUS>b.minZ()&&nZ-PLAYER_RADIUS<b.maxZ();
                           boolean oy=fY<b.maxY()-0.1f&&nY>b.minY()+0.1f;
-                          boolean touch=oxz&&(oy||Math.abs(fY-b.maxY())<0.2f);
-                          if(touch&&!b.touchingPlayer){b.touchingPlayer=true;if(eventHost!=null&&!b.onTouchScript.trim().isEmpty())eventHost.runBlockScript(b,b.onTouchScript);}
-                          else if(!touch)b.touchingPlayer=false;
                           if(oxz){
                               if(pY-PLAYER_HEIGHT>=b.maxY()-0.15f&&fY<b.maxY()){nY=b.maxY()+PLAYER_HEIGHT;vY=0;}
                               else if(pY<b.minY()&&nY>b.minY()){nY=b.minY();vY=0;}
@@ -619,6 +580,14 @@ jobs:
                   return false;
               }
 
+              public void doJump(){
+                  if(animPack==1){
+                      flyTargetY+=3f;
+                  }else{
+                      if(isOnGround())vY=0.55f;
+                  }
+              }
+
               private void drawPlayerChar(float[]vp,int uM,int uMVP,int uC){
                   GLES30.glUniform1f(GLES30.glGetUniformLocation(prog,"uSel"),0f);
                   if(animPack==1)drawFly(vp,uM,uMVP,uC);
@@ -626,96 +595,68 @@ jobs:
               }
 
               private void drawDefault(float[]vp,int uM,int uMVP,int uC){
-                  final float lH=1.6f,lW=0.7f,lD=0.7f,tH=1.8f,tW=1.4f,tD=0.8f,hS=1.15f,aH=1.6f,aW=0.55f,aD=0.55f;
                   float footY=pY-PLAYER_HEIGHT;
                   boolean og=isOnGround();
                   float ws=(float)Math.sin(walkPhase)*38f*moveMag*(og?1f:0f);
-                  // Jump: arms spread sideways
                   float jsp=jumpPhase*65f;
                   float la=(float)Math.sin(walkPhase)*(-28f)*moveMag*(og?1f:0f);
 
-                  // Torso
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
-                  // Head
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  // Face features
-                  drawFace(vp,uM,uMVP,uC,pX,footY,pZ,charRotation,lH+tH+hS/2f,hS);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,LEG_H+TORSO_H/2f,0);Matrix.scaleM(model,0,TORSO_W,TORSO_H,TORSO_D);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,LEG_H+TORSO_H+HEAD_S/2f,0);Matrix.scaleM(model,0,HEAD_S,HEAD_S,HEAD_S);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  drawFace(vp,uM,uMVP,uC,pX,footY,pZ,charRotation,LEG_H+TORSO_H+HEAD_S/2f,HEAD_S);
 
-                  float sY=lH+tH-0.2f;
-                  // Left arm - spread sideways on jump
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,ws,1,0,0);Matrix.rotateM(model,0,-jsp,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  // Right arm
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,-ws,1,0,0);Matrix.rotateM(model,0,jsp,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  // Left leg
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,lH,0);Matrix.rotateM(model,0,la,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
-                  // Right leg
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,lH,0);Matrix.rotateM(model,0,-la,1,0,0);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  float sY=LEG_H+TORSO_H-0.2f;
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(TORSO_W/2f+ARM_W/2f),sY,0);Matrix.rotateM(model,0,ws,1,0,0);Matrix.rotateM(model,0,-jsp,0,0,1);Matrix.translateM(model,0,0,-ARM_H/2f,0);Matrix.scaleM(model,0,ARM_W,ARM_H,ARM_D);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(TORSO_W/2f+ARM_W/2f),sY,0);Matrix.rotateM(model,0,-ws,1,0,0);Matrix.rotateM(model,0,jsp,0,0,1);Matrix.translateM(model,0,0,-ARM_H/2f,0);Matrix.scaleM(model,0,ARM_W,ARM_H,ARM_D);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,LEG_H,0);Matrix.rotateM(model,0,la,1,0,0);Matrix.translateM(model,0,0,-LEG_H/2f,0);Matrix.scaleM(model,0,LEG_W,LEG_H,LEG_D);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,LEG_H,0);Matrix.rotateM(model,0,-la,1,0,0);Matrix.translateM(model,0,0,-LEG_H/2f,0);Matrix.scaleM(model,0,LEG_W,LEG_H,LEG_D);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
               }
 
               private void drawFly(float[]vp,int uM,int uMVP,int uC){
-                  final float lH=1.6f,lW=0.7f,lD=0.7f,tH=1.8f,tW=1.4f,tD=0.8f,hS=1.15f,aH=1.6f,aW=0.55f,aD=0.55f;
                   float footY=pY-PLAYER_HEIGHT;
                   float hov=(float)Math.sin(hoverPhase)*0.15f;
-                  // Arms: slight downward-back angle, not forward
                   float aA=20f+(float)Math.sin(hoverPhase)*8f+(float)Math.sin(walkPhase)*12f*moveMag;
-                  // Legs: spread apart more
                   float lA=12f+(float)Math.sin(hoverPhase*0.7f)*4f;
-                  float legSpread=0.55f; // wider spread
+                  float legSpread=0.4f;
 
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH/2f,0);Matrix.scaleM(model,0,tW,tH,tD);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,lH+tH+hS/2f,0);Matrix.scaleM(model,0,hS,hS,hS);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  drawFace(vp,uM,uMVP,uC,pX,footY+hov,pZ,charRotation,lH+tH+hS/2f,hS);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,LEG_H+TORSO_H/2f,0);Matrix.scaleM(model,0,TORSO_W,TORSO_H,TORSO_D);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,LEG_H+TORSO_H+HEAD_S/2f,0);Matrix.scaleM(model,0,HEAD_S,HEAD_S,HEAD_S);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  drawFace(vp,uM,uMVP,uC,pX,footY+hov,pZ,charRotation,LEG_H+TORSO_H+HEAD_S/2f,HEAD_S);
 
-                  float sY=lH+tH-0.2f;
-                  // Left arm - relaxed sideways
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.rotateM(model,0,-25f,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  // Right arm
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(tW/2f+aW/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.rotateM(model,0,25f,0,0,1);Matrix.translateM(model,0,0,-aH/2f,0);Matrix.scaleM(model,0,aW,aH,aD);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
-                  // Left leg - spread wide
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-legSpread,lH,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.rotateM(model,0,-15f,0,0,1);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
-                  // Right leg - spread wide
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,legSpread,lH,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.rotateM(model,0,15f,0,0,1);Matrix.translateM(model,0,0,-lH/2f,0);Matrix.scaleM(model,0,lW,lH,lD);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  float sY=LEG_H+TORSO_H-0.2f;
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(TORSO_W/2f+ARM_W/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.rotateM(model,0,-25f,0,0,1);Matrix.translateM(model,0,0,-ARM_H/2f,0);Matrix.scaleM(model,0,ARM_W,ARM_H,ARM_D);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(TORSO_W/2f+ARM_W/2f),sY,0);Matrix.rotateM(model,0,aA,1,0,0);Matrix.rotateM(model,0,25f,0,0,1);Matrix.translateM(model,0,0,-ARM_H/2f,0);Matrix.scaleM(model,0,ARM_W,ARM_H,ARM_D);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-legSpread,LEG_H,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.rotateM(model,0,-15f,0,0,1);Matrix.translateM(model,0,0,-LEG_H/2f,0);Matrix.scaleM(model,0,LEG_W,LEG_H,LEG_D);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY+hov,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,legSpread,LEG_H,0);Matrix.rotateM(model,0,lA,1,0,0);Matrix.rotateM(model,0,15f,0,0,1);Matrix.translateM(model,0,0,-LEG_H/2f,0);Matrix.scaleM(model,0,LEG_W,LEG_H,LEG_D);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
               }
 
-              // Draw face features on head
               private void drawFace(float[]vp,int uM,int uMVP,int uC,float px,float baseY,float pz,float rot,float headCenterY,float hS){
                   float eyeY=baseY+headCenterY+hS*0.1f;
                   float eyeZ=-hS*0.5f;
                   float eyeScaleX=hS*0.18f,eyeScaleY=blinking?(hS*0.04f):(hS*0.18f),eyeScaleZ=hS*0.08f;
 
-                  // Eye whites - slightly in front of head
-                  // Left eye
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.22f,eyeY,eyeZ);Matrix.scaleM(model,0,eyeScaleX,eyeScaleY,eyeScaleZ);draw(vp,uM,uMVP,uC,1f,1f,1f,1f);
-                  // Right eye
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.22f,eyeY,eyeZ);Matrix.scaleM(model,0,eyeScaleX,eyeScaleY,eyeScaleZ);draw(vp,uM,uMVP,uC,1f,1f,1f,1f);
 
                   if(!blinking){
                       float pupilS=hS*0.1f;
-                      // Left pupil
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.22f,eyeY,eyeZ-0.01f);Matrix.scaleM(model,0,pupilS,pupilS,eyeScaleZ);draw(vp,uM,uMVP,uC,0.05f,0.05f,0.15f,1f);
-                      // Right pupil
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.22f,eyeY,eyeZ-0.01f);Matrix.scaleM(model,0,pupilS,pupilS,eyeScaleZ);draw(vp,uM,uMVP,uC,0.05f,0.05f,0.15f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.22f,eyeY,eyeZ-0.01f);Matrix.scaleM(model,0,pupilS,pupilS,eyeScaleZ);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.22f,eyeY,eyeZ-0.01f);Matrix.scaleM(model,0,pupilS,pupilS,eyeScaleZ);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
                   }
 
-                  // Mouth based on faceType
                   float mouthY=baseY+headCenterY-hS*0.2f;
                   float mouthZ=eyeZ;
                   if(faceType==0){
-                      // Smile - two small cubes
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.1f,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.12f,hS*0.07f,hS*0.06f);draw(vp,uM,uMVP,uC,0.7f,0.1f,0.1f,1f);
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.1f,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.12f,hS*0.07f,hS*0.06f);draw(vp,uM,uMVP,uC,0.7f,0.1f,0.1f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.1f,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.12f,hS*0.07f,hS*0.06f);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.1f,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.12f,hS*0.07f,hS*0.06f);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
                   } else if(faceType==1){
-                      // Cool - straight mouth
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.35f,hS*0.05f,hS*0.06f);draw(vp,uM,uMVP,uC,0.5f,0.1f,0.1f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.35f,hS*0.05f,hS*0.06f);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
                   } else if(faceType==2){
-                      // Angry - angled brows + frown
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.3f,hS*0.06f,hS*0.06f);draw(vp,uM,uMVP,uC,0.6f,0.05f,0.05f,1f);
-                      // Angry brows
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.2f,eyeY+hS*0.22f,mouthZ);Matrix.rotateM(model,0,20,0,0,1);Matrix.scaleM(model,0,hS*0.25f,hS*0.07f,hS*0.06f);draw(vp,uM,uMVP,uC,0.2f,0.1f,0.05f,1f);
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.2f,eyeY+hS*0.22f,mouthZ);Matrix.rotateM(model,0,-20,0,0,1);Matrix.scaleM(model,0,hS*0.25f,hS*0.07f,hS*0.06f);draw(vp,uM,uMVP,uC,0.2f,0.1f,0.05f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.3f,hS*0.06f,hS*0.06f);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.2f,eyeY+hS*0.22f,mouthZ);Matrix.rotateM(model,0,20,0,0,1);Matrix.scaleM(model,0,hS*0.25f,hS*0.07f,hS*0.06f);draw(vp,uM,uMVP,uC,0.1f,0.05f,0.02f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.2f,eyeY+hS*0.22f,mouthZ);Matrix.rotateM(model,0,-20,0,0,1);Matrix.scaleM(model,0,hS*0.25f,hS*0.07f,hS*0.06f);draw(vp,uM,uMVP,uC,0.1f,0.05f,0.02f,1f);
                   } else {
-                      // Surprised - O mouth
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.2f,hS*0.2f,hS*0.06f);draw(vp,uM,uMVP,uC,0.6f,0.05f,0.05f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.2f,hS*0.2f,hS*0.06f);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
                   }
               }
 
@@ -756,7 +697,7 @@ jobs:
           import org.json.JSONObject;
           import java.io.*;
 
-          public class MainActivity extends AppCompatActivity implements GameRenderer.EventHost {
+          public class MainActivity extends AppCompatActivity {
               private GameRenderer ren;
               private float lx,ly;
               private Button[]distBtn,shapeBtn;
@@ -781,11 +722,6 @@ jobs:
               private static final int[]TORSO_I={0xFF1A66FF,0xFFFF1A1A,0xFF1ACC1A,0xFFCC00CC,0xFFFF8000,0xFF262626};
               private static final int[]LEGS_I={0xFF1ACC33,0xFF1A1A99,0xFF808080,0xFF0D0D0D,0xFFCC9900,0xFF800000};
 
-              @Override
-              public void runBlockScript(Block block,String script){
-                  runOnUiThread(()->{int old=ren.selectedIndex;int idx=ren.blocks.indexOf(block);if(idx>=0)ren.selectedIndex=idx;ren.selectedIndex=old;updAxis();});
-              }
-
               interface CP{void pick(int i);}
 
               @SuppressLint("ClickableViewAccessibility")
@@ -793,7 +729,7 @@ jobs:
               protected void onCreate(Bundle s){
                   super.onCreate(s);setContentView(R.layout.activity_main);loadPrefs();
                   android.opengl.GLSurfaceView gv=findViewById(R.id.gl_view);
-                  gv.setEGLContextClientVersion(3);ren=new GameRenderer();ren.eventHost=this;gv.setRenderer(ren);
+                  gv.setEGLContextClientVersion(3);ren=new GameRenderer();gv.setRenderer(ren);
                   menuUI=findViewById(R.id.menu_ui);gameUI=findViewById(R.id.game_ui);
                   engineUI=findViewById(R.id.engine_ui);playtestUI=findViewById(R.id.playtest_ui);
                   customizeUI=findViewById(R.id.customize_ui);axisPanel=findViewById(R.id.axis_panel);
@@ -829,7 +765,7 @@ jobs:
                               ren.isEngineMode=false;ren.isPlayingLevel=false;resetP();applyPack();
                               menuUI.setVisibility(View.GONE);gameUI.setVisibility(View.VISIBLE);
                               setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-                              ren.runStartScripts();startRidixTimer();
+                              startRidixTimer();
                               Toast.makeText(this,"Loaded!",Toast.LENGTH_SHORT).show();
                           }catch(Exception e){Toast.makeText(this,"Invalid file",Toast.LENGTH_SHORT).show();}
                       }
@@ -838,7 +774,7 @@ jobs:
                   findViewById(R.id.btn_play).setOnClickListener(v->{
                       ren.isEngineMode=false;ren.isPlayingLevel=false;ren.loadBuiltInLevel();resetP();ren.selectedIndex=-1;applyPack();
                       menuUI.setVisibility(View.GONE);gameUI.setVisibility(View.VISIBLE);engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.GONE);
-                      ren.runStartScripts();startRidixTimer();
+                      startRidixTimer();
                       handler.postDelayed(()->setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE),50);
                   });
                   findViewById(R.id.btn_engine).setOnClickListener(v->{
@@ -854,12 +790,12 @@ jobs:
                   findViewById(R.id.btn_menu).setOnClickListener(back);
                   findViewById(R.id.btn_engine_menu).setOnClickListener(back);
                   findViewById(R.id.btn_close_customize).setOnClickListener(v->{customizeUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);});
-                  findViewById(R.id.btn_play_level).setOnClickListener(v->{ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;applyPack();engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);ren.runStartScripts();});
+                  findViewById(R.id.btn_play_level).setOnClickListener(v->{ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;applyPack();engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);});
                   findViewById(R.id.btn_stop_playtest).setOnClickListener(v->{ren.isPlayingLevel=false;ren.pX=0;ren.pY=20;ren.pZ=35;playtestUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);updAxis();});
                   findViewById(R.id.btn_save).setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");i.putExtra(Intent.EXTRA_TITLE,"level.json");saveLauncher.launch(i);});
                   btnGrid.setOnClickListener(v->{ren.gridEnabled=!ren.gridEnabled;updGridBtn();});
-                  findViewById(R.id.btn_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN&&ren.isOnGround())ren.vY=0.55f;return true;});
-                  findViewById(R.id.btn_playtest_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN&&ren.isOnGround())ren.vY=0.55f;return true;});
+                  findViewById(R.id.btn_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doJump();return true;});
+                  findViewById(R.id.btn_playtest_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doJump();return true;});
                   findViewById(R.id.btn_place).setOnClickListener(v->{if(ren.selectedIndex<0)ren.placeBlock();});
                   btnDelete.setOnClickListener(v->{ren.deleteSelected();updAxis();});
                   btnDeselect.setOnClickListener(v->{ren.selectedIndex=-1;updAxis();});
@@ -868,7 +804,6 @@ jobs:
 
                   shapeBtn=new Button[]{findViewById(R.id.shape_square),findViewById(R.id.shape_circle),findViewById(R.id.shape_triangle)};
                   findViewById(R.id.shape_square).setOnClickListener(v->{ren.blockSX=4;ren.blockSY=4;ren.blockSZ=4;updBtnGrp(shapeBtn,0);updSizeInfo();});
-                  // Cylinder and Pyramid use same cube mesh but different proportions as visual hint
                   findViewById(R.id.shape_circle).setOnClickListener(v->{ren.blockSX=4;ren.blockSY=6;ren.blockSZ=4;updBtnGrp(shapeBtn,1);updSizeInfo();});
                   findViewById(R.id.shape_triangle).setOnClickListener(v->{ren.blockSX=4;ren.blockSY=4;ren.blockSZ=4;updBtnGrp(shapeBtn,2);updSizeInfo();});
 
@@ -906,7 +841,6 @@ jobs:
                   buildColorRow(findViewById(R.id.torso_colors),TORSO_I,i->{ren.charTorsoR=TORSO_C[i][0];ren.charTorsoG=TORSO_C[i][1];ren.charTorsoB=TORSO_C[i][2];savePrefs();});
                   buildColorRow(findViewById(R.id.legs_colors),LEGS_I,i->{ren.charLegsR=LEGS_C[i][0];ren.charLegsG=LEGS_C[i][1];ren.charLegsB=LEGS_C[i][2];savePrefs();});
 
-                  // Face selector
                   LinearLayout faceRow=findViewById(R.id.face_select);
                   String[]faceNames={"Smile","Cool","Angry","Surprise"};
                   for(int i=0;i<4;i++){
@@ -920,14 +854,12 @@ jobs:
                       faceRow.addView(fb);
                   }
 
-                  // Pack buttons
                   findViewById(R.id.btn_pack_default).setOnClickListener(v->{equippedPack=0;applyPack();savePrefs();updCustPacks();Toast.makeText(this,"Default equipped",Toast.LENGTH_SHORT).show();});
                   findViewById(R.id.btn_pack_fly).setOnClickListener(v->{
                       if(ownedFly){equippedPack=1;applyPack();savePrefs();updCustPacks();Toast.makeText(this,"Fly equipped",Toast.LENGTH_SHORT).show();}
                       else if(infiniteRidix||ridix>=PACK_PRICE){if(!infiniteRidix)ridix-=PACK_PRICE;ownedFly=true;equippedPack=1;applyPack();savePrefs();updRidix();updCustPacks();Toast.makeText(this,"Fly purchased!",Toast.LENGTH_SHORT).show();}
                       else Toast.makeText(this,"Need "+PACK_PRICE+" Ridix",Toast.LENGTH_SHORT).show();
                   });
-                  // Promo code
                   findViewById(R.id.btn_promo).setOnClickListener(v->{
                       EditText et=findViewById(R.id.et_promo);String code=et.getText().toString().trim();
                       if(code.equals("Dimasi4ek229")){infiniteRidix=true;savePrefs();updRidix();et.setText("");Toast.makeText(this,"Infinite Ridix!",Toast.LENGTH_LONG).show();}
@@ -981,7 +913,7 @@ jobs:
               @Override protected void onResume(){super.onResume();if(ren!=null)applyPrefsToRen();}
               @Override protected void onPause(){super.onPause();stopRidixTimer();savePrefs();}
 
-              private void resetP(){ren.pX=0;ren.pY=7;ren.pZ=15;ren.vY=0;}
+              private void resetP(){ren.pX=0;ren.pY=7;ren.pZ=15;ren.vY=0;ren.flyTargetY=ren.pY;}
               private void axisBtn(int id,float dx,float dy,float dz){findViewById(id).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN||e.getAction()==MotionEvent.ACTION_MOVE){float step=ren.gridEnabled?ren.gridSize:0.5f;ren.moveSelected(dx*step,dy*step,dz*step);}return true;});}
               private void updAxis(){runOnUiThread(()->{boolean sel=ren.selectedIndex>=0;axisPanel.setVisibility(sel?View.VISIBLE:View.GONE);btnDeselect.setVisibility(sel?View.VISIBLE:View.GONE);btnHide.setVisibility(sel?View.VISIBLE:View.GONE);btnDelete.setVisibility(sel?View.VISIBLE:View.GONE);if(sel){Block b=ren.blocks.get(ren.selectedIndex);btnHide.setText(b.hidden?"Show":"Hide");}});}
               private void updSizeInfo(){runOnUiThread(()->txtSizeInfo.setText(String.format(java.util.Locale.US,"%.1f x %.1f x %.1f",ren.blockSX,ren.blockSY,ren.blockSZ)));}
@@ -1036,5 +968,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_6.5
+          name: Enjoer_6.5_Fixed
           path: app/build/outputs/apk/debug/app-debug.apk
