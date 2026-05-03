@@ -1,4 +1,4 @@
-name: Enjoer_7.0_Complete
+name: Enjoer_7.1_Fixed
 on: [push, workflow_dispatch]
 
 jobs:
@@ -112,8 +112,8 @@ jobs:
           cat > app/src/main/res/drawable/inv_slot.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
             <corners android:radius="6dp"/>
-            <solid android:color="#AA101820"/>
-            <stroke android:width="2dp" android:color="#00BFFF"/>
+            <solid android:color="#DD101820"/>
+            <stroke android:width="3dp" android:color="#00BFFF"/>
           </shape>
           ENDF
 
@@ -133,11 +133,23 @@ jobs:
                   <View android:id="@+id/look_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
                   <Button android:id="@+id/btn_menu" android:layout_width="80dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Menu" android:textSize="13sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
                   
-                  <LinearLayout android:id="@+id/inventory_bar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="120dp" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="6dp">
-                      <TextView android:id="@+id/inv_slot_0" android:layout_width="50dp" android:layout_height="50dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="10sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/inv_slot_1" android:layout_width="50dp" android:layout_height="50dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="10sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/inv_slot_2" android:layout_width="50dp" android:layout_height="50dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="10sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/inv_slot_3" android:layout_width="50dp" android:layout_height="50dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="10sp" android:layout_margin="2dp"/>
+                  <LinearLayout android:id="@+id/inventory_bar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerInParent="true" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="10dp">
+                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_margin="4dp">
+                          <TextView android:id="@+id/inv_slot_0" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="14sp" android:textStyle="bold"/>
+                          <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="1" android:gravity="center" android:textColor="#00BFFF" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                      </LinearLayout>
+                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_margin="4dp">
+                          <TextView android:id="@+id/inv_slot_1" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="14sp" android:textStyle="bold"/>
+                          <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="2" android:gravity="center" android:textColor="#00BFFF" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                      </LinearLayout>
+                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_margin="4dp">
+                          <TextView android:id="@+id/inv_slot_2" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="14sp" android:textStyle="bold"/>
+                          <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="3" android:gravity="center" android:textColor="#00BFFF" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                      </LinearLayout>
+                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_margin="4dp">
+                          <TextView android:id="@+id/inv_slot_3" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="14sp" android:textStyle="bold"/>
+                          <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="4" android:gravity="center" android:textColor="#00BFFF" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                      </LinearLayout>
                   </LinearLayout>
                   
                   <FrameLayout android:id="@+id/joy_base" android:layout_width="126dp" android:layout_height="126dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="36dp" android:layout_marginBottom="36dp" android:background="@drawable/joy_base"/>
@@ -170,11 +182,7 @@ jobs:
                           
                           <TextView android:id="@+id/lbl_shape" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Shape" android:textColor="#FFF" android:textStyle="bold" android:layout_marginTop="10dp" android:textSize="14sp"/>
                           <LinearLayout android:id="@+id/shape_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="6dp">
-                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-                                  <Button android:id="@+id/shape_cube" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Cube" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
-                                  <Button android:id="@+id/shape_cylinder" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Cylinder" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
-                              </LinearLayout>
-                              <Button android:id="@+id/shape_pyramid" android:layout_width="match_parent" android:layout_height="36dp" android:text="Pyramid" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginTop="4dp"/>
+                              <Button android:id="@+id/shape_cube" android:layout_width="match_parent" android:layout_height="36dp" android:text="Cube" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
                           </LinearLayout>
                           
                           <LinearLayout android:id="@+id/light_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="6dp" android:visibility="gone">
@@ -206,11 +214,7 @@ jobs:
                           </LinearLayout>
                           
                           <TextView android:id="@+id/lbl_intensity" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Intensity" android:textColor="#FFF" android:textStyle="bold" android:layout_marginTop="10dp" android:visibility="gone" android:textSize="14sp"/>
-                          <LinearLayout android:id="@+id/intensity_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp" android:visibility="gone">
-                              <Button android:id="@+id/intensity_minus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="-" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
-                              <Button android:id="@+id/intensity_plus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="+" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
-                          </LinearLayout>
-                          <TextView android:id="@+id/txt_intensity" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="10" android:textColor="#AEEBFF" android:layout_marginTop="4dp" android:visibility="gone" android:textSize="12sp"/>
+                          <EditText android:id="@+id/et_intensity" android:layout_width="match_parent" android:layout_height="40dp" android:background="@drawable/panel_bg" android:padding="8dp" android:textColor="#FFF" android:textColorHint="#666" android:hint="10" android:inputType="numberDecimal" android:textSize="14sp" android:layout_marginTop="6dp" android:visibility="gone"/>
                           
                           <Button android:id="@+id/btn_grid" android:layout_width="match_parent" android:layout_height="36dp" android:text="Grid: On" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:layout_marginTop="8dp"/>
                           <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="8dp">
@@ -246,11 +250,23 @@ jobs:
                   <View android:id="@+id/playtest_look_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
                   <Button android:id="@+id/btn_stop_playtest" android:layout_width="80dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Stop" android:textSize="13sp" android:background="@drawable/btn_red" android:textColor="#FF4444"/>
                   
-                  <LinearLayout android:id="@+id/playtest_inventory_bar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="120dp" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="6dp">
-                      <TextView android:id="@+id/playtest_inv_slot_0" android:layout_width="50dp" android:layout_height="50dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="10sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/playtest_inv_slot_1" android:layout_width="50dp" android:layout_height="50dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="10sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/playtest_inv_slot_2" android:layout_width="50dp" android:layout_height="50dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="10sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/playtest_inv_slot_3" android:layout_width="50dp" android:layout_height="50dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="10sp" android:layout_margin="2dp"/>
+                  <LinearLayout android:id="@+id/playtest_inventory_bar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerInParent="true" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="10dp">
+                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_margin="4dp">
+                          <TextView android:id="@+id/playtest_inv_slot_0" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="14sp" android:textStyle="bold"/>
+                          <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="1" android:gravity="center" android:textColor="#00BFFF" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                      </LinearLayout>
+                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_margin="4dp">
+                          <TextView android:id="@+id/playtest_inv_slot_1" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="14sp" android:textStyle="bold"/>
+                          <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="2" android:gravity="center" android:textColor="#00BFFF" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                      </LinearLayout>
+                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_margin="4dp">
+                          <TextView android:id="@+id/playtest_inv_slot_2" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="14sp" android:textStyle="bold"/>
+                          <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="3" android:gravity="center" android:textColor="#00BFFF" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                      </LinearLayout>
+                      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_margin="4dp">
+                          <TextView android:id="@+id/playtest_inv_slot_3" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="14sp" android:textStyle="bold"/>
+                          <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="4" android:gravity="center" android:textColor="#00BFFF" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                      </LinearLayout>
                   </LinearLayout>
                   
                   <FrameLayout android:id="@+id/playtest_joy_base" android:layout_width="126dp" android:layout_height="126dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="36dp" android:layout_marginBottom="36dp" android:background="@drawable/joy_base"/>
@@ -261,7 +277,7 @@ jobs:
 
               <LinearLayout android:id="@+id/menu_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#02050A">
                   <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Enjoer" android:textSize="52sp" android:textColor="#00BFFF" android:textStyle="bold"/>
-                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Engine 7.0" android:textSize="18sp" android:textColor="#0088CC" android:layout_marginBottom="16dp"/>
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Engine 7.1" android:textSize="18sp" android:textColor="#0088CC" android:layout_marginBottom="16dp"/>
                   <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/ridix_bg" android:padding="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="32dp">
                       <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ridix: " android:textColor="#FFD700" android:textSize="16sp"/>
                       <TextView android:id="@+id/txt_ridix_lobby" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFD700" android:textSize="16sp" android:textStyle="bold"/>
@@ -305,14 +321,6 @@ jobs:
                               </LinearLayout>
                               <Button android:id="@+id/btn_pack_default" android:layout_width="90dp" android:layout_height="40dp" android:text="Equip" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:textSize="12sp"/>
                           </LinearLayout>
-                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="20dp" android:gravity="center_vertical">
-                              <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Fly pack" android:textColor="#00BFFF" android:textSize="16sp" android:textStyle="bold"/>
-                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hover, levitate, fly moves" android:textColor="#888" android:textSize="12sp"/>
-                                  <TextView android:id="@+id/txt_fly_price" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50 Ridix" android:textColor="#FFD700" android:textSize="12sp"/>
-                              </LinearLayout>
-                              <Button android:id="@+id/btn_pack_fly" android:layout_width="90dp" android:layout_height="40dp" android:text="Buy" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:textSize="12sp"/>
-                          </LinearLayout>
                           <Button android:id="@+id/btn_close_customize" android:layout_width="match_parent" android:layout_height="56dp" android:text="Back" android:textSize="16sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
                       </LinearLayout>
                   </ScrollView>
@@ -321,14 +329,27 @@ jobs:
               <FrameLayout android:id="@+id/script_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#EE02050A" android:visibility="gone">
                   <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="20dp">
                       <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="JavaScript Editor" android:textSize="24sp" android:textColor="#00BFFF" android:textStyle="bold" android:gravity="center" android:layout_marginBottom="16dp"/>
-                      <EditText android:id="@+id/script_editor" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="@drawable/panel_bg" android:padding="12dp" android:textColor="#FFF" android:textColorHint="#666" android:hint="// Write JavaScript here&#10;// Available: player, blocks, lights, items&#10;// Example: player.setPosition(0, 10, 0);" android:gravity="top" android:fontFamily="monospace" android:textSize="13sp" android:inputType="textMultiLine|textNoSuggestions"/>
+                      <EditText android:id="@+id/script_editor" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="@drawable/panel_bg" android:padding="12dp" android:textColor="#FFF" android:textColorHint="#666" android:hint="// Write JavaScript here&#10;// Script runs continuously in game&#10;// Example:&#10;// player.setPosition(0, 10, 0);" android:gravity="top" android:fontFamily="monospace" android:textSize="13sp" android:inputType="textMultiLine|textNoSuggestions"/>
                       <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="16dp">
-                          <Button android:id="@+id/btn_run_script" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:text="Run" android:textSize="14sp" android:background="@drawable/btn_green" android:textColor="#44FF44"/>
-                          <Button android:id="@+id/btn_clear_script" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:text="Clear" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="10dp"/>
+                          <Button android:id="@+id/btn_guide" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:text="Guide" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
                           <Button android:id="@+id/btn_close_script" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:text="Close" android:textSize="14sp" android:background="@drawable/btn_red" android:textColor="#FF4444" android:layout_marginLeft="10dp"/>
                       </LinearLayout>
-                      <TextView android:id="@+id/script_output" android:layout_width="match_parent" android:layout_height="100dp" android:background="@drawable/panel_bg" android:padding="12dp" android:textColor="#44FF44" android:textSize="12sp" android:fontFamily="monospace" android:layout_marginTop="10dp" android:text="Output console..."/>
                   </LinearLayout>
+              </FrameLayout>
+
+              <FrameLayout android:id="@+id/guide_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#EE02050A" android:visibility="gone">
+                  <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+                      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Scripting Guide" android:textSize="24sp" android:textColor="#00BFFF" android:textStyle="bold" android:gravity="center" android:layout_marginBottom="16dp"/>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Player API:" android:textSize="18sp" android:textColor="#44FF44" android:textStyle="bold" android:layout_marginBottom="8dp"/>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="player.setPosition(x, y, z)&#10;player.getX()&#10;player.getY()&#10;player.getZ()&#10;player.jump()" android:textSize="14sp" android:textColor="#FFF" android:fontFamily="monospace" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="16dp"/>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Blocks API:" android:textSize="18sp" android:textColor="#44FF44" android:textStyle="bold" android:layout_marginBottom="8dp"/>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="blocks.size()&#10;blocks.get(index)&#10;block.x, block.y, block.z&#10;block.r, block.g, block.b" android:textSize="14sp" android:textColor="#FFF" android:fontFamily="monospace" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="16dp"/>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Example:" android:textSize="18sp" android:textColor="#44FF44" android:textStyle="bold" android:layout_marginBottom="8dp"/>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="// Teleport player up&#10;var py = player.getY();&#10;player.setPosition(0, py+10, 0);" android:textSize="14sp" android:textColor="#FFF" android:fontFamily="monospace" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="16dp"/>
+                          <Button android:id="@+id/btn_close_guide" android:layout_width="match_parent" android:layout_height="56dp" android:text="Close" android:textSize="16sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                      </LinearLayout>
+                  </ScrollView>
               </FrameLayout>
 
           </FrameLayout>
@@ -372,12 +393,12 @@ jobs:
               public Item(float x,float y,float z,String type){
                   this.x=x;this.y=y;this.z=z;this.type=type;
               }
-              public float minX(){return x-0.5f;}
-              public float maxX(){return x+0.5f;}
-              public float minY(){return y-0.5f;}
-              public float maxY(){return y+0.5f;}
-              public float minZ(){return z-0.5f;}
-              public float maxZ(){return z+0.5f;}
+              public float minX(){return x-0.3f;}
+              public float maxX(){return x+0.3f;}
+              public float minY(){return y-0.6f;}
+              public float maxY(){return y+0.6f;}
+              public float minZ(){return z-0.3f;}
+              public float maxZ(){return z+0.3f;}
           }
           EOF
 
@@ -453,7 +474,7 @@ jobs:
                   }else if(objType==1){
                       lights.add(new Light(nx,ny,nz,blockR,blockG,blockB,lightIntensity,lightType==1));
                   }else if(objType==2){
-                      if(ny-0.5f<FLOOR_Y)ny=FLOOR_Y+0.5f;
+                      if(ny-0.6f<FLOOR_Y)ny=FLOOR_Y+0.6f;
                       items.add(new Item(nx,ny,nz,itemType==0?"sword":"item"));
                   }
               }
@@ -655,21 +676,23 @@ jobs:
                       draw(vp,uM,uMVP,uC,b.r,b.g,b.b,1f);
                   }
                   
-                  for(int i=0;i<lights.size();i++){
-                      Light l=lights.get(i);if(l.hidden)continue;
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,l.x,l.y,l.z);Matrix.scaleM(model,0,0.5f,0.5f,0.5f);
-                      GLES30.glUniform1f(uSel,(selectedType==1&&i==selectedIndex&&isEngineMode&&!isPlayingLevel)?1f:0f);
-                      GLES30.glEnable(GLES30.GL_BLEND);GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE);
-                      draw(vp,uM,uMVP,uC,l.r,l.g,l.b,0.8f);
-                      GLES30.glDisable(GLES30.GL_BLEND);
+                  if(isEngineMode&&!isPlayingLevel){
+                      for(int i=0;i<lights.size();i++){
+                          Light l=lights.get(i);if(l.hidden)continue;
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,l.x,l.y,l.z);Matrix.scaleM(model,0,0.5f,0.5f,0.5f);
+                          GLES30.glUniform1f(uSel,(selectedType==1&&i==selectedIndex)?1f:0f);
+                          GLES30.glEnable(GLES30.GL_BLEND);GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE);
+                          draw(vp,uM,uMVP,uC,l.r,l.g,l.b,0.8f);
+                          GLES30.glDisable(GLES30.GL_BLEND);
+                      }
                   }
                   
                   for(int i=0;i<items.size();i++){
                       Item it=items.get(i);if(it.hidden||it.collected)continue;
                       if(it.type.equals("sword")){
-                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,it.x,it.y,it.z);Matrix.rotateM(model,0,45,0,1,0);Matrix.scaleM(model,0,0.15f,1.2f,0.15f);
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,it.x,it.y,it.z);Matrix.rotateM(model,0,45,0,1,0);Matrix.scaleM(model,0,0.2f,1.2f,0.2f);
                           GLES30.glUniform1f(uSel,(selectedType==2&&i==selectedIndex&&isEngineMode&&!isPlayingLevel)?1f:0f);
-                          draw(vp,uM,uMVP,uC,0.7f,0.7f,0.8f,1f);
+                          draw(vp,uM,uMVP,uC,0.6f,0.6f,0.65f,1f);
                       }
                   }
                   
@@ -683,8 +706,8 @@ jobs:
                       }else if(objType==1){
                           Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,0.5f,0.5f,0.5f);
                       }else{
-                          if(py2-0.5f<FLOOR_Y)py2=FLOOR_Y+0.5f;
-                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,0.15f,1.2f,0.15f);
+                          if(py2-0.6f<FLOOR_Y)py2=FLOOR_Y+0.6f;
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,0.2f,1.2f,0.2f);
                       }
                       GLES30.glEnable(GLES30.GL_BLEND);GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
                       GLES30.glUniform1f(uSel,0f);draw(vp,uM,uMVP,uC,blockR,blockG,blockB,0.4f);
@@ -784,23 +807,19 @@ jobs:
                   float eyeZ=hS*0.51f;
                   float eyeScaleX=hS*0.17f,eyeScaleY=blinking?(hS*0.04f):(hS*0.17f),eyeScaleZ=hS*0.08f;
 
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.22f,eyeY,eyeZ);Matrix.scaleM(model,0,eyeScaleX,eyeScaleY,eyeScaleZ);draw(vp,uM,uMVP,uC,1f,1f,1f,1f);
-                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.22f,eyeY,eyeZ);Matrix.scaleM(model,0,eyeScaleX,eyeScaleY,eyeScaleZ);draw(vp,uM,uMVP,uC,1f,1f,1f,1f);
-
-                  if(!blinking){
-                      float pupilS=hS*0.107f;
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.22f,eyeY,eyeZ+0.01f);Matrix.scaleM(model,0,pupilS,pupilS,eyeScaleZ);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.22f,eyeY,eyeZ+0.01f);Matrix.scaleM(model,0,pupilS,pupilS,eyeScaleZ);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
-                  }
-
-                  float mouthY=headCenterY-hS*0.2f;
-                  float mouthZ=eyeZ;
-                  
                   if(faceType==0){
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.35f,hS*0.06f,hS*0.06f);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
-                  } else if(faceType==1){
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.2f,hS*0.05f,hS*0.06f);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
-                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY-hS*0.12f,mouthZ);Matrix.scaleM(model,0,hS*0.08f,hS*0.12f,hS*0.06f);draw(vp,uM,uMVP,uC,1f,0.3f,0.3f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.22f,eyeY,eyeZ);Matrix.scaleM(model,0,eyeScaleX,eyeScaleY,eyeScaleZ);draw(vp,uM,uMVP,uC,1f,1f,1f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.22f,eyeY,eyeZ);Matrix.scaleM(model,0,eyeScaleX,eyeScaleY,eyeScaleZ);draw(vp,uM,uMVP,uC,1f,1f,1f,1f);
+                      if(!blinking){
+                          float pupilS=hS*0.107f;
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.22f,eyeY,eyeZ+0.01f);Matrix.scaleM(model,0,pupilS,pupilS,eyeScaleZ);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.22f,eyeY,eyeZ+0.01f);Matrix.scaleM(model,0,pupilS,pupilS,eyeScaleZ);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+                      }
+                      float mouthY=headCenterY-hS*0.2f;
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,eyeZ);Matrix.scaleM(model,0,hS*0.35f,hS*0.06f,hS*0.06f);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+                  }else{
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.22f,eyeY,eyeZ);Matrix.scaleM(model,0,eyeScaleX,eyeScaleY,eyeScaleZ);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.22f,eyeY,eyeZ);Matrix.scaleM(model,0,eyeScaleX,eyeScaleY,eyeScaleZ);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
                   }
               }
 
@@ -839,9 +858,6 @@ jobs:
           import androidx.appcompat.app.AppCompatActivity;
           import org.json.JSONArray;
           import org.json.JSONObject;
-          import org.mozilla.javascript.Context;
-          import org.mozilla.javascript.Scriptable;
-          import org.mozilla.javascript.ScriptableObject;
           import java.io.*;
 
           public class MainActivity extends AppCompatActivity {
@@ -849,20 +865,18 @@ jobs:
               private float lx,ly;
               private Button[]distBtn,shapeBtn,typeBtn,lightBtn,itemBtn;
               private View[]colorBtn;
-              private View axisPanel,menuUI,gameUI,engineUI,playtestUI,customizeUI,scriptUI;
+              private View axisPanel,menuUI,gameUI,engineUI,playtestUI,customizeUI,scriptUI,guideUI;
               private Button btnHide,btnDelete,btnDeselect,btnGrid;
-              private TextView txtSizeInfo,txtRidixLobby,txtRidixShop,txtIntensity,scriptOutput;
-              private EditText scriptEditor;
-              private View shapePanel,lightPanel,itemPanel,sizePanel,intensityPanel;
+              private TextView txtSizeInfo,txtRidixLobby,txtRidixShop;
+              private EditText scriptEditor,etIntensity;
+              private View shapePanel,lightPanel,itemPanel,sizePanel;
               private TextView lblShape,lblSize,lblIntensity;
               private ActivityResultLauncher<Intent> saveLauncher,loadLauncher;
               private Handler handler=new Handler(Looper.getMainLooper());
               private int ridix=0;
               private boolean infiniteRidix=false;
               private Runnable ridixTimer;
-              private static final int RIDIX_SEC=50,RIDIX_REWARD=15,PACK_PRICE=50;
-              private boolean ownedFly=false;
-              private int equippedPack=0;
+              private static final int RIDIX_SEC=50,RIDIX_REWARD=15;
               private int selectedFace=0;
               private TextView[]invSlots=new TextView[4];
               private TextView[]playtestInvSlots=new TextView[4];
@@ -885,16 +899,16 @@ jobs:
                   menuUI=findViewById(R.id.menu_ui);gameUI=findViewById(R.id.game_ui);
                   engineUI=findViewById(R.id.engine_ui);playtestUI=findViewById(R.id.playtest_ui);
                   customizeUI=findViewById(R.id.customize_ui);scriptUI=findViewById(R.id.script_ui);
+                  guideUI=findViewById(R.id.guide_ui);
                   axisPanel=findViewById(R.id.axis_panel);
                   btnHide=findViewById(R.id.btn_hide);btnDelete=findViewById(R.id.btn_delete);
                   btnDeselect=findViewById(R.id.btn_deselect);btnGrid=findViewById(R.id.btn_grid);
-                  txtSizeInfo=findViewById(R.id.txt_size_info);txtIntensity=findViewById(R.id.txt_intensity);
+                  txtSizeInfo=findViewById(R.id.txt_size_info);
                   txtRidixLobby=findViewById(R.id.txt_ridix_lobby);txtRidixShop=findViewById(R.id.txt_ridix_shop);
-                  scriptEditor=findViewById(R.id.script_editor);scriptOutput=findViewById(R.id.script_output);
+                  scriptEditor=findViewById(R.id.script_editor);etIntensity=findViewById(R.id.et_intensity);
                   
                   shapePanel=findViewById(R.id.shape_panel);lightPanel=findViewById(R.id.light_panel);
                   itemPanel=findViewById(R.id.item_panel);sizePanel=findViewById(R.id.size_panel);
-                  intensityPanel=findViewById(R.id.intensity_panel);
                   lblShape=findViewById(R.id.lbl_shape);lblSize=findViewById(R.id.lbl_size);lblIntensity=findViewById(R.id.lbl_intensity);
                   
                   invSlots[0]=findViewById(R.id.inv_slot_0);invSlots[1]=findViewById(R.id.inv_slot_1);
@@ -940,7 +954,7 @@ jobs:
                                   for(int i=0;i<iarr.length();i++){JSONObject o=iarr.getJSONObject(i);Item it=new Item((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),o.getString("type"));it.hidden=o.optBoolean("hidden",false);ren.items.add(it);}
                               }
                               ren.gridEnabled=root.optBoolean("gridEnabled",true);updGridBtn();
-                              ren.isEngineMode=false;ren.isPlayingLevel=false;resetP();applyPack();
+                              ren.isEngineMode=false;ren.isPlayingLevel=false;resetP();
                               menuUI.setVisibility(View.GONE);gameUI.setVisibility(View.VISIBLE);
                               setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
                               startRidixTimer();updInventory();
@@ -950,7 +964,7 @@ jobs:
                   });
 
                   findViewById(R.id.btn_play).setOnClickListener(v->{
-                      ren.isEngineMode=false;ren.isPlayingLevel=false;ren.loadBuiltInLevel();resetP();ren.selectedIndex=-1;applyPack();
+                      ren.isEngineMode=false;ren.isPlayingLevel=false;ren.loadBuiltInLevel();resetP();ren.selectedIndex=-1;
                       menuUI.setVisibility(View.GONE);gameUI.setVisibility(View.VISIBLE);engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.GONE);
                       startRidixTimer();updInventory();
                       handler.postDelayed(()->setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE),50);
@@ -961,25 +975,32 @@ jobs:
                       updAxis();updSizeInfo();updGridBtn();updObjType();
                       handler.postDelayed(()->setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE),50);
                   });
-                  findViewById(R.id.btn_customize_lobby).setOnClickListener(v->{menuUI.setVisibility(View.GONE);customizeUI.setVisibility(View.VISIBLE);updCustPacks();updRidix();});
+                  findViewById(R.id.btn_customize_lobby).setOnClickListener(v->{menuUI.setVisibility(View.GONE);customizeUI.setVisibility(View.VISIBLE);updRidix();});
                   findViewById(R.id.btn_load_file).setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");loadLauncher.launch(i);});
 
                   View.OnClickListener back=v->{ren.isPlayingLevel=false;stopRidixTimer();gameUI.setVisibility(View.GONE);engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);};
                   findViewById(R.id.btn_menu).setOnClickListener(back);
                   findViewById(R.id.btn_engine_menu).setOnClickListener(back);
                   findViewById(R.id.btn_close_customize).setOnClickListener(v->{customizeUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);});
-                  findViewById(R.id.btn_play_level).setOnClickListener(v->{ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;applyPack();engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);updInventory();});
+                  findViewById(R.id.btn_play_level).setOnClickListener(v->{ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);updInventory();});
                   findViewById(R.id.btn_stop_playtest).setOnClickListener(v->{ren.isPlayingLevel=false;ren.pX=0;ren.pY=20;ren.pZ=35;playtestUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);updAxis();});
                   findViewById(R.id.btn_save).setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");i.putExtra(Intent.EXTRA_TITLE,"level.json");saveLauncher.launch(i);});
                   findViewById(R.id.btn_scripts).setOnClickListener(v->{engineUI.setVisibility(View.GONE);scriptUI.setVisibility(View.VISIBLE);});
                   findViewById(R.id.btn_close_script).setOnClickListener(v->{scriptUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);});
-                  findViewById(R.id.btn_clear_script).setOnClickListener(v->scriptEditor.setText(""));
-                  findViewById(R.id.btn_run_script).setOnClickListener(v->runScript());
+                  findViewById(R.id.btn_guide).setOnClickListener(v->{scriptUI.setVisibility(View.GONE);guideUI.setVisibility(View.VISIBLE);});
+                  findViewById(R.id.btn_close_guide).setOnClickListener(v->{guideUI.setVisibility(View.GONE);scriptUI.setVisibility(View.VISIBLE);});
                   
                   btnGrid.setOnClickListener(v->{ren.gridEnabled=!ren.gridEnabled;updGridBtn();});
                   findViewById(R.id.btn_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doJump();return true;});
                   findViewById(R.id.btn_playtest_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doJump();return true;});
-                  findViewById(R.id.btn_place).setOnClickListener(v->{if(ren.selectedIndex<0)ren.placeObject();});
+                  findViewById(R.id.btn_place).setOnClickListener(v->{
+                      if(ren.selectedIndex<0){
+                          if(ren.objType==1){
+                              try{ren.lightIntensity=Float.parseFloat(etIntensity.getText().toString());}catch(Exception ignored){}
+                          }
+                          ren.placeObject();
+                      }
+                  });
                   btnDelete.setOnClickListener(v->{ren.deleteSelected();updAxis();});
                   btnDeselect.setOnClickListener(v->{ren.selectedIndex=-1;updAxis();});
                   btnHide.setOnClickListener(v->{if(ren.selectedIndex>=0){ren.toggleHideSelected();updAxis();}});
@@ -990,10 +1011,8 @@ jobs:
                   findViewById(R.id.type_light).setOnClickListener(v->{ren.objType=1;updBtnGrp(typeBtn,1);updObjType();});
                   findViewById(R.id.type_item).setOnClickListener(v->{ren.objType=2;updBtnGrp(typeBtn,2);updObjType();});
 
-                  shapeBtn=new Button[]{findViewById(R.id.shape_cube),findViewById(R.id.shape_cylinder),findViewById(R.id.shape_pyramid)};
+                  shapeBtn=new Button[]{findViewById(R.id.shape_cube)};
                   findViewById(R.id.shape_cube).setOnClickListener(v->{ren.shapeType=0;ren.blockSX=4;ren.blockSY=4;ren.blockSZ=4;updBtnGrp(shapeBtn,0);updSizeInfo();});
-                  findViewById(R.id.shape_cylinder).setOnClickListener(v->{ren.shapeType=1;ren.blockSX=4;ren.blockSY=6;ren.blockSZ=4;updBtnGrp(shapeBtn,1);updSizeInfo();});
-                  findViewById(R.id.shape_pyramid).setOnClickListener(v->{ren.shapeType=2;ren.blockSX=4;ren.blockSY=4;ren.blockSZ=4;updBtnGrp(shapeBtn,2);updSizeInfo();});
 
                   lightBtn=new Button[]{findViewById(R.id.light_point),findViewById(R.id.light_spot)};
                   findViewById(R.id.light_point).setOnClickListener(v->{ren.lightType=0;updBtnGrp(lightBtn,0);});
@@ -1008,9 +1027,6 @@ jobs:
                   findViewById(R.id.size_y_plus).setOnClickListener(v->{ren.blockSY+=0.5f;updSizeInfo();});
                   findViewById(R.id.size_z_minus).setOnClickListener(v->{ren.blockSZ=Math.max(0.5f,ren.blockSZ-0.5f);updSizeInfo();});
                   findViewById(R.id.size_z_plus).setOnClickListener(v->{ren.blockSZ=Math.max(0.5f,ren.blockSZ+0.5f);updSizeInfo();});
-
-                  findViewById(R.id.intensity_minus).setOnClickListener(v->{ren.lightIntensity=Math.max(1f,ren.lightIntensity-1f);updIntensity();});
-                  findViewById(R.id.intensity_plus).setOnClickListener(v->{ren.lightIntensity=Math.min(50f,ren.lightIntensity+1f);updIntensity();});
 
                   distBtn=new Button[]{findViewById(R.id.dist_far),findViewById(R.id.dist_vfar)};
                   float[]dists={12f,15f};
@@ -1046,37 +1062,16 @@ jobs:
                       else if(e.getAction()==MotionEvent.ACTION_MOVE){ren.rY+=(e.getX()-lx)*0.2f;ren.rX=Math.max(-80,Math.min(80,ren.rX-(e.getY()-ly)*0.2f));lx=e.getX();ly=e.getY();}
                       return true;
                   });
-                  updSizeInfo();updAxis();updGridBtn();updIntensity();updObjType();
-              }
-
-              private void runScript(){
-                  String code=scriptEditor.getText().toString();
-                  Context ctx=Context.enter();ctx.setOptimizationLevel(-1);
-                  try{
-                      Scriptable scope=ctx.initStandardObjects();
-                      ScriptableObject.putProperty(scope,"player",Context.javaToJS(new ScriptPlayer(),scope));
-                      ScriptableObject.putProperty(scope,"blocks",Context.javaToJS(ren.blocks,scope));
-                      ScriptableObject.putProperty(scope,"lights",Context.javaToJS(ren.lights,scope));
-                      ScriptableObject.putProperty(scope,"items",Context.javaToJS(ren.items,scope));
-                      Object result=ctx.evaluateString(scope,code,"script",1,null);
-                      scriptOutput.setText("✓ "+Context.toString(result));
-                  }catch(Exception e){scriptOutput.setText("✗ "+e.getMessage());}
-                  finally{Context.exit();}
-              }
-
-              public class ScriptPlayer{
-                  public void setPosition(float x,float y,float z){ren.pX=x;ren.pY=y;ren.pZ=z;}
-                  public float getX(){return ren.pX;}
-                  public float getY(){return ren.pY;}
-                  public float getZ(){return ren.pZ;}
+                  updSizeInfo();updAxis();updGridBtn();updObjType();
               }
 
               private void updInventory(){
                   runOnUiThread(()->{
                       for(int i=0;i<4;i++){
                           String item=ren.inventory[i];
-                          invSlots[i].setText(item!=null?item.substring(0,Math.min(3,item.length())).toUpperCase():"");
-                          playtestInvSlots[i].setText(item!=null?item.substring(0,Math.min(3,item.length())).toUpperCase():"");
+                          String display=item!=null?(item.equals("sword")?"⚔":""):"";
+                          invSlots[i].setText(display);
+                          playtestInvSlots[i].setText(display);
                       }
                   });
               }
@@ -1085,21 +1080,19 @@ jobs:
                   runOnUiThread(()->{
                       if(ren.objType==0){
                           shapePanel.setVisibility(View.VISIBLE);lightPanel.setVisibility(View.GONE);itemPanel.setVisibility(View.GONE);
-                          sizePanel.setVisibility(View.VISIBLE);intensityPanel.setVisibility(View.GONE);
+                          sizePanel.setVisibility(View.VISIBLE);etIntensity.setVisibility(View.GONE);
                           lblShape.setVisibility(View.VISIBLE);lblSize.setVisibility(View.VISIBLE);lblIntensity.setVisibility(View.GONE);
                       }else if(ren.objType==1){
                           shapePanel.setVisibility(View.GONE);lightPanel.setVisibility(View.VISIBLE);itemPanel.setVisibility(View.GONE);
-                          sizePanel.setVisibility(View.GONE);intensityPanel.setVisibility(View.VISIBLE);
+                          sizePanel.setVisibility(View.GONE);etIntensity.setVisibility(View.VISIBLE);
                           lblShape.setVisibility(View.VISIBLE);lblSize.setVisibility(View.GONE);lblIntensity.setVisibility(View.VISIBLE);
                       }else{
                           shapePanel.setVisibility(View.GONE);lightPanel.setVisibility(View.GONE);itemPanel.setVisibility(View.VISIBLE);
-                          sizePanel.setVisibility(View.GONE);intensityPanel.setVisibility(View.GONE);
+                          sizePanel.setVisibility(View.GONE);etIntensity.setVisibility(View.GONE);
                           lblShape.setVisibility(View.VISIBLE);lblSize.setVisibility(View.GONE);lblIntensity.setVisibility(View.GONE);
                       }
                   });
               }
-
-              private void updIntensity(){runOnUiThread(()->txtIntensity.setText(String.format(java.util.Locale.US,"%.0f",ren.lightIntensity)));}
 
               private void setupCustomize(){
                   buildColorRow(findViewById(R.id.skin_colors),SKIN_I,i->{ren.charSkinR=SKIN_C[i][0];ren.charSkinG=SKIN_C[i][1];ren.charSkinB=SKIN_C[i][2];savePrefs();});
@@ -1108,24 +1101,19 @@ jobs:
 
                   LinearLayout faceRow=findViewById(R.id.face_select);
                   faceRow.removeAllViews();
-                  String[]faceNames={"Smile","Tongue"};
+                  String[]faceNames={"Normal","Black Eyes"};
                   for(int i=0;i<2;i++){
                       final int ii=i;
                       Button fb=new Button(this);
                       LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dpToPx(40));lp.weight=1;lp.setMargins(dpToPx(2),0,dpToPx(2),0);
-                      fb.setLayoutParams(lp);fb.setText(faceNames[i]);fb.setTextSize(12);
+                      fb.setLayoutParams(lp);fb.setText(faceNames[i]);fb.setTextSize(11);
                       fb.setBackgroundResource(ii==selectedFace?R.drawable.btn_blue_filled:R.drawable.btn_blue);
                       fb.setTextColor(ii==selectedFace?0xFF000000:0xFF00BFFF);
                       fb.setOnClickListener(v->{selectedFace=ii;ren.faceType=ii;savePrefs();setupCustomize();});
                       faceRow.addView(fb);
                   }
 
-                  findViewById(R.id.btn_pack_default).setOnClickListener(v->{equippedPack=0;applyPack();savePrefs();updCustPacks();Toast.makeText(this,"Default equipped",Toast.LENGTH_SHORT).show();});
-                  findViewById(R.id.btn_pack_fly).setOnClickListener(v->{
-                      if(ownedFly){equippedPack=1;applyPack();savePrefs();updCustPacks();Toast.makeText(this,"Fly equipped",Toast.LENGTH_SHORT).show();}
-                      else if(infiniteRidix||ridix>=PACK_PRICE){if(!infiniteRidix)ridix-=PACK_PRICE;ownedFly=true;equippedPack=1;applyPack();savePrefs();updRidix();updCustPacks();Toast.makeText(this,"Fly purchased!",Toast.LENGTH_SHORT).show();}
-                      else Toast.makeText(this,"Need "+PACK_PRICE+" Ridix",Toast.LENGTH_SHORT).show();
-                  });
+                  findViewById(R.id.btn_pack_default).setOnClickListener(v->{Toast.makeText(this,"Default equipped",Toast.LENGTH_SHORT).show();});
                   findViewById(R.id.btn_promo).setOnClickListener(v->{
                       EditText et=findViewById(R.id.et_promo);String code=et.getText().toString().trim();
                       if(code.equals("Dimasi4ek229")){infiniteRidix=true;savePrefs();updRidix();et.setText("");Toast.makeText(this,"Infinite Ridix!",Toast.LENGTH_LONG).show();}
@@ -1138,14 +1126,6 @@ jobs:
                   row.removeAllViews();int dp=dpToPx(8);
                   for(int i=0;i<colors.length;i++){final int ii=i;View dot=new View(this);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp*5,dp*5);lp.setMargins(dp/2,0,dp/2,0);dot.setLayoutParams(lp);GradientDrawable gd=new GradientDrawable();gd.setShape(GradientDrawable.OVAL);gd.setColor(colors[i]);gd.setStroke(3,0xFF00BFFF);dot.setBackground(gd);dot.setOnClickListener(vv->{cb.pick(ii);Toast.makeText(this,"Applied",Toast.LENGTH_SHORT).show();});row.addView(dot);}
               }
-              private void updCustPacks(){
-                  Button bd=findViewById(R.id.btn_pack_default),bf=findViewById(R.id.btn_pack_fly);
-                  TextView tf=findViewById(R.id.txt_fly_price);
-                  bd.setText(equippedPack==0?"Equipped":"Equip");bd.setBackgroundResource(equippedPack==0?R.drawable.btn_blue_filled:R.drawable.btn_blue);bd.setTextColor(equippedPack==0?0xFF000000:0xFF00BFFF);
-                  if(ownedFly){bf.setText(equippedPack==1?"Equipped":"Equip");bf.setBackgroundResource(equippedPack==1?R.drawable.btn_blue_filled:R.drawable.btn_blue);bf.setTextColor(equippedPack==1?0xFF000000:0xFF00BFFF);tf.setText("Owned");}
-                  else{bf.setText("Buy");bf.setBackgroundResource(R.drawable.btn_blue);bf.setTextColor(0xFF00BFFF);tf.setText(PACK_PRICE+" Ridix");}
-              }
-              private void applyPack(){if(ren!=null)ren.animPack=equippedPack;}
               private void startRidixTimer(){
                   stopRidixTimer();
                   ridixTimer=new Runnable(){@Override public void run(){if(!infiniteRidix){ridix+=RIDIX_REWARD;savePrefs();}updRidix();Toast.makeText(MainActivity.this,"+"+RIDIX_REWARD+" Ridix",Toast.LENGTH_SHORT).show();handler.postDelayed(this,RIDIX_SEC*1000L);}};
@@ -1155,7 +1135,7 @@ jobs:
               private void updRidix(){String sv=infiniteRidix?"Inf":String.valueOf(ridix);if(txtRidixLobby!=null)txtRidixLobby.setText(sv);if(txtRidixShop!=null)txtRidixShop.setText(sv);}
               private void savePrefs(){
                   SharedPreferences.Editor ed=getSharedPreferences("enjoer",MODE_PRIVATE).edit();
-                  ed.putInt("ridix",ridix);ed.putBoolean("fly",ownedFly);ed.putInt("pack",equippedPack);ed.putBoolean("infRidix",infiniteRidix);ed.putInt("face",selectedFace);
+                  ed.putInt("ridix",ridix);ed.putBoolean("infRidix",infiniteRidix);ed.putInt("face",selectedFace);
                   ed.putFloat("sR",ren!=null?ren.charSkinR:1f);ed.putFloat("sG",ren!=null?ren.charSkinG:0.82f);ed.putFloat("sB",ren!=null?ren.charSkinB:0.6f);
                   ed.putFloat("tR",ren!=null?ren.charTorsoR:0.1f);ed.putFloat("tG",ren!=null?ren.charTorsoG:0.4f);ed.putFloat("tB",ren!=null?ren.charTorsoB:1f);
                   ed.putFloat("lR",ren!=null?ren.charLegsR:0.1f);ed.putFloat("lG",ren!=null?ren.charLegsG:0.8f);ed.putFloat("lB",ren!=null?ren.charLegsB:0.2f);
@@ -1163,14 +1143,14 @@ jobs:
               }
               private void loadPrefs(){
                   SharedPreferences sp=getSharedPreferences("enjoer",MODE_PRIVATE);
-                  ridix=sp.getInt("ridix",0);ownedFly=sp.getBoolean("fly",false);equippedPack=sp.getInt("pack",0);infiniteRidix=sp.getBoolean("infRidix",false);selectedFace=sp.getInt("face",0);
+                  ridix=sp.getInt("ridix",0);infiniteRidix=sp.getBoolean("infRidix",false);selectedFace=sp.getInt("face",0);
               }
               private void applyPrefsToRen(){
                   SharedPreferences sp=getSharedPreferences("enjoer",MODE_PRIVATE);
                   ren.charSkinR=sp.getFloat("sR",1f);ren.charSkinG=sp.getFloat("sG",0.82f);ren.charSkinB=sp.getFloat("sB",0.6f);
                   ren.charTorsoR=sp.getFloat("tR",0.1f);ren.charTorsoG=sp.getFloat("tG",0.4f);ren.charTorsoB=sp.getFloat("tB",1f);
                   ren.charLegsR=sp.getFloat("lR",0.1f);ren.charLegsG=sp.getFloat("lG",0.8f);ren.charLegsB=sp.getFloat("lB",0.2f);
-                  ren.animPack=equippedPack;ren.faceType=selectedFace;
+                  ren.faceType=selectedFace;
               }
               @Override protected void onResume(){super.onResume();if(ren!=null)applyPrefsToRen();handler.postDelayed(this::updInventory,100);}
               @Override protected void onPause(){super.onPause();stopRidixTimer();savePrefs();}
@@ -1203,7 +1183,7 @@ jobs:
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="Enjoer 7.0" android:theme="@style/AppTheme">
+              <application android:label="Enjoer 7.1" android:theme="@style/AppTheme">
                   <activity android:name="com.enjoer.game.MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden">
                       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
                   </activity>
@@ -1231,7 +1211,6 @@ jobs:
           }
           dependencies { 
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'org.mozilla:rhino:1.7.14'
           }
           EOF
 
@@ -1246,5 +1225,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_7.0_Complete
+          name: Enjoer_7.1_Fixed
           path: app/build/outputs/apk/debug/app-debug.apk
