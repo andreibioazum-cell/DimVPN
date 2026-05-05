@@ -1,4 +1,4 @@
-name: Enjoer_7.0_Complete_Fixed
+name: Enjoer_7.0_Ultimate_Complete
 on: [push, workflow_dispatch]
 
 jobs:
@@ -194,13 +194,15 @@ jobs:
                           </LinearLayout>
                           
                           <LinearLayout android:id="@+id/ridix_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="10dp" android:background="@drawable/ridix_bg" android:padding="8dp">
-                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ridix Price (optional)" android:textColor="#FFD700" android:textSize="12sp" android:textStyle="bold"/>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Purchase Settings" android:textColor="#FFD700" android:textSize="13sp" android:textStyle="bold"/>
+                              <EditText android:id="@+id/purchase_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Item name (optional)" android:textColor="#FFF" android:textColorHint="#AA8" android:background="@drawable/panel_bg" android:padding="6dp" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ridix Price" android:textColor="#FFD700" android:textSize="11sp" android:layout_marginTop="6dp"/>
                               <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
                                   <Button android:id="@+id/ridix_minus" android:layout_width="0dp" android:layout_height="32dp" android:layout_weight="1" android:text="-10" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#FFD700"/>
                                   <TextView android:id="@+id/ridix_value" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="0" android:textColor="#FFD700" android:gravity="center" android:textSize="14sp" android:textStyle="bold"/>
                                   <Button android:id="@+id/ridix_plus" android:layout_width="0dp" android:layout_height="32dp" android:layout_weight="1" android:text="+10" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#FFD700"/>
                               </LinearLayout>
-                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Set to 0 for free object" android:textColor="#AA8" android:textSize="10sp" android:layout_marginTop="2dp"/>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="0 = Free object" android:textColor="#AA8" android:textSize="10sp" android:layout_marginTop="2dp"/>
                           </LinearLayout>
                           
                           <TextView android:id="@+id/lbl_size" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Size X/Y/Z" android:textColor="#FFF" android:textStyle="bold" android:layout_marginTop="10dp" android:textSize="14sp"/>
@@ -273,6 +275,19 @@ jobs:
                   <Button android:id="@+id/btn_playtest_jump" android:layout_width="90dp" android:layout_height="90dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="40dp" android:layout_marginBottom="40dp" android:text="Jump" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#FFF"/>
                   <View android:id="@+id/crosshair_playtest" android:layout_width="10dp" android:layout_height="10dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
               </RelativeLayout>
+
+              <FrameLayout android:id="@+id/purchase_dialog" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#DD000000" android:visibility="gone" android:clickable="true">
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_gravity="center" android:layout_marginLeft="40dp" android:layout_marginRight="40dp" android:background="@drawable/ridix_bg" android:padding="24dp">
+                      <TextView android:id="@+id/purchase_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Purchase Item" android:textColor="#FFD700" android:textSize="22sp" android:textStyle="bold" android:gravity="center" android:layout_marginBottom="16dp"/>
+                      <TextView android:id="@+id/purchase_item_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Premium Block" android:textColor="#FFF" android:textSize="18sp" android:gravity="center" android:layout_marginBottom="8dp"/>
+                      <TextView android:id="@+id/purchase_price" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Cost: 100 Ridix" android:textColor="#FFD700" android:textSize="16sp" android:gravity="center" android:layout_marginBottom="8dp"/>
+                      <TextView android:id="@+id/purchase_balance" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Your balance: 150 Ridix" android:textColor="#AEEBFF" android:textSize="14sp" android:gravity="center" android:layout_marginBottom="24dp"/>
+                      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                          <Button android:id="@+id/btn_purchase_cancel" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:text="Cancel" android:textSize="16sp" android:background="@drawable/btn_red" android:textColor="#FF4444" android:layout_marginRight="8dp"/>
+                          <Button android:id="@+id/btn_purchase_buy" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:text="Buy" android:textSize="16sp" android:background="@drawable/btn_green" android:textColor="#44FF44" android:layout_marginLeft="8dp"/>
+                      </LinearLayout>
+                  </LinearLayout>
+              </FrameLayout>
 
               <LinearLayout android:id="@+id/menu_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#02050A">
                   <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Enjoer" android:textSize="52sp" android:textColor="#00BFFF" android:textStyle="bold"/>
@@ -358,6 +373,7 @@ jobs:
               public boolean hidden=false;
               public int ridixPrice=0;
               public boolean purchased=false;
+              public String itemName="";
               public Block(float x,float y,float z,float sx,float sy,float sz,float r,float g,float b){
                   this.x=x;this.y=y;this.z=z;this.sx=sx;this.sy=sy;this.sz=sz;this.r=r;this.g=g;this.b=b;
               }
@@ -378,6 +394,7 @@ jobs:
               public boolean hidden=false;
               public int ridixPrice=0;
               public boolean purchased=false;
+              public String itemName="";
               public Light(float x,float y,float z,float r,float g,float b,float intensity,boolean isSpot){
                   this.x=x;this.y=y;this.z=z;this.r=r;this.g=g;this.b=b;this.intensity=intensity;this.isSpot=isSpot;
               }
@@ -392,6 +409,7 @@ jobs:
               public boolean hidden=false,collected=false;
               public int ridixPrice=0;
               public boolean purchased=false;
+              public String itemName="";
               public Item(float x,float y,float z,String type){
                   this.x=x;this.y=y;this.z=z;this.type=type;
               }
@@ -412,8 +430,9 @@ jobs:
               public boolean hidden=false;
               public int ridixPrice=0;
               public boolean purchased=false;
+              public String itemName="";
               public GameText(float x,float y,float z,String text){
-                  this.x=x;this.y=y;this.z=z;this.text=text;
+                  this.x=x;this.y=y;this.z=z;this.text=text!=null&&!text.isEmpty()?text:"Text";
               }
           }
           EOF
@@ -450,6 +469,7 @@ jobs:
               public float charHairR=0.2f,charHairG=0.15f,charHairB=0.1f;
               public int faceType=0;
               public int currentRidixPrice=0;
+              public String currentItemName="";
               
               public int objType=0;
               public int shapeType=0;
@@ -458,6 +478,7 @@ jobs:
               public float lightIntensity=10f;
               
               public String[] inventory=new String[4];
+              public PurchaseCallback purchaseCallback;
 
               private static final float FLOOR_Y=0f,PLAYER_HEIGHT=5.2f,PLAYER_RADIUS=0.85f;
               private static final float CAM_TARGET_Y_OFF=3.0f,CAM_DIST=14.7f;
@@ -470,6 +491,11 @@ jobs:
               private float blinkTimer=0f,blinkDur=0f;
               private boolean blinking=false;
               private float nextBlink=3f;
+              private int pendingPurchaseType=-1,pendingPurchaseIndex=-1;
+
+              public interface PurchaseCallback{
+                  void onPurchaseRequest(String itemName,int price,int type,int index);
+              }
 
               public Block getSelectedBlock(){if(selectedType==0&&selectedIndex>=0&&selectedIndex<blocks.size())return blocks.get(selectedIndex);return null;}
               public Light getSelectedLight(){if(selectedType==1&&selectedIndex>=0&&selectedIndex<lights.size())return lights.get(selectedIndex);return null;}
@@ -492,19 +518,24 @@ jobs:
                       if(ny-blockSY/2f<FLOOR_Y)ny=FLOOR_Y+blockSY/2f;
                       Block bl=new Block(nx,ny,nz,blockSX,blockSY,blockSZ,blockR,blockG,blockB);
                       bl.ridixPrice=currentRidixPrice;
+                      bl.itemName=currentItemName;
                       blocks.add(bl);
                   }else if(objType==1){
                       Light lg=new Light(nx,ny,nz,blockR,blockG,blockB,lightIntensity,lightType==1);
                       lg.ridixPrice=currentRidixPrice;
+                      lg.itemName=currentItemName;
                       lights.add(lg);
                   }else if(objType==2){
                       if(ny-0.5f<FLOOR_Y)ny=FLOOR_Y+0.5f;
                       Item it=new Item(nx,ny,nz,itemType==0?"sword":"item");
                       it.ridixPrice=currentRidixPrice;
+                      it.itemName=currentItemName;
                       items.add(it);
                   }else if(objType==3){
-                      GameText gt=new GameText(nx,ny,nz,"Text");
+                      String txt=currentItemName.isEmpty()?"Text":currentItemName;
+                      GameText gt=new GameText(nx,ny,nz,txt);
                       gt.ridixPrice=currentRidixPrice;
+                      gt.itemName=txt;
                       texts.add(gt);
                   }
               }
@@ -776,7 +807,7 @@ jobs:
                       float nX=pX+mX,nY=pY+vY,nZ=pZ+mZ,fY=nY-PLAYER_HEIGHT;
                       if(fY<FLOOR_Y){nY=FLOOR_Y+PLAYER_HEIGHT;vY=0;}
                       for(Block b:blocks){
-                          if(b.ridixPrice>0&&!b.purchased)continue;
+                          if(!isEngineMode&&b.ridixPrice>0&&!b.purchased)continue;
                           boolean oxz=nX+PLAYER_RADIUS>b.minX()&&nX-PLAYER_RADIUS<b.maxX()&&nZ+PLAYER_RADIUS>b.minZ()&&nZ-PLAYER_RADIUS<b.maxZ();
                           boolean oy=fY<b.maxY()-0.1f&&nY>b.minY()+0.1f;
                           if(oxz){
@@ -800,19 +831,43 @@ jobs:
                       
                       for(int i=0;i<items.size();i++){
                           Item it=items.get(i);
-                          if(!it.collected&&(it.ridixPrice==0||it.purchased)&&pX+PLAYER_RADIUS>it.minX()&&pX-PLAYER_RADIUS<it.maxX()&&pY-PLAYER_HEIGHT<it.maxY()&&pY>it.minY()&&pZ+PLAYER_RADIUS>it.minZ()&&pZ-PLAYER_RADIUS<it.maxZ()){
-                              for(int j=0;j<inventory.length;j++){
-                                  if(inventory[j]==null){inventory[j]=it.type;it.collected=true;break;}
+                          if(!it.collected&&pX+PLAYER_RADIUS>it.minX()&&pX-PLAYER_RADIUS<it.maxX()&&pY-PLAYER_HEIGHT<it.maxY()&&pY>it.minY()&&pZ+PLAYER_RADIUS>it.minZ()&&pZ-PLAYER_RADIUS<it.maxZ()){
+                              if(it.ridixPrice>0&&!it.purchased&&pendingPurchaseType!=2){
+                                  pendingPurchaseType=2;pendingPurchaseIndex=i;
+                                  if(purchaseCallback!=null)purchaseCallback.onPurchaseRequest(it.itemName.isEmpty()?it.type:it.itemName,it.ridixPrice,2,i);
+                              }else if(it.ridixPrice==0||it.purchased){
+                                  for(int j=0;j<inventory.length;j++){
+                                      if(inventory[j]==null){
+                                          String nm=it.itemName.isEmpty()?it.type:it.itemName;
+                                          inventory[j]=nm.length()>3?nm.substring(0,3):nm;
+                                          it.collected=true;break;
+                                      }
+                                  }
                               }
+                          }
+                      }
+                      for(int i=0;i<blocks.size();i++){
+                          Block b=blocks.get(i);
+                          if(b.ridixPrice>0&&!b.purchased&&pendingPurchaseType!=0&&pX+PLAYER_RADIUS>b.minX()&&pX-PLAYER_RADIUS<b.maxX()&&pY-PLAYER_HEIGHT<b.maxY()&&pY>b.minY()&&pZ+PLAYER_RADIUS>b.minZ()&&pZ-PLAYER_RADIUS<b.maxZ()){
+                              pendingPurchaseType=0;pendingPurchaseIndex=i;
+                              if(purchaseCallback!=null)purchaseCallback.onPurchaseRequest(b.itemName.isEmpty()?"Block":b.itemName,b.ridixPrice,0,i);
                           }
                       }
                   }
               }
 
+              public void completePurchase(int type,int index){
+                  if(type==0&&index>=0&&index<blocks.size())blocks.get(index).purchased=true;
+                  else if(type==2&&index>=0&&index<items.size())items.get(index).purchased=true;
+                  pendingPurchaseType=-1;pendingPurchaseIndex=-1;
+              }
+
+              public void cancelPurchase(){pendingPurchaseType=-1;pendingPurchaseIndex=-1;}
+
               public boolean isOnGround(){
                   if(pY-PLAYER_HEIGHT<=FLOOR_Y+0.1f)return true;
                   for(Block b:blocks){
-                      if(b.ridixPrice>0&&!b.purchased)continue;
+                      if(!isEngineMode&&b.ridixPrice>0&&!b.purchased)continue;
                       if(pX+PLAYER_RADIUS>b.minX()&&pX-PLAYER_RADIUS<b.maxX()&&pZ+PLAYER_RADIUS>b.minZ()&&pZ-PLAYER_RADIUS<b.maxZ()&&Math.abs((pY-PLAYER_HEIGHT)-b.maxY())<0.15f)return true;
                   }
                   return false;
@@ -909,10 +964,11 @@ jobs:
               private float lx,ly;
               private Button[]distBtn,shapeBtn,typeBtn,lightBtn,itemBtn;
               private View[]colorBtn;
-              private View axisPanel,menuUI,gameUI,engineUI,playtestUI,customizeUI,scriptUI;
+              private View axisPanel,menuUI,gameUI,engineUI,playtestUI,customizeUI,scriptUI,purchaseDialog;
               private Button btnHide,btnDelete,btnDeselect,btnGrid;
               private TextView txtSizeInfo,txtRidixLobby,txtRidixShop,txtIntensity,scriptOutput,ridixValue;
-              private EditText scriptEditor,textInput;
+              private TextView purchaseItemName,purchasePrice,purchaseBalance;
+              private EditText scriptEditor,textInput,purchaseNameInput;
               private View shapePanel,lightPanel,itemPanel,textPanel,sizePanel,intensityPanel;
               private TextView lblShape,lblSize,lblIntensity;
               private ActivityResultLauncher<Intent> saveLauncher,loadLauncher;
@@ -926,6 +982,7 @@ jobs:
               private int selectedFace=0;
               private TextView[]invSlots=new TextView[4];
               private TextView[]playtestInvSlots=new TextView[4];
+              private int pendingPurchaseType=-1,pendingPurchaseIndex=-1;
 
               private static final float[][]SKIN_C={{1f,0.82f,0.6f},{1f,0.7f,0.5f},{0.6f,0.35f,0.15f},{1f,0.6f,0.4f},{0.88f,0.78f,0.68f},{0.28f,0.18f,0.1f}};
               private static final float[][]TORSO_C={{0.1f,0.4f,1f},{1f,0.1f,0.1f},{0.1f,0.8f,0.1f},{0.8f,0f,0.8f},{1f,0.5f,0f},{0.15f,0.15f,0.15f}};
@@ -947,6 +1004,7 @@ jobs:
                   menuUI=findViewById(R.id.menu_ui);gameUI=findViewById(R.id.game_ui);
                   engineUI=findViewById(R.id.engine_ui);playtestUI=findViewById(R.id.playtest_ui);
                   customizeUI=findViewById(R.id.customize_ui);scriptUI=findViewById(R.id.script_ui);
+                  purchaseDialog=findViewById(R.id.purchase_dialog);
                   axisPanel=findViewById(R.id.axis_panel);
                   btnHide=findViewById(R.id.btn_hide);btnDelete=findViewById(R.id.btn_delete);
                   btnDeselect=findViewById(R.id.btn_deselect);btnGrid=findViewById(R.id.btn_grid);
@@ -954,6 +1012,10 @@ jobs:
                   txtRidixLobby=findViewById(R.id.txt_ridix_lobby);txtRidixShop=findViewById(R.id.txt_ridix_shop);
                   scriptEditor=findViewById(R.id.script_editor);scriptOutput=findViewById(R.id.script_output);
                   ridixValue=findViewById(R.id.ridix_value);textInput=findViewById(R.id.text_input);
+                  purchaseNameInput=findViewById(R.id.purchase_name);
+                  purchaseItemName=findViewById(R.id.purchase_item_name);
+                  purchasePrice=findViewById(R.id.purchase_price);
+                  purchaseBalance=findViewById(R.id.purchase_balance);
                   
                   shapePanel=findViewById(R.id.shape_panel);lightPanel=findViewById(R.id.light_panel);
                   itemPanel=findViewById(R.id.item_panel);textPanel=findViewById(R.id.text_panel);
@@ -967,18 +1029,52 @@ jobs:
                   
                   updRidix();setupCustomize();
 
+                  ren.purchaseCallback=(name,price,type,index)->{
+                      runOnUiThread(()->{
+                          pendingPurchaseType=type;pendingPurchaseIndex=index;
+                          purchaseItemName.setText(name);
+                          purchasePrice.setText("Cost: "+price+" Ridix");
+                          String bal=infiniteRidix?"∞ Ridix":(ridix+" Ridix");
+                          purchaseBalance.setText("Your balance: "+bal);
+                          purchaseDialog.setVisibility(View.VISIBLE);
+                      });
+                  };
+
+                  findViewById(R.id.btn_purchase_cancel).setOnClickListener(v->{
+                      purchaseDialog.setVisibility(View.GONE);
+                      ren.cancelPurchase();
+                  });
+
+                  findViewById(R.id.btn_purchase_buy).setOnClickListener(v->{
+                      if(pendingPurchaseType>=0&&pendingPurchaseIndex>=0){
+                          int price=0;
+                          if(pendingPurchaseType==0&&pendingPurchaseIndex<ren.blocks.size())price=ren.blocks.get(pendingPurchaseIndex).ridixPrice;
+                          else if(pendingPurchaseType==2&&pendingPurchaseIndex<ren.items.size())price=ren.items.get(pendingPurchaseIndex).ridixPrice;
+                          
+                          if(infiniteRidix||ridix>=price){
+                              if(!infiniteRidix)ridix-=price;
+                              ren.completePurchase(pendingPurchaseType,pendingPurchaseIndex);
+                              savePrefs();updRidix();
+                              Toast.makeText(this,"Purchase successful!",Toast.LENGTH_SHORT).show();
+                              purchaseDialog.setVisibility(View.GONE);
+                          }else{
+                              Toast.makeText(this,"Not enough Ridix!",Toast.LENGTH_SHORT).show();
+                          }
+                      }
+                  });
+
                   saveLauncher=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),res->{
                       if(res.getResultCode()==RESULT_OK&&res.getData()!=null){
                           try{
                               OutputStream out=getContentResolver().openOutputStream(res.getData().getData());
                               JSONArray arr=new JSONArray();
-                              for(Block b:ren.blocks){JSONObject o=new JSONObject();o.put("x",b.x);o.put("y",b.y);o.put("z",b.z);o.put("sx",b.sx);o.put("sy",b.sy);o.put("sz",b.sz);o.put("r",b.r);o.put("g",b.g);o.put("b",b.b);o.put("hidden",b.hidden);o.put("ridixPrice",b.ridixPrice);arr.put(o);}
+                              for(Block b:ren.blocks){JSONObject o=new JSONObject();o.put("x",b.x);o.put("y",b.y);o.put("z",b.z);o.put("sx",b.sx);o.put("sy",b.sy);o.put("sz",b.sz);o.put("r",b.r);o.put("g",b.g);o.put("b",b.b);o.put("hidden",b.hidden);o.put("ridixPrice",b.ridixPrice);o.put("itemName",b.itemName);arr.put(o);}
                               JSONArray larr=new JSONArray();
-                              for(Light l:ren.lights){JSONObject o=new JSONObject();o.put("x",l.x);o.put("y",l.y);o.put("z",l.z);o.put("r",l.r);o.put("g",l.g);o.put("b",l.b);o.put("intensity",l.intensity);o.put("isSpot",l.isSpot);o.put("hidden",l.hidden);o.put("ridixPrice",l.ridixPrice);larr.put(o);}
+                              for(Light l:ren.lights){JSONObject o=new JSONObject();o.put("x",l.x);o.put("y",l.y);o.put("z",l.z);o.put("r",l.r);o.put("g",l.g);o.put("b",l.b);o.put("intensity",l.intensity);o.put("isSpot",l.isSpot);o.put("hidden",l.hidden);o.put("ridixPrice",l.ridixPrice);o.put("itemName",l.itemName);larr.put(o);}
                               JSONArray iarr=new JSONArray();
-                              for(Item it:ren.items){JSONObject o=new JSONObject();o.put("x",it.x);o.put("y",it.y);o.put("z",it.z);o.put("type",it.type);o.put("hidden",it.hidden);o.put("ridixPrice",it.ridixPrice);iarr.put(o);}
+                              for(Item it:ren.items){JSONObject o=new JSONObject();o.put("x",it.x);o.put("y",it.y);o.put("z",it.z);o.put("type",it.type);o.put("hidden",it.hidden);o.put("ridixPrice",it.ridixPrice);o.put("itemName",it.itemName);iarr.put(o);}
                               JSONArray tarr=new JSONArray();
-                              for(GameText gt:ren.texts){JSONObject o=new JSONObject();o.put("x",gt.x);o.put("y",gt.y);o.put("z",gt.z);o.put("text",gt.text);o.put("hidden",gt.hidden);o.put("ridixPrice",gt.ridixPrice);tarr.put(o);}
+                              for(GameText gt:ren.texts){JSONObject o=new JSONObject();o.put("x",gt.x);o.put("y",gt.y);o.put("z",gt.z);o.put("text",gt.text);o.put("hidden",gt.hidden);o.put("ridixPrice",gt.ridixPrice);o.put("itemName",gt.itemName);tarr.put(o);}
                               JSONObject root=new JSONObject();root.put("blocks",arr);root.put("lights",larr);root.put("items",iarr);root.put("texts",tarr);root.put("gridEnabled",ren.gridEnabled);
                               out.write(root.toString().getBytes());out.close();
                               Toast.makeText(this,"Exported!",Toast.LENGTH_SHORT).show();
@@ -995,18 +1091,18 @@ jobs:
                               JSONObject root=new JSONObject(sb.toString());
                               ren.blocks.clear();ren.lights.clear();ren.items.clear();ren.texts.clear();
                               JSONArray arr=root.getJSONArray("blocks");
-                              for(int i=0;i<arr.length();i++){JSONObject o=arr.getJSONObject(i);Block b=new Block((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),(float)o.getDouble("sx"),(float)o.getDouble("sy"),(float)o.getDouble("sz"),(float)o.getDouble("r"),(float)o.getDouble("g"),(float)o.getDouble("b"));b.hidden=o.optBoolean("hidden",false);b.ridixPrice=o.optInt("ridixPrice",0);ren.blocks.add(b);}
+                              for(int i=0;i<arr.length();i++){JSONObject o=arr.getJSONObject(i);Block b=new Block((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),(float)o.getDouble("sx"),(float)o.getDouble("sy"),(float)o.getDouble("sz"),(float)o.getDouble("r"),(float)o.getDouble("g"),(float)o.getDouble("b"));b.hidden=o.optBoolean("hidden",false);b.ridixPrice=o.optInt("ridixPrice",0);b.itemName=o.optString("itemName","");ren.blocks.add(b);}
                               if(root.has("lights")){
                                   JSONArray larr=root.getJSONArray("lights");
-                                  for(int i=0;i<larr.length();i++){JSONObject o=larr.getJSONObject(i);Light l=new Light((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),(float)o.getDouble("r"),(float)o.getDouble("g"),(float)o.getDouble("b"),(float)o.getDouble("intensity"),o.optBoolean("isSpot",false));l.hidden=o.optBoolean("hidden",false);l.ridixPrice=o.optInt("ridixPrice",0);ren.lights.add(l);}
+                                  for(int i=0;i<larr.length();i++){JSONObject o=larr.getJSONObject(i);Light l=new Light((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),(float)o.getDouble("r"),(float)o.getDouble("g"),(float)o.getDouble("b"),(float)o.getDouble("intensity"),o.optBoolean("isSpot",false));l.hidden=o.optBoolean("hidden",false);l.ridixPrice=o.optInt("ridixPrice",0);l.itemName=o.optString("itemName","");ren.lights.add(l);}
                               }
                               if(root.has("items")){
                                   JSONArray iarr=root.getJSONArray("items");
-                                  for(int i=0;i<iarr.length();i++){JSONObject o=iarr.getJSONObject(i);Item it=new Item((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),o.getString("type"));it.hidden=o.optBoolean("hidden",false);it.ridixPrice=o.optInt("ridixPrice",0);ren.items.add(it);}
+                                  for(int i=0;i<iarr.length();i++){JSONObject o=iarr.getJSONObject(i);Item it=new Item((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),o.getString("type"));it.hidden=o.optBoolean("hidden",false);it.ridixPrice=o.optInt("ridixPrice",0);it.itemName=o.optString("itemName","");ren.items.add(it);}
                               }
                               if(root.has("texts")){
                                   JSONArray tarr=root.getJSONArray("texts");
-                                  for(int i=0;i<tarr.length();i++){JSONObject o=tarr.getJSONObject(i);GameText gt=new GameText((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),o.getString("text"));gt.hidden=o.optBoolean("hidden",false);gt.ridixPrice=o.optInt("ridixPrice",0);ren.texts.add(gt);}
+                                  for(int i=0;i<tarr.length();i++){JSONObject o=tarr.getJSONObject(i);GameText gt=new GameText((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),o.getString("text"));gt.hidden=o.optBoolean("hidden",false);gt.ridixPrice=o.optInt("ridixPrice",0);gt.itemName=o.optString("itemName","");ren.texts.add(gt);}
                               }
                               ren.gridEnabled=root.optBoolean("gridEnabled",true);updGridBtn();
                               ren.isEngineMode=false;ren.isPlayingLevel=false;resetP();applyPack();
@@ -1048,10 +1144,22 @@ jobs:
                   findViewById(R.id.ridix_minus).setOnClickListener(v->{ren.currentRidixPrice=Math.max(0,ren.currentRidixPrice-10);updRidixPrice();});
                   findViewById(R.id.ridix_plus).setOnClickListener(v->{ren.currentRidixPrice+=10;updRidixPrice();});
                   
+                  purchaseNameInput.setOnFocusChangeListener((v,has)->{
+                      if(!has){
+                          ren.currentItemName=purchaseNameInput.getText().toString().trim();
+                      }
+                  });
+                  
+                  textInput.setOnFocusChangeListener((v,has)->{
+                      if(!has){
+                          ren.currentItemName=textInput.getText().toString().trim();
+                      }
+                  });
+                  
                   btnGrid.setOnClickListener(v->{ren.gridEnabled=!ren.gridEnabled;updGridBtn();});
                   findViewById(R.id.btn_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doJump();return true;});
                   findViewById(R.id.btn_playtest_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doJump();return true;});
-                  findViewById(R.id.btn_place).setOnClickListener(v->{if(ren.selectedIndex<0)ren.placeObject();});
+                  findViewById(R.id.btn_place).setOnClickListener(v->{if(ren.selectedIndex<0){ren.currentItemName=purchaseNameInput.getText().toString().trim();if(ren.objType==3)ren.currentItemName=textInput.getText().toString().trim();ren.placeObject();}});
                   btnDelete.setOnClickListener(v->{ren.deleteSelected();updAxis();});
                   btnDeselect.setOnClickListener(v->{ren.selectedIndex=-1;updAxis();});
                   btnHide.setOnClickListener(v->{if(ren.selectedIndex>=0){ren.toggleHideSelected();updAxis();}});
@@ -1149,8 +1257,9 @@ jobs:
                   runOnUiThread(()->{
                       for(int i=0;i<4;i++){
                           String item=ren.inventory[i];
-                          invSlots[i].setText(item!=null?item.substring(0,Math.min(3,item.length())).toUpperCase():"");
-                          playtestInvSlots[i].setText(item!=null?item.substring(0,Math.min(3,item.length())).toUpperCase():"");
+                          String txt=item!=null?(item.length()>3?item.substring(0,3).toUpperCase():item.toUpperCase()):"";
+                          invSlots[i].setText(txt);
+                          playtestInvSlots[i].setText(txt);
                       }
                   });
               }
@@ -1328,5 +1437,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_7.0_Complete_Fixed
+          name: Enjoer_7.0_Ultimate
           path: app/build/outputs/apk/debug/app-debug.apk
