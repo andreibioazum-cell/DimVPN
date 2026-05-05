@@ -1,4 +1,4 @@
-name: Clicker_Game_Russian
+name: Premium_Clicker_Game
 on: [push, workflow_dispatch]
 
 jobs:
@@ -31,57 +31,95 @@ jobs:
           cat > app/src/main/res/values/themes.xml << 'THEMES'
           <resources>
             <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-              <item name="android:statusBarColor">#1A1A2E</item>
-              <item name="android:navigationBarColor">#1A1A2E</item>
+              <item name="android:statusBarColor">#0A0A1A</item>
+              <item name="android:navigationBarColor">#0A0A1A</item>
               <item name="android:windowLightStatusBar">false</item>
             </style>
           </resources>
           THEMES
 
-          cat > app/src/main/res/anim/click_animation.xml << 'ANIM'
+          cat > app/src/main/res/anim/click_scale.xml << 'ANIM'
           <?xml version="1.0" encoding="utf-8"?>
           <set xmlns:android="http://schemas.android.com/apk/res/android">
               <scale
                   android:duration="100"
                   android:fromXScale="1.0"
                   android:fromYScale="1.0"
-                  android:toXScale="0.95"
-                  android:toYScale="0.95"
+                  android:toXScale="0.92"
+                  android:toYScale="0.92"
                   android:pivotX="50%"
                   android:pivotY="50%"/>
               <scale
+                  android:duration="150"
+                  android:fromXScale="0.92"
+                  android:fromYScale="0.92"
+                  android:toXScale="1.05"
+                  android:toYScale="1.05"
+                  android:pivotX="50%"
+                  android:pivotY="50%"
+                  android:startOffset="100"/>
+              <scale
                   android:duration="100"
-                  android:fromXScale="0.95"
-                  android:fromYScale="0.95"
+                  android:fromXScale="1.05"
+                  android:fromYScale="1.05"
                   android:toXScale="1.0"
                   android:toYScale="1.0"
                   android:pivotX="50%"
                   android:pivotY="50%"
-                  android:startOffset="100"/>
+                  android:startOffset="250"/>
           </set>
           ANIM
+
+          cat > app/src/main/res/drawable/gradient_background.xml << 'ENDF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+              <gradient
+                  android:startColor="#0A0A1A"
+                  android:centerColor="#1A1A3E"
+                  android:endColor="#0A0A1A"
+                  android:angle="45"
+                  android:type="linear"/>
+          </shape>
+          ENDF
 
           cat > app/src/main/res/drawable/click_button_bg.xml << 'ENDF'
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
               <item>
                   <shape android:shape="oval">
                       <gradient
-                          android:startColor="#FF6B35"
-                          android:endColor="#FF8C42"
+                          android:startColor="#FF8C42"
+                          android:centerColor="#FF6B35"
+                          android:endColor="#FF5500"
                           android:type="radial"
                           android:gradientRadius="90"/>
                   </shape>
               </item>
               <item>
                   <shape android:shape="oval">
-                      <stroke android:width="3dp" android:color="#FFD700"/>
+                      <stroke android:width="4dp" android:color="#FFD700"/>
+                      <solid android:color="#00000000"/>
+                  </shape>
+              </item>
+              <item>
+                  <shape android:shape="oval">
+                      <stroke android:width="1dp" android:color="#FFECB3" android:dashWidth="8dp" android:dashGap="4dp"/>
                       <solid android:color="#00000000"/>
                   </shape>
               </item>
           </layer-list>
           ENDF
 
-          cat > app/src/main/res/drawable/upgrade_button.xml << 'ENDF'
+          cat > app/src/main/res/drawable/upgrade_button_green.xml << 'ENDF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+              <corners android:radius="12dp"/>
+              <gradient
+                  android:startColor="#2D4A2D"
+                  android:endColor="#1A2E1A"
+                  android:angle="45"/>
+              <stroke android:width="2dp" android:color="#4CAF50"/>
+          </shape>
+          ENDF
+
+          cat > app/src/main/res/drawable/upgrade_button_purple.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
               <corners android:radius="12dp"/>
               <gradient
@@ -97,7 +135,8 @@ jobs:
               <corners android:radius="16dp"/>
               <gradient
                   android:startColor="#FFD700"
-                  android:endColor="#FFA000"
+                  android:centerColor="#FFA000"
+                  android:endColor="#FF8F00"
                   android:angle="90"/>
               <stroke android:width="2dp" android:color="#FFECB3"/>
           </shape>
@@ -106,212 +145,362 @@ jobs:
           cat > app/src/main/res/drawable/panel_bg.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
               <corners android:radius="16dp"/>
-              <solid android:color="#CC16213E"/>
+              <gradient
+                  android:startColor="#CC1A1A3E"
+                  android:endColor="#CC0F0F23"
+                  android:angle="90"/>
               <stroke android:width="1dp" android:color="#3A3A6A"/>
           </shape>
           ENDF
 
-          cat > app/src/main/res/drawable/star_decoration.xml << 'ENDF'
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="24dp"
-              android:height="24dp"
-              android:viewportWidth="24"
-              android:viewportHeight="24">
-              <path
-                  android:fillColor="#FFD700"
-                  android:pathData="M12,2l3.09,6.26L22,9.27l-5,4.87 1.18,6.88L12,17.77l-6.18,3.25L7,14.14 2,9.27l6.91-1.01L12,2z"/>
-          </vector>
-          ENDF
-
           cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
           <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:background="#1A1A2E"
-              android:padding="16dp">
+              android:background="@drawable/gradient_background">
 
-              <!-- Верхняя панель статистики -->
+              <com.clicker.game.ParticleView
+                  android:id="@+id/particle_view"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"/>
+
               <LinearLayout
                   android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
+                  android:layout_height="match_parent"
                   android:orientation="vertical"
-                  android:background="@drawable/panel_bg"
-                  android:padding="16dp"
-                  android:layout_marginBottom="12dp">
+                  android:padding="16dp">
 
                   <LinearLayout
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:orientation="horizontal"
-                      android:gravity="center_vertical"
-                      android:layout_marginBottom="8dp">
-                      
-                      <TextView
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text="🪙"
-                          android:textSize="24sp"/>
-                      
-                      <TextView
-                          android:id="@+id/txt_gold"
-                          android:layout_width="0dp"
-                          android:layout_height="wrap_content"
-                          android:layout_weight="1"
-                          android:text="Золото: 0"
-                          android:textColor="#FFD700"
-                          android:textSize="20sp"
-                          android:textStyle="bold"
-                          android:layout_marginLeft="8dp"/>
-                  </LinearLayout>
-
-                  <LinearLayout
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:orientation="horizontal">
+                      android:orientation="vertical"
+                      android:background="@drawable/panel_bg"
+                      android:padding="16dp"
+                      android:layout_marginBottom="12dp">
 
                       <LinearLayout
-                          android:layout_width="0dp"
+                          android:layout_width="match_parent"
                           android:layout_height="wrap_content"
-                          android:layout_weight="1"
-                          android:orientation="vertical">
+                          android:orientation="horizontal"
+                          android:gravity="center_vertical"
+                          android:layout_marginBottom="8dp">
                           
                           <TextView
-                              android:id="@+id/txt_gps"
                               android:layout_width="wrap_content"
                               android:layout_height="wrap_content"
-                              android:text="⚡ В сек: 0"
-                              android:textColor="#7C4DFF"
-                              android:textSize="14sp"
-                              android:textStyle="bold"/>
+                              android:text="🪙"
+                              android:textSize="28sp"/>
                           
                           <TextView
-                              android:id="@+id/txt_click_power"
-                              android:layout_width="wrap_content"
+                              android:id="@+id/txt_gold"
+                              android:layout_width="0dp"
                               android:layout_height="wrap_content"
-                              android:text="💪 Сила клика: 1"
-                              android:textColor="#FF6B35"
-                              android:textSize="14sp"
-                              android:textStyle="bold"
-                              android:layout_marginTop="4dp"/>
-                      </LinearLayout>
-
-                      <LinearLayout
-                          android:layout_width="0dp"
-                          android:layout_height="wrap_content"
-                          android:layout_weight="1"
-                          android:orientation="vertical"
-                          android:gravity="end">
-                          
-                          <TextView
-                              android:id="@+id/txt_prestige"
-                              android:layout_width="wrap_content"
-                              android:layout_height="wrap_content"
-                              android:text="🌟 Престиж: 0"
+                              android:layout_weight="1"
+                              android:text="0"
                               android:textColor="#FFD700"
-                              android:textSize="14sp"
-                              android:textStyle="bold"/>
-                          
-                          <TextView
-                              android:id="@+id/txt_multiplier"
-                              android:layout_width="wrap_content"
-                              android:layout_height="wrap_content"
-                              android:text="✨ Множ: x1"
-                              android:textColor="#4FC3F7"
-                              android:textSize="14sp"
+                              android:textSize="28sp"
                               android:textStyle="bold"
-                              android:layout_marginTop="4dp"/>
+                              android:layout_marginLeft="8dp"/>
+                      </LinearLayout>
+
+                      <LinearLayout
+                          android:layout_width="match_parent"
+                          android:layout_height="wrap_content"
+                          android:orientation="horizontal">
+
+                          <LinearLayout
+                              android:layout_width="0dp"
+                              android:layout_height="wrap_content"
+                              android:layout_weight="1"
+                              android:orientation="vertical">
+                              
+                              <TextView
+                                  android:id="@+id/txt_gps"
+                                  android:layout_width="wrap_content"
+                                  android:layout_height="wrap_content"
+                                  android:text="⚡ В сек: 0"
+                                  android:textColor="#7C4DFF"
+                                  android:textSize="14sp"
+                                  android:textStyle="bold"/>
+                              
+                              <TextView
+                                  android:id="@+id/txt_click_power"
+                                  android:layout_width="wrap_content"
+                                  android:layout_height="wrap_content"
+                                  android:text="💪 Сила: 1"
+                                  android:textColor="#FF6B35"
+                                  android:textSize="14sp"
+                                  android:textStyle="bold"
+                                  android:layout_marginTop="4dp"/>
+                          </LinearLayout>
+
+                          <LinearLayout
+                              android:layout_width="0dp"
+                              android:layout_height="wrap_content"
+                              android:layout_weight="1"
+                              android:orientation="vertical"
+                              android:gravity="end">
+                              
+                              <TextView
+                                  android:id="@+id/txt_prestige"
+                                  android:layout_width="wrap_content"
+                                  android:layout_height="wrap_content"
+                                  android:text="🌟 0"
+                                  android:textColor="#FFD700"
+                                  android:textSize="14sp"
+                                  android:textStyle="bold"/>
+                              
+                              <TextView
+                                  android:id="@+id/txt_multiplier"
+                                  android:layout_width="wrap_content"
+                                  android:layout_height="wrap_content"
+                                  android:text="✨ x1"
+                                  android:textColor="#4FC3F7"
+                                  android:textSize="14sp"
+                                  android:textStyle="bold"
+                                  android:layout_marginTop="4dp"/>
+                          </LinearLayout>
                       </LinearLayout>
                   </LinearLayout>
-              </LinearLayout>
 
-              <!-- Область клика -->
-              <FrameLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="0dp"
-                  android:layout_weight="1"
-                  android:layout_marginVertical="8dp">
-
-                  <LinearLayout
+                  <FrameLayout
                       android:layout_width="match_parent"
-                      android:layout_height="match_parent"
-                      android:gravity="center"
-                      android:orientation="vertical">
+                      android:layout_height="0dp"
+                      android:layout_weight="1"
+                      android:layout_marginVertical="8dp">
 
-                      <TextView
-                          android:id="@+id/txt_float_gold"
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text=""
-                          android:textColor="#FFD700"
-                          android:textSize="32sp"
-                          android:textStyle="bold"
-                          android:alpha="0"
-                          android:layout_marginBottom="16dp"/>
+                      <LinearLayout
+                          android:layout_width="match_parent"
+                          android:layout_height="match_parent"
+                          android:gravity="center"
+                          android:orientation="vertical">
 
-                      <Button
-                          android:id="@+id/btn_click"
-                          android:layout_width="200dp"
-                          android:layout_height="200dp"
-                          android:background="@drawable/click_button_bg"
-                          android:text="ТАП"
-                          android:textColor="#FFFFFF"
-                          android:textSize="28sp"
-                          android:textStyle="bold"
-                          android:elevation="12dp"/>
+                          <Button
+                              android:id="@+id/btn_click"
+                              android:layout_width="220dp"
+                              android:layout_height="220dp"
+                              android:background="@drawable/click_button_bg"
+                              android:text="ТАПНИ\n🪙"
+                              android:textColor="#FFFFFF"
+                              android:textSize="32sp"
+                              android:textStyle="bold"
+                              android:lineSpacingExtra="4dp"
+                              android:elevation="16dp"/>
 
-                      <TextView
-                          android:id="@+id/txt_total_earned"
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text="Всего заработано: 0 🪙"
-                          android:textColor="#888"
-                          android:textSize="12sp"
-                          android:layout_marginTop="12dp"/>
-                  </LinearLayout>
-              </FrameLayout>
+                          <TextView
+                              android:id="@+id/txt_total_earned"
+                              android:layout_width="wrap_content"
+                              android:layout_height="wrap_content"
+                              android:text="Всего: 0 🪙"
+                              android:textColor="#888"
+                              android:textSize="12sp"
+                              android:layout_marginTop="16dp"/>
+                      </LinearLayout>
+                  </FrameLayout>
 
-              <!-- Улучшения -->
-              <TextView
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="📦 УЛУЧШЕНИЯ"
-                  android:textColor="#7C4DFF"
-                  android:textSize="16sp"
-                  android:textStyle="bold"
-                  android:layout_marginBottom="8dp"/>
-
-              <ScrollView
-                  android:layout_width="match_parent"
-                  android:layout_height="220dp"
-                  android:background="@drawable/panel_bg"
-                  android:padding="8dp">
-
-                  <LinearLayout
-                      android:id="@+id/upgrades_container"
-                      android:layout_width="match_parent"
+                  <TextView
+                      android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
-                      android:orientation="vertical"/>
-              </ScrollView>
+                      android:text="📦 УЛУЧШЕНИЯ"
+                      android:textColor="#7C4DFF"
+                      android:textSize="16sp"
+                      android:textStyle="bold"
+                      android:layout_marginBottom="8dp"/>
 
-              <!-- Кнопка Престижа -->
-              <Button
-                  android:id="@+id/btn_prestige"
-                  android:layout_width="match_parent"
-                  android:layout_height="56dp"
-                  android:layout_marginTop="8dp"
-                  android:background="@drawable/prestige_button"
-                  android:text="🌟 ПЕРЕРОЖДЕНИЕ (Сброс для x2 бонуса)"
-                  android:textColor="#1A1A2E"
-                  android:textSize="14sp"
-                  android:textStyle="bold"/>
-          </LinearLayout>
+                  <ScrollView
+                      android:layout_width="match_parent"
+                      android:layout_height="240dp"
+                      android:background="@drawable/panel_bg"
+                      android:padding="8dp">
+
+                      <LinearLayout
+                          android:id="@+id/upgrades_container"
+                          android:layout_width="match_parent"
+                          android:layout_height="wrap_content"
+                          android:orientation="vertical"/>
+                  </ScrollView>
+
+                  <Button
+                      android:id="@+id/btn_prestige"
+                      android:layout_width="match_parent"
+                      android:layout_height="56dp"
+                      android:layout_marginTop="8dp"
+                      android:background="@drawable/prestige_button"
+                      android:text="🌟 ПЕРЕРОЖДЕНИЕ"
+                      android:textColor="#1A1A2E"
+                      android:textSize="16sp"
+                      android:textStyle="bold"/>
+              </LinearLayout>
+          </FrameLayout>
           LAYOUT
+
+          cat > app/src/main/java/com/clicker/game/Particle.java << 'EOF'
+          package com.clicker.game;
+          import java.util.Random;
+
+          public class Particle {
+              float x, y;
+              float vx, vy;
+              float life;
+              float maxLife;
+              float size;
+              int color;
+              float alpha;
+              boolean isGold;
+              String text;
+              float textAlpha;
+
+              static Random random = new Random();
+
+              public Particle(float x, float y, boolean isGold, String text) {
+                  this.x = x;
+                  this.y = y;
+                  this.isGold = isGold;
+                  this.text = text;
+                  this.textAlpha = 1f;
+                  
+                  if (isGold) {
+                      float angle = (float) (random.nextFloat() * Math.PI * 2);
+                      float speed = 2f + random.nextFloat() * 4f;
+                      vx = (float) Math.cos(angle) * speed;
+                      vy = (float) Math.sin(angle) * speed - 3f;
+                      life = 1f;
+                      maxLife = 1f;
+                      size = 3f + random.nextFloat() * 4f;
+                      color = 0xFFFFD700;
+                      alpha = 1f;
+                  } else {
+                      if (text != null) {
+                          vx = 0;
+                          vy = -2f;
+                          life = 1.5f;
+                          maxLife = 1.5f;
+                          size = 0;
+                          alpha = 0;
+                          textAlpha = 1f;
+                      } else {
+                          vx = (random.nextFloat() - 0.5f) * 0.5f;
+                          vy = -1f - random.nextFloat() * 2f;
+                          life = 3f + random.nextFloat() * 5f;
+                          maxLife = life;
+                          size = 1f + random.nextFloat() * 3f;
+                          int r = 100 + random.nextInt(155);
+                          int g = 100 + random.nextInt(155);
+                          int b = 200 + random.nextInt(55);
+                          color = (255 << 24) | (r << 16) | (g << 8) | b;
+                          alpha = 0.3f + random.nextFloat() * 0.4f;
+                      }
+                  }
+              }
+
+              public void update() {
+                  x += vx;
+                  y += vy;
+                  
+                  if (isGold) {
+                      vy += 0.2f;
+                      life -= 0.02f;
+                      alpha = Math.max(0, life / maxLife);
+                  } else if (text != null) {
+                      life -= 0.02f;
+                      textAlpha = Math.max(0, life / maxLife);
+                  } else {
+                      life -= 0.01f;
+                      alpha = Math.max(0, (life / maxLife) * 0.4f);
+                  }
+              }
+
+              public boolean isDead() {
+                  return life <= 0;
+              }
+          }
+          EOF
+
+          cat > app/src/main/java/com/clicker/game/ParticleView.java << 'EOF'
+          package com.clicker.game;
+          import android.content.Context;
+          import android.graphics.*;
+          import android.util.AttributeSet;
+          import android.view.View;
+          import java.util.ArrayList;
+          import java.util.Iterator;
+          import java.util.List;
+          import java.util.Random;
+
+          public class ParticleView extends View {
+              private List<Particle> particles = new ArrayList<>();
+              private Paint paint = new Paint();
+              private Paint textPaint = new Paint();
+              private Random random = new Random();
+              private float viewWidth, viewHeight;
+
+              public ParticleView(Context context, AttributeSet attrs) {
+                  super(context, attrs);
+                  textPaint.setColor(Color.parseColor("#FFD700"));
+                  textPaint.setTextSize(40);
+                  textPaint.setTextAlign(Paint.Align.CENTER);
+                  textPaint.setFakeBoldText(true);
+                  textPaint.setShadowLayer(3, 0, 0, Color.parseColor("#FF8C00"));
+              }
+
+              public void spawnClickParticles(float x, float y, String text) {
+                  for (int i = 0; i < 20; i++) {
+                      particles.add(new Particle(x, y, true, null));
+                  }
+                  particles.add(new Particle(x, y - 20, false, text));
+              }
+
+              public void updateParticles() {
+                  Iterator<Particle> iterator = particles.iterator();
+                  while (iterator.hasNext()) {
+                      Particle p = iterator.next();
+                      p.update();
+                      if (p.isDead()) {
+                          iterator.remove();
+                      }
+                  }
+                  
+                  if (particles.size() < 30) {
+                      float x = random.nextFloat() * viewWidth;
+                      float y = viewHeight + 10;
+                      particles.add(new Particle(x, y, false, null));
+                  }
+                  
+                  invalidate();
+              }
+
+              @Override
+              protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+                  super.onSizeChanged(w, h, oldw, oldh);
+                  viewWidth = w;
+                  viewHeight = h;
+              }
+
+              @Override
+              protected void onDraw(Canvas canvas) {
+                  super.onDraw(canvas);
+                  
+                  for (Particle p : particles) {
+                      if (p.isGold) {
+                          paint.setColor(p.color);
+                          paint.setAlpha((int)(p.alpha * 255));
+                          canvas.drawCircle(p.x, p.y, p.size, paint);
+                      } else if (p.text != null) {
+                          textPaint.setAlpha((int)(p.textAlpha * 255));
+                          canvas.drawText(p.text, p.x, p.y, textPaint);
+                      } else {
+                          paint.setColor(p.color);
+                          paint.setAlpha((int)(p.alpha * 255));
+                          canvas.drawCircle(p.x, p.y, p.size, paint);
+                      }
+                  }
+              }
+          }
+          EOF
 
           cat > app/src/main/java/com/clicker/game/Upgrade.java << 'EOF'
           package com.clicker.game;
-
           public class Upgrade {
               public String name;
               public String description;
@@ -321,7 +510,6 @@ jobs:
               public long clickIncrease;
               public int level;
               public int maxLevel;
-
               public Upgrade(String name, String description, long baseCost, long costMultiplier, 
                            long gpsIncrease, long clickIncrease, int maxLevel) {
                   this.name = name;
@@ -333,28 +521,19 @@ jobs:
                   this.level = 0;
                   this.maxLevel = maxLevel;
               }
-
               public long getCurrentCost() {
                   if (level >= maxLevel) return Long.MAX_VALUE;
                   return baseCost * (long)Math.pow(costMultiplier, level);
               }
-
-              public boolean canBuy() {
-                  return level < maxLevel;
-              }
-
-              public void levelUp() {
-                  if (canBuy()) level++;
-              }
+              public boolean canBuy() { return level < maxLevel; }
+              public void levelUp() { if (canBuy()) level++; }
           }
           EOF
 
           cat > app/src/main/java/com/clicker/game/GameManager.java << 'EOF'
           package com.clicker.game;
-
           import java.util.ArrayList;
           import java.util.List;
-
           public class GameManager {
               public long gold = 0;
               public long totalGoldEarned = 0;
@@ -365,13 +544,11 @@ jobs:
               public List<Upgrade> upgrades;
               public long lastUpdateTime;
               public static final long PRESTIGE_COST = 100000;
-
               public GameManager() {
                   upgrades = new ArrayList<>();
                   initializeUpgrades();
                   lastUpdateTime = System.currentTimeMillis();
               }
-
               private void initializeUpgrades() {
                   upgrades.add(new Upgrade("💪 Сила клика", "Увеличивает силу клика на 1", 10, 2, 0, 1, 100));
                   upgrades.add(new Upgrade("⛏ Шахтёр", "Добывает 1 золота в секунду", 25, 2, 1, 0, 50));
@@ -380,17 +557,15 @@ jobs:
                   upgrades.add(new Upgrade("✨ Золотое касание", "Увеличивает силу клика на 25", 1000, 4, 0, 25, 50));
                   upgrades.add(new Upgrade("⚡ Электростанция", "Производит 25 золота в секунду", 2500, 4, 25, 0, 40));
                   upgrades.add(new Upgrade("💎 Алмазная кирка", "Увеличивает силу клика на 100", 5000, 5, 0, 100, 30));
-                  upgrades.add(new Upgrade("🚀 Космическая станция", "Производит 100 золота в секунду", 10000, 5, 100, 0, 25));
+                  upgrades.add(new Upgrade("🚀 Космостанция", "Производит 100 золота в секунду", 10000, 5, 100, 0, 25));
                   upgrades.add(new Upgrade("🌌 Квантовый клик", "Увеличивает силу клика на 500", 25000, 6, 0, 500, 20));
                   upgrades.add(new Upgrade("🤖 ИИ Властелин", "Производит 500 золота в секунду", 50000, 6, 500, 0, 15));
               }
-
               public void click() {
                   long earned = clickValue * prestigeMultiplier;
                   gold += earned;
                   totalGoldEarned += earned;
               }
-
               public void update() {
                   long now = System.currentTimeMillis();
                   long deltaTime = (now - lastUpdateTime) / 1000;
@@ -401,55 +576,35 @@ jobs:
                       lastUpdateTime = now;
                   }
               }
-
               public boolean buyUpgrade(int index) {
                   if (index < 0 || index >= upgrades.size()) return false;
                   Upgrade upgrade = upgrades.get(index);
                   if (!upgrade.canBuy()) return false;
-                  
                   long cost = upgrade.getCurrentCost();
                   if (gold >= cost) {
                       gold -= cost;
                       upgrade.levelUp();
-                      
-                      if (upgrade.gpsIncrease > 0) {
-                          goldPerSecond += upgrade.gpsIncrease;
-                      }
-                      if (upgrade.clickIncrease > 0) {
-                          clickValue += upgrade.clickIncrease;
-                      }
+                      if (upgrade.gpsIncrease > 0) goldPerSecond += upgrade.gpsIncrease;
+                      if (upgrade.clickIncrease > 0) clickValue += upgrade.clickIncrease;
                       return true;
                   }
                   return false;
               }
-
-              public boolean canPrestige() {
-                  return gold >= PRESTIGE_COST;
-              }
-
+              public boolean canPrestige() { return gold >= PRESTIGE_COST; }
               public void prestige() {
                   if (!canPrestige()) return;
-                  
                   prestigeCount++;
                   prestigeMultiplier *= 2;
                   gold = 0;
                   goldPerSecond = 0;
                   clickValue = 1;
-                  
-                  for (Upgrade upgrade : upgrades) {
-                      upgrade.level = 0;
-                  }
+                  for (Upgrade upgrade : upgrades) upgrade.level = 0;
               }
           }
           EOF
 
           cat > app/src/main/java/com/clicker/game/MainActivity.java << 'ENDMAIN'
           package com.clicker.game;
-
-          import android.animation.Animator;
-          import android.animation.AnimatorListenerAdapter;
-          import android.animation.ObjectAnimator;
-          import android.animation.ValueAnimator;
           import android.content.SharedPreferences;
           import android.graphics.Color;
           import android.graphics.drawable.GradientDrawable;
@@ -463,35 +618,32 @@ jobs:
           import android.widget.LinearLayout;
           import android.widget.TextView;
           import android.widget.Toast;
-
           import androidx.appcompat.app.AppCompatActivity;
-
-          import java.text.NumberFormat;
-          import java.util.Locale;
 
           public class MainActivity extends AppCompatActivity {
               private GameManager gameManager;
-              private TextView txtGold, txtGPS, txtClickPower, txtPrestige, txtMultiplier, txtFloatGold, txtTotalEarned;
+              private TextView txtGold, txtGPS, txtClickPower, txtPrestige, txtMultiplier, txtTotalEarned;
               private Button btnClick, btnPrestige;
               private LinearLayout upgradesContainer;
+              private ParticleView particleView;
               private Handler handler;
-              private Runnable updateRunnable;
+              private Runnable updateRunnable, particleRunnable;
               private SharedPreferences prefs;
+              private long lastClickTime = 0;
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   setContentView(R.layout.activity_main);
-
                   gameManager = new GameManager();
                   prefs = getSharedPreferences("clicker_prefs", MODE_PRIVATE);
-                  
                   initViews();
                   loadGame();
                   setupClickButton();
                   setupPrestigeButton();
                   createUpgradeButtons();
                   startGameLoop();
+                  startParticleLoop();
               }
 
               private void initViews() {
@@ -500,19 +652,29 @@ jobs:
                   txtClickPower = findViewById(R.id.txt_click_power);
                   txtPrestige = findViewById(R.id.txt_prestige);
                   txtMultiplier = findViewById(R.id.txt_multiplier);
-                  txtFloatGold = findViewById(R.id.txt_float_gold);
                   txtTotalEarned = findViewById(R.id.txt_total_earned);
                   btnClick = findViewById(R.id.btn_click);
                   btnPrestige = findViewById(R.id.btn_prestige);
                   upgradesContainer = findViewById(R.id.upgrades_container);
+                  particleView = findViewById(R.id.particle_view);
                   handler = new Handler(Looper.getMainLooper());
               }
 
               private void setupClickButton() {
                   btnClick.setOnClickListener(v -> {
                       gameManager.click();
-                      showFloatingText();
-                      animateClick();
+                      long earned = gameManager.clickValue * gameManager.prestigeMultiplier;
+                      
+                      int[] location = new int[2];
+                      btnClick.getLocationOnScreen(location);
+                      float centerX = location[0] + btnClick.getWidth() / 2f;
+                      float centerY = location[1] + btnClick.getHeight() / 2f;
+                      
+                      particleView.spawnClickParticles(centerX, centerY, "+" + formatNumber(earned));
+                      
+                      Animation anim = AnimationUtils.loadAnimation(this, R.anim.click_scale);
+                      btnClick.startAnimation(anim);
+                      
                       updateUI();
                       saveGame();
                   });
@@ -525,34 +687,13 @@ jobs:
                           updateUI();
                           createUpgradeButtons();
                           saveGame();
-                          Toast.makeText(this, "🌟 Перерождение успешно! Множитель x" + gameManager.prestigeMultiplier, 
+                          Toast.makeText(this, "🌟 Перерождение! Множитель x" + gameManager.prestigeMultiplier, 
                               Toast.LENGTH_LONG).show();
                       } else {
-                          Toast.makeText(this, "Нужно " + formatNumber(GameManager.PRESTIGE_COST) + " золота для перерождения", 
+                          Toast.makeText(this, "Нужно " + formatNumber(GameManager.PRESTIGE_COST) + " золота", 
                               Toast.LENGTH_SHORT).show();
                       }
                   });
-              }
-
-              private void animateClick() {
-                  Animation anim = AnimationUtils.loadAnimation(this, R.anim.click_animation);
-                  btnClick.startAnimation(anim);
-              }
-
-              private void showFloatingText() {
-                  long earned = gameManager.clickValue * gameManager.prestigeMultiplier;
-                  txtFloatGold.setText("+" + formatNumber(earned));
-                  txtFloatGold.setAlpha(1f);
-                  txtFloatGold.setTranslationY(0);
-
-                  ObjectAnimator fadeOut = ObjectAnimator.ofFloat(txtFloatGold, "alpha", 1f, 0f);
-                  fadeOut.setDuration(1000);
-                  
-                  ObjectAnimator moveUp = ObjectAnimator.ofFloat(txtFloatGold, "translationY", 0f, -100f);
-                  moveUp.setDuration(1000);
-
-                  fadeOut.start();
-                  moveUp.start();
               }
 
               private void createUpgradeButtons() {
@@ -584,34 +725,40 @@ jobs:
                           descText.setText("Максимальный уровень!");
                       } else {
                           String cost = formatNumber(upgrade.getCurrentCost());
-                          if (upgrade.clickIncrease > 0) {
-                              descText.setText(upgrade.description + " | Стоимость: " + cost + " 🪙");
-                          } else {
-                              descText.setText(upgrade.description + " | Стоимость: " + cost + " 🪙");
-                          }
+                          descText.setText(upgrade.description + " | Цена: " + cost + " 🪙");
                       }
                       
                       textLayout.addView(nameText);
                       textLayout.addView(descText);
                       
                       Button buyButton = new Button(this);
-                      buyButton.setText(upgrade.canBuy() ? "Купить" : "Макс");
                       buyButton.setTextColor(Color.WHITE);
                       buyButton.setTextSize(12);
+                      buyButton.setPadding(16, 8, 16, 8);
                       
                       GradientDrawable drawable = new GradientDrawable();
                       drawable.setCornerRadius(12);
                       
-                      if (upgrade.canBuy() && gameManager.gold >= upgrade.getCurrentCost()) {
-                          drawable.setColor(Color.parseColor("#4CAF50"));
-                      } else if (upgrade.canBuy()) {
-                          drawable.setColor(Color.parseColor("#7C4DFF"));
-                      } else {
+                      if (!upgrade.canBuy()) {
+                          buyButton.setText("Макс");
                           drawable.setColor(Color.parseColor("#666666"));
+                      } else if (upgrade.level > 0) {
+                          buyButton.setText("Улучшить");
+                          if (gameManager.gold >= upgrade.getCurrentCost()) {
+                              drawable.setColor(Color.parseColor("#4CAF50"));
+                          } else {
+                              drawable.setColor(Color.parseColor("#7C4DFF"));
+                          }
+                      } else {
+                          buyButton.setText("Купить");
+                          if (gameManager.gold >= upgrade.getCurrentCost()) {
+                              drawable.setColor(Color.parseColor("#4CAF50"));
+                          } else {
+                              drawable.setColor(Color.parseColor("#7C4DFF"));
+                          }
                       }
                       
                       buyButton.setBackground(drawable);
-                      buyButton.setPadding(16, 8, 16, 8);
                       
                       LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
                           LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -657,20 +804,27 @@ jobs:
                   handler.post(updateRunnable);
               }
 
+              private void startParticleLoop() {
+                  particleRunnable = new Runnable() {
+                      @Override
+                      public void run() {
+                          particleView.updateParticles();
+                          handler.postDelayed(this, 16);
+                      }
+                  };
+                  handler.post(particleRunnable);
+              }
+
               private void updateUI() {
-                  txtGold.setText("🪙 Золото: " + formatNumber(gameManager.gold));
-                  txtGPS.setText("⚡ В сек: " + formatNumber(gameManager.goldPerSecond * gameManager.prestigeMultiplier));
-                  txtClickPower.setText("💪 Сила клика: " + formatNumber(gameManager.clickValue * gameManager.prestigeMultiplier));
-                  txtPrestige.setText("🌟 Престиж: " + gameManager.prestigeCount);
-                  txtMultiplier.setText("✨ Множ: x" + gameManager.prestigeMultiplier);
-                  txtTotalEarned.setText("Всего заработано: " + formatNumber(gameManager.totalGoldEarned) + " 🪙");
+                  txtGold.setText(formatNumber(gameManager.gold));
+                  txtGPS.setText("⚡ " + formatNumber(gameManager.goldPerSecond * gameManager.prestigeMultiplier) + "/сек");
+                  txtClickPower.setText("💪 " + formatNumber(gameManager.clickValue * gameManager.prestigeMultiplier) + "/клик");
+                  txtPrestige.setText("🌟 " + gameManager.prestigeCount);
+                  txtMultiplier.setText("✨ x" + gameManager.prestigeMultiplier);
+                  txtTotalEarned.setText("Всего: " + formatNumber(gameManager.totalGoldEarned) + " 🪙");
                   
                   btnPrestige.setEnabled(gameManager.canPrestige());
-                  if (gameManager.canPrestige()) {
-                      btnPrestige.setAlpha(1f);
-                  } else {
-                      btnPrestige.setAlpha(0.6f);
-                  }
+                  btnPrestige.setAlpha(gameManager.canPrestige() ? 1f : 0.6f);
               }
 
               private String formatNumber(long number) {
@@ -688,11 +842,9 @@ jobs:
                   editor.putLong("clickValue", gameManager.clickValue);
                   editor.putLong("multiplier", gameManager.prestigeMultiplier);
                   editor.putInt("prestige", gameManager.prestigeCount);
-                  
                   for (int i = 0; i < gameManager.upgrades.size(); i++) {
                       editor.putInt("upgrade_" + i, gameManager.upgrades.get(i).level);
                   }
-                  
                   editor.apply();
               }
 
@@ -703,23 +855,17 @@ jobs:
                   gameManager.clickValue = prefs.getLong("clickValue", 1);
                   gameManager.prestigeMultiplier = prefs.getLong("multiplier", 1);
                   gameManager.prestigeCount = prefs.getInt("prestige", 0);
-                  
                   for (int i = 0; i < gameManager.upgrades.size(); i++) {
                       int level = prefs.getInt("upgrade_" + i, 0);
                       Upgrade upgrade = gameManager.upgrades.get(i);
                       for (int j = 0; j < level; j++) {
                           if (upgrade.canBuy()) {
                               upgrade.levelUp();
-                              if (upgrade.gpsIncrease > 0) {
-                                  gameManager.goldPerSecond += upgrade.gpsIncrease;
-                              }
-                              if (upgrade.clickIncrease > 0) {
-                                  gameManager.clickValue += upgrade.clickIncrease;
-                              }
+                              if (upgrade.gpsIncrease > 0) gameManager.goldPerSecond += upgrade.gpsIncrease;
+                              if (upgrade.clickIncrease > 0) gameManager.clickValue += upgrade.clickIncrease;
                           }
                       }
                   }
-                  
                   updateUI();
                   createUpgradeButtons();
               }
@@ -734,6 +880,7 @@ jobs:
               protected void onDestroy() {
                   super.onDestroy();
                   handler.removeCallbacks(updateRunnable);
+                  handler.removeCallbacks(particleRunnable);
               }
           }
           ENDMAIN
@@ -741,7 +888,7 @@ jobs:
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="Кликер Золота" android:theme="@style/AppTheme">
+              <application android:label="Золотой Кликер" android:theme="@style/AppTheme">
                   <activity android:name="com.clicker.game.MainActivity" android:exported="true" android:configChanges="orientation|screenSize">
                       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
                   </activity>
@@ -783,5 +930,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Russian_Clicker_Game
+          name: Premium_Clicker_Game
           path: app/build/outputs/apk/debug/app-debug.apk
