@@ -1,4 +1,4 @@
-name: Premium_Clicker_Game
+name: Enjoer_7.0_Ultimate_Complete
 on: [push, workflow_dispatch]
 
 jobs:
@@ -19,11 +19,10 @@ jobs:
 
       - name: Create Project
         run: |
-          mkdir -p app/src/main/java/com/clicker/game
+          mkdir -p app/src/main/java/com/enjoer/game
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
-          mkdir -p app/src/main/res/anim
 
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
@@ -31,125 +30,90 @@ jobs:
           cat > app/src/main/res/values/themes.xml << 'THEMES'
           <resources>
             <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-              <item name="android:statusBarColor">#0A0A1A</item>
-              <item name="android:navigationBarColor">#0A0A1A</item>
-              <item name="android:windowLightStatusBar">false</item>
+              <item name="android:windowFullscreen">true</item>
             </style>
           </resources>
           THEMES
 
-          cat > app/src/main/res/anim/click_scale.xml << 'ANIM'
-          <?xml version="1.0" encoding="utf-8"?>
-          <set xmlns:android="http://schemas.android.com/apk/res/android">
-              <scale
-                  android:duration="100"
-                  android:fromXScale="1.0"
-                  android:fromYScale="1.0"
-                  android:toXScale="0.92"
-                  android:toYScale="0.92"
-                  android:pivotX="50%"
-                  android:pivotY="50%"/>
-              <scale
-                  android:duration="150"
-                  android:fromXScale="0.92"
-                  android:fromYScale="0.92"
-                  android:toXScale="1.05"
-                  android:toYScale="1.05"
-                  android:pivotX="50%"
-                  android:pivotY="50%"
-                  android:startOffset="100"/>
-              <scale
-                  android:duration="100"
-                  android:fromXScale="1.05"
-                  android:fromYScale="1.05"
-                  android:toXScale="1.0"
-                  android:toYScale="1.0"
-                  android:pivotX="50%"
-                  android:pivotY="50%"
-                  android:startOffset="250"/>
-          </set>
-          ANIM
-
-          cat > app/src/main/res/drawable/gradient_background.xml << 'ENDF'
+          cat > app/src/main/res/drawable/btn_blue.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <gradient
-                  android:startColor="#0A0A1A"
-                  android:centerColor="#1A1A3E"
-                  android:endColor="#0A0A1A"
-                  android:angle="45"
-                  android:type="linear"/>
+            <corners android:radius="12dp"/>
+            <solid android:color="#101820"/>
+            <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
           ENDF
 
-          cat > app/src/main/res/drawable/click_button_bg.xml << 'ENDF'
-          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-              <item>
-                  <shape android:shape="oval">
-                      <gradient
-                          android:startColor="#FF8C42"
-                          android:centerColor="#FF6B35"
-                          android:endColor="#FF5500"
-                          android:type="radial"
-                          android:gradientRadius="90"/>
-                  </shape>
-              </item>
-              <item>
-                  <shape android:shape="oval">
-                      <stroke android:width="4dp" android:color="#FFD700"/>
-                      <solid android:color="#00000000"/>
-                  </shape>
-              </item>
-              <item>
-                  <shape android:shape="oval">
-                      <stroke android:width="1dp" android:color="#FFECB3" android:dashWidth="8dp" android:dashGap="4dp"/>
-                      <solid android:color="#00000000"/>
-                  </shape>
-              </item>
-          </layer-list>
-          ENDF
-
-          cat > app/src/main/res/drawable/upgrade_button_green.xml << 'ENDF'
+          cat > app/src/main/res/drawable/btn_blue_filled.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <corners android:radius="12dp"/>
-              <gradient
-                  android:startColor="#2D4A2D"
-                  android:endColor="#1A2E1A"
-                  android:angle="45"/>
-              <stroke android:width="2dp" android:color="#4CAF50"/>
+            <corners android:radius="12dp"/>
+            <solid android:color="#00BFFF"/>
           </shape>
           ENDF
 
-          cat > app/src/main/res/drawable/upgrade_button_purple.xml << 'ENDF'
+          cat > app/src/main/res/drawable/btn_red.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <corners android:radius="12dp"/>
-              <gradient
-                  android:startColor="#2D1B4E"
-                  android:endColor="#1A1A2E"
-                  android:angle="45"/>
-              <stroke android:width="2dp" android:color="#7C4DFF"/>
+            <corners android:radius="12dp"/>
+            <solid android:color="#101820"/>
+            <stroke android:width="2dp" android:color="#FF4444"/>
           </shape>
           ENDF
 
-          cat > app/src/main/res/drawable/prestige_button.xml << 'ENDF'
+          cat > app/src/main/res/drawable/btn_green.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <corners android:radius="16dp"/>
-              <gradient
-                  android:startColor="#FFD700"
-                  android:centerColor="#FFA000"
-                  android:endColor="#FF8F00"
-                  android:angle="90"/>
-              <stroke android:width="2dp" android:color="#FFECB3"/>
+            <corners android:radius="12dp"/>
+            <solid android:color="#101820"/>
+            <stroke android:width="2dp" android:color="#44FF44"/>
+          </shape>
+          ENDF
+
+          cat > app/src/main/res/drawable/joy_base.xml << 'ENDF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+            <solid android:color="#CC101820"/>
+            <stroke android:width="2dp" android:color="#00BFFF"/>
+          </shape>
+          ENDF
+
+          cat > app/src/main/res/drawable/joy_stick.xml << 'ENDF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+            <solid android:color="#00BFFF"/>
           </shape>
           ENDF
 
           cat > app/src/main/res/drawable/panel_bg.xml << 'ENDF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <corners android:radius="16dp"/>
-              <gradient
-                  android:startColor="#CC1A1A3E"
-                  android:endColor="#CC0F0F23"
-                  android:angle="90"/>
-              <stroke android:width="1dp" android:color="#3A3A6A"/>
+            <corners android:radius="8dp"/>
+            <solid android:color="#E6101820"/>
+            <stroke android:width="1dp" android:color="#00BFFF"/>
+          </shape>
+          ENDF
+
+          cat > app/src/main/res/drawable/color_btn.xml << 'ENDF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+            <solid android:color="#FFF"/>
+            <stroke android:width="2dp" android:color="#00BFFF"/>
+          </shape>
+          ENDF
+
+          cat > app/src/main/res/drawable/crosshair.xml << 'ENDF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+            <solid android:color="#FF00BFFF"/>
+            <size android:width="10dp" android:height="10dp"/>
+          </shape>
+          ENDF
+
+          cat > app/src/main/res/drawable/ridix_bg.xml << 'ENDF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <corners android:radius="12dp"/>
+            <solid android:color="#CC0A1428"/>
+            <stroke android:width="2dp" android:color="#FFD700"/>
+          </shape>
+          ENDF
+
+          cat > app/src/main/res/drawable/inv_slot.xml << 'ENDF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <corners android:radius="6dp"/>
+            <solid android:color="#AA101820"/>
+            <stroke android:width="2dp" android:color="#00BFFF"/>
           </shape>
           ENDF
 
@@ -158,738 +122,1280 @@ jobs:
           <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              android:background="@drawable/gradient_background">
+              android:background="#02050A">
 
-              <com.clicker.game.ParticleView
-                  android:id="@+id/particle_view"
+              <android.opengl.GLSurfaceView
+                  android:id="@+id/gl_view"
                   android:layout_width="match_parent"
                   android:layout_height="match_parent"/>
 
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:orientation="vertical"
-                  android:padding="16dp">
+              <RelativeLayout android:id="@+id/game_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
+                  <View android:id="@+id/look_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
+                  <Button android:id="@+id/btn_menu" android:layout_width="80dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Menu" android:textSize="13sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                  
+                  <LinearLayout android:id="@+id/inventory_bar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="20dp" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="4dp">
+                      <TextView android:id="@+id/inv_slot_0" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
+                      <TextView android:id="@+id/inv_slot_1" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
+                      <TextView android:id="@+id/inv_slot_2" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
+                      <TextView android:id="@+id/inv_slot_3" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
+                  </LinearLayout>
+                  
+                  <FrameLayout android:id="@+id/joy_base" android:layout_width="126dp" android:layout_height="126dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="36dp" android:layout_marginBottom="36dp" android:background="@drawable/joy_base"/>
+                  <View android:id="@+id/joy_stick" android:layout_width="54dp" android:layout_height="54dp" android:layout_alignLeft="@id/joy_base" android:layout_alignTop="@id/joy_base" android:layout_marginLeft="36dp" android:layout_marginTop="36dp" android:background="@drawable/joy_stick"/>
+                  <Button android:id="@+id/btn_jump" android:layout_width="90dp" android:layout_height="90dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="40dp" android:layout_marginBottom="40dp" android:text="Jump" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#FFF"/>
+                  <View android:id="@+id/crosshair_game" android:layout_width="10dp" android:layout_height="10dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
+              </RelativeLayout>
 
-                  <LinearLayout
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:orientation="vertical"
-                      android:background="@drawable/panel_bg"
-                      android:padding="16dp"
-                      android:layout_marginBottom="12dp">
-
-                      <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:orientation="horizontal"
-                          android:gravity="center_vertical"
-                          android:layout_marginBottom="8dp">
+              <RelativeLayout android:id="@+id/engine_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
+                  <View android:id="@+id/engine_touch_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentTop="true" android:orientation="horizontal" android:padding="10dp">
+                      <Button android:id="@+id/btn_engine_menu" android:layout_width="80dp" android:layout_height="50dp" android:text="Menu" android:textSize="13sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                      <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
+                      <Button android:id="@+id/btn_scripts" android:layout_width="90dp" android:layout_height="50dp" android:text="Scripts" android:textSize="12sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginRight="8dp"/>
+                      <Button android:id="@+id/btn_save" android:layout_width="90dp" android:layout_height="50dp" android:text="Export" android:textSize="12sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginRight="8dp"/>
+                      <Button android:id="@+id/btn_play_level" android:layout_width="80dp" android:layout_height="50dp" android:text="Play" android:textSize="13sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                  </LinearLayout>
+                  <FrameLayout android:id="@+id/engine_joy_base" android:layout_width="108dp" android:layout_height="108dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="27dp" android:layout_marginBottom="27dp" android:background="@drawable/joy_base"/>
+                  <View android:id="@+id/engine_joy_stick" android:layout_width="45dp" android:layout_height="45dp" android:layout_alignLeft="@id/engine_joy_base" android:layout_alignTop="@id/engine_joy_base" android:layout_marginLeft="31dp" android:layout_marginTop="31dp" android:background="@drawable/joy_stick"/>
+                  <ScrollView android:layout_width="220dp" android:layout_height="match_parent" android:layout_alignParentRight="true" android:layout_marginTop="70dp" android:layout_marginRight="10dp" android:layout_marginBottom="10dp">
+                      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/panel_bg" android:padding="10dp">
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Object Type" android:textColor="#FFF" android:textStyle="bold" android:textSize="14sp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+                              <Button android:id="@+id/type_block" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Block" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
+                              <Button android:id="@+id/type_light" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Light" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
+                              <Button android:id="@+id/type_item" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Item" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                              <Button android:id="@+id/type_text" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Text" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
                           
-                          <TextView
-                              android:layout_width="wrap_content"
-                              android:layout_height="wrap_content"
-                              android:text="🪙"
-                              android:textSize="28sp"/>
+                          <TextView android:id="@+id/lbl_shape" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Shape" android:textColor="#FFF" android:textStyle="bold" android:layout_marginTop="10dp" android:textSize="14sp"/>
+                          <LinearLayout android:id="@+id/shape_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="6dp">
+                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                                  <Button android:id="@+id/shape_cube" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Cube" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
+                                  <Button android:id="@+id/shape_cylinder" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Cylinder" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                              </LinearLayout>
+                              <Button android:id="@+id/shape_pyramid" android:layout_width="match_parent" android:layout_height="36dp" android:text="Pyramid" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginTop="4dp"/>
+                          </LinearLayout>
                           
-                          <TextView
-                              android:id="@+id/txt_gold"
-                              android:layout_width="0dp"
-                              android:layout_height="wrap_content"
-                              android:layout_weight="1"
-                              android:text="0"
-                              android:textColor="#FFD700"
-                              android:textSize="28sp"
-                              android:textStyle="bold"
-                              android:layout_marginLeft="8dp"/>
+                          <LinearLayout android:id="@+id/light_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="6dp" android:visibility="gone">
+                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                                  <Button android:id="@+id/light_point" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Point" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
+                                  <Button android:id="@+id/light_spot" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Spot" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                              </LinearLayout>
+                          </LinearLayout>
+                          
+                          <LinearLayout android:id="@+id/item_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="6dp" android:visibility="gone">
+                              <Button android:id="@+id/item_sword" android:layout_width="match_parent" android:layout_height="36dp" android:text="Sword" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
+                          </LinearLayout>
+                          
+                          <LinearLayout android:id="@+id/text_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="6dp" android:visibility="gone">
+                              <EditText android:id="@+id/text_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Enter text" android:textColor="#FFF" android:textColorHint="#666" android:background="@drawable/panel_bg" android:padding="8dp" android:textSize="13sp"/>
+                          </LinearLayout>
+                          
+                          <LinearLayout android:id="@+id/ridix_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="10dp" android:background="@drawable/ridix_bg" android:padding="8dp">
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Purchase Settings" android:textColor="#FFD700" android:textSize="13sp" android:textStyle="bold"/>
+                              <EditText android:id="@+id/purchase_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Item name (optional)" android:textColor="#FFF" android:textColorHint="#AA8" android:background="@drawable/panel_bg" android:padding="6dp" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ridix Price" android:textColor="#FFD700" android:textSize="11sp" android:layout_marginTop="6dp"/>
+                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
+                                  <Button android:id="@+id/ridix_minus" android:layout_width="0dp" android:layout_height="32dp" android:layout_weight="1" android:text="-10" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#FFD700"/>
+                                  <TextView android:id="@+id/ridix_value" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="0" android:textColor="#FFD700" android:gravity="center" android:textSize="14sp" android:textStyle="bold"/>
+                                  <Button android:id="@+id/ridix_plus" android:layout_width="0dp" android:layout_height="32dp" android:layout_weight="1" android:text="+10" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#FFD700"/>
+                              </LinearLayout>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="0 = Free object" android:textColor="#AA8" android:textSize="10sp" android:layout_marginTop="2dp"/>
+                          </LinearLayout>
+                          
+                          <TextView android:id="@+id/lbl_size" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Size X/Y/Z" android:textColor="#FFF" android:textStyle="bold" android:layout_marginTop="10dp" android:textSize="14sp"/>
+                          <LinearLayout android:id="@+id/size_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="6dp">
+                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                                  <Button android:id="@+id/size_x_minus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="X-" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                                  <Button android:id="@+id/size_x_plus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="X+" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                              </LinearLayout>
+                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
+                                  <Button android:id="@+id/size_y_minus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Y-" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                                  <Button android:id="@+id/size_y_plus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Y+" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                              </LinearLayout>
+                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
+                                  <Button android:id="@+id/size_z_minus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Z-" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                                  <Button android:id="@+id/size_z_plus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="Z+" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                              </LinearLayout>
+                              <TextView android:id="@+id/txt_size_info" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="4 x 4 x 4" android:textColor="#AEEBFF" android:layout_marginTop="6dp" android:textSize="12sp"/>
+                          </LinearLayout>
+                          
+                          <TextView android:id="@+id/lbl_intensity" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Intensity" android:textColor="#FFF" android:textStyle="bold" android:layout_marginTop="10dp" android:visibility="gone" android:textSize="14sp"/>
+                          <LinearLayout android:id="@+id/intensity_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp" android:visibility="gone">
+                              <Button android:id="@+id/intensity_minus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="-" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                              <Button android:id="@+id/intensity_plus" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="+" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+                          <TextView android:id="@+id/txt_intensity" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="10" android:textColor="#AEEBFF" android:layout_marginTop="4dp" android:visibility="gone" android:textSize="12sp"/>
+                          
+                          <Button android:id="@+id/btn_grid" android:layout_width="match_parent" android:layout_height="36dp" android:text="Grid: On" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:layout_marginTop="8dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="8dp">
+                              <View android:id="@+id/color_red" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#FF2222"/>
+                              <View android:id="@+id/color_green" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#22FF22" android:layout_marginLeft="5dp"/>
+                              <View android:id="@+id/color_blue2" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#2288FF" android:layout_marginLeft="5dp"/>
+                              <View android:id="@+id/color_yellow" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#FFFF22" android:layout_marginLeft="5dp"/>
+                              <View android:id="@+id/color_white" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#FFFFFF" android:layout_marginLeft="5dp"/>
+                              <View android:id="@+id/color_black" android:layout_width="26dp" android:layout_height="26dp" android:background="@drawable/color_btn" android:backgroundTint="#222222" android:layout_marginLeft="5dp"/>
+                          </LinearLayout>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
+                              <Button android:id="@+id/dist_far" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="12" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
+                              <Button android:id="@+id/dist_vfar" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:text="15" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="4dp"/>
+                          </LinearLayout>
+                          <Button android:id="@+id/btn_place" android:layout_width="match_parent" android:layout_height="44dp" android:text="+ Place" android:textSize="12sp" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:layout_marginTop="12dp"/>
+                          <Button android:id="@+id/btn_hide" android:layout_width="match_parent" android:layout_height="36dp" android:text="Hide" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginTop="8dp" android:visibility="gone"/>
+                          <Button android:id="@+id/btn_delete" android:layout_width="match_parent" android:layout_height="36dp" android:text="Delete" android:textSize="11sp" android:background="@drawable/btn_red" android:textColor="#FF4444" android:layout_marginTop="8dp" android:visibility="gone"/>
+                          <Button android:id="@+id/btn_deselect" android:layout_width="match_parent" android:layout_height="36dp" android:text="Deselect" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginTop="8dp" android:visibility="gone"/>
                       </LinearLayout>
+                  </ScrollView>
+                  <LinearLayout android:id="@+id/axis_panel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="20dp" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="6dp" android:visibility="gone">
+                      <Button android:id="@+id/axis_x_minus" android:layout_width="44dp" android:layout_height="44dp" android:text="X-" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#FF4444"/>
+                      <Button android:id="@+id/axis_x_plus" android:layout_width="44dp" android:layout_height="44dp" android:text="X+" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#FF4444" android:layout_marginLeft="4dp"/>
+                      <Button android:id="@+id/axis_y_minus" android:layout_width="44dp" android:layout_height="44dp" android:text="Y-" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#44FF44" android:layout_marginLeft="10dp"/>
+                      <Button android:id="@+id/axis_y_plus" android:layout_width="44dp" android:layout_height="44dp" android:text="Y+" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#44FF44" android:layout_marginLeft="4dp"/>
+                      <Button android:id="@+id/axis_z_minus" android:layout_width="44dp" android:layout_height="44dp" android:text="Z-" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#4488FF" android:layout_marginLeft="10dp"/>
+                      <Button android:id="@+id/axis_z_plus" android:layout_width="44dp" android:layout_height="44dp" android:text="Z+" android:textSize="11sp" android:background="@drawable/btn_blue" android:textColor="#4488FF" android:layout_marginLeft="4dp"/>
+                  </LinearLayout>
+                  <View android:id="@+id/crosshair_engine" android:layout_width="10dp" android:layout_height="10dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
+              </RelativeLayout>
 
-                      <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:orientation="horizontal">
+              <RelativeLayout android:id="@+id/playtest_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
+                  <View android:id="@+id/playtest_look_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
+                  <Button android:id="@+id/btn_stop_playtest" android:layout_width="80dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Stop" android:textSize="13sp" android:background="@drawable/btn_red" android:textColor="#FF4444"/>
+                  
+                  <LinearLayout android:id="@+id/playtest_inventory_bar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="20dp" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="4dp">
+                      <TextView android:id="@+id/playtest_inv_slot_0" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
+                      <TextView android:id="@+id/playtest_inv_slot_1" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
+                      <TextView android:id="@+id/playtest_inv_slot_2" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
+                      <TextView android:id="@+id/playtest_inv_slot_3" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
+                  </LinearLayout>
+                  
+                  <FrameLayout android:id="@+id/playtest_joy_base" android:layout_width="126dp" android:layout_height="126dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="36dp" android:layout_marginBottom="36dp" android:background="@drawable/joy_base"/>
+                  <View android:id="@+id/playtest_joy_stick" android:layout_width="54dp" android:layout_height="54dp" android:layout_alignLeft="@id/playtest_joy_base" android:layout_alignTop="@id/playtest_joy_base" android:layout_marginLeft="36dp" android:layout_marginTop="36dp" android:background="@drawable/joy_stick"/>
+                  <Button android:id="@+id/btn_playtest_jump" android:layout_width="90dp" android:layout_height="90dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="40dp" android:layout_marginBottom="40dp" android:text="Jump" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#FFF"/>
+                  <View android:id="@+id/crosshair_playtest" android:layout_width="10dp" android:layout_height="10dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
+              </RelativeLayout>
 
-                          <LinearLayout
-                              android:layout_width="0dp"
-                              android:layout_height="wrap_content"
-                              android:layout_weight="1"
-                              android:orientation="vertical">
-                              
-                              <TextView
-                                  android:id="@+id/txt_gps"
-                                  android:layout_width="wrap_content"
-                                  android:layout_height="wrap_content"
-                                  android:text="⚡ В сек: 0"
-                                  android:textColor="#7C4DFF"
-                                  android:textSize="14sp"
-                                  android:textStyle="bold"/>
-                              
-                              <TextView
-                                  android:id="@+id/txt_click_power"
-                                  android:layout_width="wrap_content"
-                                  android:layout_height="wrap_content"
-                                  android:text="💪 Сила: 1"
-                                  android:textColor="#FF6B35"
-                                  android:textSize="14sp"
-                                  android:textStyle="bold"
-                                  android:layout_marginTop="4dp"/>
-                          </LinearLayout>
-
-                          <LinearLayout
-                              android:layout_width="0dp"
-                              android:layout_height="wrap_content"
-                              android:layout_weight="1"
-                              android:orientation="vertical"
-                              android:gravity="end">
-                              
-                              <TextView
-                                  android:id="@+id/txt_prestige"
-                                  android:layout_width="wrap_content"
-                                  android:layout_height="wrap_content"
-                                  android:text="🌟 0"
-                                  android:textColor="#FFD700"
-                                  android:textSize="14sp"
-                                  android:textStyle="bold"/>
-                              
-                              <TextView
-                                  android:id="@+id/txt_multiplier"
-                                  android:layout_width="wrap_content"
-                                  android:layout_height="wrap_content"
-                                  android:text="✨ x1"
-                                  android:textColor="#4FC3F7"
-                                  android:textSize="14sp"
-                                  android:textStyle="bold"
-                                  android:layout_marginTop="4dp"/>
-                          </LinearLayout>
+              <FrameLayout android:id="@+id/purchase_dialog" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#DD000000" android:visibility="gone" android:clickable="true">
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_gravity="center" android:layout_marginLeft="40dp" android:layout_marginRight="40dp" android:background="@drawable/ridix_bg" android:padding="24dp">
+                      <TextView android:id="@+id/purchase_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Purchase Item" android:textColor="#FFD700" android:textSize="22sp" android:textStyle="bold" android:gravity="center" android:layout_marginBottom="16dp"/>
+                      <TextView android:id="@+id/purchase_item_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Premium Block" android:textColor="#FFF" android:textSize="18sp" android:gravity="center" android:layout_marginBottom="8dp"/>
+                      <TextView android:id="@+id/purchase_price" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Cost: 100 Ridix" android:textColor="#FFD700" android:textSize="16sp" android:gravity="center" android:layout_marginBottom="8dp"/>
+                      <TextView android:id="@+id/purchase_balance" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Your balance: 150 Ridix" android:textColor="#AEEBFF" android:textSize="14sp" android:gravity="center" android:layout_marginBottom="24dp"/>
+                      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                          <Button android:id="@+id/btn_purchase_cancel" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:text="Cancel" android:textSize="16sp" android:background="@drawable/btn_red" android:textColor="#FF4444" android:layout_marginRight="8dp"/>
+                          <Button android:id="@+id/btn_purchase_buy" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:text="Buy" android:textSize="16sp" android:background="@drawable/btn_green" android:textColor="#44FF44" android:layout_marginLeft="8dp"/>
                       </LinearLayout>
                   </LinearLayout>
+              </FrameLayout>
 
-                  <FrameLayout
-                      android:layout_width="match_parent"
-                      android:layout_height="0dp"
-                      android:layout_weight="1"
-                      android:layout_marginVertical="8dp">
-
-                      <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="match_parent"
-                          android:gravity="center"
-                          android:orientation="vertical">
-
-                          <Button
-                              android:id="@+id/btn_click"
-                              android:layout_width="220dp"
-                              android:layout_height="220dp"
-                              android:background="@drawable/click_button_bg"
-                              android:text="ТАПНИ\n🪙"
-                              android:textColor="#FFFFFF"
-                              android:textSize="32sp"
-                              android:textStyle="bold"
-                              android:lineSpacingExtra="4dp"
-                              android:elevation="16dp"/>
-
-                          <TextView
-                              android:id="@+id/txt_total_earned"
-                              android:layout_width="wrap_content"
-                              android:layout_height="wrap_content"
-                              android:text="Всего: 0 🪙"
-                              android:textColor="#888"
-                              android:textSize="12sp"
-                              android:layout_marginTop="16dp"/>
-                      </LinearLayout>
-                  </FrameLayout>
-
-                  <TextView
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="📦 УЛУЧШЕНИЯ"
-                      android:textColor="#7C4DFF"
-                      android:textSize="16sp"
-                      android:textStyle="bold"
-                      android:layout_marginBottom="8dp"/>
-
-                  <ScrollView
-                      android:layout_width="match_parent"
-                      android:layout_height="240dp"
-                      android:background="@drawable/panel_bg"
-                      android:padding="8dp">
-
-                      <LinearLayout
-                          android:id="@+id/upgrades_container"
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:orientation="vertical"/>
-                  </ScrollView>
-
-                  <Button
-                      android:id="@+id/btn_prestige"
-                      android:layout_width="match_parent"
-                      android:layout_height="56dp"
-                      android:layout_marginTop="8dp"
-                      android:background="@drawable/prestige_button"
-                      android:text="🌟 ПЕРЕРОЖДЕНИЕ"
-                      android:textColor="#1A1A2E"
-                      android:textSize="16sp"
-                      android:textStyle="bold"/>
+              <LinearLayout android:id="@+id/menu_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#02050A">
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Enjoer" android:textSize="52sp" android:textColor="#00BFFF" android:textStyle="bold"/>
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Engine 7.0" android:textSize="18sp" android:textColor="#0088CC" android:layout_marginBottom="16dp"/>
+                  <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/ridix_bg" android:padding="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="32dp">
+                      <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ridix: " android:textColor="#FFD700" android:textSize="16sp"/>
+                      <TextView android:id="@+id/txt_ridix_lobby" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFD700" android:textSize="16sp" android:textStyle="bold"/>
+                  </LinearLayout>
+                  <Button android:id="@+id/btn_play" android:layout_width="240dp" android:layout_height="60dp" android:text="Play" android:textSize="18sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue" android:layout_marginBottom="16dp"/>
+                  <Button android:id="@+id/btn_engine" android:layout_width="240dp" android:layout_height="60dp" android:text="Editor" android:textSize="18sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue" android:layout_marginBottom="16dp"/>
+                  <Button android:id="@+id/btn_customize_lobby" android:layout_width="240dp" android:layout_height="60dp" android:text="Customize" android:textSize="18sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue" android:layout_marginBottom="16dp"/>
+                  <Button android:id="@+id/btn_load_file" android:layout_width="240dp" android:layout_height="60dp" android:text="Import .json" android:textSize="16sp" android:textColor="#00BFFF" android:background="@drawable/btn_blue"/>
               </LinearLayout>
+
+              <FrameLayout android:id="@+id/customize_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#EE02050A" android:visibility="gone">
+                  <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+                      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Customize" android:textSize="26sp" android:textColor="#00BFFF" android:textStyle="bold" android:gravity="center" android:layout_marginBottom="8dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:background="@drawable/ridix_bg" android:padding="12dp" android:layout_marginBottom="20dp">
+                              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ridix: " android:textColor="#FFD700" android:textSize="18sp"/>
+                              <TextView android:id="@+id/txt_ridix_shop" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFD700" android:textSize="18sp" android:textStyle="bold"/>
+                          </LinearLayout>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Promo code" android:textColor="#FFF" android:textSize="16sp" android:textStyle="bold" android:layout_marginBottom="8dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="10dp" android:layout_marginBottom="20dp">
+                              <EditText android:id="@+id/et_promo" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:hint="Enter code" android:textColor="#FFF" android:textColorHint="#555" android:background="@null" android:textSize="14sp"/>
+                              <Button android:id="@+id/btn_promo" android:layout_width="80dp" android:layout_height="48dp" android:text="Apply" android:textSize="12sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                          </LinearLayout>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Character colors" android:textColor="#FFF" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="16dp">
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Skin" android:textColor="#AEEBFF" android:layout_marginBottom="6dp"/>
+                              <LinearLayout android:id="@+id/skin_colors" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp"/>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Torso" android:textColor="#AEEBFF" android:layout_marginBottom="6dp"/>
+                              <LinearLayout android:id="@+id/torso_colors" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp"/>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Legs" android:textColor="#AEEBFF" android:layout_marginBottom="6dp"/>
+                              <LinearLayout android:id="@+id/legs_colors" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp"/>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Hair" android:textColor="#AEEBFF" android:layout_marginBottom="6dp"/>
+                              <LinearLayout android:id="@+id/hair_colors" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp"/>
+                              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Face" android:textColor="#AEEBFF" android:layout_marginBottom="6dp"/>
+                              <LinearLayout android:id="@+id/face_select" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal"/>
+                          </LinearLayout>
+                          <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Animation packs" android:textColor="#FFF" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp"/>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="10dp" android:gravity="center_vertical">
+                              <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Default" android:textColor="#FFF" android:textSize="16sp" android:textStyle="bold"/>
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Walk, jump, idle" android:textColor="#888" android:textSize="12sp"/>
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Free" android:textColor="#44FF44" android:textSize="12sp"/>
+                              </LinearLayout>
+                              <Button android:id="@+id/btn_pack_default" android:layout_width="90dp" android:layout_height="40dp" android:text="Equip" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:textSize="12sp"/>
+                          </LinearLayout>
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="12dp" android:layout_marginBottom="20dp" android:gravity="center_vertical">
+                              <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Fly pack" android:textColor="#00BFFF" android:textSize="16sp" android:textStyle="bold"/>
+                                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hover, levitate, fly moves" android:textColor="#888" android:textSize="12sp"/>
+                                  <TextView android:id="@+id/txt_fly_price" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50 Ridix" android:textColor="#FFD700" android:textSize="12sp"/>
+                              </LinearLayout>
+                              <Button android:id="@+id/btn_pack_fly" android:layout_width="90dp" android:layout_height="40dp" android:text="Buy" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:textSize="12sp"/>
+                          </LinearLayout>
+                          <Button android:id="@+id/btn_close_customize" android:layout_width="match_parent" android:layout_height="56dp" android:text="Back" android:textSize="16sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
+                      </LinearLayout>
+                  </ScrollView>
+              </FrameLayout>
+
+              <FrameLayout android:id="@+id/script_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#EE02050A" android:visibility="gone">
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="20dp">
+                      <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="JavaScript Editor" android:textSize="24sp" android:textColor="#00BFFF" android:textStyle="bold" android:gravity="center" android:layout_marginBottom="16dp"/>
+                      <EditText android:id="@+id/script_editor" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="@drawable/panel_bg" android:padding="12dp" android:textColor="#FFF" android:textColorHint="#666" android:hint="// Write JavaScript here&#10;// Available: player, blocks, lights, items&#10;// Example: player.setPosition(0, 10, 0);" android:gravity="top" android:fontFamily="monospace" android:textSize="13sp" android:inputType="textMultiLine|textNoSuggestions"/>
+                      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="16dp">
+                          <Button android:id="@+id/btn_run_script" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:text="Run" android:textSize="14sp" android:background="@drawable/btn_green" android:textColor="#44FF44"/>
+                          <Button android:id="@+id/btn_clear_script" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:text="Clear" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF" android:layout_marginLeft="10dp"/>
+                          <Button android:id="@+id/btn_close_script" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:text="Close" android:textSize="14sp" android:background="@drawable/btn_red" android:textColor="#FF4444" android:layout_marginLeft="10dp"/>
+                      </LinearLayout>
+                      <TextView android:id="@+id/script_output" android:layout_width="match_parent" android:layout_height="100dp" android:background="@drawable/panel_bg" android:padding="12dp" android:textColor="#44FF44" android:textSize="12sp" android:fontFamily="monospace" android:layout_marginTop="10dp" android:text="Output console..."/>
+                  </LinearLayout>
+              </FrameLayout>
+
           </FrameLayout>
           LAYOUT
 
-          cat > app/src/main/java/com/clicker/game/Particle.java << 'EOF'
-          package com.clicker.game;
-          import java.util.Random;
-
-          public class Particle {
-              float x, y;
-              float vx, vy;
-              float life;
-              float maxLife;
-              float size;
-              int color;
-              float alpha;
-              boolean isGold;
-              String text;
-              float textAlpha;
-
-              static Random random = new Random();
-
-              public Particle(float x, float y, boolean isGold, String text) {
-                  this.x = x;
-                  this.y = y;
-                  this.isGold = isGold;
-                  this.text = text;
-                  this.textAlpha = 1f;
-                  
-                  if (isGold) {
-                      float angle = (float) (random.nextFloat() * Math.PI * 2);
-                      float speed = 2f + random.nextFloat() * 4f;
-                      vx = (float) Math.cos(angle) * speed;
-                      vy = (float) Math.sin(angle) * speed - 3f;
-                      life = 1f;
-                      maxLife = 1f;
-                      size = 3f + random.nextFloat() * 4f;
-                      color = 0xFFFFD700;
-                      alpha = 1f;
-                  } else {
-                      if (text != null) {
-                          vx = 0;
-                          vy = -2f;
-                          life = 1.5f;
-                          maxLife = 1.5f;
-                          size = 0;
-                          alpha = 0;
-                          textAlpha = 1f;
-                      } else {
-                          vx = (random.nextFloat() - 0.5f) * 0.5f;
-                          vy = -1f - random.nextFloat() * 2f;
-                          life = 3f + random.nextFloat() * 5f;
-                          maxLife = life;
-                          size = 1f + random.nextFloat() * 3f;
-                          int r = 100 + random.nextInt(155);
-                          int g = 100 + random.nextInt(155);
-                          int b = 200 + random.nextInt(55);
-                          color = (255 << 24) | (r << 16) | (g << 8) | b;
-                          alpha = 0.3f + random.nextFloat() * 0.4f;
-                      }
-                  }
+          cat > app/src/main/java/com/enjoer/game/Block.java << 'EOF'
+          package com.enjoer.game;
+          public class Block {
+              public float x,y,z,sx,sy,sz,r,g,b;
+              public boolean hidden=false;
+              public int ridixPrice=0;
+              public boolean purchased=false;
+              public String itemName="";
+              public Block(float x,float y,float z,float sx,float sy,float sz,float r,float g,float b){
+                  this.x=x;this.y=y;this.z=z;this.sx=sx;this.sy=sy;this.sz=sz;this.r=r;this.g=g;this.b=b;
               }
+              public float minX(){return x-sx/2f;}
+              public float maxX(){return x+sx/2f;}
+              public float minY(){return y-sy/2f;}
+              public float maxY(){return y+sy/2f;}
+              public float minZ(){return z-sz/2f;}
+              public float maxZ(){return z+sz/2f;}
+          }
+          EOF
 
-              public void update() {
-                  x += vx;
-                  y += vy;
-                  
-                  if (isGold) {
-                      vy += 0.2f;
-                      life -= 0.02f;
-                      alpha = Math.max(0, life / maxLife);
-                  } else if (text != null) {
-                      life -= 0.02f;
-                      textAlpha = Math.max(0, life / maxLife);
-                  } else {
-                      life -= 0.01f;
-                      alpha = Math.max(0, (life / maxLife) * 0.4f);
-                  }
-              }
-
-              public boolean isDead() {
-                  return life <= 0;
+          cat > app/src/main/java/com/enjoer/game/Light.java << 'EOF'
+          package com.enjoer.game;
+          public class Light {
+              public float x,y,z,r,g,b,intensity;
+              public boolean isSpot;
+              public boolean hidden=false;
+              public int ridixPrice=0;
+              public boolean purchased=false;
+              public String itemName="";
+              public Light(float x,float y,float z,float r,float g,float b,float intensity,boolean isSpot){
+                  this.x=x;this.y=y;this.z=z;this.r=r;this.g=g;this.b=b;this.intensity=intensity;this.isSpot=isSpot;
               }
           }
           EOF
 
-          cat > app/src/main/java/com/clicker/game/ParticleView.java << 'EOF'
-          package com.clicker.game;
-          import android.content.Context;
-          import android.graphics.*;
-          import android.util.AttributeSet;
-          import android.view.View;
-          import java.util.ArrayList;
-          import java.util.Iterator;
-          import java.util.List;
-          import java.util.Random;
+          cat > app/src/main/java/com/enjoer/game/Item.java << 'EOF'
+          package com.enjoer.game;
+          public class Item {
+              public float x,y,z;
+              public String type;
+              public boolean hidden=false,collected=false;
+              public int ridixPrice=0;
+              public boolean purchased=false;
+              public String itemName="";
+              public Item(float x,float y,float z,String type){
+                  this.x=x;this.y=y;this.z=z;this.type=type;
+              }
+              public float minX(){return x-0.5f;}
+              public float maxX(){return x+0.5f;}
+              public float minY(){return y-0.5f;}
+              public float maxY(){return y+0.5f;}
+              public float minZ(){return z-0.5f;}
+              public float maxZ(){return z+0.5f;}
+          }
+          EOF
 
-          public class ParticleView extends View {
-              private List<Particle> particles = new ArrayList<>();
-              private Paint paint = new Paint();
-              private Paint textPaint = new Paint();
-              private Random random = new Random();
-              private float viewWidth, viewHeight;
+          cat > app/src/main/java/com/enjoer/game/GameText.java << 'EOF'
+          package com.enjoer.game;
+          public class GameText {
+              public float x,y,z;
+              public String text;
+              public boolean hidden=false;
+              public int ridixPrice=0;
+              public boolean purchased=false;
+              public String itemName="";
+              public GameText(float x,float y,float z,String text){
+                  this.x=x;this.y=y;this.z=z;this.text=text!=null&&!text.isEmpty()?text:"Text";
+              }
+          }
+          EOF
 
-              public ParticleView(Context context, AttributeSet attrs) {
-                  super(context, attrs);
-                  textPaint.setColor(Color.parseColor("#FFD700"));
-                  textPaint.setTextSize(40);
-                  textPaint.setTextAlign(Paint.Align.CENTER);
-                  textPaint.setFakeBoldText(true);
-                  textPaint.setShadowLayer(3, 0, 0, Color.parseColor("#FF8C00"));
+          cat > app/src/main/java/com/enjoer/game/GameRenderer.java << 'ENDRENDERER'
+          package com.enjoer.game;
+          import android.opengl.GLES30;
+          import android.opengl.GLSurfaceView;
+          import android.opengl.Matrix;
+          import java.nio.*;
+          import java.util.concurrent.CopyOnWriteArrayList;
+          import javax.microedition.khronos.egl.EGLConfig;
+          import javax.microedition.khronos.opengles.GL10;
+
+          public class GameRenderer implements GLSurfaceView.Renderer {
+              private final float[] proj=new float[16],view=new float[16],model=new float[16];
+              public float pX=0,pY=6,pZ=15,rY=0,rX=0,jX=0,jY=0,vY=0;
+              public boolean isEngineMode=false,isPlayingLevel=false,gridEnabled=true;
+              private int prog,skyProg;
+              private FloatBuffer vBuf,nBuf,skyBuf;
+              public float blockR=0.3f,blockG=0.6f,blockB=1f,blockSX=4,blockSY=4,blockSZ=4,placeDist=12f;
+              public final float gridSize=2f;
+              public CopyOnWriteArrayList<Block> blocks=new CopyOnWriteArrayList<>();
+              public CopyOnWriteArrayList<Light> lights=new CopyOnWriteArrayList<>();
+              public CopyOnWriteArrayList<Item> items=new CopyOnWriteArrayList<>();
+              public CopyOnWriteArrayList<GameText> texts=new CopyOnWriteArrayList<>();
+              public int selectedIndex=-1,selectedType=0;
+              public float screenW=1,screenH=1;
+              public int animPack=0;
+              
+              public float charSkinR=1.0f,charSkinG=0.82f,charSkinB=0.6f;
+              public float charTorsoR=0.1f,charTorsoG=0.4f,charTorsoB=1f;
+              public float charLegsR=0.1f,charLegsG=0.8f,charLegsB=0.2f;
+              public float charHairR=0.2f,charHairG=0.15f,charHairB=0.1f;
+              public int faceType=0;
+              public int currentRidixPrice=0;
+              public String currentItemName="";
+              
+              public int objType=0;
+              public int shapeType=0;
+              public int lightType=0;
+              public int itemType=0;
+              public float lightIntensity=10f;
+              
+              public String[] inventory=new String[4];
+              public PurchaseCallback purchaseCallback;
+
+              private static final float FLOOR_Y=0f,PLAYER_HEIGHT=5.2f,PLAYER_RADIUS=0.85f;
+              private static final float CAM_TARGET_Y_OFF=3.0f,CAM_DIST=14.7f;
+              private static final float LEG_H=1.6f,LEG_W=0.7f,LEG_D=0.7f,TORSO_H=1.8f,TORSO_W=1.4f,TORSO_D=0.8f,HEAD_S=1.15f,ARM_H=1.6f,ARM_W=0.55f,ARM_D=0.55f;
+
+              private float camX,camY,camZ;
+              private long lastTimeNs=0L;
+              private float walkPhase=0f,moveMag=0f,charRotation=0f,jumpPhase=0f;
+              private boolean wasOnGround=true;
+              private float blinkTimer=0f,blinkDur=0f;
+              private boolean blinking=false;
+              private float nextBlink=3f;
+              private int pendingPurchaseType=-1,pendingPurchaseIndex=-1;
+
+              public interface PurchaseCallback{
+                  void onPurchaseRequest(String itemName,int price,int type,int index);
               }
 
-              public void spawnClickParticles(float x, float y, String text) {
-                  for (int i = 0; i < 20; i++) {
-                      particles.add(new Particle(x, y, true, null));
-                  }
-                  particles.add(new Particle(x, y - 20, false, text));
+              public Block getSelectedBlock(){if(selectedType==0&&selectedIndex>=0&&selectedIndex<blocks.size())return blocks.get(selectedIndex);return null;}
+              public Light getSelectedLight(){if(selectedType==1&&selectedIndex>=0&&selectedIndex<lights.size())return lights.get(selectedIndex);return null;}
+              public Item getSelectedItem(){if(selectedType==2&&selectedIndex>=0&&selectedIndex<items.size())return items.get(selectedIndex);return null;}
+              public GameText getSelectedText(){if(selectedType==3&&selectedIndex>=0&&selectedIndex<texts.size())return texts.get(selectedIndex);return null;}
+              
+              private float snap(float v){if(!gridEnabled)return v;return Math.round(v/gridSize)*gridSize;}
+
+              public void loadBuiltInLevel(){
+                  blocks.clear();lights.clear();items.clear();texts.clear();
+                  Block b=new Block(0,2,-10,8,4,8,0.9f,0.2f,0.2f);blocks.add(b);
+                  Light l=new Light(-5,8,-8,1f,1f,0.8f,15f,false);lights.add(l);
               }
 
-              public void updateParticles() {
-                  Iterator<Particle> iterator = particles.iterator();
-                  while (iterator.hasNext()) {
-                      Particle p = iterator.next();
-                      p.update();
-                      if (p.isDead()) {
-                          iterator.remove();
-                      }
+              public void placeObject(){
+                  float rYr=(float)Math.toRadians(rY),rXr=(float)Math.toRadians(rX);
+                  float vx=(float)(Math.sin(rYr)*Math.cos(rXr)),vy=(float)Math.sin(rXr),vz=(float)(-Math.cos(rYr)*Math.cos(rXr));
+                  float nx=snap(pX+vx*placeDist),ny=snap(pY+vy*placeDist),nz=snap(pZ+vz*placeDist);
+                  if(objType==0){
+                      if(ny-blockSY/2f<FLOOR_Y)ny=FLOOR_Y+blockSY/2f;
+                      Block bl=new Block(nx,ny,nz,blockSX,blockSY,blockSZ,blockR,blockG,blockB);
+                      bl.ridixPrice=currentRidixPrice;
+                      bl.itemName=currentItemName;
+                      blocks.add(bl);
+                  }else if(objType==1){
+                      Light lg=new Light(nx,ny,nz,blockR,blockG,blockB,lightIntensity,lightType==1);
+                      lg.ridixPrice=currentRidixPrice;
+                      lg.itemName=currentItemName;
+                      lights.add(lg);
+                  }else if(objType==2){
+                      if(ny-0.5f<FLOOR_Y)ny=FLOOR_Y+0.5f;
+                      Item it=new Item(nx,ny,nz,itemType==0?"sword":"item");
+                      it.ridixPrice=currentRidixPrice;
+                      it.itemName=currentItemName;
+                      items.add(it);
+                  }else if(objType==3){
+                      String txt=currentItemName.isEmpty()?"Text":currentItemName;
+                      GameText gt=new GameText(nx,ny,nz,txt);
+                      gt.ridixPrice=currentRidixPrice;
+                      gt.itemName=txt;
+                      texts.add(gt);
                   }
-                  
-                  if (particles.size() < 30) {
-                      float x = random.nextFloat() * viewWidth;
-                      float y = viewHeight + 10;
-                      particles.add(new Particle(x, y, false, null));
+              }
+
+              public void deleteSelected(){
+                  if(selectedType==0&&selectedIndex>=0&&selectedIndex<blocks.size()){blocks.remove(selectedIndex);selectedIndex=-1;}
+                  else if(selectedType==1&&selectedIndex>=0&&selectedIndex<lights.size()){lights.remove(selectedIndex);selectedIndex=-1;}
+                  else if(selectedType==2&&selectedIndex>=0&&selectedIndex<items.size()){items.remove(selectedIndex);selectedIndex=-1;}
+                  else if(selectedType==3&&selectedIndex>=0&&selectedIndex<texts.size()){texts.remove(selectedIndex);selectedIndex=-1;}
+              }
+
+              public void moveSelected(float dx,float dy,float dz){
+                  if(selectedType==0&&selectedIndex>=0&&selectedIndex<blocks.size()){
+                      Block b=blocks.get(selectedIndex);
+                      b.x=snap(b.x+dx);b.y=snap(b.y+dy);b.z=snap(b.z+dz);
+                      if(b.y-b.sy/2f<FLOOR_Y)b.y=FLOOR_Y+b.sy/2f;
+                  }else if(selectedType==1&&selectedIndex>=0&&selectedIndex<lights.size()){
+                      Light l=lights.get(selectedIndex);
+                      l.x=snap(l.x+dx);l.y=snap(l.y+dy);l.z=snap(l.z+dz);
+                  }else if(selectedType==2&&selectedIndex>=0&&selectedIndex<items.size()){
+                      Item it=items.get(selectedIndex);
+                      it.x=snap(it.x+dx);it.y=snap(it.y+dy);it.z=snap(it.z+dz);
+                  }else if(selectedType==3&&selectedIndex>=0&&selectedIndex<texts.size()){
+                      GameText gt=texts.get(selectedIndex);
+                      gt.x=snap(gt.x+dx);gt.y=snap(gt.y+dy);gt.z=snap(gt.z+dz);
                   }
-                  
-                  invalidate();
+              }
+
+              public void toggleHideSelected(){
+                  if(selectedType==0&&selectedIndex>=0&&selectedIndex<blocks.size())blocks.get(selectedIndex).hidden=!blocks.get(selectedIndex).hidden;
+                  else if(selectedType==1&&selectedIndex>=0&&selectedIndex<lights.size())lights.get(selectedIndex).hidden=!lights.get(selectedIndex).hidden;
+                  else if(selectedType==2&&selectedIndex>=0&&selectedIndex<items.size())items.get(selectedIndex).hidden=!items.get(selectedIndex).hidden;
+                  else if(selectedType==3&&selectedIndex>=0&&selectedIndex<texts.size())texts.get(selectedIndex).hidden=!texts.get(selectedIndex).hidden;
+              }
+
+              public int raycastBlock(float tx,float ty){
+                  float ndcX=(2f*tx/screenW)-1f,ndcY=1f-(2f*ty/screenH);
+                  float[]iP=new float[16],iV=new float[16];Matrix.invertM(iP,0,proj,0);Matrix.invertM(iV,0,view,0);
+                  float[]nn={ndcX,ndcY,-1,1},ff2={ndcX,ndcY,1,1},t=new float[4];
+                  Matrix.multiplyMV(t,0,iP,0,nn,0);for(int i=0;i<4;i++)t[i]/=t[3];
+                  float[]nW=new float[4];Matrix.multiplyMV(nW,0,iV,0,t,0);
+                  Matrix.multiplyMV(t,0,iP,0,ff2,0);for(int i=0;i<4;i++)t[i]/=t[3];
+                  float[]fW=new float[4];Matrix.multiplyMV(fW,0,iV,0,t,0);
+                  float dx=fW[0]-nW[0],dy=fW[1]-nW[1],dz=fW[2]-nW[2];
+                  float len=(float)Math.sqrt(dx*dx+dy*dy+dz*dz);dx/=len;dy/=len;dz/=len;
+                  int closest=-1;float cD=Float.MAX_VALUE;
+                  for(int i=0;i<blocks.size();i++){
+                      Block b=blocks.get(i);
+                      float mn=(b.minX()-nW[0])/(dx==0?.0001f:dx),mx2=(b.maxX()-nW[0])/(dx==0?.0001f:dx);if(mn>mx2){float tmp=mn;mn=mx2;mx2=tmp;}
+                      float yn=(b.minY()-nW[1])/(dy==0?.0001f:dy),yx2=(b.maxY()-nW[1])/(dy==0?.0001f:dy);if(yn>yx2){float tmp=yn;yn=yx2;yx2=tmp;}
+                      if(mn>yx2||yn>mx2)continue;if(yn>mn)mn=yn;if(yx2<mx2)mx2=yx2;
+                      float zn=(b.minZ()-nW[2])/(dz==0?.0001f:dz),zx=(b.maxZ()-nW[2])/(dz==0?.0001f:dz);if(zn>zx){float tmp=zn;zn=zx;zx=tmp;}
+                      if(mn>zx||zn>mx2)continue;if(zn>mn)mn=zn;
+                      if(mn>0&&mn<cD){cD=mn;closest=i;}
+                  }
+                  return closest;
               }
 
               @Override
-              protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-                  super.onSizeChanged(w, h, oldw, oldh);
-                  viewWidth = w;
-                  viewHeight = h;
+              public void onSurfaceCreated(GL10 gl,EGLConfig cfg){
+                  GLES30.glEnable(GLES30.GL_DEPTH_TEST);GLES30.glDepthFunc(GLES30.GL_LEQUAL);
+
+                  String vs=
+                  "#version 300 es\n"+
+                  "layout(location=0)in vec4 aP;layout(location=1)in vec3 aN;"+
+                  "uniform mat4 uMVP,uM;out vec3 vN,vP;"+
+                  "void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
+
+                  String fs=
+                  "#version 300 es\nprecision highp float;"+
+                  "in vec3 vN,vP;uniform vec3 camP;uniform vec4 uC;uniform float uSel,isFloor;"+
+                  "uniform int numLights;uniform vec3 lightPos[8];uniform vec3 lightCol[8];uniform float lightInt[8];"+
+                  "out vec4 fC;"+
+                  "void main(){"+
+                  "vec3 n=normalize(vN);"+
+                  "vec3 vD=normalize(camP-vP);"+
+                  "vec3 lD1=normalize(vec3(0.5,1.0,0.3));"+
+                  "float d1=max(dot(n,lD1),0.0);"+
+                  "vec3 lD2=normalize(vec3(-0.5,0.5,-0.3));"+
+                  "float d2=max(dot(n,lD2),0.0)*0.45;"+
+                  "vec3 lD3=normalize(vec3(0.0,-0.5,-1.0));"+
+                  "float d3=max(dot(n,lD3),0.0)*0.2;"+
+                  "float ao=clamp(vP.y*0.06+0.7,0.55,1.0);"+
+                  "vec3 h=normalize(lD1+vD);float spec=pow(max(dot(n,h),0.0),64.0)*0.5;"+
+                  "vec3 col=uC.rgb;if(uSel>0.5)col+=vec3(0.0,0.5,0.8);"+
+                  "vec3 amb=vec3(0.16,0.20,0.26)*ao;"+
+                  "vec3 fin=col*(d1*vec3(1.0,0.98,0.94)+d2*vec3(0.7,0.75,0.85)+d3*vec3(0.3,0.4,0.5)+amb)+spec;"+
+                  "for(int i=0;i<numLights&&i<8;i++){"+
+                  "vec3 lDir=lightPos[i]-vP;float dist=length(lDir);lDir=normalize(lDir);"+
+                  "float atten=lightInt[i]/(1.0+dist*dist*0.01);"+
+                  "float diff=max(dot(n,lDir),0.0);"+
+                  "fin+=col*lightCol[i]*diff*atten;"+
+                  "}"+
+                  "if(isFloor>0.5){"+
+                  "vec2 gv=fract(vP.xz*0.2);float ln=step(0.95,gv.x)+step(0.95,gv.y);"+
+                  "vec3 floorCol=fin*0.85;"+
+                  "fin=mix(floorCol,vec3(0.0,0.35,0.65),clamp(ln,0.0,1.0)*0.4);"+
+                  "}"+
+                  "float dist=length(camP-vP);float fog=1.0-exp(-dist*0.005);"+
+                  "vec3 c=mix(fin,vec3(0.03,0.08,0.18),clamp(fog,0.0,0.75));"+
+                  "c=c*1.3;c=(c*(2.51*c+0.03))/(c*(2.43*c+0.59)+0.14);"+
+                  "fC=vec4(c,uC.a);}";
+
+                  String svs=
+                  "#version 300 es\nlayout(location=0)in vec3 aP;out vec3 vDir;uniform mat4 uInvVP;"+
+                  "void main(){vec4 w=uInvVP*vec4(aP,1.0);vDir=normalize(w.xyz/w.w);gl_Position=vec4(aP,1.0);}";
+
+                  String sfs=
+                  "#version 300 es\nprecision highp float;in vec3 vDir;out vec4 fC;"+
+                  "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}"+
+                  "void main(){"+
+                  "vec3 d=normalize(vDir);float t=clamp(d.y*0.5+0.5,0.0,1.0);"+
+                  "vec3 col=mix(vec3(0.01,0.02,0.06),vec3(0.05,0.2,0.45),t);"+
+                  "vec3 da=abs(d);vec2 uv=(da.y>da.x&&da.y>da.z)?d.xz:(da.x>da.z?d.yz:d.xy);"+
+                  "uv*=55.0;vec2 id=floor(uv),gv=fract(uv)-0.5;"+
+                  "float rnd=hash(id);float star=step(0.995,rnd);"+
+                  "float s=smoothstep(0.18,0.0,length(gv))*star*(0.7+0.3*sin(rnd*100.0))*2.8;"+
+                  "col+=mix(vec3(1.0,0.95,0.85),vec3(0.8,0.9,1.0),hash(id+4.3))*s;"+
+                  "fC=vec4(col,1.0);}";
+
+                  prog=mkProg(vs,fs);skyProg=mkProg(svs,sfs);
+
+                  float[]vc={
+                      -.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,
+                      -.5f,.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,.5f,-.5f,-.5f,
+                      -.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f,.5f,.5f,
+                      -.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,-.5f,.5f,
+                      -.5f,.5f,-.5f,-.5f,-.5f,-.5f,-.5f,.5f,.5f,-.5f,-.5f,.5f,
+                      .5f,.5f,-.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,-.5f,.5f
+                  };
+                  float[]nc={
+                      0,0,1,0,0,1,0,0,1,0,0,1,
+                      0,0,-1,0,0,-1,0,0,-1,0,0,-1,
+                      0,1,0,0,1,0,0,1,0,0,1,0,
+                      0,-1,0,0,-1,0,0,-1,0,0,-1,0,
+                      -1,0,0,-1,0,0,-1,0,0,-1,0,0,
+                      1,0,0,1,0,0,1,0,0,1,0,0
+                  };
+                  float[]sq={-1f,-1f,1f,1f,-1f,1f,-1f,1f,1f,1f,1f,1f};
+                  vBuf=mkFB(vc);nBuf=mkFB(nc);skyBuf=mkFB(sq);
+                  loadBuiltInLevel();lastTimeNs=System.nanoTime();
               }
 
+              private FloatBuffer mkFB(float[]d){FloatBuffer b=ByteBuffer.allocateDirect(d.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer();b.put(d);b.position(0);return b;}
+
+              @Override public void onSurfaceChanged(GL10 gl,int w,int h){GLES30.glViewport(0,0,w,h);Matrix.perspectiveM(proj,0,55,(float)w/h,0.1f,500f);screenW=w;screenH=h;}
+
               @Override
-              protected void onDraw(Canvas canvas) {
-                  super.onDraw(canvas);
+              public void onDrawFrame(GL10 gl){
+                  update();
+                  GLES30.glClearColor(0.01f,0.015f,0.03f,1f);
+                  GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT|GLES30.GL_DEPTH_BUFFER_BIT);
+                  float rYr=(float)Math.toRadians(rY);
+                  float fwdX=(float)Math.sin(rYr),fwdZ=(float)-Math.cos(rYr);
+                  if(isEngineMode&&!isPlayingLevel){
+                      float rXr=(float)Math.toRadians(rX);
+                      camX=pX;camY=pY;camZ=pZ;
+                      Matrix.setLookAtM(view,0,camX,camY,camZ,pX+fwdX*(float)Math.cos(rXr),pY+(float)Math.sin(rXr),pZ+fwdZ*(float)Math.cos(rXr),0,1,0);
+                  } else {
+                      float targetY=pY-PLAYER_HEIGHT+CAM_TARGET_Y_OFF;
+                      float rXr=(float)Math.toRadians(rX);
+                      float hDist=CAM_DIST*(float)Math.cos(rXr);
+                      float vOff=CAM_DIST*(float)Math.sin(rXr);
+                      camX=pX-fwdX*hDist;camY=targetY+vOff;camZ=pZ-fwdZ*hDist;
+                      if(camY<0.2f)camY=0.2f;
+                      Matrix.setLookAtM(view,0,camX,camY,camZ,pX,targetY,pZ,0,1,0);
+                  }
+                  float[]vp=new float[16];Matrix.multiplyMM(vp,0,proj,0,view,0);
+                  drawSky(vp);drawWorld(vp);
+              }
+
+              private void drawSky(float[]vp){
+                  GLES30.glDepthMask(false);GLES30.glUseProgram(skyProg);
+                  float[]inv=new float[16];Matrix.invertM(inv,0,vp,0);
+                  GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(skyProg,"uInvVP"),1,false,inv,0);
+                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,skyBuf);GLES30.glEnableVertexAttribArray(0);
+                  GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,0,4);GLES30.glDepthMask(true);
+              }
+
+              private void drawWorld(float[]vp){
+                  GLES30.glUseProgram(prog);
+                  int uMVP=GLES30.glGetUniformLocation(prog,"uMVP"),uM=GLES30.glGetUniformLocation(prog,"uM"),uC=GLES30.glGetUniformLocation(prog,"uC");
+                  int uSel=GLES30.glGetUniformLocation(prog,"uSel"),uFloor=GLES30.glGetUniformLocation(prog,"isFloor");
+                  GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"camP"),camX,camY,camZ);
                   
-                  for (Particle p : particles) {
-                      if (p.isGold) {
-                          paint.setColor(p.color);
-                          paint.setAlpha((int)(p.alpha * 255));
-                          canvas.drawCircle(p.x, p.y, p.size, paint);
-                      } else if (p.text != null) {
-                          textPaint.setAlpha((int)(p.textAlpha * 255));
-                          canvas.drawText(p.text, p.x, p.y, textPaint);
-                      } else {
-                          paint.setColor(p.color);
-                          paint.setAlpha((int)(p.alpha * 255));
-                          canvas.drawCircle(p.x, p.y, p.size, paint);
+                  int nL=Math.min(lights.size(),8);
+                  GLES30.glUniform1i(GLES30.glGetUniformLocation(prog,"numLights"),isEngineMode?nL:nL);
+                  float[]lp=new float[24],lc=new float[24],li=new float[8];
+                  for(int i=0;i<nL;i++){Light l=lights.get(i);if(l.hidden||(!isEngineMode&&l.ridixPrice>0&&!l.purchased))continue;lp[i*3]=l.x;lp[i*3+1]=l.y;lp[i*3+2]=l.z;lc[i*3]=l.r;lc[i*3+1]=l.g;lc[i*3+2]=l.b;li[i]=l.intensity;}
+                  GLES30.glUniform3fv(GLES30.glGetUniformLocation(prog,"lightPos"),8,lp,0);
+                  GLES30.glUniform3fv(GLES30.glGetUniformLocation(prog,"lightCol"),8,lc,0);
+                  GLES30.glUniform1fv(GLES30.glGetUniformLocation(prog,"lightInt"),8,li,0);
+                  
+                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);GLES30.glEnableVertexAttribArray(0);
+                  GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,0,nBuf);GLES30.glEnableVertexAttribArray(1);
+                  Matrix.setIdentityM(model,0);Matrix.scaleM(model,0,800f,0.04f,800f);
+                  GLES30.glUniform1f(uSel,0f);GLES30.glUniform1f(uFloor,1f);draw(vp,uM,uMVP,uC,0.07f,0.12f,0.2f,1f);
+                  GLES30.glUniform1f(uFloor,0f);
+                  
+                  for(int i=0;i<blocks.size();i++){
+                      Block b=blocks.get(i);if(b.hidden||(!isEngineMode&&b.ridixPrice>0&&!b.purchased))continue;
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,b.x,b.y,b.z);Matrix.scaleM(model,0,b.sx,b.sy,b.sz);
+                      GLES30.glUniform1f(uSel,(selectedType==0&&i==selectedIndex&&isEngineMode&&!isPlayingLevel)?1f:0f);
+                      draw(vp,uM,uMVP,uC,b.r,b.g,b.b,1f);
+                  }
+                  
+                  if(isEngineMode){
+                      for(int i=0;i<lights.size();i++){
+                          Light l=lights.get(i);if(l.hidden)continue;
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,l.x,l.y,l.z);Matrix.scaleM(model,0,0.5f,0.5f,0.5f);
+                          GLES30.glUniform1f(uSel,(selectedType==1&&i==selectedIndex&&!isPlayingLevel)?1f:0f);
+                          GLES30.glEnable(GLES30.GL_BLEND);GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE);
+                          draw(vp,uM,uMVP,uC,l.r,l.g,l.b,0.8f);
+                          GLES30.glDisable(GLES30.GL_BLEND);
+                      }
+                  }
+                  
+                  for(int i=0;i<items.size();i++){
+                      Item it=items.get(i);if(it.hidden||it.collected||(!isEngineMode&&it.ridixPrice>0&&!it.purchased))continue;
+                      if(it.type.equals("sword")){
+                          float ang=(System.currentTimeMillis()%3600)/10f;
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,it.x,it.y+(float)Math.sin(Math.toRadians(ang))*0.15f,it.z);Matrix.rotateM(model,0,ang*2f,0,1,0);Matrix.scaleM(model,0,0.12f,0.8f,0.03f);
+                          GLES30.glUniform1f(uSel,(selectedType==2&&i==selectedIndex&&isEngineMode&&!isPlayingLevel)?1f:0f);
+                          draw(vp,uM,uMVP,uC,0.7f,0.7f,0.8f,1f);
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,it.x,it.y+(float)Math.sin(Math.toRadians(ang))*0.15f-0.5f,it.z);Matrix.rotateM(model,0,ang*2f,0,1,0);Matrix.scaleM(model,0,0.25f,0.15f,0.08f);
+                          draw(vp,uM,uMVP,uC,0.4f,0.25f,0.15f,1f);
+                      }
+                  }
+                  
+                  if(isEngineMode&&!isPlayingLevel&&selectedIndex<0){
+                      float rYr=(float)Math.toRadians(rY),rXr=(float)Math.toRadians(rX);
+                      float vx2=(float)(Math.sin(rYr)*Math.cos(rXr)),vy2=(float)Math.sin(rXr),vz2=(float)(-Math.cos(rYr)*Math.cos(rXr));
+                      float px=snap(pX+vx2*placeDist),py2=snap(pY+vy2*placeDist),pz=snap(pZ+vz2*placeDist);
+                      if(objType==0){
+                          if(py2-blockSY/2f<FLOOR_Y)py2=FLOOR_Y+blockSY/2f;
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,blockSX,blockSY,blockSZ);
+                      }else if(objType==1){
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,0.5f,0.5f,0.5f);
+                      }else if(objType==2){
+                          if(py2-0.5f<FLOOR_Y)py2=FLOOR_Y+0.5f;
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,0.12f,0.8f,0.03f);
+                      }else{
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,0.5f,0.5f,0.5f);
+                      }
+                      GLES30.glEnable(GLES30.GL_BLEND);GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
+                      GLES30.glUniform1f(uSel,0f);draw(vp,uM,uMVP,uC,blockR,blockG,blockB,0.4f);
+                      GLES30.glDisable(GLES30.GL_BLEND);
+                  }
+                  if(!(isEngineMode&&!isPlayingLevel))drawPlayerChar(vp,uM,uMVP,uC);
+              }
+
+              private void update(){
+                  long now=System.nanoTime();
+                  if(lastTimeNs==0L)lastTimeNs=now;
+                  float dt=Math.min((now-lastTimeNs)/1e9f,0.05f);lastTimeNs=now;
+                  moveMag=(float)Math.min(1.0,Math.sqrt(jX*jX+jY*jY));
+                  blinkTimer+=dt;
+                  if(!blinking&&blinkTimer>nextBlink){blinking=true;blinkDur=0.12f;blinkTimer=0;nextBlink=2f+(float)(Math.random()*4f);}
+                  if(blinking){blinkDur-=dt;if(blinkDur<=0)blinking=false;}
+                  float s=0.42f,rYr=(float)Math.toRadians(rY);
+                  if(isEngineMode&&!isPlayingLevel){
+                      float rXr=(float)Math.toRadians(rX);
+                      float fx=(float)Math.sin(rYr),fz=(float)-Math.cos(rYr),fy=(float)Math.sin(rXr);
+                      pX+=(fx*-jY+(float)Math.cos(rYr)*jX)*s;pZ+=(fz*-jY+(float)Math.sin(rYr)*jX)*s;pY+=fy*-jY*s;
+                  } else {
+                      float mX=((float)Math.sin(rYr)*-jY+(float)Math.cos(rYr)*jX)*s;
+                      float mZ=((float)-Math.cos(rYr)*-jY+(float)Math.sin(rYr)*jX)*s;
+                      vY-=0.025f;
+                      float nX=pX+mX,nY=pY+vY,nZ=pZ+mZ,fY=nY-PLAYER_HEIGHT;
+                      if(fY<FLOOR_Y){nY=FLOOR_Y+PLAYER_HEIGHT;vY=0;}
+                      for(Block b:blocks){
+                          if(!isEngineMode&&b.ridixPrice>0&&!b.purchased)continue;
+                          boolean oxz=nX+PLAYER_RADIUS>b.minX()&&nX-PLAYER_RADIUS<b.maxX()&&nZ+PLAYER_RADIUS>b.minZ()&&nZ-PLAYER_RADIUS<b.maxZ();
+                          boolean oy=fY<b.maxY()-0.1f&&nY>b.minY()+0.1f;
+                          if(oxz){
+                              if(pY-PLAYER_HEIGHT>=b.maxY()-0.15f&&fY<b.maxY()){nY=b.maxY()+PLAYER_HEIGHT;vY=0;}
+                              else if(pY<b.minY()&&nY>b.minY()){nY=b.minY();vY=0;}
+                              else if(oy){
+                                  float ox1=(nX+PLAYER_RADIUS)-b.minX(),ox2=b.maxX()-(nX-PLAYER_RADIUS),oz1=(nZ+PLAYER_RADIUS)-b.minZ(),oz2=b.maxZ()-(nZ-PLAYER_RADIUS);
+                                  float mo=Math.min(Math.min(ox1,ox2),Math.min(oz1,oz2));
+                                  if(mo==ox1)nX=b.minX()-PLAYER_RADIUS;else if(mo==ox2)nX=b.maxX()+PLAYER_RADIUS;
+                                  else if(mo==oz1)nZ=b.minZ()-PLAYER_RADIUS;else nZ=b.maxZ()+PLAYER_RADIUS;
+                              }
+                          }
+                      }
+                      pX=nX;pY=nY;pZ=nZ;
+                      boolean og=isOnGround();
+                      if(!og&&wasOnGround)jumpPhase=0f;
+                      if(!og)jumpPhase=Math.min(1f,jumpPhase+dt*5f);
+                      else jumpPhase=Math.max(0f,jumpPhase-dt*8f);
+                      wasOnGround=og;
+                      if(moveMag>0.05f){charRotation=(float)Math.toDegrees(Math.atan2(mX,mZ));if(og)walkPhase+=dt*9.5f*moveMag;}
+                      
+                      for(int i=0;i<items.size();i++){
+                          Item it=items.get(i);
+                          if(!it.collected&&pX+PLAYER_RADIUS>it.minX()&&pX-PLAYER_RADIUS<it.maxX()&&pY-PLAYER_HEIGHT<it.maxY()&&pY>it.minY()&&pZ+PLAYER_RADIUS>it.minZ()&&pZ-PLAYER_RADIUS<it.maxZ()){
+                              if(it.ridixPrice>0&&!it.purchased&&pendingPurchaseType!=2){
+                                  pendingPurchaseType=2;pendingPurchaseIndex=i;
+                                  if(purchaseCallback!=null)purchaseCallback.onPurchaseRequest(it.itemName.isEmpty()?it.type:it.itemName,it.ridixPrice,2,i);
+                              }else if(it.ridixPrice==0||it.purchased){
+                                  for(int j=0;j<inventory.length;j++){
+                                      if(inventory[j]==null){
+                                          String nm=it.itemName.isEmpty()?it.type:it.itemName;
+                                          inventory[j]=nm.length()>3?nm.substring(0,3):nm;
+                                          it.collected=true;break;
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                      for(int i=0;i<blocks.size();i++){
+                          Block b=blocks.get(i);
+                          if(b.ridixPrice>0&&!b.purchased&&pendingPurchaseType!=0&&pX+PLAYER_RADIUS>b.minX()&&pX-PLAYER_RADIUS<b.maxX()&&pY-PLAYER_HEIGHT<b.maxY()&&pY>b.minY()&&pZ+PLAYER_RADIUS>b.minZ()&&pZ-PLAYER_RADIUS<b.maxZ()){
+                              pendingPurchaseType=0;pendingPurchaseIndex=i;
+                              if(purchaseCallback!=null)purchaseCallback.onPurchaseRequest(b.itemName.isEmpty()?"Block":b.itemName,b.ridixPrice,0,i);
+                          }
                       }
                   }
               }
-          }
-          EOF
 
-          cat > app/src/main/java/com/clicker/game/Upgrade.java << 'EOF'
-          package com.clicker.game;
-          public class Upgrade {
-              public String name;
-              public String description;
-              public long baseCost;
-              public long costMultiplier;
-              public long gpsIncrease;
-              public long clickIncrease;
-              public int level;
-              public int maxLevel;
-              public Upgrade(String name, String description, long baseCost, long costMultiplier, 
-                           long gpsIncrease, long clickIncrease, int maxLevel) {
-                  this.name = name;
-                  this.description = description;
-                  this.baseCost = baseCost;
-                  this.costMultiplier = costMultiplier;
-                  this.gpsIncrease = gpsIncrease;
-                  this.clickIncrease = clickIncrease;
-                  this.level = 0;
-                  this.maxLevel = maxLevel;
+              public void completePurchase(int type,int index){
+                  if(type==0&&index>=0&&index<blocks.size())blocks.get(index).purchased=true;
+                  else if(type==2&&index>=0&&index<items.size())items.get(index).purchased=true;
+                  pendingPurchaseType=-1;pendingPurchaseIndex=-1;
               }
-              public long getCurrentCost() {
-                  if (level >= maxLevel) return Long.MAX_VALUE;
-                  return baseCost * (long)Math.pow(costMultiplier, level);
-              }
-              public boolean canBuy() { return level < maxLevel; }
-              public void levelUp() { if (canBuy()) level++; }
-          }
-          EOF
 
-          cat > app/src/main/java/com/clicker/game/GameManager.java << 'EOF'
-          package com.clicker.game;
-          import java.util.ArrayList;
-          import java.util.List;
-          public class GameManager {
-              public long gold = 0;
-              public long totalGoldEarned = 0;
-              public long goldPerSecond = 0;
-              public long clickValue = 1;
-              public long prestigeMultiplier = 1;
-              public int prestigeCount = 0;
-              public List<Upgrade> upgrades;
-              public long lastUpdateTime;
-              public static final long PRESTIGE_COST = 100000;
-              public GameManager() {
-                  upgrades = new ArrayList<>();
-                  initializeUpgrades();
-                  lastUpdateTime = System.currentTimeMillis();
-              }
-              private void initializeUpgrades() {
-                  upgrades.add(new Upgrade("💪 Сила клика", "Увеличивает силу клика на 1", 10, 2, 0, 1, 100));
-                  upgrades.add(new Upgrade("⛏ Шахтёр", "Добывает 1 золота в секунду", 25, 2, 1, 0, 50));
-                  upgrades.add(new Upgrade("⚒ Кирка", "Увеличивает силу клика на 5", 100, 3, 0, 5, 75));
-                  upgrades.add(new Upgrade("🏭 Фабрика", "Производит 5 золота в секунду", 250, 3, 5, 0, 50));
-                  upgrades.add(new Upgrade("✨ Золотое касание", "Увеличивает силу клика на 25", 1000, 4, 0, 25, 50));
-                  upgrades.add(new Upgrade("⚡ Электростанция", "Производит 25 золота в секунду", 2500, 4, 25, 0, 40));
-                  upgrades.add(new Upgrade("💎 Алмазная кирка", "Увеличивает силу клика на 100", 5000, 5, 0, 100, 30));
-                  upgrades.add(new Upgrade("🚀 Космостанция", "Производит 100 золота в секунду", 10000, 5, 100, 0, 25));
-                  upgrades.add(new Upgrade("🌌 Квантовый клик", "Увеличивает силу клика на 500", 25000, 6, 0, 500, 20));
-                  upgrades.add(new Upgrade("🤖 ИИ Властелин", "Производит 500 золота в секунду", 50000, 6, 500, 0, 15));
-              }
-              public void click() {
-                  long earned = clickValue * prestigeMultiplier;
-                  gold += earned;
-                  totalGoldEarned += earned;
-              }
-              public void update() {
-                  long now = System.currentTimeMillis();
-                  long deltaTime = (now - lastUpdateTime) / 1000;
-                  if (deltaTime > 0) {
-                      long earned = goldPerSecond * deltaTime * prestigeMultiplier;
-                      gold += earned;
-                      totalGoldEarned += earned;
-                      lastUpdateTime = now;
-                  }
-              }
-              public boolean buyUpgrade(int index) {
-                  if (index < 0 || index >= upgrades.size()) return false;
-                  Upgrade upgrade = upgrades.get(index);
-                  if (!upgrade.canBuy()) return false;
-                  long cost = upgrade.getCurrentCost();
-                  if (gold >= cost) {
-                      gold -= cost;
-                      upgrade.levelUp();
-                      if (upgrade.gpsIncrease > 0) goldPerSecond += upgrade.gpsIncrease;
-                      if (upgrade.clickIncrease > 0) clickValue += upgrade.clickIncrease;
-                      return true;
+              public void cancelPurchase(){pendingPurchaseType=-1;pendingPurchaseIndex=-1;}
+
+              public boolean isOnGround(){
+                  if(pY-PLAYER_HEIGHT<=FLOOR_Y+0.1f)return true;
+                  for(Block b:blocks){
+                      if(!isEngineMode&&b.ridixPrice>0&&!b.purchased)continue;
+                      if(pX+PLAYER_RADIUS>b.minX()&&pX-PLAYER_RADIUS<b.maxX()&&pZ+PLAYER_RADIUS>b.minZ()&&pZ-PLAYER_RADIUS<b.maxZ()&&Math.abs((pY-PLAYER_HEIGHT)-b.maxY())<0.15f)return true;
                   }
                   return false;
               }
-              public boolean canPrestige() { return gold >= PRESTIGE_COST; }
-              public void prestige() {
-                  if (!canPrestige()) return;
-                  prestigeCount++;
-                  prestigeMultiplier *= 2;
-                  gold = 0;
-                  goldPerSecond = 0;
-                  clickValue = 1;
-                  for (Upgrade upgrade : upgrades) upgrade.level = 0;
-              }
-          }
-          EOF
 
-          cat > app/src/main/java/com/clicker/game/MainActivity.java << 'ENDMAIN'
-          package com.clicker.game;
+              public void doJump(){
+                  if(isOnGround())vY=0.55f;
+              }
+
+              private void drawPlayerChar(float[]vp,int uM,int uMVP,int uC){
+                  GLES30.glUniform1f(GLES30.glGetUniformLocation(prog,"uSel"),0f);
+                  drawDefault(vp,uM,uMVP,uC);
+              }
+
+              private void drawDefault(float[]vp,int uM,int uMVP,int uC){
+                  float footY=pY-PLAYER_HEIGHT;
+                  boolean og=isOnGround();
+                  float ws=(float)Math.sin(walkPhase)*38f*moveMag*(og?1f:0f);
+                  float jsp=jumpPhase*65f;
+                  float la=(float)Math.sin(walkPhase)*(-28f)*moveMag*(og?1f:0f);
+
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,LEG_H+TORSO_H/2f,0);Matrix.scaleM(model,0,TORSO_W,TORSO_H,TORSO_D);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,LEG_H+TORSO_H+HEAD_S/2f,0);Matrix.scaleM(model,0,HEAD_S,HEAD_S,HEAD_S);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,LEG_H+TORSO_H+HEAD_S*0.8f,0);Matrix.scaleM(model,0,HEAD_S*0.9f,HEAD_S*0.35f,HEAD_S*0.8f);draw(vp,uM,uMVP,uC,charHairR,charHairG,charHairB,1f);
+                  
+                  drawFace(vp,uM,uMVP,uC,pX,footY,pZ,charRotation,LEG_H+TORSO_H+HEAD_S/2f,HEAD_S);
+
+                  float sY=LEG_H+TORSO_H-0.2f;
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(TORSO_W/2f+ARM_W/2f),sY,0);Matrix.rotateM(model,0,ws,1,0,0);Matrix.rotateM(model,0,-jsp,0,0,1);Matrix.translateM(model,0,0,-ARM_H/2f,0);Matrix.scaleM(model,0,ARM_W,ARM_H,ARM_D);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(TORSO_W/2f+ARM_W/2f),sY,0);Matrix.rotateM(model,0,-ws,1,0,0);Matrix.rotateM(model,0,jsp,0,0,1);Matrix.translateM(model,0,0,-ARM_H/2f,0);Matrix.scaleM(model,0,ARM_W,ARM_H,ARM_D);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
+                  
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-0.35f,LEG_H,0);Matrix.rotateM(model,0,la,1,0,0);Matrix.translateM(model,0,0,-LEG_H/2f,0);Matrix.scaleM(model,0,LEG_W,LEG_H,LEG_D);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0.35f,LEG_H,0);Matrix.rotateM(model,0,-la,1,0,0);Matrix.translateM(model,0,0,-LEG_H/2f,0);Matrix.scaleM(model,0,LEG_W,LEG_H,LEG_D);draw(vp,uM,uMVP,uC,charLegsR,charLegsG,charLegsB,1f);
+              }
+
+              private void drawFace(float[]vp,int uM,int uMVP,int uC,float px,float baseY,float pz,float rot,float headCenterY,float hS){
+                  float eyeY=headCenterY+hS*0.1f;
+                  float eyeZ=hS*0.51f;
+                  float eyeScaleX=hS*0.17f,eyeScaleY=blinking?(hS*0.04f):(hS*0.17f),eyeScaleZ=hS*0.08f;
+
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,-hS*0.22f,eyeY,eyeZ);Matrix.scaleM(model,0,eyeScaleX,eyeScaleY,eyeScaleZ);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+                  Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,hS*0.22f,eyeY,eyeZ);Matrix.scaleM(model,0,eyeScaleX,eyeScaleY,eyeScaleZ);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+
+                  float mouthY=headCenterY-hS*0.2f;
+                  float mouthZ=eyeZ;
+                  
+                  if(faceType==0){
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.35f,hS*0.06f,hS*0.06f);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+                  } else if(faceType==1){
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY,mouthZ);Matrix.scaleM(model,0,hS*0.2f,hS*0.05f,hS*0.06f);draw(vp,uM,uMVP,uC,0f,0f,0f,1f);
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,baseY,pz);Matrix.rotateM(model,0,rot,0,1,0);Matrix.translateM(model,0,0,mouthY-hS*0.12f,mouthZ);Matrix.scaleM(model,0,hS*0.08f,hS*0.12f,hS*0.06f);draw(vp,uM,uMVP,uC,1f,0.3f,0.3f,1f);
+                  }
+              }
+
+              private void draw(float[]vp,int uM,int uMVP,int uC,float r,float g,float b,float a){
+                  GLES30.glUniformMatrix4fv(uM,1,false,model,0);
+                  float[]res=new float[16];Matrix.multiplyMM(res,0,vp,0,model,0);
+                  GLES30.glUniformMatrix4fv(uMVP,1,false,res,0);
+                  GLES30.glUniform4f(uC,r,g,b,a);
+                  for(int i=0;i<6;i++)GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
+              }
+
+              private int mkProg(String v,String f){int p=GLES30.glCreateProgram();GLES30.glAttachShader(p,mkSh(GLES30.GL_VERTEX_SHADER,v));GLES30.glAttachShader(p,mkSh(GLES30.GL_FRAGMENT_SHADER,f));GLES30.glLinkProgram(p);return p;}
+              private int mkSh(int t,String s){int sh=GLES30.glCreateShader(t);GLES30.glShaderSource(sh,s);GLES30.glCompileShader(sh);return sh;}
+          }
+          ENDRENDERER
+
+          cat > app/src/main/java/com/enjoer/game/MainActivity.java << 'ENDMAIN'
+          package com.enjoer.game;
+          import android.annotation.SuppressLint;
+          import android.content.Intent;
           import android.content.SharedPreferences;
-          import android.graphics.Color;
+          import android.content.pm.ActivityInfo;
           import android.graphics.drawable.GradientDrawable;
           import android.os.Bundle;
           import android.os.Handler;
           import android.os.Looper;
+          import android.view.MotionEvent;
           import android.view.View;
-          import android.view.animation.Animation;
-          import android.view.animation.AnimationUtils;
-          import android.widget.Button;
-          import android.widget.LinearLayout;
-          import android.widget.TextView;
-          import android.widget.Toast;
+          import android.widget.*;
+          import androidx.activity.result.ActivityResultLauncher;
+          import androidx.activity.result.contract.ActivityResultContracts;
           import androidx.appcompat.app.AppCompatActivity;
+          import org.json.JSONArray;
+          import org.json.JSONObject;
+          import org.mozilla.javascript.Context;
+          import org.mozilla.javascript.Scriptable;
+          import org.mozilla.javascript.ScriptableObject;
+          import java.io.*;
 
           public class MainActivity extends AppCompatActivity {
-              private GameManager gameManager;
-              private TextView txtGold, txtGPS, txtClickPower, txtPrestige, txtMultiplier, txtTotalEarned;
-              private Button btnClick, btnPrestige;
-              private LinearLayout upgradesContainer;
-              private ParticleView particleView;
-              private Handler handler;
-              private Runnable updateRunnable, particleRunnable;
-              private SharedPreferences prefs;
-              private long lastClickTime = 0;
+              private GameRenderer ren;
+              private float lx,ly;
+              private Button[]distBtn,shapeBtn,typeBtn,lightBtn,itemBtn;
+              private View[]colorBtn;
+              private View axisPanel,menuUI,gameUI,engineUI,playtestUI,customizeUI,scriptUI,purchaseDialog;
+              private Button btnHide,btnDelete,btnDeselect,btnGrid;
+              private TextView txtSizeInfo,txtRidixLobby,txtRidixShop,txtIntensity,scriptOutput,ridixValue;
+              private TextView purchaseItemName,purchasePrice,purchaseBalance;
+              private EditText scriptEditor,textInput,purchaseNameInput;
+              private View shapePanel,lightPanel,itemPanel,textPanel,sizePanel,intensityPanel;
+              private TextView lblShape,lblSize,lblIntensity;
+              private ActivityResultLauncher<Intent> saveLauncher,loadLauncher;
+              private Handler handler=new Handler(Looper.getMainLooper());
+              private int ridix=0;
+              private boolean infiniteRidix=false;
+              private Runnable ridixTimer;
+              private static final int RIDIX_SEC=50,RIDIX_REWARD=15,PACK_PRICE=50;
+              private boolean ownedFly=false;
+              private int equippedPack=0;
+              private int selectedFace=0;
+              private TextView[]invSlots=new TextView[4];
+              private TextView[]playtestInvSlots=new TextView[4];
+              private int pendingPurchaseType=-1,pendingPurchaseIndex=-1;
 
+              private static final float[][]SKIN_C={{1f,0.82f,0.6f},{1f,0.7f,0.5f},{0.6f,0.35f,0.15f},{1f,0.6f,0.4f},{0.88f,0.78f,0.68f},{0.28f,0.18f,0.1f}};
+              private static final float[][]TORSO_C={{0.1f,0.4f,1f},{1f,0.1f,0.1f},{0.1f,0.8f,0.1f},{0.8f,0f,0.8f},{1f,0.5f,0f},{0.15f,0.15f,0.15f}};
+              private static final float[][]LEGS_C={{0.1f,0.8f,0.2f},{0.1f,0.1f,0.6f},{0.5f,0.5f,0.5f},{0.05f,0.05f,0.05f},{0.8f,0.6f,0f},{0.5f,0f,0f}};
+              private static final float[][]HAIR_C={{0.2f,0.15f,0.1f},{1f,0.85f,0.3f},{0.8f,0.4f,0.1f},{0.05f,0.05f,0.05f},{0.9f,0.9f,0.9f},{0.5f,0.1f,0.5f}};
+              private static final int[]SKIN_I={0xFFD1A366,0xFFFFB280,0xFF996028,0xFFFF9966,0xFFE0C7AD,0xFF472918};
+              private static final int[]TORSO_I={0xFF1A66FF,0xFFFF1A1A,0xFF1ACC1A,0xFFCC00CC,0xFFFF8000,0xFF262626};
+              private static final int[]LEGS_I={0xFF1ACC33,0xFF1A1A99,0xFF808080,0xFF0D0D0D,0xFFCC9900,0xFF800000};
+              private static final int[]HAIR_I={0xFF332618,0xFFFFD94D,0xFFCC661A,0xFF0D0D0D,0xFFE6E6E6,0xFF801A80};
+
+              interface CP{void pick(int i);}
+
+              @SuppressLint("ClickableViewAccessibility")
               @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-                  gameManager = new GameManager();
-                  prefs = getSharedPreferences("clicker_prefs", MODE_PRIVATE);
-                  initViews();
-                  loadGame();
-                  setupClickButton();
-                  setupPrestigeButton();
-                  createUpgradeButtons();
-                  startGameLoop();
-                  startParticleLoop();
-              }
-
-              private void initViews() {
-                  txtGold = findViewById(R.id.txt_gold);
-                  txtGPS = findViewById(R.id.txt_gps);
-                  txtClickPower = findViewById(R.id.txt_click_power);
-                  txtPrestige = findViewById(R.id.txt_prestige);
-                  txtMultiplier = findViewById(R.id.txt_multiplier);
-                  txtTotalEarned = findViewById(R.id.txt_total_earned);
-                  btnClick = findViewById(R.id.btn_click);
-                  btnPrestige = findViewById(R.id.btn_prestige);
-                  upgradesContainer = findViewById(R.id.upgrades_container);
-                  particleView = findViewById(R.id.particle_view);
-                  handler = new Handler(Looper.getMainLooper());
-              }
-
-              private void setupClickButton() {
-                  btnClick.setOnClickListener(v -> {
-                      gameManager.click();
-                      long earned = gameManager.clickValue * gameManager.prestigeMultiplier;
-                      
-                      int[] location = new int[2];
-                      btnClick.getLocationOnScreen(location);
-                      float centerX = location[0] + btnClick.getWidth() / 2f;
-                      float centerY = location[1] + btnClick.getHeight() / 2f;
-                      
-                      particleView.spawnClickParticles(centerX, centerY, "+" + formatNumber(earned));
-                      
-                      Animation anim = AnimationUtils.loadAnimation(this, R.anim.click_scale);
-                      btnClick.startAnimation(anim);
-                      
-                      updateUI();
-                      saveGame();
-                  });
-              }
-
-              private void setupPrestigeButton() {
-                  btnPrestige.setOnClickListener(v -> {
-                      if (gameManager.canPrestige()) {
-                          gameManager.prestige();
-                          updateUI();
-                          createUpgradeButtons();
-                          saveGame();
-                          Toast.makeText(this, "🌟 Перерождение! Множитель x" + gameManager.prestigeMultiplier, 
-                              Toast.LENGTH_LONG).show();
-                      } else {
-                          Toast.makeText(this, "Нужно " + formatNumber(GameManager.PRESTIGE_COST) + " золота", 
-                              Toast.LENGTH_SHORT).show();
-                      }
-                  });
-              }
-
-              private void createUpgradeButtons() {
-                  upgradesContainer.removeAllViews();
+              protected void onCreate(Bundle s){
+                  super.onCreate(s);setContentView(R.layout.activity_main);loadPrefs();
+                  android.opengl.GLSurfaceView gv=findViewById(R.id.gl_view);
+                  gv.setEGLContextClientVersion(3);ren=new GameRenderer();gv.setRenderer(ren);
+                  menuUI=findViewById(R.id.menu_ui);gameUI=findViewById(R.id.game_ui);
+                  engineUI=findViewById(R.id.engine_ui);playtestUI=findViewById(R.id.playtest_ui);
+                  customizeUI=findViewById(R.id.customize_ui);scriptUI=findViewById(R.id.script_ui);
+                  purchaseDialog=findViewById(R.id.purchase_dialog);
+                  axisPanel=findViewById(R.id.axis_panel);
+                  btnHide=findViewById(R.id.btn_hide);btnDelete=findViewById(R.id.btn_delete);
+                  btnDeselect=findViewById(R.id.btn_deselect);btnGrid=findViewById(R.id.btn_grid);
+                  txtSizeInfo=findViewById(R.id.txt_size_info);txtIntensity=findViewById(R.id.txt_intensity);
+                  txtRidixLobby=findViewById(R.id.txt_ridix_lobby);txtRidixShop=findViewById(R.id.txt_ridix_shop);
+                  scriptEditor=findViewById(R.id.script_editor);scriptOutput=findViewById(R.id.script_output);
+                  ridixValue=findViewById(R.id.ridix_value);textInput=findViewById(R.id.text_input);
+                  purchaseNameInput=findViewById(R.id.purchase_name);
+                  purchaseItemName=findViewById(R.id.purchase_item_name);
+                  purchasePrice=findViewById(R.id.purchase_price);
+                  purchaseBalance=findViewById(R.id.purchase_balance);
                   
-                  for (int i = 0; i < gameManager.upgrades.size(); i++) {
-                      final int index = i;
-                      Upgrade upgrade = gameManager.upgrades.get(i);
-                      
-                      LinearLayout upgradeItem = new LinearLayout(this);
-                      upgradeItem.setOrientation(LinearLayout.HORIZONTAL);
-                      upgradeItem.setPadding(12, 8, 12, 8);
-                      
-                      LinearLayout textLayout = new LinearLayout(this);
-                      textLayout.setOrientation(LinearLayout.VERTICAL);
-                      textLayout.setLayoutParams(new LinearLayout.LayoutParams(
-                          0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-                      
-                      TextView nameText = new TextView(this);
-                      nameText.setText(upgrade.name + " (Ур." + upgrade.level + "/" + upgrade.maxLevel + ")");
-                      nameText.setTextColor(Color.WHITE);
-                      nameText.setTextSize(14);
-                      
-                      TextView descText = new TextView(this);
-                      descText.setTextSize(11);
-                      descText.setTextColor(Color.parseColor("#AAAAAA"));
-                      
-                      if (!upgrade.canBuy()) {
-                          descText.setText("Максимальный уровень!");
-                      } else {
-                          String cost = formatNumber(upgrade.getCurrentCost());
-                          descText.setText(upgrade.description + " | Цена: " + cost + " 🪙");
-                      }
-                      
-                      textLayout.addView(nameText);
-                      textLayout.addView(descText);
-                      
-                      Button buyButton = new Button(this);
-                      buyButton.setTextColor(Color.WHITE);
-                      buyButton.setTextSize(12);
-                      buyButton.setPadding(16, 8, 16, 8);
-                      
-                      GradientDrawable drawable = new GradientDrawable();
-                      drawable.setCornerRadius(12);
-                      
-                      if (!upgrade.canBuy()) {
-                          buyButton.setText("Макс");
-                          drawable.setColor(Color.parseColor("#666666"));
-                      } else if (upgrade.level > 0) {
-                          buyButton.setText("Улучшить");
-                          if (gameManager.gold >= upgrade.getCurrentCost()) {
-                              drawable.setColor(Color.parseColor("#4CAF50"));
-                          } else {
-                              drawable.setColor(Color.parseColor("#7C4DFF"));
-                          }
-                      } else {
-                          buyButton.setText("Купить");
-                          if (gameManager.gold >= upgrade.getCurrentCost()) {
-                              drawable.setColor(Color.parseColor("#4CAF50"));
-                          } else {
-                              drawable.setColor(Color.parseColor("#7C4DFF"));
-                          }
-                      }
-                      
-                      buyButton.setBackground(drawable);
-                      
-                      LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                          LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                      btnParams.setMargins(12, 0, 0, 0);
-                      buyButton.setLayoutParams(btnParams);
-                      
-                      buyButton.setOnClickListener(v -> {
-                          if (gameManager.buyUpgrade(index)) {
-                              updateUI();
-                              createUpgradeButtons();
-                              saveGame();
-                              Toast.makeText(this, "✅ " + upgrade.name + " улучшен!", Toast.LENGTH_SHORT).show();
-                          } else {
-                              Toast.makeText(this, "❌ Недостаточно золота!", Toast.LENGTH_SHORT).show();
-                          }
+                  shapePanel=findViewById(R.id.shape_panel);lightPanel=findViewById(R.id.light_panel);
+                  itemPanel=findViewById(R.id.item_panel);textPanel=findViewById(R.id.text_panel);
+                  sizePanel=findViewById(R.id.size_panel);intensityPanel=findViewById(R.id.intensity_panel);
+                  lblShape=findViewById(R.id.lbl_shape);lblSize=findViewById(R.id.lbl_size);lblIntensity=findViewById(R.id.lbl_intensity);
+                  
+                  invSlots[0]=findViewById(R.id.inv_slot_0);invSlots[1]=findViewById(R.id.inv_slot_1);
+                  invSlots[2]=findViewById(R.id.inv_slot_2);invSlots[3]=findViewById(R.id.inv_slot_3);
+                  playtestInvSlots[0]=findViewById(R.id.playtest_inv_slot_0);playtestInvSlots[1]=findViewById(R.id.playtest_inv_slot_1);
+                  playtestInvSlots[2]=findViewById(R.id.playtest_inv_slot_2);playtestInvSlots[3]=findViewById(R.id.playtest_inv_slot_3);
+                  
+                  updRidix();setupCustomize();
+
+                  ren.purchaseCallback=(name,price,type,index)->{
+                      runOnUiThread(()->{
+                          pendingPurchaseType=type;pendingPurchaseIndex=index;
+                          purchaseItemName.setText(name);
+                          purchasePrice.setText("Cost: "+price+" Ridix");
+                          String bal=infiniteRidix?"∞ Ridix":(ridix+" Ridix");
+                          purchaseBalance.setText("Your balance: "+bal);
+                          purchaseDialog.setVisibility(View.VISIBLE);
                       });
-                      
-                      upgradeItem.addView(textLayout);
-                      upgradeItem.addView(buyButton);
-                      
-                      View divider = new View(this);
-                      divider.setLayoutParams(new LinearLayout.LayoutParams(
-                          LinearLayout.LayoutParams.MATCH_PARENT, 1));
-                      divider.setBackgroundColor(Color.parseColor("#3A3A6A"));
-                      
-                      upgradesContainer.addView(upgradeItem);
-                      if (i < gameManager.upgrades.size() - 1) {
-                          upgradesContainer.addView(divider);
-                      }
-                  }
-              }
-
-              private void startGameLoop() {
-                  updateRunnable = new Runnable() {
-                      @Override
-                      public void run() {
-                          gameManager.update();
-                          updateUI();
-                          saveGame();
-                          handler.postDelayed(this, 1000);
-                      }
                   };
-                  handler.post(updateRunnable);
-              }
 
-              private void startParticleLoop() {
-                  particleRunnable = new Runnable() {
-                      @Override
-                      public void run() {
-                          particleView.updateParticles();
-                          handler.postDelayed(this, 16);
-                      }
-                  };
-                  handler.post(particleRunnable);
-              }
+                  findViewById(R.id.btn_purchase_cancel).setOnClickListener(v->{
+                      purchaseDialog.setVisibility(View.GONE);
+                      ren.cancelPurchase();
+                  });
 
-              private void updateUI() {
-                  txtGold.setText(formatNumber(gameManager.gold));
-                  txtGPS.setText("⚡ " + formatNumber(gameManager.goldPerSecond * gameManager.prestigeMultiplier) + "/сек");
-                  txtClickPower.setText("💪 " + formatNumber(gameManager.clickValue * gameManager.prestigeMultiplier) + "/клик");
-                  txtPrestige.setText("🌟 " + gameManager.prestigeCount);
-                  txtMultiplier.setText("✨ x" + gameManager.prestigeMultiplier);
-                  txtTotalEarned.setText("Всего: " + formatNumber(gameManager.totalGoldEarned) + " 🪙");
-                  
-                  btnPrestige.setEnabled(gameManager.canPrestige());
-                  btnPrestige.setAlpha(gameManager.canPrestige() ? 1f : 0.6f);
-              }
-
-              private String formatNumber(long number) {
-                  if (number < 1000) return String.valueOf(number);
-                  if (number < 1000000) return String.format("%.1fK", number / 1000.0);
-                  if (number < 1000000000) return String.format("%.1fM", number / 1000000.0);
-                  return String.format("%.1fB", number / 1000000000.0);
-              }
-
-              private void saveGame() {
-                  SharedPreferences.Editor editor = prefs.edit();
-                  editor.putLong("gold", gameManager.gold);
-                  editor.putLong("totalGold", gameManager.totalGoldEarned);
-                  editor.putLong("gps", gameManager.goldPerSecond);
-                  editor.putLong("clickValue", gameManager.clickValue);
-                  editor.putLong("multiplier", gameManager.prestigeMultiplier);
-                  editor.putInt("prestige", gameManager.prestigeCount);
-                  for (int i = 0; i < gameManager.upgrades.size(); i++) {
-                      editor.putInt("upgrade_" + i, gameManager.upgrades.get(i).level);
-                  }
-                  editor.apply();
-              }
-
-              private void loadGame() {
-                  gameManager.gold = prefs.getLong("gold", 0);
-                  gameManager.totalGoldEarned = prefs.getLong("totalGold", 0);
-                  gameManager.goldPerSecond = prefs.getLong("gps", 0);
-                  gameManager.clickValue = prefs.getLong("clickValue", 1);
-                  gameManager.prestigeMultiplier = prefs.getLong("multiplier", 1);
-                  gameManager.prestigeCount = prefs.getInt("prestige", 0);
-                  for (int i = 0; i < gameManager.upgrades.size(); i++) {
-                      int level = prefs.getInt("upgrade_" + i, 0);
-                      Upgrade upgrade = gameManager.upgrades.get(i);
-                      for (int j = 0; j < level; j++) {
-                          if (upgrade.canBuy()) {
-                              upgrade.levelUp();
-                              if (upgrade.gpsIncrease > 0) gameManager.goldPerSecond += upgrade.gpsIncrease;
-                              if (upgrade.clickIncrease > 0) gameManager.clickValue += upgrade.clickIncrease;
+                  findViewById(R.id.btn_purchase_buy).setOnClickListener(v->{
+                      if(pendingPurchaseType>=0&&pendingPurchaseIndex>=0){
+                          int price=0;
+                          if(pendingPurchaseType==0&&pendingPurchaseIndex<ren.blocks.size())price=ren.blocks.get(pendingPurchaseIndex).ridixPrice;
+                          else if(pendingPurchaseType==2&&pendingPurchaseIndex<ren.items.size())price=ren.items.get(pendingPurchaseIndex).ridixPrice;
+                          
+                          if(infiniteRidix||ridix>=price){
+                              if(!infiniteRidix)ridix-=price;
+                              ren.completePurchase(pendingPurchaseType,pendingPurchaseIndex);
+                              savePrefs();updRidix();
+                              Toast.makeText(this,"Purchase successful!",Toast.LENGTH_SHORT).show();
+                              purchaseDialog.setVisibility(View.GONE);
+                          }else{
+                              Toast.makeText(this,"Not enough Ridix!",Toast.LENGTH_SHORT).show();
                           }
                       }
+                  });
+
+                  saveLauncher=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),res->{
+                      if(res.getResultCode()==RESULT_OK&&res.getData()!=null){
+                          try{
+                              OutputStream out=getContentResolver().openOutputStream(res.getData().getData());
+                              JSONArray arr=new JSONArray();
+                              for(Block b:ren.blocks){JSONObject o=new JSONObject();o.put("x",b.x);o.put("y",b.y);o.put("z",b.z);o.put("sx",b.sx);o.put("sy",b.sy);o.put("sz",b.sz);o.put("r",b.r);o.put("g",b.g);o.put("b",b.b);o.put("hidden",b.hidden);o.put("ridixPrice",b.ridixPrice);o.put("itemName",b.itemName);arr.put(o);}
+                              JSONArray larr=new JSONArray();
+                              for(Light l:ren.lights){JSONObject o=new JSONObject();o.put("x",l.x);o.put("y",l.y);o.put("z",l.z);o.put("r",l.r);o.put("g",l.g);o.put("b",l.b);o.put("intensity",l.intensity);o.put("isSpot",l.isSpot);o.put("hidden",l.hidden);o.put("ridixPrice",l.ridixPrice);o.put("itemName",l.itemName);larr.put(o);}
+                              JSONArray iarr=new JSONArray();
+                              for(Item it:ren.items){JSONObject o=new JSONObject();o.put("x",it.x);o.put("y",it.y);o.put("z",it.z);o.put("type",it.type);o.put("hidden",it.hidden);o.put("ridixPrice",it.ridixPrice);o.put("itemName",it.itemName);iarr.put(o);}
+                              JSONArray tarr=new JSONArray();
+                              for(GameText gt:ren.texts){JSONObject o=new JSONObject();o.put("x",gt.x);o.put("y",gt.y);o.put("z",gt.z);o.put("text",gt.text);o.put("hidden",gt.hidden);o.put("ridixPrice",gt.ridixPrice);o.put("itemName",gt.itemName);tarr.put(o);}
+                              JSONObject root=new JSONObject();root.put("blocks",arr);root.put("lights",larr);root.put("items",iarr);root.put("texts",tarr);root.put("gridEnabled",ren.gridEnabled);
+                              out.write(root.toString().getBytes());out.close();
+                              Toast.makeText(this,"Exported!",Toast.LENGTH_SHORT).show();
+                          }catch(Exception e){Toast.makeText(this,"Error",Toast.LENGTH_SHORT).show();}
+                      }
+                  });
+
+                  loadLauncher=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),res->{
+                      if(res.getResultCode()==RESULT_OK&&res.getData()!=null){
+                          try{
+                              InputStream in=getContentResolver().openInputStream(res.getData().getData());
+                              BufferedReader rd=new BufferedReader(new InputStreamReader(in));StringBuilder sb=new StringBuilder();String ln;
+                              while((ln=rd.readLine())!=null)sb.append(ln);in.close();
+                              JSONObject root=new JSONObject(sb.toString());
+                              ren.blocks.clear();ren.lights.clear();ren.items.clear();ren.texts.clear();
+                              JSONArray arr=root.getJSONArray("blocks");
+                              for(int i=0;i<arr.length();i++){JSONObject o=arr.getJSONObject(i);Block b=new Block((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),(float)o.getDouble("sx"),(float)o.getDouble("sy"),(float)o.getDouble("sz"),(float)o.getDouble("r"),(float)o.getDouble("g"),(float)o.getDouble("b"));b.hidden=o.optBoolean("hidden",false);b.ridixPrice=o.optInt("ridixPrice",0);b.itemName=o.optString("itemName","");ren.blocks.add(b);}
+                              if(root.has("lights")){
+                                  JSONArray larr=root.getJSONArray("lights");
+                                  for(int i=0;i<larr.length();i++){JSONObject o=larr.getJSONObject(i);Light l=new Light((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),(float)o.getDouble("r"),(float)o.getDouble("g"),(float)o.getDouble("b"),(float)o.getDouble("intensity"),o.optBoolean("isSpot",false));l.hidden=o.optBoolean("hidden",false);l.ridixPrice=o.optInt("ridixPrice",0);l.itemName=o.optString("itemName","");ren.lights.add(l);}
+                              }
+                              if(root.has("items")){
+                                  JSONArray iarr=root.getJSONArray("items");
+                                  for(int i=0;i<iarr.length();i++){JSONObject o=iarr.getJSONObject(i);Item it=new Item((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),o.getString("type"));it.hidden=o.optBoolean("hidden",false);it.ridixPrice=o.optInt("ridixPrice",0);it.itemName=o.optString("itemName","");ren.items.add(it);}
+                              }
+                              if(root.has("texts")){
+                                  JSONArray tarr=root.getJSONArray("texts");
+                                  for(int i=0;i<tarr.length();i++){JSONObject o=tarr.getJSONObject(i);GameText gt=new GameText((float)o.getDouble("x"),(float)o.getDouble("y"),(float)o.getDouble("z"),o.getString("text"));gt.hidden=o.optBoolean("hidden",false);gt.ridixPrice=o.optInt("ridixPrice",0);gt.itemName=o.optString("itemName","");ren.texts.add(gt);}
+                              }
+                              ren.gridEnabled=root.optBoolean("gridEnabled",true);updGridBtn();
+                              ren.isEngineMode=false;ren.isPlayingLevel=false;resetP();applyPack();
+                              menuUI.setVisibility(View.GONE);gameUI.setVisibility(View.VISIBLE);
+                              setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                              startRidixTimer();updInventory();
+                              Toast.makeText(this,"Loaded!",Toast.LENGTH_SHORT).show();
+                          }catch(Exception e){Toast.makeText(this,"Invalid file",Toast.LENGTH_SHORT).show();}
+                      }
+                  });
+
+                  findViewById(R.id.btn_play).setOnClickListener(v->{
+                      ren.isEngineMode=false;ren.isPlayingLevel=false;ren.loadBuiltInLevel();resetP();ren.selectedIndex=-1;applyPack();
+                      menuUI.setVisibility(View.GONE);gameUI.setVisibility(View.VISIBLE);engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.GONE);
+                      startRidixTimer();updInventory();
+                      handler.postDelayed(()->setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE),50);
+                  });
+                  findViewById(R.id.btn_engine).setOnClickListener(v->{
+                      ren.isEngineMode=true;ren.isPlayingLevel=false;ren.blocks.clear();ren.lights.clear();ren.items.clear();ren.texts.clear();ren.pX=0;ren.pY=20;ren.pZ=35;ren.selectedIndex=-1;stopRidixTimer();
+                      menuUI.setVisibility(View.GONE);gameUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);playtestUI.setVisibility(View.GONE);
+                      updAxis();updSizeInfo();updGridBtn();updObjType();updRidixPrice();
+                      handler.postDelayed(()->setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE),50);
+                  });
+                  findViewById(R.id.btn_customize_lobby).setOnClickListener(v->{menuUI.setVisibility(View.GONE);customizeUI.setVisibility(View.VISIBLE);updCustPacks();updRidix();});
+                  findViewById(R.id.btn_load_file).setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");loadLauncher.launch(i);});
+
+                  View.OnClickListener back=v->{ren.isPlayingLevel=false;stopRidixTimer();gameUI.setVisibility(View.GONE);engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);};
+                  findViewById(R.id.btn_menu).setOnClickListener(back);
+                  findViewById(R.id.btn_engine_menu).setOnClickListener(back);
+                  findViewById(R.id.btn_close_customize).setOnClickListener(v->{customizeUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);});
+                  findViewById(R.id.btn_play_level).setOnClickListener(v->{ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;applyPack();engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);updInventory();});
+                  findViewById(R.id.btn_stop_playtest).setOnClickListener(v->{ren.isPlayingLevel=false;ren.pX=0;ren.pY=20;ren.pZ=35;playtestUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);updAxis();});
+                  findViewById(R.id.btn_save).setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");i.putExtra(Intent.EXTRA_TITLE,"level.json");saveLauncher.launch(i);});
+                  findViewById(R.id.btn_scripts).setOnClickListener(v->{engineUI.setVisibility(View.GONE);scriptUI.setVisibility(View.VISIBLE);});
+                  findViewById(R.id.btn_close_script).setOnClickListener(v->{scriptUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);});
+                  findViewById(R.id.btn_clear_script).setOnClickListener(v->scriptEditor.setText(""));
+                  findViewById(R.id.btn_run_script).setOnClickListener(v->runScript());
+                  
+                  findViewById(R.id.ridix_minus).setOnClickListener(v->{ren.currentRidixPrice=Math.max(0,ren.currentRidixPrice-10);updRidixPrice();});
+                  findViewById(R.id.ridix_plus).setOnClickListener(v->{ren.currentRidixPrice+=10;updRidixPrice();});
+                  
+                  purchaseNameInput.setOnFocusChangeListener((v,has)->{
+                      if(!has){
+                          ren.currentItemName=purchaseNameInput.getText().toString().trim();
+                      }
+                  });
+                  
+                  textInput.setOnFocusChangeListener((v,has)->{
+                      if(!has){
+                          ren.currentItemName=textInput.getText().toString().trim();
+                      }
+                  });
+                  
+                  btnGrid.setOnClickListener(v->{ren.gridEnabled=!ren.gridEnabled;updGridBtn();});
+                  findViewById(R.id.btn_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doJump();return true;});
+                  findViewById(R.id.btn_playtest_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doJump();return true;});
+                  findViewById(R.id.btn_place).setOnClickListener(v->{if(ren.selectedIndex<0){ren.currentItemName=purchaseNameInput.getText().toString().trim();if(ren.objType==3)ren.currentItemName=textInput.getText().toString().trim();ren.placeObject();}});
+                  btnDelete.setOnClickListener(v->{ren.deleteSelected();updAxis();});
+                  btnDeselect.setOnClickListener(v->{ren.selectedIndex=-1;updAxis();});
+                  btnHide.setOnClickListener(v->{if(ren.selectedIndex>=0){ren.toggleHideSelected();updAxis();}});
+                  axisBtn(R.id.axis_x_plus,1,0,0);axisBtn(R.id.axis_x_minus,-1,0,0);axisBtn(R.id.axis_y_plus,0,1,0);axisBtn(R.id.axis_y_minus,0,-1,0);axisBtn(R.id.axis_z_plus,0,0,1);axisBtn(R.id.axis_z_minus,0,0,-1);
+
+                  typeBtn=new Button[]{findViewById(R.id.type_block),findViewById(R.id.type_light),findViewById(R.id.type_item),findViewById(R.id.type_text)};
+                  findViewById(R.id.type_block).setOnClickListener(v->{ren.objType=0;updBtnGrp(typeBtn,0);updObjType();});
+                  findViewById(R.id.type_light).setOnClickListener(v->{ren.objType=1;updBtnGrp(typeBtn,1);updObjType();});
+                  findViewById(R.id.type_item).setOnClickListener(v->{ren.objType=2;updBtnGrp(typeBtn,2);updObjType();});
+                  findViewById(R.id.type_text).setOnClickListener(v->{ren.objType=3;updBtnGrp(typeBtn,3);updObjType();});
+
+                  shapeBtn=new Button[]{findViewById(R.id.shape_cube),findViewById(R.id.shape_cylinder),findViewById(R.id.shape_pyramid)};
+                  findViewById(R.id.shape_cube).setOnClickListener(v->{ren.shapeType=0;ren.blockSX=4;ren.blockSY=4;ren.blockSZ=4;updBtnGrp(shapeBtn,0);updSizeInfo();});
+                  findViewById(R.id.shape_cylinder).setOnClickListener(v->{ren.shapeType=1;ren.blockSX=4;ren.blockSY=6;ren.blockSZ=4;updBtnGrp(shapeBtn,1);updSizeInfo();});
+                  findViewById(R.id.shape_pyramid).setOnClickListener(v->{ren.shapeType=2;ren.blockSX=4;ren.blockSY=4;ren.blockSZ=4;updBtnGrp(shapeBtn,2);updSizeInfo();});
+
+                  lightBtn=new Button[]{findViewById(R.id.light_point),findViewById(R.id.light_spot)};
+                  findViewById(R.id.light_point).setOnClickListener(v->{ren.lightType=0;updBtnGrp(lightBtn,0);});
+                  findViewById(R.id.light_spot).setOnClickListener(v->{ren.lightType=1;updBtnGrp(lightBtn,1);});
+
+                  itemBtn=new Button[]{findViewById(R.id.item_sword)};
+                  findViewById(R.id.item_sword).setOnClickListener(v->{ren.itemType=0;updBtnGrp(itemBtn,0);});
+
+                  findViewById(R.id.size_x_minus).setOnClickListener(v->{ren.blockSX=Math.max(0.5f,ren.blockSX-0.5f);updSizeInfo();});
+                  findViewById(R.id.size_x_plus).setOnClickListener(v->{ren.blockSX+=0.5f;updSizeInfo();});
+                  findViewById(R.id.size_y_minus).setOnClickListener(v->{ren.blockSY=Math.max(0.5f,ren.blockSY-0.5f);updSizeInfo();});
+                  findViewById(R.id.size_y_plus).setOnClickListener(v->{ren.blockSY+=0.5f;updSizeInfo();});
+                  findViewById(R.id.size_z_minus).setOnClickListener(v->{ren.blockSZ=Math.max(0.5f,ren.blockSZ-0.5f);updSizeInfo();});
+                  findViewById(R.id.size_z_plus).setOnClickListener(v->{ren.blockSZ=Math.max(0.5f,ren.blockSZ+0.5f);updSizeInfo();});
+
+                  findViewById(R.id.intensity_minus).setOnClickListener(v->{ren.lightIntensity=Math.max(1f,ren.lightIntensity-1f);updIntensity();});
+                  findViewById(R.id.intensity_plus).setOnClickListener(v->{ren.lightIntensity=Math.min(50f,ren.lightIntensity+1f);updIntensity();});
+
+                  distBtn=new Button[]{findViewById(R.id.dist_far),findViewById(R.id.dist_vfar)};
+                  float[]dists={12f,15f};
+                  for(int i=0;i<2;i++){final int ii=i;distBtn[i].setOnClickListener(v->{ren.placeDist=dists[ii];updBtnGrp(distBtn,ii);});}
+
+                  colorBtn=new View[]{findViewById(R.id.color_red),findViewById(R.id.color_green),findViewById(R.id.color_blue2),findViewById(R.id.color_yellow),findViewById(R.id.color_white),findViewById(R.id.color_black)};
+                  float[][]cols={{1f,0.2f,0.2f},{0.2f,1f,0.2f},{0.2f,0.5f,1f},{1f,1f,0.2f},{1f,1f,1f},{0.05f,0.05f,0.05f}};
+                  for(int i=0;i<cols.length;i++){
+                      final int ii=i;
+                      colorBtn[i].setOnClickListener(v->{
+                          ren.blockR=cols[ii][0];ren.blockG=cols[ii][1];ren.blockB=cols[ii][2];
+                          if(ren.selectedType==0&&ren.selectedIndex>=0&&ren.selectedIndex<ren.blocks.size()){Block b=ren.blocks.get(ren.selectedIndex);b.r=ren.blockR;b.g=ren.blockG;b.b=ren.blockB;}
+                          else if(ren.selectedType==1&&ren.selectedIndex>=0&&ren.selectedIndex<ren.lights.size()){Light l=ren.lights.get(ren.selectedIndex);l.r=ren.blockR;l.g=ren.blockG;l.b=ren.blockB;}
+                          updColSel(ii);
+                      });
                   }
-                  updateUI();
-                  createUpgradeButtons();
+
+                  setupJoy(findViewById(R.id.joy_base),findViewById(R.id.joy_stick));
+                  setupJoy(findViewById(R.id.engine_joy_base),findViewById(R.id.engine_joy_stick));
+                  setupJoy(findViewById(R.id.playtest_joy_base),findViewById(R.id.playtest_joy_stick));
+                  setupLook(findViewById(R.id.look_zone));setupLook(findViewById(R.id.playtest_look_zone));
+
+                  findViewById(R.id.engine_touch_zone).setOnTouchListener((v,e)->{
+                      if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}
+                      else if(e.getAction()==MotionEvent.ACTION_UP){
+                          if(Math.abs(e.getX()-lx)<25&&Math.abs(e.getY()-ly)<25){
+                              int hit=ren.raycastBlock(e.getX(),e.getY());
+                              ren.selectedIndex=hit;ren.selectedType=0;
+                              if(hit>=0){Block b=ren.blocks.get(hit);ren.blockR=b.r;ren.blockG=b.g;ren.blockB=b.b;ren.blockSX=b.sx;ren.blockSY=b.sy;ren.blockSZ=b.sz;updSizeInfo();}
+                              updAxis();
+                          }
+                      }
+                      else if(e.getAction()==MotionEvent.ACTION_MOVE){ren.rY+=(e.getX()-lx)*0.2f;ren.rX=Math.max(-80,Math.min(80,ren.rX-(e.getY()-ly)*0.2f));lx=e.getX();ly=e.getY();}
+                      return true;
+                  });
+                  updSizeInfo();updAxis();updGridBtn();updIntensity();updObjType();updRidixPrice();
               }
 
-              @Override
-              protected void onPause() {
-                  super.onPause();
-                  saveGame();
+              private void runScript(){
+                  String code=scriptEditor.getText().toString();
+                  Context ctx=Context.enter();ctx.setOptimizationLevel(-1);
+                  try{
+                      Scriptable scope=ctx.initStandardObjects();
+                      ScriptableObject.putProperty(scope,"player",Context.javaToJS(new ScriptPlayer(),scope));
+                      ScriptableObject.putProperty(scope,"blocks",Context.javaToJS(ren.blocks,scope));
+                      ScriptableObject.putProperty(scope,"lights",Context.javaToJS(ren.lights,scope));
+                      ScriptableObject.putProperty(scope,"items",Context.javaToJS(ren.items,scope));
+                      Object result=ctx.evaluateString(scope,code,"script",1,null);
+                      scriptOutput.setText("✓ "+Context.toString(result));
+                  }catch(Exception e){scriptOutput.setText("✗ "+e.getMessage());}
+                  finally{Context.exit();}
               }
 
-              @Override
-              protected void onDestroy() {
-                  super.onDestroy();
-                  handler.removeCallbacks(updateRunnable);
-                  handler.removeCallbacks(particleRunnable);
+              public class ScriptPlayer{
+                  public void setPosition(float x,float y,float z){ren.pX=x;ren.pY=y;ren.pZ=z;}
+                  public float getX(){return ren.pX;}
+                  public float getY(){return ren.pY;}
+                  public float getZ(){return ren.pZ;}
               }
+
+              private void updRidixPrice(){runOnUiThread(()->ridixValue.setText(String.valueOf(ren.currentRidixPrice)));}
+              private void updInventory(){
+                  runOnUiThread(()->{
+                      for(int i=0;i<4;i++){
+                          String item=ren.inventory[i];
+                          String txt=item!=null?(item.length()>3?item.substring(0,3).toUpperCase():item.toUpperCase()):"";
+                          invSlots[i].setText(txt);
+                          playtestInvSlots[i].setText(txt);
+                      }
+                  });
+              }
+
+              private void updObjType(){
+                  runOnUiThread(()->{
+                      if(ren.objType==0){
+                          shapePanel.setVisibility(View.VISIBLE);lightPanel.setVisibility(View.GONE);itemPanel.setVisibility(View.GONE);textPanel.setVisibility(View.GONE);
+                          sizePanel.setVisibility(View.VISIBLE);intensityPanel.setVisibility(View.GONE);
+                          lblShape.setVisibility(View.VISIBLE);lblSize.setVisibility(View.VISIBLE);lblIntensity.setVisibility(View.GONE);
+                      }else if(ren.objType==1){
+                          shapePanel.setVisibility(View.GONE);lightPanel.setVisibility(View.VISIBLE);itemPanel.setVisibility(View.GONE);textPanel.setVisibility(View.GONE);
+                          sizePanel.setVisibility(View.GONE);intensityPanel.setVisibility(View.VISIBLE);
+                          lblShape.setVisibility(View.VISIBLE);lblSize.setVisibility(View.GONE);lblIntensity.setVisibility(View.VISIBLE);
+                      }else if(ren.objType==2){
+                          shapePanel.setVisibility(View.GONE);lightPanel.setVisibility(View.GONE);itemPanel.setVisibility(View.VISIBLE);textPanel.setVisibility(View.GONE);
+                          sizePanel.setVisibility(View.GONE);intensityPanel.setVisibility(View.GONE);
+                          lblShape.setVisibility(View.VISIBLE);lblSize.setVisibility(View.GONE);lblIntensity.setVisibility(View.GONE);
+                      }else{
+                          shapePanel.setVisibility(View.GONE);lightPanel.setVisibility(View.GONE);itemPanel.setVisibility(View.GONE);textPanel.setVisibility(View.VISIBLE);
+                          sizePanel.setVisibility(View.GONE);intensityPanel.setVisibility(View.GONE);
+                          lblShape.setVisibility(View.GONE);lblSize.setVisibility(View.GONE);lblIntensity.setVisibility(View.GONE);
+                      }
+                  });
+              }
+
+              private void updIntensity(){runOnUiThread(()->txtIntensity.setText(String.format(java.util.Locale.US,"%.0f",ren.lightIntensity)));}
+
+              private void setupCustomize(){
+                  buildColorRow(findViewById(R.id.skin_colors),SKIN_I,i->{ren.charSkinR=SKIN_C[i][0];ren.charSkinG=SKIN_C[i][1];ren.charSkinB=SKIN_C[i][2];savePrefs();});
+                  buildColorRow(findViewById(R.id.torso_colors),TORSO_I,i->{ren.charTorsoR=TORSO_C[i][0];ren.charTorsoG=TORSO_C[i][1];ren.charTorsoB=TORSO_C[i][2];savePrefs();});
+                  buildColorRow(findViewById(R.id.legs_colors),LEGS_I,i->{ren.charLegsR=LEGS_C[i][0];ren.charLegsG=LEGS_C[i][1];ren.charLegsB=LEGS_C[i][2];savePrefs();});
+                  buildColorRow(findViewById(R.id.hair_colors),HAIR_I,i->{ren.charHairR=HAIR_C[i][0];ren.charHairG=HAIR_C[i][1];ren.charHairB=HAIR_C[i][2];savePrefs();});
+
+                  LinearLayout faceRow=findViewById(R.id.face_select);
+                  faceRow.removeAllViews();
+                  String[]faceNames={"Smile","Tongue"};
+                  for(int i=0;i<2;i++){
+                      final int ii=i;
+                      Button fb=new Button(this);
+                      LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dpToPx(40));lp.weight=1;lp.setMargins(dpToPx(2),0,dpToPx(2),0);
+                      fb.setLayoutParams(lp);fb.setText(faceNames[i]);fb.setTextSize(12);
+                      fb.setBackgroundResource(ii==selectedFace?R.drawable.btn_blue_filled:R.drawable.btn_blue);
+                      fb.setTextColor(ii==selectedFace?0xFF000000:0xFF00BFFF);
+                      fb.setOnClickListener(v->{selectedFace=ii;ren.faceType=ii;savePrefs();setupCustomize();});
+                      faceRow.addView(fb);
+                  }
+
+                  findViewById(R.id.btn_pack_default).setOnClickListener(v->{equippedPack=0;applyPack();savePrefs();updCustPacks();Toast.makeText(this,"Default equipped",Toast.LENGTH_SHORT).show();});
+                  findViewById(R.id.btn_pack_fly).setOnClickListener(v->{
+                      if(ownedFly){equippedPack=1;applyPack();savePrefs();updCustPacks();Toast.makeText(this,"Fly equipped",Toast.LENGTH_SHORT).show();}
+                      else if(infiniteRidix||ridix>=PACK_PRICE){if(!infiniteRidix)ridix-=PACK_PRICE;ownedFly=true;equippedPack=1;applyPack();savePrefs();updRidix();updCustPacks();Toast.makeText(this,"Fly purchased!",Toast.LENGTH_SHORT).show();}
+                      else Toast.makeText(this,"Need "+PACK_PRICE+" Ridix",Toast.LENGTH_SHORT).show();
+                  });
+                  findViewById(R.id.btn_promo).setOnClickListener(v->{
+                      EditText et=findViewById(R.id.et_promo);String code=et.getText().toString().trim();
+                      if(code.equals("Dimasi4ek229")){infiniteRidix=true;savePrefs();updRidix();et.setText("");Toast.makeText(this,"Infinite Ridix!",Toast.LENGTH_LONG).show();}
+                      else Toast.makeText(this,"Invalid code",Toast.LENGTH_SHORT).show();
+                  });
+              }
+
+              private int dpToPx(int dp){return(int)(dp*getResources().getDisplayMetrics().density);}
+              private void buildColorRow(LinearLayout row,int[]colors,CP cb){
+                  row.removeAllViews();int dp=dpToPx(8);
+                  for(int i=0;i<colors.length;i++){final int ii=i;View dot=new View(this);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp*5,dp*5);lp.setMargins(dp/2,0,dp/2,0);dot.setLayoutParams(lp);GradientDrawable gd=new GradientDrawable();gd.setShape(GradientDrawable.OVAL);gd.setColor(colors[i]);gd.setStroke(3,0xFF00BFFF);dot.setBackground(gd);dot.setOnClickListener(vv->{cb.pick(ii);Toast.makeText(this,"Applied",Toast.LENGTH_SHORT).show();});row.addView(dot);}
+              }
+              private void updCustPacks(){
+                  Button bd=findViewById(R.id.btn_pack_default),bf=findViewById(R.id.btn_pack_fly);
+                  TextView tf=findViewById(R.id.txt_fly_price);
+                  bd.setText(equippedPack==0?"Equipped":"Equip");bd.setBackgroundResource(equippedPack==0?R.drawable.btn_blue_filled:R.drawable.btn_blue);bd.setTextColor(equippedPack==0?0xFF000000:0xFF00BFFF);
+                  if(ownedFly){bf.setText(equippedPack==1?"Equipped":"Equip");bf.setBackgroundResource(equippedPack==1?R.drawable.btn_blue_filled:R.drawable.btn_blue);bf.setTextColor(equippedPack==1?0xFF000000:0xFF00BFFF);tf.setText("Owned");}
+                  else{bf.setText("Buy");bf.setBackgroundResource(R.drawable.btn_blue);bf.setTextColor(0xFF00BFFF);tf.setText(PACK_PRICE+" Ridix");}
+              }
+              private void applyPack(){if(ren!=null)ren.animPack=equippedPack;}
+              private void startRidixTimer(){
+                  stopRidixTimer();
+                  ridixTimer=new Runnable(){@Override public void run(){if(!infiniteRidix){ridix+=RIDIX_REWARD;savePrefs();}updRidix();Toast.makeText(MainActivity.this,"+"+RIDIX_REWARD+" Ridix",Toast.LENGTH_SHORT).show();handler.postDelayed(this,RIDIX_SEC*1000L);}};
+                  handler.postDelayed(ridixTimer,RIDIX_SEC*1000L);
+              }
+              private void stopRidixTimer(){if(ridixTimer!=null){handler.removeCallbacks(ridixTimer);ridixTimer=null;}}
+              private void updRidix(){String sv=infiniteRidix?"Inf":String.valueOf(ridix);if(txtRidixLobby!=null)txtRidixLobby.setText(sv);if(txtRidixShop!=null)txtRidixShop.setText(sv);}
+              private void savePrefs(){
+                  SharedPreferences.Editor ed=getSharedPreferences("enjoer",MODE_PRIVATE).edit();
+                  ed.putInt("ridix",ridix);ed.putBoolean("fly",ownedFly);ed.putInt("pack",equippedPack);ed.putBoolean("infRidix",infiniteRidix);ed.putInt("face",selectedFace);
+                  ed.putFloat("sR",ren!=null?ren.charSkinR:1f);ed.putFloat("sG",ren!=null?ren.charSkinG:0.82f);ed.putFloat("sB",ren!=null?ren.charSkinB:0.6f);
+                  ed.putFloat("tR",ren!=null?ren.charTorsoR:0.1f);ed.putFloat("tG",ren!=null?ren.charTorsoG:0.4f);ed.putFloat("tB",ren!=null?ren.charTorsoB:1f);
+                  ed.putFloat("lR",ren!=null?ren.charLegsR:0.1f);ed.putFloat("lG",ren!=null?ren.charLegsG:0.8f);ed.putFloat("lB",ren!=null?ren.charLegsB:0.2f);
+                  ed.putFloat("hR",ren!=null?ren.charHairR:0.2f);ed.putFloat("hG",ren!=null?ren.charHairG:0.15f);ed.putFloat("hB",ren!=null?ren.charHairB:0.1f);
+                  ed.apply();
+              }
+              private void loadPrefs(){
+                  SharedPreferences sp=getSharedPreferences("enjoer",MODE_PRIVATE);
+                  ridix=sp.getInt("ridix",0);ownedFly=sp.getBoolean("fly",false);equippedPack=sp.getInt("pack",0);infiniteRidix=sp.getBoolean("infRidix",false);selectedFace=sp.getInt("face",0);
+              }
+              private void applyPrefsToRen(){
+                  SharedPreferences sp=getSharedPreferences("enjoer",MODE_PRIVATE);
+                  ren.charSkinR=sp.getFloat("sR",1f);ren.charSkinG=sp.getFloat("sG",0.82f);ren.charSkinB=sp.getFloat("sB",0.6f);
+                  ren.charTorsoR=sp.getFloat("tR",0.1f);ren.charTorsoG=sp.getFloat("tG",0.4f);ren.charTorsoB=sp.getFloat("tB",1f);
+                  ren.charLegsR=sp.getFloat("lR",0.1f);ren.charLegsG=sp.getFloat("lG",0.8f);ren.charLegsB=sp.getFloat("lB",0.2f);
+                  ren.charHairR=sp.getFloat("hR",0.2f);ren.charHairG=sp.getFloat("hG",0.15f);ren.charHairB=sp.getFloat("hB",0.1f);
+                  ren.animPack=equippedPack;ren.faceType=selectedFace;
+              }
+              @Override protected void onResume(){super.onResume();if(ren!=null)applyPrefsToRen();handler.postDelayed(this::updInventory,100);}
+              @Override protected void onPause(){super.onPause();stopRidixTimer();savePrefs();}
+
+              private void resetP(){ren.pX=0;ren.pY=7;ren.pZ=15;ren.vY=0;for(int i=0;i<ren.inventory.length;i++)ren.inventory[i]=null;}
+              private void axisBtn(int id,float dx,float dy,float dz){findViewById(id).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN||e.getAction()==MotionEvent.ACTION_MOVE){float step=ren.gridEnabled?ren.gridSize:0.5f;ren.moveSelected(dx*step,dy*step,dz*step);}return true;});}
+              private void updAxis(){
+                  runOnUiThread(()->{
+                      boolean sel=ren.selectedIndex>=0;
+                      axisPanel.setVisibility(sel?View.VISIBLE:View.GONE);
+                      btnDeselect.setVisibility(sel?View.VISIBLE:View.GONE);
+                      btnHide.setVisibility(sel?View.VISIBLE:View.GONE);
+                      btnDelete.setVisibility(sel?View.VISIBLE:View.GONE);
+                      if(sel){
+                          if(ren.selectedType==0&&ren.selectedIndex<ren.blocks.size()){Block b=ren.blocks.get(ren.selectedIndex);btnHide.setText(b.hidden?"Show":"Hide");}
+                          else if(ren.selectedType==1&&ren.selectedIndex<ren.lights.size()){Light l=ren.lights.get(ren.selectedIndex);btnHide.setText(l.hidden?"Show":"Hide");}
+                          else if(ren.selectedType==2&&ren.selectedIndex<ren.items.size()){Item it=ren.items.get(ren.selectedIndex);btnHide.setText(it.hidden?"Show":"Hide");}
+                          else if(ren.selectedType==3&&ren.selectedIndex<ren.texts.size()){GameText gt=ren.texts.get(ren.selectedIndex);btnHide.setText(gt.hidden?"Show":"Hide");}
+                      }
+                  });
+              }
+              private void updSizeInfo(){runOnUiThread(()->txtSizeInfo.setText(String.format(java.util.Locale.US,"%.1f x %.1f x %.1f",ren.blockSX,ren.blockSY,ren.blockSZ)));}
+              private void updGridBtn(){runOnUiThread(()->{if(ren.gridEnabled){btnGrid.setText("Grid: On");btnGrid.setBackgroundResource(R.drawable.btn_blue_filled);btnGrid.setTextColor(0xFF000000);}else{btnGrid.setText("Grid: Off");btnGrid.setBackgroundResource(R.drawable.btn_blue);btnGrid.setTextColor(0xFF00BFFF);}});}
+              private void setupJoy(View base,View stick){base.setOnTouchListener((v,e)->{float cx=v.getWidth()/2f,cy=v.getHeight()/2f;if(e.getAction()==MotionEvent.ACTION_MOVE||e.getAction()==MotionEvent.ACTION_DOWN){float dx=e.getX()-cx,dy=e.getY()-cy,d=(float)Math.sqrt(dx*dx+dy*dy),lim=cx-stick.getWidth()/2f;if(d>lim){dx*=lim/d;dy*=lim/d;}stick.setTranslationX(dx);stick.setTranslationY(dy);ren.jX=dx/lim;ren.jY=dy/lim;}else if(e.getAction()==MotionEvent.ACTION_UP){stick.setTranslationX(0);stick.setTranslationY(0);ren.jX=0;ren.jY=0;}return true;});}
+              private void setupLook(View z){z.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}else if(e.getAction()==MotionEvent.ACTION_MOVE){ren.rY+=(e.getX()-lx)*0.25f;ren.rX=Math.max(-80,Math.min(80,ren.rX+(e.getY()-ly)*0.25f));lx=e.getX();ly=e.getY();}return true;});}
+              private void updBtnGrp(Button[]btns,int sel){for(int i=0;i<btns.length;i++){if(i==sel){btns[i].setBackgroundResource(R.drawable.btn_blue_filled);btns[i].setTextColor(0xFF000000);}else{btns[i].setBackgroundResource(R.drawable.btn_blue);btns[i].setTextColor(0xFF00BFFF);}}}
+              private void updColSel(int sel){for(int i=0;i<colorBtn.length;i++){try{GradientDrawable bg=(GradientDrawable)colorBtn[i].getBackground();if(i==sel)bg.setStroke(6,0xFFFFFFFF);else bg.setStroke(2,0xFF00BFFF);}catch(Exception ignored){}}}
           }
           ENDMAIN
 
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="Золотой Кликер" android:theme="@style/AppTheme">
-                  <activity android:name="com.clicker.game.MainActivity" android:exported="true" android:configChanges="orientation|screenSize">
+              <application android:label="Enjoer 7.0" android:theme="@style/AppTheme">
+                  <activity android:name="com.enjoer.game.MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden">
                       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
                   </activity>
               </application>
@@ -909,13 +1415,14 @@ jobs:
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
           android {
-              namespace 'com.clicker.game'
+              namespace 'com.enjoer.game'
               compileSdk 34
-              defaultConfig { applicationId 'com.clicker.game'; minSdk 24; targetSdk 34 }
+              defaultConfig { applicationId 'com.enjoer.game'; minSdk 24; targetSdk 34 }
               buildFeatures { buildConfig true }
           }
           dependencies { 
               implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'org.mozilla:rhino:1.7.14'
           }
           EOF
 
@@ -930,5 +1437,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Premium_Clicker_Game
+          name: Enjoer_7.0_Ultimate
           path: app/build/outputs/apk/debug/app-debug.apk
