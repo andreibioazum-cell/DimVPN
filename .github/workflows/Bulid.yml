@@ -1,4 +1,4 @@
-name: Enjoer_7.0_Ultimate_Complete
+name: Enjoer_7.1_Ultimate_Complete
 on: [push, workflow_dispatch]
 
 jobs:
@@ -117,6 +117,14 @@ jobs:
           </shape>
           ENDF
 
+          cat > app/src/main/res/drawable/btn_brown.xml << 'ENDF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <corners android:radius="12dp"/>
+            <solid android:color="#8B4513"/>
+            <stroke android:width="2dp" android:color="#654321"/>
+          </shape>
+          ENDF
+
           cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
           <?xml version="1.0" encoding="utf-8"?>
           <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -134,14 +142,15 @@ jobs:
                   <Button android:id="@+id/btn_menu" android:layout_width="80dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Menu" android:textSize="13sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
                   
                   <LinearLayout android:id="@+id/inventory_bar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="20dp" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="4dp">
-                      <TextView android:id="@+id/inv_slot_0" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/inv_slot_1" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/inv_slot_2" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/inv_slot_3" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
+                      <TextView android:id="@+id/inv_slot_0" android:layout_width="55dp" android:layout_height="55dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFD700" android:textSize="11sp" android:layout_margin="2dp" android:textStyle="bold"/>
+                      <TextView android:id="@+id/inv_slot_1" android:layout_width="55dp" android:layout_height="55dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFD700" android:textSize="11sp" android:layout_margin="2dp" android:textStyle="bold"/>
+                      <TextView android:id="@+id/inv_slot_2" android:layout_width="55dp" android:layout_height="55dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFD700" android:textSize="11sp" android:layout_margin="2dp" android:textStyle="bold"/>
+                      <TextView android:id="@+id/inv_slot_3" android:layout_width="55dp" android:layout_height="55dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFD700" android:textSize="11sp" android:layout_margin="2dp" android:textStyle="bold"/>
                   </LinearLayout>
                   
                   <FrameLayout android:id="@+id/joy_base" android:layout_width="126dp" android:layout_height="126dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="36dp" android:layout_marginBottom="36dp" android:background="@drawable/joy_base"/>
                   <View android:id="@+id/joy_stick" android:layout_width="54dp" android:layout_height="54dp" android:layout_alignLeft="@id/joy_base" android:layout_alignTop="@id/joy_base" android:layout_marginLeft="36dp" android:layout_marginTop="36dp" android:background="@drawable/joy_stick"/>
+                  <Button android:id="@+id/btn_attack" android:layout_width="70dp" android:layout_height="70dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="30dp" android:layout_marginBottom="130dp" android:text="⚔" android:textSize="20sp" android:background="@drawable/btn_brown" android:textColor="#FFD700" android:visibility="gone"/>
                   <Button android:id="@+id/btn_jump" android:layout_width="90dp" android:layout_height="90dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="40dp" android:layout_marginBottom="40dp" android:text="Jump" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#FFF"/>
                   <View android:id="@+id/crosshair_game" android:layout_width="10dp" android:layout_height="10dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
               </RelativeLayout>
@@ -186,11 +195,12 @@ jobs:
                           </LinearLayout>
                           
                           <LinearLayout android:id="@+id/item_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="6dp" android:visibility="gone">
-                              <Button android:id="@+id/item_sword" android:layout_width="match_parent" android:layout_height="36dp" android:text="Sword" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
+                              <Button android:id="@+id/item_stick" android:layout_width="match_parent" android:layout_height="36dp" android:text="Stick" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000"/>
                           </LinearLayout>
                           
                           <LinearLayout android:id="@+id/text_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="6dp" android:visibility="gone">
                               <EditText android:id="@+id/text_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Enter text" android:textColor="#FFF" android:textColorHint="#666" android:background="@drawable/panel_bg" android:padding="8dp" android:textSize="13sp"/>
+                              <Button android:id="@+id/btn_place_text" android:layout_width="match_parent" android:layout_height="36dp" android:text="Place Text" android:textSize="11sp" android:background="@drawable/btn_blue_filled" android:textColor="#000" android:layout_marginTop="6dp"/>
                           </LinearLayout>
                           
                           <LinearLayout android:id="@+id/ridix_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="10dp" android:background="@drawable/ridix_bg" android:padding="8dp">
@@ -261,17 +271,18 @@ jobs:
 
               <RelativeLayout android:id="@+id/playtest_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
                   <View android:id="@+id/playtest_look_zone" android:layout_width="match_parent" android:layout_height="match_parent"/>
-                  <Button android:id="@+id/btn_stop_playtest" android:layout_width="80dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Stop" android:textSize="13sp" android:background="@drawable/btn_red" android:textColor="#FF4444"/>
+                  <Button android:id="@+id/btn_stop_playtest" android:layout_width="80dp" android:layout_height="50dp" android:layout_margin="10dp" android:text="Stop" android:textSize="13sp" android:background="@drawable/btn_blue" android:textColor="#00BFFF"/>
                   
                   <LinearLayout android:id="@+id/playtest_inventory_bar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:layout_marginBottom="20dp" android:orientation="horizontal" android:background="@drawable/panel_bg" android:padding="4dp">
-                      <TextView android:id="@+id/playtest_inv_slot_0" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/playtest_inv_slot_1" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/playtest_inv_slot_2" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
-                      <TextView android:id="@+id/playtest_inv_slot_3" android:layout_width="45dp" android:layout_height="45dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFF" android:textSize="9sp" android:layout_margin="2dp"/>
+                      <TextView android:id="@+id/playtest_inv_slot_0" android:layout_width="55dp" android:layout_height="55dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFD700" android:textSize="11sp" android:layout_margin="2dp" android:textStyle="bold"/>
+                      <TextView android:id="@+id/playtest_inv_slot_1" android:layout_width="55dp" android:layout_height="55dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFD700" android:textSize="11sp" android:layout_margin="2dp" android:textStyle="bold"/>
+                      <TextView android:id="@+id/playtest_inv_slot_2" android:layout_width="55dp" android:layout_height="55dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFD700" android:textSize="11sp" android:layout_margin="2dp" android:textStyle="bold"/>
+                      <TextView android:id="@+id/playtest_inv_slot_3" android:layout_width="55dp" android:layout_height="55dp" android:background="@drawable/inv_slot" android:gravity="center" android:textColor="#FFD700" android:textSize="11sp" android:layout_margin="2dp" android:textStyle="bold"/>
                   </LinearLayout>
                   
                   <FrameLayout android:id="@+id/playtest_joy_base" android:layout_width="126dp" android:layout_height="126dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="36dp" android:layout_marginBottom="36dp" android:background="@drawable/joy_base"/>
                   <View android:id="@+id/playtest_joy_stick" android:layout_width="54dp" android:layout_height="54dp" android:layout_alignLeft="@id/playtest_joy_base" android:layout_alignTop="@id/playtest_joy_base" android:layout_marginLeft="36dp" android:layout_marginTop="36dp" android:background="@drawable/joy_stick"/>
+                  <Button android:id="@+id/btn_playtest_attack" android:layout_width="70dp" android:layout_height="70dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="30dp" android:layout_marginBottom="130dp" android:text="⚔" android:textSize="20sp" android:background="@drawable/btn_brown" android:textColor="#FFD700" android:visibility="gone"/>
                   <Button android:id="@+id/btn_playtest_jump" android:layout_width="90dp" android:layout_height="90dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="40dp" android:layout_marginBottom="40dp" android:text="Jump" android:textSize="14sp" android:background="@drawable/btn_blue" android:textColor="#FFF"/>
                   <View android:id="@+id/crosshair_playtest" android:layout_width="10dp" android:layout_height="10dp" android:layout_centerInParent="true" android:background="@drawable/crosshair"/>
               </RelativeLayout>
@@ -291,7 +302,7 @@ jobs:
 
               <LinearLayout android:id="@+id/menu_ui" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:background="#02050A">
                   <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Enjoer" android:textSize="52sp" android:textColor="#00BFFF" android:textStyle="bold"/>
-                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Engine 7.0" android:textSize="18sp" android:textColor="#0088CC" android:layout_marginBottom="16dp"/>
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Engine 7.1" android:textSize="18sp" android:textColor="#0088CC" android:layout_marginBottom="16dp"/>
                   <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/ridix_bg" android:padding="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="32dp">
                       <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ridix: " android:textColor="#FFD700" android:textSize="16sp"/>
                       <TextView android:id="@+id/txt_ridix_lobby" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFD700" android:textSize="16sp" android:textStyle="bold"/>
@@ -443,16 +454,21 @@ jobs:
           import android.opengl.GLSurfaceView;
           import android.opengl.Matrix;
           import java.nio.*;
+          import java.util.Random;
           import java.util.concurrent.CopyOnWriteArrayList;
           import javax.microedition.khronos.egl.EGLConfig;
           import javax.microedition.khronos.opengles.GL10;
 
           public class GameRenderer implements GLSurfaceView.Renderer {
-              private final float[] proj=new float[16],view=new float[16],model=new float[16];
+              private final float[] proj=new float[16],view=new float[16],model=new float[16],lightViewProj=new float[16];
               public float pX=0,pY=6,pZ=15,rY=0,rX=0,jX=0,jY=0,vY=0;
               public boolean isEngineMode=false,isPlayingLevel=false,gridEnabled=true;
-              private int prog,skyProg;
-              private FloatBuffer vBuf,nBuf,skyBuf;
+              private int prog,skyProg,shadowProg,bloomProg;
+              private FloatBuffer vBuf,nBuf,skyBuf,quadBuf;
+              private int shadowFBO,shadowMap,bloomFBO,bloomTex,aoTex;
+              private static final int SHADOW_SIZE=1024;
+              private float[] ssaoKernel=new float[192];
+              private float[] ssaoNoise=new float[48];
               public float blockR=0.3f,blockG=0.6f,blockB=1f,blockSX=4,blockSY=4,blockSZ=4,placeDist=12f;
               public final float gridSize=2f;
               public CopyOnWriteArrayList<Block> blocks=new CopyOnWriteArrayList<>();
@@ -479,6 +495,8 @@ jobs:
               
               public String[] inventory=new String[4];
               public PurchaseCallback purchaseCallback;
+              public TapBlockCallback tapBlockCallback;
+              public boolean hasStick=false;
 
               private static final float FLOOR_Y=0f,PLAYER_HEIGHT=5.2f,PLAYER_RADIUS=0.85f;
               private static final float CAM_TARGET_Y_OFF=3.0f,CAM_DIST=14.7f;
@@ -492,9 +510,14 @@ jobs:
               private boolean blinking=false;
               private float nextBlink=3f;
               private int pendingPurchaseType=-1,pendingPurchaseIndex=-1;
+              private float attackAnim=0f;
+              private boolean isAttacking=false;
 
               public interface PurchaseCallback{
                   void onPurchaseRequest(String itemName,int price,int type,int index);
+              }
+              public interface TapBlockCallback{
+                  void onTapBlock(Block block,int index);
               }
 
               public Block getSelectedBlock(){if(selectedType==0&&selectedIndex>=0&&selectedIndex<blocks.size())return blocks.get(selectedIndex);return null;}
@@ -508,6 +531,14 @@ jobs:
                   blocks.clear();lights.clear();items.clear();texts.clear();
                   Block b=new Block(0,2,-10,8,4,8,0.9f,0.2f,0.2f);blocks.add(b);
                   Light l=new Light(-5,8,-8,1f,1f,0.8f,15f,false);lights.add(l);
+                  Item stick=new Item(3,3,-8,"stick");stick.itemName="Stick";items.add(stick);
+              }
+
+              public void doAttack(){
+                  if(hasStick&&!isAttacking){
+                      isAttacking=true;
+                      attackAnim=0f;
+                  }
               }
 
               public void placeObject(){
@@ -527,9 +558,9 @@ jobs:
                       lights.add(lg);
                   }else if(objType==2){
                       if(ny-0.5f<FLOOR_Y)ny=FLOOR_Y+0.5f;
-                      Item it=new Item(nx,ny,nz,itemType==0?"sword":"item");
+                      Item it=new Item(nx,ny,nz,"stick");
+                      it.itemName=currentItemName.isEmpty()?"Stick":currentItemName;
                       it.ridixPrice=currentRidixPrice;
-                      it.itemName=currentItemName;
                       items.add(it);
                   }else if(objType==3){
                       String txt=currentItemName.isEmpty()?"Text":currentItemName;
@@ -594,46 +625,69 @@ jobs:
                   return closest;
               }
 
+              public void tapOnBlock(float tx,float ty){
+                  int idx=raycastBlock(tx,ty);
+                  if(idx>=0&&idx<blocks.size()){
+                      Block b=blocks.get(idx);
+                      float dx=b.x-pX,dy=b.y-pY,dz=b.z-pZ;
+                      float dist=(float)Math.sqrt(dx*dx+dy*dy+dz*dz);
+                      if(dist<placeDist+2f){
+                          if(b.ridixPrice>0&&!b.purchased){
+                              if(tapBlockCallback!=null)tapBlockCallback.onTapBlock(b,idx);
+                          }else if(isEngineMode){
+                              selectedIndex=idx;selectedType=0;
+                              blockR=b.r;blockG=b.g;blockB=b.b;
+                              blockSX=b.sx;blockSY=b.sy;blockSZ=b.sz;
+                          }
+                      }
+                  }
+              }
+
               @Override
               public void onSurfaceCreated(GL10 gl,EGLConfig cfg){
                   GLES30.glEnable(GLES30.GL_DEPTH_TEST);GLES30.glDepthFunc(GLES30.GL_LEQUAL);
+                  GLES30.glEnable(GLES30.GL_BLEND);GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
 
                   String vs=
                   "#version 300 es\n"+
                   "layout(location=0)in vec4 aP;layout(location=1)in vec3 aN;"+
-                  "uniform mat4 uMVP,uM;out vec3 vN,vP;"+
-                  "void main(){vP=vec3(uM*aP);vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
+                  "uniform mat4 uMVP,uM;out vec3 vN,vP,vWorldP;"+
+                  "void main(){vec4 wp=uM*aP;vWorldP=wp.xyz;vP=wp.xyz;vN=normalize(mat3(uM)*aN);gl_Position=uMVP*aP;}";
 
                   String fs=
                   "#version 300 es\nprecision highp float;"+
-                  "in vec3 vN,vP;uniform vec3 camP;uniform vec4 uC;uniform float uSel,isFloor;"+
+                  "in vec3 vN,vP,vWorldP;uniform vec3 camP;uniform vec4 uC;uniform float uSel,isFloor;"+
                   "uniform int numLights;uniform vec3 lightPos[8];uniform vec3 lightCol[8];uniform float lightInt[8];"+
+                  "uniform vec3 sunDir;uniform float hasShadows;uniform sampler2D shadowTex;"+
                   "out vec4 fC;"+
+                  "float calcShadow(vec3 wp,vec3 n,vec3 ld){"+
+                  "vec4 lp=vec4(wp+n*0.1,1.0);"+
+                  "float bias=max(0.05*(1.0-dot(n,ld)),0.005);"+
+                  "float sd=lp.z-bias;float sh=0.0;vec2 ts=vec2(1.0/1024.0);"+
+                  "for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)"+
+                  "sh+=texture(shadowTex,lp.xy*0.5+0.5+vec2(x,y)*ts).r<sd?0.0:1.0;"+
+                  "return sh/9.0;"+
+                  "}"+
                   "void main(){"+
-                  "vec3 n=normalize(vN);"+
-                  "vec3 vD=normalize(camP-vP);"+
-                  "vec3 lD1=normalize(vec3(0.5,1.0,0.3));"+
-                  "float d1=max(dot(n,lD1),0.0);"+
-                  "vec3 lD2=normalize(vec3(-0.5,0.5,-0.3));"+
-                  "float d2=max(dot(n,lD2),0.0)*0.45;"+
-                  "vec3 lD3=normalize(vec3(0.0,-0.5,-1.0));"+
-                  "float d3=max(dot(n,lD3),0.0)*0.2;"+
+                  "vec3 n=normalize(vN);vec3 vD=normalize(camP-vP);"+
+                  "vec3 albedo=uC.rgb;float roughness=0.6,metallic=0.05;"+
+                  "vec3 lD1=normalize(sunDir);float d1=max(dot(n,lD1),0.0);"+
+                  "vec3 lD2=normalize(vec3(-0.5,0.5,-0.3));float d2=max(dot(n,lD2),0.0)*0.45;"+
+                  "vec3 lD3=normalize(vec3(0.0,-0.5,-1.0));float d3=max(dot(n,lD3),0.0)*0.2;"+
                   "float ao=clamp(vP.y*0.06+0.7,0.55,1.0);"+
-                  "vec3 h=normalize(lD1+vD);float spec=pow(max(dot(n,h),0.0),64.0)*0.5;"+
-                  "vec3 col=uC.rgb;if(uSel>0.5)col+=vec3(0.0,0.5,0.8);"+
+                  "vec3 h=normalize(lD1+vD);float spec=pow(max(dot(n,h),0.0),32.0)*0.3;"+
+                  "vec3 col=albedo;if(uSel>0.5)col+=vec3(0.0,0.5,0.8);"+
                   "vec3 amb=vec3(0.16,0.20,0.26)*ao;"+
-                  "vec3 fin=col*(d1*vec3(1.0,0.98,0.94)+d2*vec3(0.7,0.75,0.85)+d3*vec3(0.3,0.4,0.5)+amb)+spec;"+
+                  "float shadow=1.0;if(hasShadows>0.5)shadow=calcShadow(vWorldP,n,lD1);"+
+                  "vec3 fin=col*(d1*shadow*vec3(1.0,0.95,0.85)+d2*vec3(0.7,0.75,0.85)+d3*vec3(0.3,0.4,0.5)+amb)+spec;"+
                   "for(int i=0;i<numLights&&i<8;i++){"+
                   "vec3 lDir=lightPos[i]-vP;float dist=length(lDir);lDir=normalize(lDir);"+
                   "float atten=lightInt[i]/(1.0+dist*dist*0.01);"+
                   "float diff=max(dot(n,lDir),0.0);"+
-                  "fin+=col*lightCol[i]*diff*atten;"+
+                  "fin+=col*lightCol[i]*diff*atten*2.0;"+
                   "}"+
-                  "if(isFloor>0.5){"+
-                  "vec2 gv=fract(vP.xz*0.2);float ln=step(0.95,gv.x)+step(0.95,gv.y);"+
-                  "vec3 floorCol=fin*0.85;"+
-                  "fin=mix(floorCol,vec3(0.0,0.35,0.65),clamp(ln,0.0,1.0)*0.4);"+
-                  "}"+
+                  "if(isFloor>0.5){vec2 gv=fract(vP.xz*0.2);float ln=step(0.95,gv.x)+step(0.95,gv.y);"+
+                  "vec3 floorCol=fin*0.85;fin=mix(floorCol,vec3(0.0,0.35,0.65),clamp(ln,0.0,1.0)*0.4);}"+
                   "float dist=length(camP-vP);float fog=1.0-exp(-dist*0.005);"+
                   "vec3 c=mix(fin,vec3(0.03,0.08,0.18),clamp(fog,0.0,0.75));"+
                   "c=c*1.3;c=(c*(2.51*c+0.03))/(c*(2.43*c+0.59)+0.14);"+
@@ -646,8 +700,7 @@ jobs:
                   String sfs=
                   "#version 300 es\nprecision highp float;in vec3 vDir;out vec4 fC;"+
                   "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}"+
-                  "void main(){"+
-                  "vec3 d=normalize(vDir);float t=clamp(d.y*0.5+0.5,0.0,1.0);"+
+                  "void main(){vec3 d=normalize(vDir);float t=clamp(d.y*0.5+0.5,0.0,1.0);"+
                   "vec3 col=mix(vec3(0.01,0.02,0.06),vec3(0.05,0.2,0.45),t);"+
                   "vec3 da=abs(d);vec2 uv=(da.y>da.x&&da.y>da.z)?d.xz:(da.x>da.z?d.yz:d.xy);"+
                   "uv*=55.0;vec2 id=floor(uv),gv=fract(uv)-0.5;"+
@@ -656,7 +709,15 @@ jobs:
                   "col+=mix(vec3(1.0,0.95,0.85),vec3(0.8,0.9,1.0),hash(id+4.3))*s;"+
                   "fC=vec4(col,1.0);}";
 
-                  prog=mkProg(vs,fs);skyProg=mkProg(svs,sfs);
+                  String shadowVs=
+                  "#version 300 es\nlayout(location=0)in vec4 aP;"+
+                  "uniform mat4 uLightMVP;"+
+                  "void main(){gl_Position=uLightMVP*aP;}";
+
+                  String shadowFs=
+                  "#version 300 es\nprecision highp float;out vec4 fC;void main(){fC=vec4(gl_FragCoord.z,0,0,1);}";
+
+                  prog=mkProg(vs,fs);skyProg=mkProg(svs,sfs);shadowProg=mkProg(shadowVs,shadowFs);
 
                   float[]vc={
                       -.5f,.5f,.5f,-.5f,-.5f,.5f,.5f,.5f,.5f,.5f,-.5f,.5f,
@@ -676,6 +737,39 @@ jobs:
                   };
                   float[]sq={-1f,-1f,1f,1f,-1f,1f,-1f,1f,1f,1f,1f,1f};
                   vBuf=mkFB(vc);nBuf=mkFB(nc);skyBuf=mkFB(sq);
+                  quadBuf=mkFB(new float[]{-1,1,0,1,1,0,-1,-1,0,1,-1,0});
+                  
+                  int[]fbo=new int[1];
+                  GLES30.glGenFramebuffers(1,fbo,0);shadowFBO=fbo[0];
+                  int[]tx=new int[1];
+                  GLES30.glGenTextures(1,tx,0);shadowMap=tx[0];
+                  GLES30.glBindTexture(GLES30.GL_TEXTURE_2D,shadowMap);
+                  GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D,0,GLES30.GL_DEPTH_COMPONENT16,SHADOW_SIZE,SHADOW_SIZE,0,GLES30.GL_DEPTH_COMPONENT,GLES30.GL_UNSIGNED_SHORT,null);
+                  GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D,GLES30.GL_TEXTURE_MIN_FILTER,GLES30.GL_LINEAR);
+                  GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D,GLES30.GL_TEXTURE_MAG_FILTER,GLES30.GL_LINEAR);
+                  GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D,GLES30.GL_TEXTURE_WRAP_S,GLES30.GL_CLAMP_TO_EDGE);
+                  GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D,GLES30.GL_TEXTURE_WRAP_T,GLES30.GL_CLAMP_TO_EDGE);
+                  GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER,shadowFBO);
+                  GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER,GLES30.GL_DEPTH_ATTACHMENT,GLES30.GL_TEXTURE_2D,shadowMap,0);
+                  GLES30.glDrawBuffers(1,new int[]{GLES30.GL_NONE},0);
+                  GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER,0);
+
+                  Random rnd=new Random(42);
+                  for(int i=0;i<64;i++){
+                      float s=(float)i/64f;
+                      float x=(float)rnd.nextGaussian();
+                      float y=(float)rnd.nextGaussian();
+                      float z=Math.abs((float)rnd.nextGaussian());
+                      float l=(float)Math.sqrt(x*x+y*y+z*z);
+                      ssaoKernel[i*3]=x/l*(0.1f+0.9f*s);
+                      ssaoKernel[i*3+1]=y/l*(0.1f+0.9f*s);
+                      ssaoKernel[i*3+2]=z/l*(0.1f+0.9f*s);
+                  }
+                  for(int i=0;i<16;i++){
+                      ssaoNoise[i*3]=(float)rnd.nextGaussian();
+                      ssaoNoise[i*3+1]=(float)rnd.nextGaussian();
+                      ssaoNoise[i*3+2]=0;
+                  }
                   loadBuiltInLevel();lastTimeNs=System.nanoTime();
               }
 
@@ -686,6 +780,9 @@ jobs:
               @Override
               public void onDrawFrame(GL10 gl){
                   update();
+                  renderShadowPass();
+                  GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER,0);
+                  GLES30.glViewport(0,0,(int)screenW,(int)screenH);
                   GLES30.glClearColor(0.01f,0.015f,0.03f,1f);
                   GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT|GLES30.GL_DEPTH_BUFFER_BIT);
                   float rYr=(float)Math.toRadians(rY);
@@ -707,6 +804,33 @@ jobs:
                   drawSky(vp);drawWorld(vp);
               }
 
+              private void renderShadowPass(){
+                  GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER,shadowFBO);
+                  GLES30.glViewport(0,0,SHADOW_SIZE,SHADOW_SIZE);
+                  GLES30.glClear(GLES30.GL_DEPTH_BUFFER_BIT);
+                  GLES30.glUseProgram(shadowProg);
+                  int uLMVP=GLES30.glGetUniformLocation(shadowProg,"uLightMVP");
+                  float[]lProj=new float[16],lView=new float[16];
+                  Matrix.orthoM(lProj,0,-30,30,-30,30,0.1f,100f);
+                  float sunX=(float)Math.sin(System.currentTimeMillis()*0.0001f)*20;
+                  float sunY=25f,sunZ=(float)Math.cos(System.currentTimeMillis()*0.0001f)*20;
+                  Matrix.setLookAtM(lView,0,sunX,sunY,sunZ,0,0,0,0,1,0);
+                  Matrix.multiplyMM(lightViewProj,0,lProj,0,lView,0);
+                  GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);GLES30.glEnableVertexAttribArray(0);
+                  Matrix.setIdentityM(model,0);Matrix.scaleM(model,0,800f,0.04f,800f);
+                  float[]r=new float[16];Matrix.multiplyMM(r,0,lightViewProj,0,model,0);
+                  GLES30.glUniformMatrix4fv(uLMVP,1,false,r,0);
+                  GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,0,4);
+                  for(Block b:blocks){
+                      if(b.hidden||(!isEngineMode&&!isPlayingLevel&&b.ridixPrice>0&&!b.purchased))continue;
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,b.x,b.y,b.z);Matrix.scaleM(model,0,b.sx,b.sy,b.sz);
+                      Matrix.multiplyMM(r,0,lightViewProj,0,model,0);
+                      GLES30.glUniformMatrix4fv(uLMVP,1,false,r,0);
+                      for(int i=0;i<6;i++)GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP,i*4,4);
+                  }
+                  GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER,0);
+              }
+
               private void drawSky(float[]vp){
                   GLES30.glDepthMask(false);GLES30.glUseProgram(skyProg);
                   float[]inv=new float[16];Matrix.invertM(inv,0,vp,0);
@@ -719,15 +843,22 @@ jobs:
                   GLES30.glUseProgram(prog);
                   int uMVP=GLES30.glGetUniformLocation(prog,"uMVP"),uM=GLES30.glGetUniformLocation(prog,"uM"),uC=GLES30.glGetUniformLocation(prog,"uC");
                   int uSel=GLES30.glGetUniformLocation(prog,"uSel"),uFloor=GLES30.glGetUniformLocation(prog,"isFloor");
+                  int uShadows=GLES30.glGetUniformLocation(prog,"hasShadows");
                   GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"camP"),camX,camY,camZ);
+                  GLES30.glUniform3f(GLES30.glGetUniformLocation(prog,"sunDir"),0.3f,0.8f,0.5f);
+                  GLES30.glUniform1f(uShadows,1f);
                   
                   int nL=Math.min(lights.size(),8);
-                  GLES30.glUniform1i(GLES30.glGetUniformLocation(prog,"numLights"),isEngineMode?nL:nL);
+                  GLES30.glUniform1i(GLES30.glGetUniformLocation(prog,"numLights"),nL);
                   float[]lp=new float[24],lc=new float[24],li=new float[8];
-                  for(int i=0;i<nL;i++){Light l=lights.get(i);if(l.hidden||(!isEngineMode&&l.ridixPrice>0&&!l.purchased))continue;lp[i*3]=l.x;lp[i*3+1]=l.y;lp[i*3+2]=l.z;lc[i*3]=l.r;lc[i*3+1]=l.g;lc[i*3+2]=l.b;li[i]=l.intensity;}
+                  for(int i=0;i<nL;i++){Light l=lights.get(i);if(l.hidden)continue;lp[i*3]=l.x;lp[i*3+1]=l.y;lp[i*3+2]=l.z;lc[i*3]=l.r;lc[i*3+1]=l.g;lc[i*3+2]=l.b;li[i]=l.intensity;}
                   GLES30.glUniform3fv(GLES30.glGetUniformLocation(prog,"lightPos"),8,lp,0);
                   GLES30.glUniform3fv(GLES30.glGetUniformLocation(prog,"lightCol"),8,lc,0);
                   GLES30.glUniform1fv(GLES30.glGetUniformLocation(prog,"lightInt"),8,li,0);
+                  
+                  GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+                  GLES30.glBindTexture(GLES30.GL_TEXTURE_2D,shadowMap);
+                  GLES30.glUniform1i(GLES30.glGetUniformLocation(prog,"shadowTex"),0);
                   
                   GLES30.glVertexAttribPointer(0,3,GLES30.GL_FLOAT,false,0,vBuf);GLES30.glEnableVertexAttribArray(0);
                   GLES30.glVertexAttribPointer(1,3,GLES30.GL_FLOAT,false,0,nBuf);GLES30.glEnableVertexAttribArray(1);
@@ -736,7 +867,7 @@ jobs:
                   GLES30.glUniform1f(uFloor,0f);
                   
                   for(int i=0;i<blocks.size();i++){
-                      Block b=blocks.get(i);if(b.hidden||(!isEngineMode&&b.ridixPrice>0&&!b.purchased))continue;
+                      Block b=blocks.get(i);if(b.hidden||(!isEngineMode&&!isPlayingLevel&&b.ridixPrice>0&&!b.purchased))continue;
                       Matrix.setIdentityM(model,0);Matrix.translateM(model,0,b.x,b.y,b.z);Matrix.scaleM(model,0,b.sx,b.sy,b.sz);
                       GLES30.glUniform1f(uSel,(selectedType==0&&i==selectedIndex&&isEngineMode&&!isPlayingLevel)?1f:0f);
                       draw(vp,uM,uMVP,uC,b.r,b.g,b.b,1f);
@@ -747,22 +878,18 @@ jobs:
                           Light l=lights.get(i);if(l.hidden)continue;
                           Matrix.setIdentityM(model,0);Matrix.translateM(model,0,l.x,l.y,l.z);Matrix.scaleM(model,0,0.5f,0.5f,0.5f);
                           GLES30.glUniform1f(uSel,(selectedType==1&&i==selectedIndex&&!isPlayingLevel)?1f:0f);
-                          GLES30.glEnable(GLES30.GL_BLEND);GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE);
+                          GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE);
                           draw(vp,uM,uMVP,uC,l.r,l.g,l.b,0.8f);
-                          GLES30.glDisable(GLES30.GL_BLEND);
+                          GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
                       }
                   }
                   
                   for(int i=0;i<items.size();i++){
-                      Item it=items.get(i);if(it.hidden||it.collected||(!isEngineMode&&it.ridixPrice>0&&!it.purchased))continue;
-                      if(it.type.equals("sword")){
-                          float ang=(System.currentTimeMillis()%3600)/10f;
-                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,it.x,it.y+(float)Math.sin(Math.toRadians(ang))*0.15f,it.z);Matrix.rotateM(model,0,ang*2f,0,1,0);Matrix.scaleM(model,0,0.12f,0.8f,0.03f);
-                          GLES30.glUniform1f(uSel,(selectedType==2&&i==selectedIndex&&isEngineMode&&!isPlayingLevel)?1f:0f);
-                          draw(vp,uM,uMVP,uC,0.7f,0.7f,0.8f,1f);
-                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,it.x,it.y+(float)Math.sin(Math.toRadians(ang))*0.15f-0.5f,it.z);Matrix.rotateM(model,0,ang*2f,0,1,0);Matrix.scaleM(model,0,0.25f,0.15f,0.08f);
-                          draw(vp,uM,uMVP,uC,0.4f,0.25f,0.15f,1f);
-                      }
+                      Item it=items.get(i);if(it.hidden||it.collected||(!isEngineMode&&!isPlayingLevel&&it.ridixPrice>0&&!it.purchased))continue;
+                      float ang=(System.currentTimeMillis()%3600)/10f;
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,it.x,it.y+(float)Math.sin(Math.toRadians(ang))*0.15f,it.z);Matrix.rotateM(model,0,ang*2f,0,1,0);Matrix.scaleM(model,0,0.1f,1.2f,0.1f);
+                      GLES30.glUniform1f(uSel,(selectedType==2&&i==selectedIndex&&isEngineMode&&!isPlayingLevel)?1f:0f);
+                      draw(vp,uM,uMVP,uC,0.55f,0.27f,0.07f,1f);
                   }
                   
                   if(isEngineMode&&!isPlayingLevel&&selectedIndex<0){
@@ -776,13 +903,13 @@ jobs:
                           Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,0.5f,0.5f,0.5f);
                       }else if(objType==2){
                           if(py2-0.5f<FLOOR_Y)py2=FLOOR_Y+0.5f;
-                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,0.12f,0.8f,0.03f);
+                          Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,0.1f,1.2f,0.1f);
                       }else{
                           Matrix.setIdentityM(model,0);Matrix.translateM(model,0,px,py2,pz);Matrix.scaleM(model,0,0.5f,0.5f,0.5f);
                       }
-                      GLES30.glEnable(GLES30.GL_BLEND);GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
+                      GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA,GLES30.GL_ONE_MINUS_SRC_ALPHA);
                       GLES30.glUniform1f(uSel,0f);draw(vp,uM,uMVP,uC,blockR,blockG,blockB,0.4f);
-                      GLES30.glDisable(GLES30.GL_BLEND);
+                      
                   }
                   if(!(isEngineMode&&!isPlayingLevel))drawPlayerChar(vp,uM,uMVP,uC);
               }
@@ -795,6 +922,10 @@ jobs:
                   blinkTimer+=dt;
                   if(!blinking&&blinkTimer>nextBlink){blinking=true;blinkDur=0.12f;blinkTimer=0;nextBlink=2f+(float)(Math.random()*4f);}
                   if(blinking){blinkDur-=dt;if(blinkDur<=0)blinking=false;}
+                  if(isAttacking){
+                      attackAnim+=dt*12f;
+                      if(attackAnim>1f){attackAnim=0f;isAttacking=false;}
+                  }
                   float s=0.42f,rYr=(float)Math.toRadians(rY);
                   if(isEngineMode&&!isPlayingLevel){
                       float rXr=(float)Math.toRadians(rX);
@@ -807,7 +938,7 @@ jobs:
                       float nX=pX+mX,nY=pY+vY,nZ=pZ+mZ,fY=nY-PLAYER_HEIGHT;
                       if(fY<FLOOR_Y){nY=FLOOR_Y+PLAYER_HEIGHT;vY=0;}
                       for(Block b:blocks){
-                          if(!isEngineMode&&b.ridixPrice>0&&!b.purchased)continue;
+                          if(!isEngineMode&&!isPlayingLevel&&b.ridixPrice>0&&!b.purchased)continue;
                           boolean oxz=nX+PLAYER_RADIUS>b.minX()&&nX-PLAYER_RADIUS<b.maxX()&&nZ+PLAYER_RADIUS>b.minZ()&&nZ-PLAYER_RADIUS<b.maxZ();
                           boolean oy=fY<b.maxY()-0.1f&&nY>b.minY()+0.1f;
                           if(oxz){
@@ -836,11 +967,25 @@ jobs:
                                   pendingPurchaseType=2;pendingPurchaseIndex=i;
                                   if(purchaseCallback!=null)purchaseCallback.onPurchaseRequest(it.itemName.isEmpty()?it.type:it.itemName,it.ridixPrice,2,i);
                               }else if(it.ridixPrice==0||it.purchased){
+                                  boolean hasEmptySlot=false;
                                   for(int j=0;j<inventory.length;j++){
-                                      if(inventory[j]==null){
+                                      if(inventory[j]==null||inventory[j].isEmpty()){
                                           String nm=it.itemName.isEmpty()?it.type:it.itemName;
-                                          inventory[j]=nm.length()>3?nm.substring(0,3):nm;
-                                          it.collected=true;break;
+                                          inventory[j]=nm;
+                                          it.collected=true;
+                                          hasEmptySlot=true;
+                                          hasStick=true;
+                                          break;
+                                      }
+                                  }
+                                  if(!hasEmptySlot){
+                                      for(int j=0;j<inventory.length;j++){
+                                          if(inventory[j]!=null&&!inventory[j].isEmpty()){
+                                              inventory[j]=it.itemName.isEmpty()?it.type:it.itemName;
+                                              it.collected=true;
+                                              hasStick=true;
+                                              break;
+                                          }
                                       }
                                   }
                               }
@@ -848,9 +993,23 @@ jobs:
                       }
                       for(int i=0;i<blocks.size();i++){
                           Block b=blocks.get(i);
-                          if(b.ridixPrice>0&&!b.purchased&&pendingPurchaseType!=0&&pX+PLAYER_RADIUS>b.minX()&&pX-PLAYER_RADIUS<b.maxX()&&pY-PLAYER_HEIGHT<b.maxY()&&pY>b.minY()&&pZ+PLAYER_RADIUS>b.minZ()&&pZ-PLAYER_RADIUS<b.maxZ()){
-                              pendingPurchaseType=0;pendingPurchaseIndex=i;
-                              if(purchaseCallback!=null)purchaseCallback.onPurchaseRequest(b.itemName.isEmpty()?"Block":b.itemName,b.ridixPrice,0,i);
+                          if(b.ridixPrice>0&&!b.purchased&&pendingPurchaseType!=0){
+                              float dx=b.x-pX,dy=b.y-pY,dz=b.z-pZ;
+                              float dist=(float)Math.sqrt(dx*dx+dy*dy+dz*dz);
+                              if(dist<placeDist+2f&&pX+PLAYER_RADIUS>b.minX()&&pX-PLAYER_RADIUS<b.maxX()&&pY-PLAYER_HEIGHT<b.maxY()&&pY>b.minY()&&pZ+PLAYER_RADIUS>b.minZ()&&pZ-PLAYER_RADIUS<b.maxZ()){
+                                  pendingPurchaseType=0;pendingPurchaseIndex=i;
+                                  if(purchaseCallback!=null)purchaseCallback.onPurchaseRequest(b.itemName.isEmpty()?"Block":b.itemName,b.ridixPrice,0,i);
+                              }
+                          }
+                      }
+                      if(isAttacking&&hasStick){
+                          for(int i=0;i<blocks.size();i++){
+                              Block b=blocks.get(i);
+                              float dx=b.x-pX,dy=b.y-(pY-PLAYER_HEIGHT/2f),dz=b.z-pZ;
+                              float dist=(float)Math.sqrt(dx*dx+dy*dy+dz*dz);
+                              if(dist<3f){
+                                  b.hidden=true;
+                              }
                           }
                       }
                   }
@@ -867,7 +1026,7 @@ jobs:
               public boolean isOnGround(){
                   if(pY-PLAYER_HEIGHT<=FLOOR_Y+0.1f)return true;
                   for(Block b:blocks){
-                      if(!isEngineMode&&b.ridixPrice>0&&!b.purchased)continue;
+                      if(!isEngineMode&&!isPlayingLevel&&b.ridixPrice>0&&!b.purchased)continue;
                       if(pX+PLAYER_RADIUS>b.minX()&&pX-PLAYER_RADIUS<b.maxX()&&pZ+PLAYER_RADIUS>b.minZ()&&pZ-PLAYER_RADIUS<b.maxZ()&&Math.abs((pY-PLAYER_HEIGHT)-b.maxY())<0.15f)return true;
                   }
                   return false;
@@ -888,6 +1047,10 @@ jobs:
                   float ws=(float)Math.sin(walkPhase)*38f*moveMag*(og?1f:0f);
                   float jsp=jumpPhase*65f;
                   float la=(float)Math.sin(walkPhase)*(-28f)*moveMag*(og?1f:0f);
+                  float attackRot=0f;
+                  if(isAttacking&&hasStick){
+                      attackRot=attackAnim*90f;
+                  }
 
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,LEG_H+TORSO_H/2f,0);Matrix.scaleM(model,0,TORSO_W,TORSO_H,TORSO_D);draw(vp,uM,uMVP,uC,charTorsoR,charTorsoG,charTorsoB,1f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,0,LEG_H+TORSO_H+HEAD_S/2f,0);Matrix.scaleM(model,0,HEAD_S,HEAD_S,HEAD_S);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
@@ -897,6 +1060,10 @@ jobs:
                   drawFace(vp,uM,uMVP,uC,pX,footY,pZ,charRotation,LEG_H+TORSO_H+HEAD_S/2f,HEAD_S);
 
                   float sY=LEG_H+TORSO_H-0.2f;
+                  if(hasStick){
+                      Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(TORSO_W/2f+ARM_W/2f),sY,0);Matrix.rotateM(model,0,-ws-attackRot,1,0,0);Matrix.rotateM(model,0,jsp,0,0,1);Matrix.translateM(model,0,0,-ARM_H/2f-1.2f,0);Matrix.scaleM(model,0,0.12f,0.12f,1.5f);
+                      draw(vp,uM,uMVP,uC,0.55f,0.27f,0.07f,1f);
+                  }
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,-(TORSO_W/2f+ARM_W/2f),sY,0);Matrix.rotateM(model,0,ws,1,0,0);Matrix.rotateM(model,0,-jsp,0,0,1);Matrix.translateM(model,0,0,-ARM_H/2f,0);Matrix.scaleM(model,0,ARM_W,ARM_H,ARM_D);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
                   Matrix.setIdentityM(model,0);Matrix.translateM(model,0,pX,footY,pZ);Matrix.rotateM(model,0,charRotation,0,1,0);Matrix.translateM(model,0,(TORSO_W/2f+ARM_W/2f),sY,0);Matrix.rotateM(model,0,-ws,1,0,0);Matrix.rotateM(model,0,jsp,0,0,1);Matrix.translateM(model,0,0,-ARM_H/2f,0);Matrix.scaleM(model,0,ARM_W,ARM_H,ARM_D);draw(vp,uM,uMVP,uC,charSkinR,charSkinG,charSkinB,1f);
                   
@@ -965,7 +1132,7 @@ jobs:
               private Button[]distBtn,shapeBtn,typeBtn,lightBtn,itemBtn;
               private View[]colorBtn;
               private View axisPanel,menuUI,gameUI,engineUI,playtestUI,customizeUI,scriptUI,purchaseDialog;
-              private Button btnHide,btnDelete,btnDeselect,btnGrid;
+              private Button btnHide,btnDelete,btnDeselect,btnGrid,btnAttack,btnPlaytestAttack,btnPlaceText;
               private TextView txtSizeInfo,txtRidixLobby,txtRidixShop,txtIntensity,scriptOutput,ridixValue;
               private TextView purchaseItemName,purchasePrice,purchaseBalance;
               private EditText scriptEditor,textInput,purchaseNameInput;
@@ -1008,6 +1175,8 @@ jobs:
                   axisPanel=findViewById(R.id.axis_panel);
                   btnHide=findViewById(R.id.btn_hide);btnDelete=findViewById(R.id.btn_delete);
                   btnDeselect=findViewById(R.id.btn_deselect);btnGrid=findViewById(R.id.btn_grid);
+                  btnAttack=findViewById(R.id.btn_attack);btnPlaytestAttack=findViewById(R.id.btn_playtest_attack);
+                  btnPlaceText=findViewById(R.id.btn_place_text);
                   txtSizeInfo=findViewById(R.id.txt_size_info);txtIntensity=findViewById(R.id.txt_intensity);
                   txtRidixLobby=findViewById(R.id.txt_ridix_lobby);txtRidixShop=findViewById(R.id.txt_ridix_shop);
                   scriptEditor=findViewById(R.id.script_editor);scriptOutput=findViewById(R.id.script_output);
@@ -1039,6 +1208,19 @@ jobs:
                           purchaseDialog.setVisibility(View.VISIBLE);
                       });
                   };
+                  
+                  ren.tapBlockCallback=(block,index)->{
+                      runOnUiThread(()->{
+                          if(block.ridixPrice>0&&!block.purchased){
+                              pendingPurchaseType=0;pendingPurchaseIndex=index;
+                              purchaseItemName.setText(block.itemName.isEmpty()?"Block":block.itemName);
+                              purchasePrice.setText("Cost: "+block.ridixPrice+" Ridix");
+                              String bal=infiniteRidix?"∞ Ridix":(ridix+" Ridix");
+                              purchaseBalance.setText("Your balance: "+bal);
+                              purchaseDialog.setVisibility(View.VISIBLE);
+                          }
+                      });
+                  };
 
                   findViewById(R.id.btn_purchase_cancel).setOnClickListener(v->{
                       purchaseDialog.setVisibility(View.GONE);
@@ -1054,13 +1236,20 @@ jobs:
                           if(infiniteRidix||ridix>=price){
                               if(!infiniteRidix)ridix-=price;
                               ren.completePurchase(pendingPurchaseType,pendingPurchaseIndex);
-                              savePrefs();updRidix();
+                              savePrefs();updRidix();updInventory();
                               Toast.makeText(this,"Purchase successful!",Toast.LENGTH_SHORT).show();
                               purchaseDialog.setVisibility(View.GONE);
                           }else{
                               Toast.makeText(this,"Not enough Ridix!",Toast.LENGTH_SHORT).show();
                           }
                       }
+                  });
+
+                  btnPlaceText.setOnClickListener(v->{
+                      ren.objType=3;
+                      ren.currentItemName=textInput.getText().toString().trim();
+                      ren.placeObject();
+                      ren.objType=0;
                   });
 
                   saveLauncher=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),res->{
@@ -1117,7 +1306,7 @@ jobs:
                   findViewById(R.id.btn_play).setOnClickListener(v->{
                       ren.isEngineMode=false;ren.isPlayingLevel=false;ren.loadBuiltInLevel();resetP();ren.selectedIndex=-1;applyPack();
                       menuUI.setVisibility(View.GONE);gameUI.setVisibility(View.VISIBLE);engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.GONE);
-                      startRidixTimer();updInventory();
+                      startRidixTimer();updInventory();updAttackBtn();
                       handler.postDelayed(()->setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE),50);
                   });
                   findViewById(R.id.btn_engine).setOnClickListener(v->{
@@ -1133,7 +1322,7 @@ jobs:
                   findViewById(R.id.btn_menu).setOnClickListener(back);
                   findViewById(R.id.btn_engine_menu).setOnClickListener(back);
                   findViewById(R.id.btn_close_customize).setOnClickListener(v->{customizeUI.setVisibility(View.GONE);menuUI.setVisibility(View.VISIBLE);});
-                  findViewById(R.id.btn_play_level).setOnClickListener(v->{ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;applyPack();engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);updInventory();});
+                  findViewById(R.id.btn_play_level).setOnClickListener(v->{ren.isPlayingLevel=true;resetP();ren.selectedIndex=-1;applyPack();engineUI.setVisibility(View.GONE);playtestUI.setVisibility(View.VISIBLE);updInventory();updAttackBtn();});
                   findViewById(R.id.btn_stop_playtest).setOnClickListener(v->{ren.isPlayingLevel=false;ren.pX=0;ren.pY=20;ren.pZ=35;playtestUI.setVisibility(View.GONE);engineUI.setVisibility(View.VISIBLE);updAxis();});
                   findViewById(R.id.btn_save).setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");i.putExtra(Intent.EXTRA_TITLE,"level.json");saveLauncher.launch(i);});
                   findViewById(R.id.btn_scripts).setOnClickListener(v->{engineUI.setVisibility(View.GONE);scriptUI.setVisibility(View.VISIBLE);});
@@ -1141,25 +1330,18 @@ jobs:
                   findViewById(R.id.btn_clear_script).setOnClickListener(v->scriptEditor.setText(""));
                   findViewById(R.id.btn_run_script).setOnClickListener(v->runScript());
                   
+                  btnAttack.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doAttack();return true;});
+                  btnPlaytestAttack.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doAttack();return true;});
+                  
                   findViewById(R.id.ridix_minus).setOnClickListener(v->{ren.currentRidixPrice=Math.max(0,ren.currentRidixPrice-10);updRidixPrice();});
                   findViewById(R.id.ridix_plus).setOnClickListener(v->{ren.currentRidixPrice+=10;updRidixPrice();});
                   
-                  purchaseNameInput.setOnFocusChangeListener((v,has)->{
-                      if(!has){
-                          ren.currentItemName=purchaseNameInput.getText().toString().trim();
-                      }
-                  });
-                  
-                  textInput.setOnFocusChangeListener((v,has)->{
-                      if(!has){
-                          ren.currentItemName=textInput.getText().toString().trim();
-                      }
-                  });
+                  purchaseNameInput.setOnFocusChangeListener((v,has)->{if(!has){ren.currentItemName=purchaseNameInput.getText().toString().trim();}});
                   
                   btnGrid.setOnClickListener(v->{ren.gridEnabled=!ren.gridEnabled;updGridBtn();});
                   findViewById(R.id.btn_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doJump();return true;});
                   findViewById(R.id.btn_playtest_jump).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)ren.doJump();return true;});
-                  findViewById(R.id.btn_place).setOnClickListener(v->{if(ren.selectedIndex<0){ren.currentItemName=purchaseNameInput.getText().toString().trim();if(ren.objType==3)ren.currentItemName=textInput.getText().toString().trim();ren.placeObject();}});
+                  findViewById(R.id.btn_place).setOnClickListener(v->{if(ren.selectedIndex<0){ren.currentItemName=purchaseNameInput.getText().toString().trim();ren.placeObject();}});
                   btnDelete.setOnClickListener(v->{ren.deleteSelected();updAxis();});
                   btnDeselect.setOnClickListener(v->{ren.selectedIndex=-1;updAxis();});
                   btnHide.setOnClickListener(v->{if(ren.selectedIndex>=0){ren.toggleHideSelected();updAxis();}});
@@ -1180,8 +1362,8 @@ jobs:
                   findViewById(R.id.light_point).setOnClickListener(v->{ren.lightType=0;updBtnGrp(lightBtn,0);});
                   findViewById(R.id.light_spot).setOnClickListener(v->{ren.lightType=1;updBtnGrp(lightBtn,1);});
 
-                  itemBtn=new Button[]{findViewById(R.id.item_sword)};
-                  findViewById(R.id.item_sword).setOnClickListener(v->{ren.itemType=0;updBtnGrp(itemBtn,0);});
+                  itemBtn=new Button[]{findViewById(R.id.item_stick)};
+                  findViewById(R.id.item_stick).setOnClickListener(v->{ren.itemType=0;updBtnGrp(itemBtn,0);});
 
                   findViewById(R.id.size_x_minus).setOnClickListener(v->{ren.blockSX=Math.max(0.5f,ren.blockSX-0.5f);updSizeInfo();});
                   findViewById(R.id.size_x_plus).setOnClickListener(v->{ren.blockSX+=0.5f;updSizeInfo();});
@@ -1218,9 +1400,7 @@ jobs:
                       if(e.getAction()==MotionEvent.ACTION_DOWN){lx=e.getX();ly=e.getY();}
                       else if(e.getAction()==MotionEvent.ACTION_UP){
                           if(Math.abs(e.getX()-lx)<25&&Math.abs(e.getY()-ly)<25){
-                              int hit=ren.raycastBlock(e.getX(),e.getY());
-                              ren.selectedIndex=hit;ren.selectedType=0;
-                              if(hit>=0){Block b=ren.blocks.get(hit);ren.blockR=b.r;ren.blockG=b.g;ren.blockB=b.b;ren.blockSX=b.sx;ren.blockSY=b.sy;ren.blockSZ=b.sz;updSizeInfo();}
+                              ren.tapOnBlock(e.getX(),e.getY());
                               updAxis();
                           }
                       }
@@ -1228,6 +1408,14 @@ jobs:
                       return true;
                   });
                   updSizeInfo();updAxis();updGridBtn();updIntensity();updObjType();updRidixPrice();
+              }
+
+              private void updAttackBtn(){
+                  boolean show=ren.hasStick;
+                  runOnUiThread(()->{
+                      btnAttack.setVisibility(show?View.VISIBLE:View.GONE);
+                      btnPlaytestAttack.setVisibility(show?View.VISIBLE:View.GONE);
+                  });
               }
 
               private void runScript(){
@@ -1257,10 +1445,11 @@ jobs:
                   runOnUiThread(()->{
                       for(int i=0;i<4;i++){
                           String item=ren.inventory[i];
-                          String txt=item!=null?(item.length()>3?item.substring(0,3).toUpperCase():item.toUpperCase()):"";
+                          String txt=item!=null&&!item.isEmpty()?item.toUpperCase():"";
                           invSlots[i].setText(txt);
                           playtestInvSlots[i].setText(txt);
                       }
+                      updAttackBtn();
                   });
               }
 
@@ -1362,10 +1551,10 @@ jobs:
                   ren.charHairR=sp.getFloat("hR",0.2f);ren.charHairG=sp.getFloat("hG",0.15f);ren.charHairB=sp.getFloat("hB",0.1f);
                   ren.animPack=equippedPack;ren.faceType=selectedFace;
               }
-              @Override protected void onResume(){super.onResume();if(ren!=null)applyPrefsToRen();handler.postDelayed(this::updInventory,100);}
+              @Override protected void onResume(){super.onResume();if(ren!=null)applyPrefsToRen();handler.postDelayed(this::updInventory,300);}
               @Override protected void onPause(){super.onPause();stopRidixTimer();savePrefs();}
 
-              private void resetP(){ren.pX=0;ren.pY=7;ren.pZ=15;ren.vY=0;for(int i=0;i<ren.inventory.length;i++)ren.inventory[i]=null;}
+              private void resetP(){ren.pX=0;ren.pY=7;ren.pZ=15;ren.vY=0;ren.hasStick=false;for(int i=0;i<ren.inventory.length;i++)ren.inventory[i]=null;}
               private void axisBtn(int id,float dx,float dy,float dz){findViewById(id).setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN||e.getAction()==MotionEvent.ACTION_MOVE){float step=ren.gridEnabled?ren.gridSize:0.5f;ren.moveSelected(dx*step,dy*step,dz*step);}return true;});}
               private void updAxis(){
                   runOnUiThread(()->{
@@ -1394,7 +1583,7 @@ jobs:
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="Enjoer 7.0" android:theme="@style/AppTheme">
+              <application android:label="Enjoer 7.1" android:theme="@style/AppTheme">
                   <activity android:name="com.enjoer.game.MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden">
                       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
                   </activity>
@@ -1437,5 +1626,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Enjoer_7.0_Ultimate
+          name: Enjoer_7.1_Ultimate
           path: app/build/outputs/apk/debug/app-debug.apk
