@@ -29,14 +29,14 @@ jobs:
           mkdir -p src/main/resources/data/dimos/recipes
           mkdir -p src/main/resources/META-INF
 
-          # 1. Build.gradle (Forge 1.20.1)
+          # 1. Build.gradle
           cat <<EOF > build.gradle
           buildscript {
               repositories { maven { url = 'https://maven.minecraftforge.net' }; mavenCentral() }
               dependencies { classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '6.0.+', changing: true }
           }
           apply plugin: 'net.minecraftforge.gradle'
-          version = '1.0.0'
+          version = '1.0.1'
           group = 'com.dimos.mod'
           archivesBaseName = 'azumgame'
           java.toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -50,33 +50,34 @@ jobs:
           }
           EOF
 
-          # 2. Мод-файл (mods.toml)
+          # 2. mods.toml
           cat <<EOF > src/main/resources/META-INF/mods.toml
           modLoader="javafml"
           loaderVersion="[47,)"
           license="MIT"
           [[mods]]
           modId="dimos"
-          version="1.0.0"
+          version="1.0.1"
           displayName="Azum Game Mod"
           authors="Dimos"
           description="Weapons from Azum Game"
           EOF
 
-          # 3. AzumKnifeItem.java (Forge)
+          # 3. AzumKnifeItem.java
           cat <<EOF > src/main/java/com/dimos/mod/item/AzumKnifeItem.java
           package com.dimos.mod.item;
           import com.dimos.mod.DimMod;
           import net.minecraft.world.entity.LivingEntity;
-          import net.minecraft.world.entity.player.PlayerEntity;
+          import net.minecraft.world.entity.player.Player;
           import net.minecraft.world.item.ItemStack;
           import net.minecraft.world.item.SwordItem;
           import net.minecraft.world.item.Tiers;
+          import net.minecraft.world.item.Item;
           public class AzumKnifeItem extends SwordItem {
-              public AzumKnifeItem() { super(Tiers.IRON, 3, -2.4f, new Properties()); }
+              public AzumKnifeItem() { super(Tiers.IRON, 3, -2.4f, new Item.Properties()); }
               @Override
               public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
-                  if (attacker instanceof PlayerEntity player && !target.isAlive()) {
+                  if (attacker instanceof Player player && !target.isAlive()) {
                       DimMod.giveSecondLife(player);
                       stack.setCount(0);
                   }
@@ -85,7 +86,7 @@ jobs:
           }
           EOF
 
-          # 4. NastyaLaserItem.java (Forge)
+          # 4. NastyaLaserItem.java
           cat <<EOF > src/main/java/com/dimos/mod/item/NastyaLaserItem.java
           package com.dimos.mod.item;
           import net.minecraft.core.particles.DustParticleOptions;
@@ -95,7 +96,7 @@ jobs:
           import net.minecraft.world.InteractionHand;
           import net.minecraft.world.InteractionResultHolder;
           import net.minecraft.world.entity.LivingEntity;
-          import net.minecraft.world.entity.player.PlayerEntity;
+          import net.minecraft.world.entity.player.Player;
           import net.minecraft.world.item.Item;
           import net.minecraft.world.item.ItemStack;
           import net.minecraft.world.level.Level;
@@ -104,10 +105,10 @@ jobs:
           import org.joml.Vector3f;
           import java.util.Random;
           public class NastyaLaserItem extends Item {
-              public NastyaLaserItem() { super(new Properties().stacksTo(1)); }
+              public NastyaLaserItem() { super(new Item.Properties().stacksTo(1)); }
               private final Random rnd = new Random();
               @Override
-              public InteractionResultHolder<ItemStack> use(Level world, PlayerEntity user, InteractionHand hand) {
+              public InteractionResultHolder<ItemStack> use(Level world, Player user, InteractionHand hand) {
                   ItemStack stack = user.getItemInHand(hand);
                   if (world.isClientSide) return InteractionResultHolder.success(stack);
                   double chance = rnd.nextDouble();
@@ -133,18 +134,23 @@ jobs:
           }
           EOF
 
-          # 5. DimMod.java (Глобальная логика Forge)
+          # 5. DimMod.java
           cat <<EOF > src/main/java/com/dimos/mod/DimMod.java
           package com.dimos.mod;
           import com.dimos.mod.item.*;
-          import net.minecraft.core.registries.Registries;
+          import net.minecraft.core.particles.ParticleTypes;
           import net.minecraft.server.level.ServerLevel;
           import net.minecraft.world.entity.EntityType;
           import net.minecraft.world.entity.LightningBolt;
-          import net.minecraft.world.entity.player.PlayerEntity;
+          import net.minecraft.world.entity.Mob;
+          import net.minecraft.world.entity.player.Player;
           import net.minecraft.world.item.CreativeModeTabs;
           import net.minecraft.world.item.Item;
-          import net.minecraft.core.particles.ParticleTypes;
+          import net.minecraft.world.item.ItemStack;
+          import net.minecraft.world.InteractionResultHolder;
+          import net.minecraft.world.InteractionHand;
+          import net.minecraft.world.level.Level;
+          import net.minecraft.world.phys.AABB;
           import net.minecraftforge.common.MinecraftForge;
           import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
           import net.minecraftforge.event.TickEvent;
@@ -166,9 +172,9 @@ jobs:
               public static final RegistryObject<Item> NASTYA_LASER = ITEMS.register("nastya_laser", NastyaLaserItem::new);
               public static final RegistryObject<Item> WATCH = ITEMS.register("codecracker_watch", () -> new Item(new Item.Properties().stacksTo(1)) {
                   @Override
-                  public net.minecraft.world.InteractionResultHolder<net.minecraft.world.item.ItemStack> use(net.minecraft.world.level.Level w, PlayerEntity p, net.minecraft.world.InteractionHand h) {
+                  public InteractionResultHolder<ItemStack> use(Level w, Player p, InteractionHand h) {
                       if (!w.isClientSide) { freezeTicks = 300; p.getCooldowns().addCooldown(this, 600); }
-                      return net.minecraft.world.InteractionResultHolder.success(p.getItemInHand(h));
+                      return InteractionResultHolder.success(p.getItemInHand(h));
                   }
               });
 
@@ -186,11 +192,11 @@ jobs:
                   if (e.getTabKey() == CreativeModeTabs.COMBAT) { e.accept(AZUM_KNIFE); e.accept(NASTYA_LASER); e.accept(WATCH); }
               }
 
-              public static void giveSecondLife(PlayerEntity p) { LIFE.add(p.getUUID()); }
+              public static void giveSecondLife(Player p) { LIFE.add(p.getUUID()); }
 
               @net.minecraftforge.eventbus.api.SubscribeEvent
               public void onDeath(LivingDeathEvent e) {
-                  if (e.getEntity() instanceof PlayerEntity p && LIFE.contains(p.getUUID())) {
+                  if (e.getEntity() instanceof Player p && LIFE.contains(p.getUUID())) {
                       LIFE.remove(p.getUUID());
                       e.setCanceled(true);
                       p.setHealth(p.getMaxHealth());
@@ -203,20 +209,23 @@ jobs:
 
               @net.minecraftforge.eventbus.api.SubscribeEvent
               public void onTick(TickEvent.LevelTickEvent e) {
-                  if (e.phase == TickEvent.Phase.END && freezeTicks > 0) {
+                  if (e.phase == TickEvent.Phase.END && !e.level.isClientSide && freezeTicks > 0) {
                       freezeTicks--;
-                      e.level.getEntities((net.minecraft.world.entity.Entity)null, new net.minecraft.world.phys.AABB(-1000,-1000,-1000,1000,1000,1000), ent -> !(ent instanceof PlayerEntity))
-                      .forEach(ent -> { ent.setDeltaMovement(0,0,0); if (ent instanceof net.minecraft.world.entity.Mob mob) mob.setNoAi(true); });
+                      e.level.getEntities((net.minecraft.world.entity.Entity)null, new AABB(-1000,-1000,-1000,1000,1000,1000), ent -> !(ent instanceof Player))
+                      .forEach(ent -> { 
+                          ent.setDeltaMovement(0,0,0); 
+                          if (ent instanceof Mob mob) mob.setNoAi(true); 
+                      });
                   } else if (freezeTicks == 0) {
-                      e.level.getEntities((net.minecraft.world.entity.Entity)null, new net.minecraft.world.phys.AABB(-1000,-1000,-1000,1000,1000,1000), ent -> ent instanceof net.minecraft.world.entity.Mob mob)
-                      .forEach(ent -> ((net.minecraft.world.entity.Mob)ent).setNoAi(false));
+                      e.level.getEntities((net.minecraft.world.entity.Entity)null, new AABB(-1000,-1000,-1000,1000,1000,1000), ent -> ent instanceof Mob)
+                      .forEach(ent -> ((Mob)ent).setNoAi(false));
                       freezeTicks = -1;
                   }
               }
           }
           EOF
 
-          # 6. Рецепты и ресурсы (Forge)
+          # 6. Ресурсы
           cat <<EOF > src/main/resources/data/dimos/recipes/nastya_laser.json
           { "type": "minecraft:crafting_shaped", "pattern": ["   ", " SC", "   "], "key": { "S": {"item": "minecraft:stone"}, "C": {"item": "minecraft:coal"} }, "result": {"item": "dimos:nastya_laser"} }
           EOF
@@ -239,5 +248,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AzumGame-Forge-1.20.1
+          name: AzumGame-Forge-1.0.1
           path: build/libs/*.jar
