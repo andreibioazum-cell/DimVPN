@@ -1,4 +1,4 @@
-name: Azum_Game_Mod_V3_Build
+name: Azum_Game_Mod_V1.2.1_Build
 on: [workflow_dispatch, push]
 
 jobs:
@@ -29,7 +29,7 @@ jobs:
           # 1. Build.gradle
           cat <<EOF > build.gradle
           plugins { id 'fabric-loom' version '1.2-SNAPSHOT' }
-          version = '1.2.0'
+          version = '1.2.1'
           group = 'com.dimos.mod'
           repositories { mavenCentral(); maven { url = "https://maven.fabricmc.net/" } }
           dependencies {
@@ -40,7 +40,7 @@ jobs:
           }
           EOF
 
-          # 2. AzumKnifeItem.java (Бесконечный, дает вторую жизнь)
+          # 2. AzumKnifeItem.java
           cat <<EOF > src/main/java/com/dimos/mod/item/AzumKnifeItem.java
           package com.dimos.mod.item;
           import com.dimos.mod.DimMod;
@@ -54,7 +54,7 @@ jobs:
               public AzumKnifeItem(Settings settings) { super(ToolMaterials.IRON, 3, -2.4f, settings); }
               @Override
               public boolean postHit(ItemStack stack, LivingEntity target, LivingEntity attacker) {
-                  if (attacker instanceof PlayerEntity player && target.isDead()) {
+                  if (attacker instanceof PlayerEntity player && (target.getHealth() <= 0 || target.isDead())) {
                       DimMod.giveSecondLife(player);
                       stack.setCount(0); 
                   }
@@ -63,7 +63,7 @@ jobs:
           }
           EOF
 
-          # 3. NastyaLaserItem.java (85/10/5 шансы)
+          # 3. NastyaLaserItem.java (Красный луч)
           cat <<EOF > src/main/java/com/dimos/mod/item/NastyaLaserItem.java
           package com.dimos.mod.item;
           import net.minecraft.entity.Entity;
@@ -71,7 +71,7 @@ jobs:
           import net.minecraft.entity.player.PlayerEntity;
           import net.minecraft.item.Item;
           import net.minecraft.item.ItemStack;
-          import net.minecraft.particle.ParticleTypes;
+          import net.minecraft.particle.DustParticleEffect;
           import net.minecraft.server.world.ServerWorld;
           import net.minecraft.sound.SoundEvents;
           import net.minecraft.util.Hand;
@@ -79,6 +79,7 @@ jobs:
           import net.minecraft.util.math.Box;
           import net.minecraft.util.math.Vec3d;
           import net.minecraft.world.World;
+          import org.joml.Vector3f;
           import java.util.Random;
 
           public class NastyaLaserItem extends Item {
@@ -106,9 +107,11 @@ jobs:
               private void shootLaser(World world, PlayerEntity user) {
                   Vec3d start = user.getEyePos();
                   Vec3d look = user.getRotationVec(1.0f);
+                  DustParticleEffect redDust = new DustParticleEffect(new Vector3f(1.0f, 0.0f, 0.0f), 1.5f);
+                  
                   for (int i = 1; i < 25; i++) {
                       Vec3d point = start.add(look.multiply(i));
-                      ((ServerWorld)world).spawnParticles(ParticleTypes.FLAME, point.x, point.y, point.z, 3, 0.05, 0.05, 0.05, 0.01);
+                      ((ServerWorld)world).spawnParticles(redDust, point.x, point.y, point.z, 4, 0.05, 0.05, 0.05, 0.0);
                       Box box = new Box(point.add(-0.5,-0.5,-0.5), point.add(0.5,0.5,0.5));
                       for (Entity target : world.getOtherEntities(user, box)) {
                           if (target instanceof LivingEntity) target.damage(world.getDamageSources().playerAttack(user), 4.0f);
@@ -169,7 +172,7 @@ jobs:
           import java.util.UUID;
 
           public class DimMod implements ModInitializer {
-              public static final Item AZUM_KNIFE = new AzumKnifeItem(new Item.Settings().maxDamage(-1));
+              public static final Item AZUM_KNIFE = new AzumKnifeItem(new Item.Settings());
               public static final Item NASTYA_LASER = new NastyaLaserItem(new Item.Settings().maxCount(1));
               public static final Item CODE_CRACKER_WATCH = new CodeCrackerWatch(new Item.Settings().maxCount(1));
               private static final Set<UUID> SECOND_LIFE_PLAYERS = new HashSet<>();
@@ -192,7 +195,7 @@ jobs:
                           ServerWorld world = (ServerWorld) player.getWorld();
                           LightningEntity bolt = EntityType.LIGHTNING_BOLT.create(world);
                           if (bolt != null) { bolt.refreshPositionAfterTeleport(player.getPos()); world.spawnEntity(bolt); }
-                          world.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getY(), player.getZ(), 80, 0.5, 1, 0.5, 0.5);
+                          world.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getY(), player.getZ(), 60, 0.5, 1, 0.5, 0.2);
                           return false;
                       }
                       return true;
@@ -220,40 +223,19 @@ jobs:
           }
           EOF
 
-          # 6. РЕЦЕПТЫ (ОБНОВЛЕННЫЕ)
-          # Крафт Лазера Насти (Камень в центре, Уголь справа)
+          # 6. Рецепты
           cat <<EOF > src/main/resources/data/dimos/recipes/nastya_laser.json
-          {
-            "type": "minecraft:crafting_shaped",
-            "pattern": [ "   ", " SC", "   " ],
-            "key": { 
-                "S": { "item": "minecraft:stone" },
-                "C": { "item": "minecraft:coal" }
-            },
-            "result": { "item": "dimos:nastya_laser" }
-          }
+          { "type": "minecraft:crafting_shaped", "pattern": [ "   ", " SC", "   " ], "key": { "S": { "item": "minecraft:stone" }, "C": { "item": "minecraft:coal" } }, "result": { "item": "dimos:nastya_laser" } }
           EOF
-          # Часы (Золото крестом, Редстоун в центре)
           cat <<EOF > src/main/resources/data/dimos/recipes/watch.json
-          {
-            "type": "minecraft:crafting_shaped",
-            "pattern": [ " G ", "GRG", " G " ],
-            "key": { "G": { "item": "minecraft:gold_ingot" }, "R": { "item": "minecraft:redstone" } },
-            "result": { "item": "dimos:codecracker_watch" }
-          }
+          { "type": "minecraft:crafting_shaped", "pattern": [ " G ", "GRG", " G " ], "key": { "G": { "item": "minecraft:gold_ingot" }, "R": { "item": "minecraft:redstone" } }, "result": { "item": "dimos:codecracker_watch" } }
           EOF
-          # Нож (Железо по диагонали)
           cat <<EOF > src/main/resources/data/dimos/recipes/azum_knife.json
-          {
-            "type": "minecraft:crafting_shaped",
-            "pattern": [ "  I", " I ", "S  " ],
-            "key": { "I": { "item": "minecraft:iron_ingot" }, "S": { "item": "minecraft:stick" } },
-            "result": { "item": "dimos:azum_knife" }
-          }
+          { "type": "minecraft:crafting_shaped", "pattern": [ "  I", " I ", "S  " ], "key": { "I": { "item": "minecraft:iron_ingot" }, "S": { "item": "minecraft:stick" } }, "result": { "item": "dimos:azum_knife" } }
           EOF
 
           # 7. Ресурсы
-          echo '{"schemaVersion": 1, "id": "dimos", "version": "1.2.0", "name": "AzumGame", "entrypoints": { "main": ["com.dimos.mod.DimMod"] }, "depends": { "fabricloader": ">=0.14.0", "minecraft": "~1.20.1", "fabric-api": "*" } }' > src/main/resources/fabric.mod.json
+          echo '{"schemaVersion": 1, "id": "dimos", "version": "1.2.1", "name": "AzumGame", "entrypoints": { "main": ["com.dimos.mod.DimMod"] }, "depends": { "fabricloader": ">=0.14.0", "minecraft": "~1.20.1", "fabric-api": "*" } }' > src/main/resources/fabric.mod.json
           echo '{"parent":"minecraft:item/handheld","textures":{"layer0":"minecraft:item/iron_sword"}}' > src/main/resources/assets/dimos/models/item/azum_knife.json
           echo '{"parent":"minecraft:item/handheld","textures":{"layer0":"minecraft:item/crossbow"}}' > src/main/resources/assets/dimos/models/item/nastya_laser.json
           echo '{"parent":"minecraft:item/generated","textures":{"layer0":"minecraft:item/clock"}}' > src/main/resources/assets/dimos/models/item/codecracker_watch.json
@@ -261,10 +243,10 @@ jobs:
           echo "pluginManagement { repositories { maven { url = 'https://maven.fabricmc.net/' }; mavenCentral() } }; rootProject.name = 'dimos-mod'" > settings.gradle
 
       - name: Build Mod
-        run: chmod +x gradlew && ./gradlew build --no-daemon
+        run: gradle build --no-daemon
 
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
-          name: AzumGame-V1.2-1.20.1
+          name: AzumGame-V1.2.1-1.20.1
           path: build/libs/*.jar
