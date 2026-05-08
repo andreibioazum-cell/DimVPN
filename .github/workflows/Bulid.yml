@@ -1,9 +1,11 @@
-name: Azum_Game_Mod_V1.2.1_Build
+name: Azum_Game_Forge_1.20.1_Build
 on: [workflow_dispatch, push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4G"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -19,234 +21,223 @@ jobs:
         with:
           gradle-version: '8.1'
 
-      - name: Initialize Project Structure
+      - name: Initialize Forge Project
         run: |
           mkdir -p src/main/java/com/dimos/mod/item
           mkdir -p src/main/resources/assets/dimos/lang
           mkdir -p src/main/resources/assets/dimos/models/item
           mkdir -p src/main/resources/data/dimos/recipes
+          mkdir -p src/main/resources/META-INF
 
-          # 1. Build.gradle
+          # 1. Build.gradle (Forge 1.20.1)
           cat <<EOF > build.gradle
-          plugins { id 'fabric-loom' version '1.2-SNAPSHOT' }
-          version = '1.2.1'
+          buildscript {
+              repositories { maven { url = 'https://maven.minecraftforge.net' }; mavenCentral() }
+              dependencies { classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '6.0.+', changing: true }
+          }
+          apply plugin: 'net.minecraftforge.gradle'
+          version = '1.0.0'
           group = 'com.dimos.mod'
-          repositories { mavenCentral(); maven { url = "https://maven.fabricmc.net/" } }
+          archivesBaseName = 'azumgame'
+          java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+          minecraft {
+              mappings channel: 'official', version: '1.20.1'
+              runs { client { workingDirectory project.file('run') } }
+          }
+          repositories { mavenCentral() }
           dependencies {
-              minecraft "com.mojang:minecraft:1.20.1"
-              mappings "net.fabricmc:yarn:1.20.1+build.10:v2"
-              modImplementation "net.fabricmc:fabric-loader:0.14.22"
-              modImplementation "net.fabricmc.fabric-api:fabric-api:0.83.0+1.20.1"
+              minecraft 'net.minecraftforge:forge:1.20.1-47.2.0'
           }
           EOF
 
-          # 2. AzumKnifeItem.java
+          # 2. Мод-файл (mods.toml)
+          cat <<EOF > src/main/resources/META-INF/mods.toml
+          modLoader="javafml"
+          loaderVersion="[47,)"
+          license="MIT"
+          [[mods]]
+          modId="dimos"
+          version="1.0.0"
+          displayName="Azum Game Mod"
+          authors="Dimos"
+          description="Weapons from Azum Game"
+          EOF
+
+          # 3. AzumKnifeItem.java (Forge)
           cat <<EOF > src/main/java/com/dimos/mod/item/AzumKnifeItem.java
           package com.dimos.mod.item;
           import com.dimos.mod.DimMod;
-          import net.minecraft.entity.LivingEntity;
-          import net.minecraft.entity.player.PlayerEntity;
-          import net.minecraft.item.ItemStack;
-          import net.minecraft.item.SwordItem;
-          import net.minecraft.item.ToolMaterials;
-
+          import net.minecraft.world.entity.LivingEntity;
+          import net.minecraft.world.entity.player.PlayerEntity;
+          import net.minecraft.world.item.ItemStack;
+          import net.minecraft.world.item.SwordItem;
+          import net.minecraft.world.item.Tiers;
           public class AzumKnifeItem extends SwordItem {
-              public AzumKnifeItem(Settings settings) { super(ToolMaterials.IRON, 3, -2.4f, settings); }
+              public AzumKnifeItem() { super(Tiers.IRON, 3, -2.4f, new Properties()); }
               @Override
-              public boolean postHit(ItemStack stack, LivingEntity target, LivingEntity attacker) {
-                  if (attacker instanceof PlayerEntity player && (target.getHealth() <= 0 || target.isDead())) {
+              public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
+                  if (attacker instanceof PlayerEntity player && !target.isAlive()) {
                       DimMod.giveSecondLife(player);
-                      stack.setCount(0); 
+                      stack.setCount(0);
                   }
-                  return super.postHit(stack, target, attacker);
+                  return super.hurtEnemy(stack, target, attacker);
               }
           }
           EOF
 
-          # 3. NastyaLaserItem.java (Красный луч)
+          # 4. NastyaLaserItem.java (Forge)
           cat <<EOF > src/main/java/com/dimos/mod/item/NastyaLaserItem.java
           package com.dimos.mod.item;
-          import net.minecraft.entity.Entity;
-          import net.minecraft.entity.LivingEntity;
-          import net.minecraft.entity.player.PlayerEntity;
-          import net.minecraft.item.Item;
-          import net.minecraft.item.ItemStack;
-          import net.minecraft.particle.DustParticleEffect;
-          import net.minecraft.server.world.ServerWorld;
-          import net.minecraft.sound.SoundEvents;
-          import net.minecraft.util.Hand;
-          import net.minecraft.util.TypedActionResult;
-          import net.minecraft.util.math.Box;
-          import net.minecraft.util.math.Vec3d;
-          import net.minecraft.world.World;
+          import net.minecraft.core.particles.DustParticleOptions;
+          import net.minecraft.server.level.ServerLevel;
+          import net.minecraft.sounds.SoundEvents;
+          import net.minecraft.sounds.SoundSource;
+          import net.minecraft.world.InteractionHand;
+          import net.minecraft.world.InteractionResultHolder;
+          import net.minecraft.world.entity.LivingEntity;
+          import net.minecraft.world.entity.player.PlayerEntity;
+          import net.minecraft.world.item.Item;
+          import net.minecraft.world.item.ItemStack;
+          import net.minecraft.world.level.Level;
+          import net.minecraft.world.phys.AABB;
+          import net.minecraft.world.phys.Vec3;
           import org.joml.Vector3f;
           import java.util.Random;
-
           public class NastyaLaserItem extends Item {
-              public NastyaLaserItem(Settings settings) { super(settings); }
-              private final Random random = new Random();
-
+              public NastyaLaserItem() { super(new Properties().stacksTo(1)); }
+              private final Random rnd = new Random();
               @Override
-              public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-                  ItemStack stack = user.getStackInHand(hand);
-                  if (world.isClient) return TypedActionResult.success(stack);
-
-                  double chance = random.nextDouble();
-                  if (chance < 0.05) { 
-                      user.playSound(SoundEvents.BLOCK_DISPENSER_FAIL, 1.0f, 1.2f);
-                  } else if (chance < 0.15) { 
-                      world.createExplosion(user, user.getX(), user.getY(), user.getZ(), 0.0f, World.ExplosionSourceType.NONE);
-                      user.damage(world.getDamageSources().explosion(null, null), 6.0f);
-                      stack.decrement(1);
-                  } else { 
-                      shootLaser(world, user);
-                  }
-                  return TypedActionResult.consume(stack);
-              }
-
-              private void shootLaser(World world, PlayerEntity user) {
-                  Vec3d start = user.getEyePos();
-                  Vec3d look = user.getRotationVec(1.0f);
-                  DustParticleEffect redDust = new DustParticleEffect(new Vector3f(1.0f, 0.0f, 0.0f), 1.5f);
-                  
-                  for (int i = 1; i < 25; i++) {
-                      Vec3d point = start.add(look.multiply(i));
-                      ((ServerWorld)world).spawnParticles(redDust, point.x, point.y, point.z, 4, 0.05, 0.05, 0.05, 0.0);
-                      Box box = new Box(point.add(-0.5,-0.5,-0.5), point.add(0.5,0.5,0.5));
-                      for (Entity target : world.getOtherEntities(user, box)) {
-                          if (target instanceof LivingEntity) target.damage(world.getDamageSources().playerAttack(user), 4.0f);
+              public InteractionResultHolder<ItemStack> use(Level world, PlayerEntity user, InteractionHand hand) {
+                  ItemStack stack = user.getItemInHand(hand);
+                  if (world.isClientSide) return InteractionResultHolder.success(stack);
+                  double chance = rnd.nextDouble();
+                  if (chance < 0.05) { world.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.DISPENSER_FAIL, SoundSource.PLAYERS, 1f, 1.2f); }
+                  else if (chance < 0.15) { 
+                      world.explode(user, user.getX(), user.getY(), user.getZ(), 0f, Level.ExplosionInteraction.NONE);
+                      user.hurt(world.damageSources().explosion(null, null), 6f);
+                      stack.shrink(1);
+                  } else {
+                      Vec3 start = user.getEyePosition();
+                      Vec3 look = user.getLookAngle();
+                      DustParticleOptions red = new DustParticleOptions(new Vector3f(1f, 0f, 0f), 1.5f);
+                      for (int i = 1; i < 25; i++) {
+                          Vec3 p = start.add(look.scale(i));
+                          ((ServerLevel)world).sendParticles(red, p.x, p.y, p.z, 4, 0.05, 0.05, 0.05, 0);
+                          AABB box = new AABB(p.x-0.5, p.y-0.5, p.z-0.5, p.x+0.5, p.y+0.5, p.z+0.5);
+                          world.getEntities(user, box).forEach(e -> { if (e instanceof LivingEntity le) le.hurt(world.damageSources().playerAttack(user), 4f); });
                       }
+                      world.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.ZOMBIE_VILLAGER_CONVERTED, SoundSource.PLAYERS, 0.6f, 2f);
                   }
-                  user.playSound(SoundEvents.ENTITY_ZOMBIE_VILLAGER_CONVERTED, 0.6f, 2.0f);
+                  return InteractionResultHolder.consume(stack);
               }
           }
           EOF
 
-          # 4. CodeCrackerWatch.java
-          cat <<EOF > src/main/java/com/dimos/mod/item/CodeCrackerWatch.java
-          package com.dimos.mod.item;
-          import com.dimos.mod.DimMod;
-          import net.minecraft.entity.player.PlayerEntity;
-          import net.minecraft.item.Item;
-          import net.minecraft.item.ItemStack;
-          import net.minecraft.sound.SoundEvents;
-          import net.minecraft.util.Hand;
-          import net.minecraft.util.TypedActionResult;
-          import net.minecraft.world.World;
-
-          public class CodeCrackerWatch extends Item {
-              public CodeCrackerWatch(Settings settings) { super(settings); }
-              @Override
-              public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-                  if (!world.isClient) {
-                      DimMod.freezeTime(300);
-                      user.getItemCooldownManager().set(this, 600);
-                      user.playSound(SoundEvents.BLOCK_BELL_RESONATE, 1.0f, 0.5f);
-                  }
-                  return TypedActionResult.success(user.getStackInHand(hand));
-              }
-          }
-          EOF
-
-          # 5. DimMod.java
+          # 5. DimMod.java (Глобальная логика Forge)
           cat <<EOF > src/main/java/com/dimos/mod/DimMod.java
           package com.dimos.mod;
           import com.dimos.mod.item.*;
-          import net.fabricmc.api.ModInitializer;
-          import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
-          import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-          import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-          import net.minecraft.entity.EntityType;
-          import net.minecraft.entity.LightningEntity;
-          import net.minecraft.entity.LivingEntity;
-          import net.minecraft.entity.player.PlayerEntity;
-          import net.minecraft.item.Item;
-          import net.minecraft.item.ItemGroups;
-          import net.minecraft.particle.ParticleTypes;
-          import net.minecraft.registry.Registries;
-          import net.minecraft.registry.Registry;
-          import net.minecraft.server.world.ServerWorld;
-          import net.minecraft.util.Identifier;
+          import net.minecraft.core.registries.Registries;
+          import net.minecraft.server.level.ServerLevel;
+          import net.minecraft.world.entity.EntityType;
+          import net.minecraft.world.entity.LightningBolt;
+          import net.minecraft.world.entity.player.PlayerEntity;
+          import net.minecraft.world.item.CreativeModeTabs;
+          import net.minecraft.world.item.Item;
+          import net.minecraft.core.particles.ParticleTypes;
+          import net.minecraftforge.common.MinecraftForge;
+          import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+          import net.minecraftforge.event.TickEvent;
+          import net.minecraftforge.event.entity.living.LivingDeathEvent;
+          import net.minecraftforge.eventbus.api.IEventBus;
+          import net.minecraftforge.fml.common.Mod;
+          import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+          import net.minecraftforge.registries.DeferredRegister;
+          import net.minecraftforge.registries.ForgeRegistries;
+          import net.minecraftforge.registries.RegistryObject;
           import java.util.HashSet;
           import java.util.Set;
           import java.util.UUID;
 
-          public class DimMod implements ModInitializer {
-              public static final Item AZUM_KNIFE = new AzumKnifeItem(new Item.Settings());
-              public static final Item NASTYA_LASER = new NastyaLaserItem(new Item.Settings().maxCount(1));
-              public static final Item CODE_CRACKER_WATCH = new CodeCrackerWatch(new Item.Settings().maxCount(1));
-              private static final Set<UUID> SECOND_LIFE_PLAYERS = new HashSet<>();
+          @Mod("dimos")
+          public class DimMod {
+              public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, "dimos");
+              public static final RegistryObject<Item> AZUM_KNIFE = ITEMS.register("azum_knife", AzumKnifeItem::new);
+              public static final RegistryObject<Item> NASTYA_LASER = ITEMS.register("nastya_laser", NastyaLaserItem::new);
+              public static final RegistryObject<Item> WATCH = ITEMS.register("codecracker_watch", () -> new Item(new Item.Properties().stacksTo(1)) {
+                  @Override
+                  public net.minecraft.world.InteractionResultHolder<net.minecraft.world.item.ItemStack> use(net.minecraft.world.level.Level w, PlayerEntity p, net.minecraft.world.InteractionHand h) {
+                      if (!w.isClientSide) { freezeTicks = 300; p.getCooldowns().addCooldown(this, 600); }
+                      return net.minecraft.world.InteractionResultHolder.success(p.getItemInHand(h));
+                  }
+              });
+
+              private static final Set<UUID> LIFE = new HashSet<>();
               private static int freezeTicks = 0;
 
-              @Override
-              public void onInitialize() {
-                  Registry.register(Registries.ITEM, new Identifier("dimos", "azum_knife"), AZUM_KNIFE);
-                  Registry.register(Registries.ITEM, new Identifier("dimos", "nastya_laser"), NASTYA_LASER);
-                  Registry.register(Registries.ITEM, new Identifier("dimos", "codecracker_watch"), CODE_CRACKER_WATCH);
-
-                  ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(c -> {
-                      c.add(AZUM_KNIFE); c.add(NASTYA_LASER); c.add(CODE_CRACKER_WATCH);
-                  });
-
-                  ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
-                      if (entity instanceof PlayerEntity player && SECOND_LIFE_PLAYERS.contains(player.getUuid())) {
-                          SECOND_LIFE_PLAYERS.remove(player.getUuid());
-                          player.setHealth(player.getMaxHealth());
-                          ServerWorld world = (ServerWorld) player.getWorld();
-                          LightningEntity bolt = EntityType.LIGHTNING_BOLT.create(world);
-                          if (bolt != null) { bolt.refreshPositionAfterTeleport(player.getPos()); world.spawnEntity(bolt); }
-                          world.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getY(), player.getZ(), 60, 0.5, 1, 0.5, 0.2);
-                          return false;
-                      }
-                      return true;
-                  });
-
-                  ServerTickEvents.END_WORLD_TICK.register(world -> {
-                      if (freezeTicks > 0) {
-                          freezeTicks--;
-                          for (net.minecraft.entity.Entity e : world.iterateEntities()) {
-                              if (!(e instanceof PlayerEntity)) {
-                                  e.setVelocity(0, 0, 0);
-                                  if (e instanceof LivingEntity le) le.setNoAi(true);
-                              }
-                          }
-                      } else if (freezeTicks == 0) {
-                          for (net.minecraft.entity.Entity e : world.iterateEntities()) {
-                              if (e instanceof LivingEntity le) le.setNoAi(false);
-                          }
-                          freezeTicks = -1;
-                      }
-                  });
+              public DimMod() {
+                  IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+                  ITEMS.register(bus);
+                  bus.addListener(this::addCreative);
+                  MinecraftForge.EVENT_BUS.register(this);
               }
-              public static void giveSecondLife(PlayerEntity player) { SECOND_LIFE_PLAYERS.add(player.getUuid()); }
-              public static void freezeTime(int ticks) { freezeTicks = ticks; }
+
+              private void addCreative(BuildCreativeModeTabContentsEvent e) {
+                  if (e.getTabKey() == CreativeModeTabs.COMBAT) { e.accept(AZUM_KNIFE); e.accept(NASTYA_LASER); e.accept(WATCH); }
+              }
+
+              public static void giveSecondLife(PlayerEntity p) { LIFE.add(p.getUUID()); }
+
+              @net.minecraftforge.eventbus.api.SubscribeEvent
+              public void onDeath(LivingDeathEvent e) {
+                  if (e.getEntity() instanceof PlayerEntity p && LIFE.contains(p.getUUID())) {
+                      LIFE.remove(p.getUUID());
+                      e.setCanceled(true);
+                      p.setHealth(p.getMaxHealth());
+                      ServerLevel sl = (ServerLevel) p.level();
+                      LightningBolt lb = EntityType.LIGHTNING_BOLT.create(sl);
+                      if (lb != null) { lb.moveTo(p.position()); sl.addFreshEntity(lb); }
+                      sl.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, p.getX(), p.getY(), p.getZ(), 50, 0.5, 0.5, 0.5, 0.1);
+                  }
+              }
+
+              @net.minecraftforge.eventbus.api.SubscribeEvent
+              public void onTick(TickEvent.LevelTickEvent e) {
+                  if (e.phase == TickEvent.Phase.END && freezeTicks > 0) {
+                      freezeTicks--;
+                      e.level.getEntities((net.minecraft.world.entity.Entity)null, new net.minecraft.world.phys.AABB(-1000,-1000,-1000,1000,1000,1000), ent -> !(ent instanceof PlayerEntity))
+                      .forEach(ent -> { ent.setDeltaMovement(0,0,0); if (ent instanceof net.minecraft.world.entity.Mob mob) mob.setNoAi(true); });
+                  } else if (freezeTicks == 0) {
+                      e.level.getEntities((net.minecraft.world.entity.Entity)null, new net.minecraft.world.phys.AABB(-1000,-1000,-1000,1000,1000,1000), ent -> ent instanceof net.minecraft.world.entity.Mob mob)
+                      .forEach(ent -> ((net.minecraft.world.entity.Mob)ent).setNoAi(false));
+                      freezeTicks = -1;
+                  }
+              }
           }
           EOF
 
-          # 6. Рецепты
+          # 6. Рецепты и ресурсы (Forge)
           cat <<EOF > src/main/resources/data/dimos/recipes/nastya_laser.json
-          { "type": "minecraft:crafting_shaped", "pattern": [ "   ", " SC", "   " ], "key": { "S": { "item": "minecraft:stone" }, "C": { "item": "minecraft:coal" } }, "result": { "item": "dimos:nastya_laser" } }
+          { "type": "minecraft:crafting_shaped", "pattern": ["   ", " SC", "   "], "key": { "S": {"item": "minecraft:stone"}, "C": {"item": "minecraft:coal"} }, "result": {"item": "dimos:nastya_laser"} }
           EOF
           cat <<EOF > src/main/resources/data/dimos/recipes/watch.json
-          { "type": "minecraft:crafting_shaped", "pattern": [ " G ", "GRG", " G " ], "key": { "G": { "item": "minecraft:gold_ingot" }, "R": { "item": "minecraft:redstone" } }, "result": { "item": "dimos:codecracker_watch" } }
+          { "type": "minecraft:crafting_shaped", "pattern": [" G ", "GRG", " G "], "key": { "G": {"item": "minecraft:gold_ingot"}, "R": {"item": "minecraft:redstone"} }, "result": {"item": "dimos:codecracker_watch"} }
           EOF
           cat <<EOF > src/main/resources/data/dimos/recipes/azum_knife.json
-          { "type": "minecraft:crafting_shaped", "pattern": [ "  I", " I ", "S  " ], "key": { "I": { "item": "minecraft:iron_ingot" }, "S": { "item": "minecraft:stick" } }, "result": { "item": "dimos:azum_knife" } }
+          { "type": "minecraft:crafting_shaped", "pattern": ["  I", " I ", "S  "], "key": { "I": {"item": "minecraft:iron_ingot"}, "S": {"item": "minecraft:stick"} }, "result": {"item": "dimos:azum_knife"} }
           EOF
 
-          # 7. Ресурсы
-          echo '{"schemaVersion": 1, "id": "dimos", "version": "1.2.1", "name": "AzumGame", "entrypoints": { "main": ["com.dimos.mod.DimMod"] }, "depends": { "fabricloader": ">=0.14.0", "minecraft": "~1.20.1", "fabric-api": "*" } }' > src/main/resources/fabric.mod.json
           echo '{"parent":"minecraft:item/handheld","textures":{"layer0":"minecraft:item/iron_sword"}}' > src/main/resources/assets/dimos/models/item/azum_knife.json
           echo '{"parent":"minecraft:item/handheld","textures":{"layer0":"minecraft:item/crossbow"}}' > src/main/resources/assets/dimos/models/item/nastya_laser.json
           echo '{"parent":"minecraft:item/generated","textures":{"layer0":"minecraft:item/clock"}}' > src/main/resources/assets/dimos/models/item/codecracker_watch.json
           echo '{"item.dimos.azum_knife":"Нож Азума","item.dimos.nastya_laser":"Лазер Насти","item.dimos.codecracker_watch":"Часы CodeCracker"}' > src/main/resources/assets/dimos/lang/ru_ru.json
-          echo "pluginManagement { repositories { maven { url = 'https://maven.fabricmc.net/' }; mavenCentral() } }; rootProject.name = 'dimos-mod'" > settings.gradle
+          echo "rootProject.name = 'dimos-mod'" > settings.gradle
 
-      - name: Build Mod
+      - name: Build with Gradle
         run: gradle build --no-daemon
 
-      - name: Upload Jar
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AzumGame-V1.2.1-1.20.1
+          name: AzumGame-Forge-1.20.1
           path: build/libs/*.jar
