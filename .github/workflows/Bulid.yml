@@ -1,402 +1,300 @@
-name: Titan Archive Compressor
+name: Titan Archive APK Builder
 on: [push, workflow_dispatch]
 
+permissions:
+  contents: write
+
 jobs:
-  compress:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Compile Titan Archiver
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create Android Project
         run: |
-          cat > titan.cpp << 'TITAN_CPP'
-          #include <iostream>
-          #include <fstream>
+          mkdir -p app/src/main/java/com/titan/archiver
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
+
+          echo "android.useAndroidX=true" > gradle.properties
+
+          cat > app/src/main/res/values/themes.xml << 'THEMES'
+          <resources>
+            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+              <item name="android:windowFullscreen">true</item>
+            </style>
+          </resources>
+          THEMES
+
+          cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.titan.archiver">
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+            <application android:allowBackup="true" android:theme="@style/AppTheme">
+              <activity android:name=".MainActivity" android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          MANIFEST
+
+          cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:orientation="vertical" android:background="#02050A" android:padding="20dp">
+            
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+              android:text="Titan Archiver" android:textSize="32sp" android:textColor="#00BFFF"
+              android:textStyle="bold" android:gravity="center" android:layout_marginTop="30dp"/>
+            
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+              android:text=".titz Compressor" android:textSize="18sp" android:textColor="#0088CC"
+              android:gravity="center" android:layout_marginBottom="40dp"/>
+            
+            <Button android:id="@+id/btn_compress" android:layout_width="match_parent"
+              android:layout_height="60dp" android:text="Compress File" android:textSize="18sp"
+              android:background="@drawable/btn_blue" android:textColor="#00BFFF"
+              android:layout_marginBottom="16dp"/>
+            
+            <Button android:id="@+id/btn_decompress" android:layout_width="match_parent"
+              android:layout_height="60dp" android:text="Decompress .titz" android:textSize="18sp"
+              android:background="@drawable/btn_blue" android:textColor="#00BFFF"
+              android:layout_marginBottom="16dp"/>
+            
+            <TextView android:id="@+id/tv_status" android:layout_width="match_parent"
+              android:layout_height="wrap_content" android:text="Ready" android:textColor="#44FF44"
+              android:gravity="center" android:layout_marginTop="30dp" android:textSize="14sp"/>
+            
+          </LinearLayout>
+          LAYOUT
+
+          cat > app/src/main/res/drawable/btn_blue.xml << 'EOF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <corners android:radius="12dp"/>
+            <solid android:color="#101820"/>
+            <stroke android:width="2dp" android:color="#00BFFF"/>
+          </shape>
+          EOF
+
+          cat > app/src/main/java/com/titan/archiver/MainActivity.java << 'JAVA'
+          package com.titan.archiver;
+          
+          import android.os.Bundle;
+          import android.os.Environment;
+          import android.view.View;
+          import android.widget.Button;
+          import android.widget.TextView;
+          import android.widget.Toast;
+          import androidx.appcompat.app.AppCompatActivity;
+          import androidx.activity.result.ActivityResultLauncher;
+          import androidx.activity.result.contract.ActivityResultContracts;
+          import android.content.Intent;
+          import android.net.Uri;
+          import java.io.*;
+          
+          public class MainActivity extends AppCompatActivity {
+              private TextView tvStatus;
+              private ActivityResultLauncher<String> filePicker;
+              private ActivityResultLauncher<String> savePicker;
+              
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+                  
+                  tvStatus = findViewById(R.id.tv_status);
+                  Button btnCompress = findViewById(R.id.btn_compress);
+                  Button btnDecompress = findViewById(R.id.btn_decompress);
+                  
+                  filePicker = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                      if (uri != null) compressFile(uri);
+                  });
+                  
+                  savePicker = registerForActivityResult(new ActivityResultContracts.CreateDocument(), uri -> {
+                      if (uri != null) saveResult(uri);
+                  });
+                  
+                  btnCompress.setOnClickListener(v -> filePicker.launch("*/*"));
+                  btnDecompress.setOnClickListener(v -> filePicker.launch("*/*"));
+              }
+              
+              private void compressFile(Uri uri) {
+                  try {
+                      InputStream is = getContentResolver().openInputStream(uri);
+                      byte[] data = readBytes(is);
+                      is.close();
+                      
+                      tvStatus.setText("Compressing: " + data.length + " bytes...");
+                      
+                      byte[] compressed = titanCompress(data);
+                      
+                      String filename = getFileName(uri);
+                      savePicker.launch(filename + ".titz");
+                      
+                      tvStatus.setText("Compressed: " + compressed.length + " bytes (" + 
+                          (compressed.length * 100 / data.length) + "%)");
+                          
+                  } catch (Exception e) {
+                      tvStatus.setText("Error: " + e.getMessage());
+                  }
+              }
+              
+              private void saveResult(Uri uri) {
+                  tvStatus.setText("Saving...");
+              }
+              
+              private native byte[] titanCompress(byte[] data);
+              private native byte[] titanDecompress(byte[] data, int originalSize);
+              
+              private byte[] readBytes(InputStream is) throws IOException {
+                  ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                  byte[] buffer = new byte[8192];
+                  int len;
+                  while ((len = is.read(buffer)) != -1) baos.write(buffer, 0, len);
+                  return baos.toByteArray();
+              }
+              
+              private String getFileName(Uri uri) {
+                  String path = uri.getPath();
+                  if (path == null) return "file";
+                  return new File(path).getName();
+              }
+          }
+          JAVA
+
+          cat > app/src/main/jni/titan.cpp << 'CPP'
+          #include <jni.h>
           #include <vector>
           #include <string>
-          #include <algorithm>
           #include <unordered_map>
-          #include <chrono>
-          #include <cstring>
-          
+          #include <algorithm>
           using namespace std;
           
           class LZ77 {
           private:
               int window_size = 4096;
               int max_match = 255;
-              
           public:
               vector<uint8_t> compress(const vector<uint8_t>& data) {
                   vector<uint8_t> result;
-                  int i = 0;
-                  int n = data.size();
-                  
+                  int i = 0, n = data.size();
                   while (i < n) {
-                      int match_pos = -1;
-                      int match_len = 0;
+                      int match_pos = -1, match_len = 0;
                       int start = max(0, i - window_size);
-                      
                       for (int j = start; j < i; j++) {
                           if (data[j] == data[i]) {
                               int len = 0;
-                              while (i + len < n && j + len < i && 
-                                     data[j + len] == data[i + len] && 
-                                     len < max_match) {
-                                  len++;
-                              }
-                              if (len > match_len) {
-                                  match_len = len;
-                                  match_pos = i - j;
-                              }
+                              while (i + len < n && j + len < i && data[j + len] == data[i + len] && len < max_match) len++;
+                              if (len > match_len) { match_len = len; match_pos = i - j; }
                           }
                       }
-                      
                       if (match_len >= 3) {
                           result.push_back(0x80 | (match_len - 3));
                           result.push_back(match_pos & 0xFF);
                           result.push_back((match_pos >> 8) & 0xFF);
                           i += match_len;
-                      } else {
-                          result.push_back(data[i]);
-                          i++;
-                      }
+                      } else { result.push_back(data[i]); i++; }
                   }
                   return result;
               }
               
               vector<uint8_t> decompress(const vector<uint8_t>& data) {
                   vector<uint8_t> result;
-                  int i = 0;
-                  int n = data.size();
-                  
+                  int i = 0, n = data.size();
                   while (i < n) {
                       if (data[i] & 0x80) {
-                          int match_len = (data[i] & 0x7F) + 3;
-                          i++;
+                          int match_len = (data[i] & 0x7F) + 3; i++;
                           if (i + 1 >= n) break;
-                          int match_pos = data[i] | (data[i+1] << 8);
-                          i += 2;
-                          
+                          int match_pos = data[i] | (data[i+1] << 8); i += 2;
                           int start = result.size() - match_pos;
-                          for (int j = 0; j < match_len; j++) {
-                              result.push_back(result[start + j]);
-                          }
-                      } else {
-                          result.push_back(data[i]);
-                          i++;
-                      }
+                          for (int j = 0; j < match_len; j++) result.push_back(result[start + j]);
+                      } else { result.push_back(data[i]); i++; }
                   }
                   return result;
               }
           };
           
-          class ArithmeticCoder {
-          private:
-              uint32_t low, high;
-              vector<uint8_t> output;
-              vector<uint8_t> data;
-              uint32_t code;
-              int pos;
-              
-          public:
-              ArithmeticCoder() {
-                  low = 0;
-                  high = 0xFFFFFFFF;
-                  code = 0;
-                  pos = 0;
-              }
-              
-              void encode_bit(double prob, int bit) {
-                  if (prob < 0.001) prob = 0.001;
-                  if (prob > 0.999) prob = 0.999;
-                  
-                  uint32_t range = high - low + 1;
-                  uint32_t mid = low + (uint32_t)(range * prob);
-                  
-                  if (bit) {
-                      high = mid;
-                  } else {
-                      low = mid + 1;
-                  }
-                  
-                  while ((low >> 24) == (high >> 24)) {
-                      output.push_back(low >> 24);
-                      low <<= 8;
-                      high = (high << 8) | 0xFF;
-                  }
-              }
-              
-              vector<uint8_t> finish() {
-                  for (int i = 0; i < 4; i++) {
-                      output.push_back(low >> 24);
-                      low <<= 8;
-                  }
-                  return output;
-              }
-              
-              void init_decode(const vector<uint8_t>& d) {
-                  data = d;
-                  low = 0;
-                  high = 0xFFFFFFFF;
-                  code = 0;
-                  pos = 0;
-                  for (int i = 0; i < 4; i++) {
-                      code = (code << 8) | read_byte();
-                  }
-              }
-              
-              uint8_t read_byte() {
-                  if (pos < data.size()) return data[pos++];
-                  return 0;
-              }
-              
-              int decode_bit(double prob) {
-                  if (prob < 0.001) prob = 0.001;
-                  if (prob > 0.999) prob = 0.999;
-                  
-                  uint32_t range = high - low + 1;
-                  uint32_t mid = low + (uint32_t)(range * prob);
-                  
-                  int bit = (code <= mid) ? 0 : 1;
-                  
-                  if (bit == 0) {
-                      high = mid;
-                  } else {
-                      low = mid + 1;
-                  }
-                  
-                  while ((low >> 24) == (high >> 24)) {
-                      low <<= 8;
-                      high = (high << 8) | 0xFF;
-                      code = (code << 8) | read_byte();
-                  }
-                  
-                  return bit;
-              }
-          };
-          
-          class PPMModel {
-          private:
-              struct Context {
-                  unordered_map<int, int> counts;
-                  int total = 0;
-              };
-              
-              unordered_map<string, Context> contexts;
-              int order = 2;
-              
-              string get_context(const vector<int>& context, int len) {
-                  string ctx;
-                  int start = max(0, (int)context.size() - len);
-                  for (int i = start; i < context.size(); i++) {
-                      ctx += (char)context[i];
-                  }
-                  return ctx;
-              }
-              
-          public:
-              PPMModel(int o = 2) : order(o) {}
-              
-              unordered_map<int, double> predict(const vector<int>& context) {
-                  string ctx = get_context(context, order);
-                  unordered_map<int, double> probs;
-                  
-                  if (contexts.find(ctx) != contexts.end()) {
-                      Context& c = contexts[ctx];
-                      for (auto& [byte, count] : c.counts) {
-                          probs[byte] = (double)(count + 1) / (c.total + 256);
-                      }
-                  }
-                  
-                  for (int i = 0; i < 256; i++) {
-                      if (probs.find(i) == probs.end()) {
-                          probs[i] = 1.0 / 256;
-                      }
-                  }
-                  
-                  return probs;
-              }
-              
-              void update(const vector<int>& context, int byte) {
-                  string ctx = get_context(context, order);
-                  Context& c = contexts[ctx];
-                  c.counts[byte]++;
-                  c.total++;
-                  
-                  if (contexts.size() > 5000) {
-                      auto it = contexts.begin();
-                      advance(it, 2500);
-                      contexts.erase(contexts.begin(), it);
-                  }
-              }
-          };
-          
-          vector<uint8_t> compress(const vector<uint8_t>& data) {
-              if (data.empty()) return {};
+          extern "C" JNIEXPORT jbyteArray JNICALL
+          Java_com_titan_archiver_MainActivity_titanCompress(JNIEnv* env, jobject thiz, jbyteArray data) {
+              jsize len = env->GetArrayLength(data);
+              jbyte* bytes = env->GetByteArrayElements(data, nullptr);
+              vector<uint8_t> input((uint8_t*)bytes, (uint8_t*)bytes + len);
+              env->ReleaseByteArrayElements(data, bytes, JNI_ABORT);
               
               LZ77 lz77;
-              vector<uint8_t> lz = lz77.compress(data);
-              
-              ArithmeticCoder ac;
-              PPMModel model(2);
-              vector<int> context;
-              
-              for (uint8_t byte : lz) {
-                  auto probs = model.predict(context);
-                  
-                  for (int i = 7; i >= 0; i--) {
-                      int bit = (byte >> i) & 1;
-                      double prob0 = probs[0];
-                      double prob = bit == 0 ? prob0 : 1 - prob0;
-                      ac.encode_bit(prob, bit);
-                  }
-                  
-                  model.update(context, byte);
-                  context.push_back(byte);
-                  if (context.size() > 4) {
-                      context.erase(context.begin());
-                  }
-              }
-              
-              vector<uint8_t> compressed = ac.finish();
+              vector<uint8_t> lz = lz77.compress(input);
               vector<uint8_t> result;
               result.push_back(1);
-              result.insert(result.end(), compressed.begin(), compressed.end());
+              result.insert(result.end(), lz.begin(), lz.end());
               
-              return result;
+              jbyteArray out = env->NewByteArray(result.size());
+              env->SetByteArrayRegion(out, 0, result.size(), (jbyte*)result.data());
+              return out;
           }
-          
-          vector<uint8_t> decompress(const vector<uint8_t>& data, size_t original_size) {
-              if (data.empty() || data[0] != 1) return {};
-              
-              ArithmeticCoder ac;
-              ac.init_decode(vector<uint8_t>(data.begin() + 1, data.end()));
-              
-              PPMModel model(2);
-              vector<int> context;
-              vector<uint8_t> lz_result;
-              
-              while (lz_result.size() < original_size) {
-                  auto probs = model.predict(context);
-                  int byte = 0;
-                  
-                  for (int i = 7; i >= 0; i--) {
-                      double prob0 = probs[0];
-                      int bit = ac.decode_bit(prob0);
-                      byte = (byte << 1) | bit;
-                  }
-                  
-                  lz_result.push_back(byte);
-                  model.update(context, byte);
-                  context.push_back(byte);
-                  if (context.size() > 4) {
-                      context.erase(context.begin());
-                  }
-              }
-              
-              LZ77 lz77;
-              return lz77.decompress(lz_result);
-          }
-          
-          int main(int argc, char* argv[]) {
-              if (argc < 2) {
-                  cout << "Usage: titan <file> [--decompress]" << endl;
-                  return 1;
-              }
-              
-              string path = argv[1];
-              bool decompress_mode = (argc >= 3 && strcmp(argv[2], "--decompress") == 0);
-              
-              if (!decompress_mode) {
-                  ifstream in(path, ios::binary);
-                  if (!in.is_open()) {
-                      cerr << "Error: Cannot open file" << endl;
-                      return 1;
-                  }
-                  
-                  vector<uint8_t> data((istreambuf_iterator<char>(in)), {});
-                  in.close();
-                  
-                  cout << "Original: " << data.size() << " bytes" << endl;
-                  
-                  auto start = chrono::high_resolution_clock::now();
-                  vector<uint8_t> compressed = compress(data);
-                  auto end = chrono::high_resolution_clock::now();
-                  
-                  double elapsed = chrono::duration<double>(end - start).count();
-                  
-                  string archive_path = path + ".titz";
-                  ofstream out(archive_path, ios::binary);
-                  size_t orig_size = data.size();
-                  out.write((char*)&orig_size, sizeof(orig_size));
-                  out.write((char*)compressed.data(), compressed.size());
-                  out.close();
-                  
-                  double ratio = (double)compressed.size() / data.size() * 100;
-                  
-                  cout << "Compressed: " << compressed.size() << " bytes (" << ratio << "%)" << endl;
-                  cout << "Time: " << elapsed << " sec" << endl;
-                  cout << "Archive: " << archive_path << endl;
-                  
-              } else {
-                  if (path.size() < 6 || path.substr(path.size()-5) != ".titz") {
-                      cerr << "Error: File must have .titz extension" << endl;
-                      return 1;
-                  }
-                  
-                  ifstream in(path, ios::binary);
-                  if (!in.is_open()) {
-                      cerr << "Error: Cannot open archive" << endl;
-                      return 1;
-                  }
-                  
-                  size_t orig_size;
-                  in.read((char*)&orig_size, sizeof(orig_size));
-                  vector<uint8_t> compressed((istreambuf_iterator<char>(in)), {});
-                  in.close();
-                  
-                  auto start = chrono::high_resolution_clock::now();
-                  vector<uint8_t> decompressed = decompress(compressed, orig_size);
-                  auto end = chrono::high_resolution_clock::now();
-                  
-                  double elapsed = chrono::duration<double>(end - start).count();
-                  
-                  string out_path = path.substr(0, path.size() - 5);
-                  ofstream out(out_path, ios::binary);
-                  out.write((char*)decompressed.data(), decompressed.size());
-                  out.close();
-                  
-                  cout << "Decompressed: " << decompressed.size() << " bytes" << endl;
-                  cout << "Time: " << elapsed << " sec" << endl;
-                  cout << "File: " << out_path << endl;
-              }
-              
-              return 0;
-          }
-          TITAN_CPP
-          
-          g++ -O3 -std=c++17 titan.cpp -o titan
+          CPP
 
-      - name: Compress Files
-        run: |
-          echo "=== TITAN ARCHIVER ==="
-          echo "Compressing files in repository..."
+          echo "include ':app'" > settings.gradle
           
-          for file in $(find . -type f -not -name "*.titz" -not -path "./.git/*" -not -name "titan" -not -name "*.cpp"); do
-            if [ -f "$file" ] && [ ! -f "$file.titz" ]; then
-              echo "Compressing: $file"
-              ./titan "$file"
-              rm -f "$file"
-              echo "  -> ${file}.titz created, original removed"
-            fi
-          done
+          cat > build.gradle << 'EOF'
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+          
+          cat > app/build.gradle << 'EOF'
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.titan.archiver'
+              compileSdk 34
+              defaultConfig {
+                  applicationId 'com.titan.archiver'
+                  minSdk 24
+                  targetSdk 34
+                  externalNativeBuild { cmake { cppFlags '-O3 -std=c++17' } }
+              }
+              externalNativeBuild { cmake { path 'CMakeLists.txt' } }
+              buildFeatures { buildConfig true }
+          }
+          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
+          EOF
+          
+          cat > app/CMakeLists.txt << 'EOF'
+          cmake_minimum_required(VERSION 3.18.1)
+          project("titanarchiver")
+          add_library(titanarchiver SHARED src/main/jni/titan.cpp)
+          find_library(log-lib log)
+          target_link_libraries(titanarchiver ${log-lib})
+          EOF
 
-      - name: Commit and Push
+      - name: Build APK
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add -A
-          git diff --cached --quiet || git commit -m "Compress with Titan Archiver"
-          git push
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle-8.5-bin.zip
+          export PATH="$PWD/gradle-8.5/bin:$PATH"
+          gradle wrapper --gradle-version 8.5
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Titan-Archiver
+          path: app/build/outputs/apk/debug/app-debug.apk
