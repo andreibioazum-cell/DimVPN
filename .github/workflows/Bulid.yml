@@ -25,18 +25,8 @@ jobs:
           mkdir -p app/src/main/java/com/titan/archiver
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/drawable
-          mkdir -p app/src/main/jni
 
           echo "android.useAndroidX=true" > gradle.properties
-
-          cat > app/src/main/res/values/themes.xml << 'THEMES'
-          <resources>
-            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-              <item name="android:windowFullscreen">true</item>
-            </style>
-          </resources>
-          THEMES
 
           cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
           <?xml version="1.0" encoding="utf-8"?>
@@ -54,6 +44,14 @@ jobs:
           </manifest>
           MANIFEST
 
+          cat > app/src/main/res/values/themes.xml << 'THEMES'
+          <resources>
+            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+              <item name="android:windowFullscreen">true</item>
+            </style>
+          </resources>
+          THEMES
+
           cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -61,123 +59,125 @@ jobs:
             android:orientation="vertical" android:background="#02050A" android:padding="20dp">
             
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-              android:text="Titan Archiver" android:textSize="32sp" android:textColor="#00BFFF"
-              android:textStyle="bold" android:gravity="center" android:layout_marginTop="30dp"/>
+              android:text="Titan Archiver" android:textSize="28sp" android:textColor="#00BFFF"
+              android:gravity="center" android:layout_marginTop="30dp"/>
             
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-              android:text=".titz Compressor" android:textSize="18sp" android:textColor="#0088CC"
-              android:gravity="center" android:layout_marginBottom="40dp"/>
+            <EditText android:id="@+id/et_path" android:layout_width="match_parent"
+              android:layout_height="wrap_content" android:hint="Путь к файлу"
+              android:textColor="#FFF" android:textColorHint="#666" android:background="#222"
+              android:padding="12dp" android:layout_marginTop="30dp" android:textSize="12sp"/>
             
             <Button android:id="@+id/btn_compress" android:layout_width="match_parent"
-              android:layout_height="60dp" android:text="Compress File" android:textSize="18sp"
-              android:background="@drawable/btn_blue" android:textColor="#00BFFF"
-              android:layout_marginBottom="16dp"/>
+              android:layout_height="55dp" android:text="Сжать (оригинал удалится)"
+              android:textSize="14sp" android:background="#101820" android:textColor="#00BFFF"
+              android:layout_marginTop="20dp"/>
             
             <Button android:id="@+id/btn_decompress" android:layout_width="match_parent"
-              android:layout_height="60dp" android:text="Decompress .titz" android:textSize="18sp"
-              android:background="@drawable/btn_blue" android:textColor="#00BFFF"
-              android:layout_marginBottom="16dp"/>
+              android:layout_height="55dp" android:text="Распаковать .titz"
+              android:textSize="14sp" android:background="#101820" android:textColor="#00BFFF"
+              android:layout_marginTop="10dp"/>
             
             <TextView android:id="@+id/tv_status" android:layout_width="match_parent"
-              android:layout_height="wrap_content" android:text="Ready" android:textColor="#44FF44"
-              android:gravity="center" android:layout_marginTop="30dp" android:textSize="14sp"/>
+              android:layout_height="wrap_content" android:text="Готов"
+              android:textColor="#44FF44" android:gravity="center"
+              android:layout_marginTop="30dp" android:textSize="12sp"/>
             
           </LinearLayout>
           LAYOUT
-
-          cat > app/src/main/res/drawable/btn_blue.xml << 'EOF'
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-            <corners android:radius="12dp"/>
-            <solid android:color="#101820"/>
-            <stroke android:width="2dp" android:color="#00BFFF"/>
-          </shape>
-          EOF
 
           cat > app/src/main/java/com/titan/archiver/MainActivity.java << 'JAVA'
           package com.titan.archiver;
           
           import android.os.Bundle;
           import android.widget.Button;
+          import android.widget.EditText;
           import android.widget.TextView;
           import android.widget.Toast;
           import androidx.appcompat.app.AppCompatActivity;
-          import androidx.activity.result.ActivityResultLauncher;
-          import androidx.activity.result.contract.ActivityResultContracts;
-          import android.net.Uri;
           import java.io.*;
           
           public class MainActivity extends AppCompatActivity {
+              private EditText etPath;
               private TextView tvStatus;
-              private ActivityResultLauncher<String> filePicker;
-              private byte[] pendingData;
-              private boolean isCompressMode = true;
               
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   setContentView(R.layout.activity_main);
                   
+                  etPath = findViewById(R.id.et_path);
                   tvStatus = findViewById(R.id.tv_status);
-                  Button btnCompress = findViewById(R.id.btn_compress);
-                  Button btnDecompress = findViewById(R.id.btn_decompress);
                   
-                  filePicker = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
-                      if (uri != null) processFile(uri);
-                  });
-                  
-                  btnCompress.setOnClickListener(v -> {
-                      isCompressMode = true;
-                      filePicker.launch("*/*");
-                  });
-                  
-                  btnDecompress.setOnClickListener(v -> {
-                      isCompressMode = false;
-                      filePicker.launch("*/*");
-                  });
+                  findViewById(R.id.btn_compress).setOnClickListener(v -> compress());
+                  findViewById(R.id.btn_decompress).setOnClickListener(v -> decompress());
               }
               
-              private void processFile(Uri uri) {
+              private void compress() {
+                  String path = etPath.getText().toString().trim();
+                  File file = new File(path);
+                  if (!file.exists()) {
+                      Toast.makeText(this, "Файл не найден", Toast.LENGTH_SHORT).show();
+                      return;
+                  }
+                  
                   try {
-                      InputStream is = getContentResolver().openInputStream(uri);
-                      byte[] data = readBytes(is);
-                      is.close();
+                      byte[] data = readFile(file);
+                      tvStatus.setText("Сжатие: " + data.length + " байт");
                       
-                      if (isCompressMode) {
-                          tvStatus.setText("Compressing " + data.length + " bytes...");
-                          byte[] compressed = compress(data);
-                          saveFile(uri, compressed, ".titz");
-                          tvStatus.setText("Compressed: " + compressed.length + " bytes");
-                      } else {
-                          tvStatus.setText("Decompressing...");
-                          byte[] decompressed = decompress(data);
-                          saveFile(uri, decompressed, "");
-                          tvStatus.setText("Decompressed: " + decompressed.length + " bytes");
-                      }
+                      byte[] compressed = compressData(data);
+                      writeFile(new File(path + ".titz"), compressed);
+                      file.delete();
+                      
+                      tvStatus.setText("Готово! " + compressed.length + " байт (" + 
+                          (compressed.length * 100 / data.length) + "%)");
+                      Toast.makeText(this, "Оригинал удалён", Toast.LENGTH_SHORT).show();
                   } catch (Exception e) {
-                      tvStatus.setText("Error: " + e.getMessage());
-                      Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+                      tvStatus.setText("Ошибка: " + e.getMessage());
                   }
               }
               
-              private byte[] compress(byte[] data) {
-                  if (data.length == 0) return data;
+              private void decompress() {
+                  String path = etPath.getText().toString().trim();
+                  if (!path.endsWith(".titz")) {
+                      Toast.makeText(this, "Нужен .titz файл", Toast.LENGTH_SHORT).show();
+                      return;
+                  }
                   
-                  java.util.ArrayList<Integer> result = new java.util.ArrayList<>();
+                  File file = new File(path);
+                  if (!file.exists()) {
+                      Toast.makeText(this, "Файл не найден", Toast.LENGTH_SHORT).show();
+                      return;
+                  }
+                  
+                  try {
+                      byte[] data = readFile(file);
+                      tvStatus.setText("Распаковка...");
+                      
+                      byte[] decompressed = decompressData(data);
+                      String outPath = path.substring(0, path.length() - 5);
+                      writeFile(new File(outPath), decompressed);
+                      file.delete();
+                      
+                      tvStatus.setText("Восстановлено: " + decompressed.length + " байт");
+                      Toast.makeText(this, "Архив удалён", Toast.LENGTH_SHORT).show();
+                  } catch (Exception e) {
+                      tvStatus.setText("Ошибка: " + e.getMessage());
+                  }
+              }
+              
+              private byte[] compressData(byte[] data) {
+                  ByteArrayOutputStream out = new ByteArrayOutputStream();
                   int i = 0;
-                  int windowSize = 4096;
                   
                   while (i < data.length) {
-                      int matchPos = -1;
-                      int matchLen = 0;
-                      int start = Math.max(0, i - windowSize);
+                      int matchPos = -1, matchLen = 0;
+                      int start = Math.max(0, i - 4096);
                       
                       for (int j = start; j < i; j++) {
                           if (data[j] == data[i]) {
                               int len = 0;
                               while (i + len < data.length && j + len < i && 
-                                     data[j + len] == data[i + len] && len < 255) {
-                                  len++;
-                              }
+                                     data[j + len] == data[i + len] && len < 255) len++;
                               if (len > matchLen) {
                                   matchLen = len;
                                   matchPos = i - j;
@@ -186,27 +186,20 @@ jobs:
                       }
                       
                       if (matchLen >= 3) {
-                          result.add(0x80 | (matchLen - 3));
-                          result.add(matchPos & 0xFF);
-                          result.add((matchPos >> 8) & 0xFF);
+                          out.write(0x80 | (matchLen - 3));
+                          out.write(matchPos & 0xFF);
+                          out.write((matchPos >> 8) & 0xFF);
                           i += matchLen;
                       } else {
-                          result.add(data[i] & 0xFF);
+                          out.write(data[i]);
                           i++;
                       }
                   }
-                  
-                  byte[] out = new byte[result.size()];
-                  for (int k = 0; k < result.size(); k++) {
-                      out[k] = (byte)(result.get(k) & 0xFF);
-                  }
-                  return out;
+                  return out.toByteArray();
               }
               
-              private byte[] decompress(byte[] data) {
-                  if (data.length == 0) return data;
-                  
-                  java.util.ArrayList<Byte> result = new java.util.ArrayList<>();
+              private byte[] decompressData(byte[] data) {
+                  ByteArrayOutputStream out = new ByteArrayOutputStream();
                   int i = 0;
                   
                   while (i < data.length) {
@@ -217,55 +210,30 @@ jobs:
                           int matchPos = (data[i] & 0xFF) | ((data[i+1] & 0xFF) << 8);
                           i += 2;
                           
-                          int start = result.size() - matchPos;
+                          byte[] result = out.toByteArray();
                           for (int j = 0; j < matchLen; j++) {
-                              result.add(result.get(start + j));
+                              out.write(result[result.length - matchPos + j]);
                           }
                       } else {
-                          result.add(data[i]);
+                          out.write(data[i]);
                           i++;
                       }
                   }
-                  
-                  byte[] out = new byte[result.size()];
-                  for (int k = 0; k < result.size(); k++) {
-                      out[k] = result.get(k);
-                  }
-                  return out;
+                  return out.toByteArray();
               }
               
-              private byte[] readBytes(InputStream is) throws IOException {
-                  ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                  byte[] buffer = new byte[8192];
-                  int len;
-                  while ((len = is.read(buffer)) != -1) baos.write(buffer, 0, len);
-                  return baos.toByteArray();
+              private byte[] readFile(File file) throws IOException {
+                  byte[] data = new byte[(int) file.length()];
+                  FileInputStream fis = new FileInputStream(file);
+                  fis.read(data);
+                  fis.close();
+                  return data;
               }
               
-              private void saveFile(Uri originalUri, byte[] data, String extension) {
-                  String filename = getFileName(originalUri);
-                  if (extension.equals(".titz")) {
-                      filename = filename + ".titz";
-                  } else if (filename.endsWith(".titz")) {
-                      filename = filename.substring(0, filename.length() - 5);
-                  }
-                  
-                  try {
-                      String path = getExternalFilesDir(null) + "/" + filename;
-                      FileOutputStream fos = new FileOutputStream(path);
-                      fos.write(data);
-                      fos.close();
-                      Toast.makeText(this, "Saved: " + path, Toast.LENGTH_LONG).show();
-                      tvStatus.setText(tvStatus.getText() + "\nSaved: " + filename);
-                  } catch (Exception e) {
-                      Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                  }
-              }
-              
-              private String getFileName(Uri uri) {
-                  String path = uri.getPath();
-                  if (path == null) return "file";
-                  return new File(path).getName();
+              private void writeFile(File file, byte[] data) throws IOException {
+                  FileOutputStream fos = new FileOutputStream(file);
+                  fos.write(data);
+                  fos.close();
               }
           }
           JAVA
@@ -290,7 +258,6 @@ jobs:
                   minSdk 24
                   targetSdk 34
               }
-              buildFeatures { buildConfig true }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
