@@ -26,6 +26,7 @@ jobs:
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
+          mkdir -p app/src/main/jni
 
           echo "android.useAndroidX=true" > gradle.properties
 
@@ -96,22 +97,20 @@ jobs:
           package com.titan.archiver;
           
           import android.os.Bundle;
-          import android.os.Environment;
-          import android.view.View;
           import android.widget.Button;
           import android.widget.TextView;
           import android.widget.Toast;
           import androidx.appcompat.app.AppCompatActivity;
           import androidx.activity.result.ActivityResultLauncher;
           import androidx.activity.result.contract.ActivityResultContracts;
-          import android.content.Intent;
           import android.net.Uri;
           import java.io.*;
           
           public class MainActivity extends AppCompatActivity {
               private TextView tvStatus;
               private ActivityResultLauncher<String> filePicker;
-              private ActivityResultLauncher<String> savePicker;
+              private byte[] pendingData;
+              private boolean isCompressMode = true;
               
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -123,44 +122,117 @@ jobs:
                   Button btnDecompress = findViewById(R.id.btn_decompress);
                   
                   filePicker = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
-                      if (uri != null) compressFile(uri);
+                      if (uri != null) processFile(uri);
                   });
                   
-                  savePicker = registerForActivityResult(new ActivityResultContracts.CreateDocument(), uri -> {
-                      if (uri != null) saveResult(uri);
+                  btnCompress.setOnClickListener(v -> {
+                      isCompressMode = true;
+                      filePicker.launch("*/*");
                   });
                   
-                  btnCompress.setOnClickListener(v -> filePicker.launch("*/*"));
-                  btnDecompress.setOnClickListener(v -> filePicker.launch("*/*"));
+                  btnDecompress.setOnClickListener(v -> {
+                      isCompressMode = false;
+                      filePicker.launch("*/*");
+                  });
               }
               
-              private void compressFile(Uri uri) {
+              private void processFile(Uri uri) {
                   try {
                       InputStream is = getContentResolver().openInputStream(uri);
                       byte[] data = readBytes(is);
                       is.close();
                       
-                      tvStatus.setText("Compressing: " + data.length + " bytes...");
-                      
-                      byte[] compressed = titanCompress(data);
-                      
-                      String filename = getFileName(uri);
-                      savePicker.launch(filename + ".titz");
-                      
-                      tvStatus.setText("Compressed: " + compressed.length + " bytes (" + 
-                          (compressed.length * 100 / data.length) + "%)");
-                          
+                      if (isCompressMode) {
+                          tvStatus.setText("Compressing " + data.length + " bytes...");
+                          byte[] compressed = compress(data);
+                          saveFile(uri, compressed, ".titz");
+                          tvStatus.setText("Compressed: " + compressed.length + " bytes");
+                      } else {
+                          tvStatus.setText("Decompressing...");
+                          byte[] decompressed = decompress(data);
+                          saveFile(uri, decompressed, "");
+                          tvStatus.setText("Decompressed: " + decompressed.length + " bytes");
+                      }
                   } catch (Exception e) {
                       tvStatus.setText("Error: " + e.getMessage());
+                      Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
                   }
               }
               
-              private void saveResult(Uri uri) {
-                  tvStatus.setText("Saving...");
+              private byte[] compress(byte[] data) {
+                  if (data.length == 0) return data;
+                  
+                  java.util.ArrayList<Integer> result = new java.util.ArrayList<>();
+                  int i = 0;
+                  int windowSize = 4096;
+                  
+                  while (i < data.length) {
+                      int matchPos = -1;
+                      int matchLen = 0;
+                      int start = Math.max(0, i - windowSize);
+                      
+                      for (int j = start; j < i; j++) {
+                          if (data[j] == data[i]) {
+                              int len = 0;
+                              while (i + len < data.length && j + len < i && 
+                                     data[j + len] == data[i + len] && len < 255) {
+                                  len++;
+                              }
+                              if (len > matchLen) {
+                                  matchLen = len;
+                                  matchPos = i - j;
+                              }
+                          }
+                      }
+                      
+                      if (matchLen >= 3) {
+                          result.add(0x80 | (matchLen - 3));
+                          result.add(matchPos & 0xFF);
+                          result.add((matchPos >> 8) & 0xFF);
+                          i += matchLen;
+                      } else {
+                          result.add(data[i] & 0xFF);
+                          i++;
+                      }
+                  }
+                  
+                  byte[] out = new byte[result.size()];
+                  for (int k = 0; k < result.size(); k++) {
+                      out[k] = (byte)(result.get(k) & 0xFF);
+                  }
+                  return out;
               }
               
-              private native byte[] titanCompress(byte[] data);
-              private native byte[] titanDecompress(byte[] data, int originalSize);
+              private byte[] decompress(byte[] data) {
+                  if (data.length == 0) return data;
+                  
+                  java.util.ArrayList<Byte> result = new java.util.ArrayList<>();
+                  int i = 0;
+                  
+                  while (i < data.length) {
+                      if ((data[i] & 0x80) != 0) {
+                          int matchLen = (data[i] & 0x7F) + 3;
+                          i++;
+                          if (i + 1 >= data.length) break;
+                          int matchPos = (data[i] & 0xFF) | ((data[i+1] & 0xFF) << 8);
+                          i += 2;
+                          
+                          int start = result.size() - matchPos;
+                          for (int j = 0; j < matchLen; j++) {
+                              result.add(result.get(start + j));
+                          }
+                      } else {
+                          result.add(data[i]);
+                          i++;
+                      }
+                  }
+                  
+                  byte[] out = new byte[result.size()];
+                  for (int k = 0; k < result.size(); k++) {
+                      out[k] = result.get(k);
+                  }
+                  return out;
+              }
               
               private byte[] readBytes(InputStream is) throws IOException {
                   ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -170,6 +242,26 @@ jobs:
                   return baos.toByteArray();
               }
               
+              private void saveFile(Uri originalUri, byte[] data, String extension) {
+                  String filename = getFileName(originalUri);
+                  if (extension.equals(".titz")) {
+                      filename = filename + ".titz";
+                  } else if (filename.endsWith(".titz")) {
+                      filename = filename.substring(0, filename.length() - 5);
+                  }
+                  
+                  try {
+                      String path = getExternalFilesDir(null) + "/" + filename;
+                      FileOutputStream fos = new FileOutputStream(path);
+                      fos.write(data);
+                      fos.close();
+                      Toast.makeText(this, "Saved: " + path, Toast.LENGTH_LONG).show();
+                      tvStatus.setText(tvStatus.getText() + "\nSaved: " + filename);
+                  } catch (Exception e) {
+                      Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                  }
+              }
+              
               private String getFileName(Uri uri) {
                   String path = uri.getPath();
                   if (path == null) return "file";
@@ -177,77 +269,6 @@ jobs:
               }
           }
           JAVA
-
-          cat > app/src/main/jni/titan.cpp << 'CPP'
-          #include <jni.h>
-          #include <vector>
-          #include <string>
-          #include <unordered_map>
-          #include <algorithm>
-          using namespace std;
-          
-          class LZ77 {
-          private:
-              int window_size = 4096;
-              int max_match = 255;
-          public:
-              vector<uint8_t> compress(const vector<uint8_t>& data) {
-                  vector<uint8_t> result;
-                  int i = 0, n = data.size();
-                  while (i < n) {
-                      int match_pos = -1, match_len = 0;
-                      int start = max(0, i - window_size);
-                      for (int j = start; j < i; j++) {
-                          if (data[j] == data[i]) {
-                              int len = 0;
-                              while (i + len < n && j + len < i && data[j + len] == data[i + len] && len < max_match) len++;
-                              if (len > match_len) { match_len = len; match_pos = i - j; }
-                          }
-                      }
-                      if (match_len >= 3) {
-                          result.push_back(0x80 | (match_len - 3));
-                          result.push_back(match_pos & 0xFF);
-                          result.push_back((match_pos >> 8) & 0xFF);
-                          i += match_len;
-                      } else { result.push_back(data[i]); i++; }
-                  }
-                  return result;
-              }
-              
-              vector<uint8_t> decompress(const vector<uint8_t>& data) {
-                  vector<uint8_t> result;
-                  int i = 0, n = data.size();
-                  while (i < n) {
-                      if (data[i] & 0x80) {
-                          int match_len = (data[i] & 0x7F) + 3; i++;
-                          if (i + 1 >= n) break;
-                          int match_pos = data[i] | (data[i+1] << 8); i += 2;
-                          int start = result.size() - match_pos;
-                          for (int j = 0; j < match_len; j++) result.push_back(result[start + j]);
-                      } else { result.push_back(data[i]); i++; }
-                  }
-                  return result;
-              }
-          };
-          
-          extern "C" JNIEXPORT jbyteArray JNICALL
-          Java_com_titan_archiver_MainActivity_titanCompress(JNIEnv* env, jobject thiz, jbyteArray data) {
-              jsize len = env->GetArrayLength(data);
-              jbyte* bytes = env->GetByteArrayElements(data, nullptr);
-              vector<uint8_t> input((uint8_t*)bytes, (uint8_t*)bytes + len);
-              env->ReleaseByteArrayElements(data, bytes, JNI_ABORT);
-              
-              LZ77 lz77;
-              vector<uint8_t> lz = lz77.compress(input);
-              vector<uint8_t> result;
-              result.push_back(1);
-              result.insert(result.end(), lz.begin(), lz.end());
-              
-              jbyteArray out = env->NewByteArray(result.size());
-              env->SetByteArrayRegion(out, 0, result.size(), (jbyte*)result.data());
-              return out;
-          }
-          CPP
 
           echo "include ':app'" > settings.gradle
           
@@ -268,20 +289,10 @@ jobs:
                   applicationId 'com.titan.archiver'
                   minSdk 24
                   targetSdk 34
-                  externalNativeBuild { cmake { cppFlags '-O3 -std=c++17' } }
               }
-              externalNativeBuild { cmake { path 'CMakeLists.txt' } }
               buildFeatures { buildConfig true }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
-          EOF
-          
-          cat > app/CMakeLists.txt << 'EOF'
-          cmake_minimum_required(VERSION 3.18.1)
-          project("titanarchiver")
-          add_library(titanarchiver SHARED src/main/jni/titan.cpp)
-          find_library(log-lib log)
-          target_link_libraries(titanarchiver ${log-lib})
           EOF
 
       - name: Build APK
