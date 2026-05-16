@@ -1,4 +1,4 @@
-name: TinyOS Simple
+name: TinyOS Virtual Machine APK
 on: [push, workflow_dispatch]
 
 permissions:
@@ -8,214 +8,369 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nasm qemu-system-x86
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Build Kernel
-        run: |
-          cat > kernel.asm << 'KERNEL'
-          [bits 32]
-          [org 0x10000]
-          
-          start:
-              mov ax, 0x0013
-              int 0x10
-              
-              mov esi, msg
-              call print
-              mov esi, prompt
-              call print
-          
-          main:
-              xor ax, ax
-              int 0x16
-              
-              cmp al, '1'
-              je app1
-              cmp al, '2'
-              je app2
-              cmp al, 'c'
-              je clear
-              cmp al, 'h'
-              je help
-              
-              mov esi, unknown
-              call print
-              jmp main
-          
-          help:
-              mov esi, help_msg
-              call print
-              jmp main
-          
-          clear:
-              mov ax, 0x0003
-              int 0x10
-              mov ax, 0x0013
-              int 0x10
-              mov esi, prompt
-              call print
-              jmp main
-          
-          app1:
-              call clear
-              mov esi, clock_msg
-              call print
-              mov dword [count], 0
-          clock:
-              call delay
-              inc dword [count]
-              
-              mov ax, 0x1301
-              mov bx, 0x000F
-              mov cx, 10
-              mov dx, 0x0A05
-              push ds
-              pop es
-              mov bp, tick_msg
-              int 0x10
-              
-              mov eax, [count]
-              call print_num
-              
-              xor ax, ax
-              int 0x16
-              cmp al, 'q'
-              je back
-              jmp clock
-          
-          app2:
-              call clear
-              mov esi, paint_msg
-              call print
-              mov byte [px], 160
-              mov byte [py], 100
-              mov byte [pcol], 15
-          paint:
-              xor ax, ax
-              int 0x16
-              
-              cmp al, 'w'
-              je p_up
-              cmp al, 's'
-              je p_down
-              cmp al, 'a'
-              je p_left
-              cmp al, 'd'
-              je p_right
-              cmp al, 'c'
-              je p_col
-              cmp al, 'q'
-              je back
-              
-              call draw
-              jmp paint
-          
-          p_up:
-              dec byte [py]
-              jmp paint
-          p_down:
-              inc byte [py]
-              jmp paint
-          p_left:
-              dec byte [px]
-              jmp paint
-          p_right:
-              inc byte [px]
-              jmp paint
-          p_col:
-              inc byte [pcol]
-              jmp paint
-          
-          draw:
-              pusha
-              mov al, [pcol]
-              mov ah, [py]
-              mov bh, 320
-              mul bh
-              add al, [px]
-              adc ah, 0
-              mov bx, ax
-              mov byte [0xA0000 + bx], al
-              popa
-              ret
-          
-          back:
-              mov ax, 0x0013
-              int 0x10
-              mov esi, prompt
-              call print
-              jmp main
-          
-          print_num:
-              pusha
-              mov ecx, 10
-              xor ebx, ebx
-          .div:
-              xor edx, edx
-              div ecx
-              push dx
-              inc ebx
-              test eax, eax
-              jnz .div
-          .pr:
-              pop ax
-              add al, '0'
-              mov ah, 0x0E
-              int 0x10
-              dec ebx
-              jnz .pr
-              popa
-              ret
-          
-          delay:
-              push ecx
-              mov ecx, 0xFFFFF
-          .wait:
-              dec ecx
-              jnz .wait
-              pop ecx
-              ret
-          
-          print:
-              lodsb
-              or al, al
-              jz .done
-              mov ah, 0x0E
-              int 0x10
-              jmp print
-          .done:
-              ret
-          
-          msg db 'TinyOS v1.0', 13, 10, 0
-          prompt db 13,10,'> ',0
-          unknown db '?',13,10,0
-          help_msg db '1=clock 2=paint c=clear h=help',13,10,0
-          clock_msg db 'CLOCK - Q=quit',13,10,0
-          paint_msg db 'PAINT - WASD C Q',13,10,0
-          tick_msg db 'Tick: ',0
-          
-          count dd 0
-          px db 160
-          py db 100
-          pcol db 15
-          
-          times 5120-($-$$) db 0
-          KERNEL
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Build
+      - name: Create APK
         run: |
-          nasm -f bin kernel.asm -o tinyos.bin
-          truncate -s 1474560 tinyos.bin
+          mkdir -p app/src/main/java/com/tinyos/vm
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
 
-      - name: Test
+          cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tinyos.vm">
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+            <application android:allowBackup="true" android:theme="@style/AppTheme" android:label="TinyOS VM">
+              <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          MANIFEST
+
+          cat > app/src/main/res/values/themes.xml << 'THEMES'
+          <resources>
+            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+              <item name="android:windowFullscreen">true</item>
+              <item name="android:windowNoTitle">true</item>
+            </style>
+          </resources>
+          THEMES
+
+          cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
+          <?xml version="1.0" encoding="utf-8"?>
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:background="#000000">
+            
+            <View android:id="@+id/screen_view" android:layout_width="match_parent"
+              android:layout_height="match_parent"/>
+            
+            <LinearLayout android:id="@+id/controls" android:layout_width="match_parent"
+              android:layout_height="80dp" android:layout_alignParentBottom="true"
+              android:orientation="horizontal" android:background="#1a1a1a"
+              android:padding="5dp">
+              
+              <Button android:id="@+id/btn_up" android:layout_width="0dp"
+                android:layout_height="match_parent" android:layout_weight="1"
+                android:text="▲" android:textSize="18sp" android:textColor="#0F0"
+                android:background="#333" android:layout_margin="2dp"/>
+              
+              <Button android:id="@+id/btn_left" android:layout_width="0dp"
+                android:layout_height="match_parent" android:layout_weight="1"
+                android:text="◀" android:textSize="18sp" android:textColor="#0F0"
+                android:background="#333" android:layout_margin="2dp"/>
+              
+              <Button android:id="@+id/btn_down" android:layout_width="0dp"
+                android:layout_height="match_parent" android:layout_weight="1"
+                android:text="▼" android:textSize="18sp" android:textColor="#0F0"
+                android:background="#333" android:layout_margin="2dp"/>
+              
+              <Button android:id="@+id/btn_right" android:layout_width="0dp"
+                android:layout_height="match_parent" android:layout_weight="1"
+                android:text="▶" android:textSize="18sp" android:textColor="#0F0"
+                android:background="#333" android:layout_margin="2dp"/>
+              
+              <Button android:id="@+id/btn_action" android:layout_width="0dp"
+                android:layout_height="match_parent" android:layout_weight="1"
+                android:text="⏎" android:textSize="18sp" android:textColor="#0F0"
+                android:background="#333" android:layout_margin="2dp"/>
+            </LinearLayout>
+            
+            <TextView android:id="@+id/tv_status" android:layout_width="match_parent"
+              android:layout_height="30dp" android:layout_above="@id/controls"
+              android:text="TinyOS VM v1.0" android:textColor="#0F0"
+              android:textSize="10sp" android:background="#000" android:padding="5dp"
+              android:gravity="center_vertical"/>
+          </RelativeLayout>
+          LAYOUT
+
+          cat > app/src/main/java/com/tinyos/vm/MainActivity.java << 'JAVA'
+          package com.tinyos.vm;
+          
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.view.View;
+          import android.widget.Button;
+          import android.widget.TextView;
+          import androidx.appcompat.app.AppCompatActivity;
+          
+          public class MainActivity extends AppCompatActivity {
+              private TextView tvStatus;
+              private TinyVM vm;
+              private Handler handler = new Handler();
+              private boolean running = true;
+              
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+                  
+                  tvStatus = findViewById(R.id.tv_status);
+                  
+                  vm = new TinyVM();
+                  vm.setOutput(this::printOutput);
+                  
+                  Button btnUp = findViewById(R.id.btn_up);
+                  Button btnDown = findViewById(R.id.btn_down);
+                  Button btnLeft = findViewById(R.id.btn_left);
+                  Button btnRight = findViewById(R.id.btn_right);
+                  Button btnAction = findViewById(R.id.btn_action);
+                  
+                  btnUp.setOnClickListener(v -> vm.keyPress('w'));
+                  btnDown.setOnClickListener(v -> vm.keyPress('s'));
+                  btnLeft.setOnClickListener(v -> vm.keyPress('a'));
+                  btnRight.setOnClickListener(v -> vm.keyPress('d'));
+                  btnAction.setOnClickListener(v -> vm.keyPress('\n'));
+                  
+                  new Thread(this::runVM).start();
+              }
+              
+              private void printOutput(String text) {
+                  handler.post(() -> {
+                      tvStatus.setText(text);
+                  });
+              }
+              
+              private void runVM() {
+                  while (running) {
+                      vm.update();
+                      try { Thread.sleep(50); } catch(Exception e) {}
+                  }
+              }
+              
+              @Override
+              protected void onDestroy() {
+                  running = false;
+                  super.onDestroy();
+              }
+              
+              // ============== ВИРТУАЛЬНАЯ МАШИНА ==============
+              class TinyVM {
+                  private int[] reg = new int[8];
+                  private byte[] ram = new byte[4096];
+                  private int pc = 0;
+                  private String output = "";
+                  private OutputCallback callback;
+                  private int screenX = 40, screenY = 25;
+                  private char[] screen = new char[40 * 25];
+                  private int cursorX = 0, cursorY = 0;
+                  private char pendingKey = 0;
+                  
+                  interface OutputCallback { void onOutput(String s); }
+                  void setOutput(OutputCallback cb) { callback = cb; }
+                  
+                  TinyVM() {
+                      for (int i = 0; i < screen.length; i++) screen[i] = ' ';
+                      initProgram();
+                  }
+                  
+                  void initProgram() {
+                      // Простая программа
+                      String prog = 
+                          "TinyOS v2.0\n" +
+                          "============\n" +
+                          "Commands:\n" +
+                          "  help - show this\n" +
+                          "  cls  - clear screen\n" +
+                          "  info - system info\n" +
+                          "  run1 - clock demo\n" +
+                          "  run2 - paint demo\n" +
+                          "  exit - shutdown\n\n" +
+                          "> ";
+                      for (char c : prog.toCharArray()) {
+                          writeChar(c);
+                      }
+                  }
+                  
+                  void writeChar(char c) {
+                      if (c == '\n') {
+                          cursorX = 0;
+                          cursorY++;
+                          if (cursorY >= screenY) scroll();
+                      } else if (c == '\b') {
+                          if (cursorX > 0) cursorX--;
+                          screen[cursorY * screenX + cursorX] = ' ';
+                      } else {
+                          screen[cursorY * screenX + cursorX] = c;
+                          cursorX++;
+                          if (cursorX >= screenX) {
+                              cursorX = 0;
+                              cursorY++;
+                              if (cursorY >= screenY) scroll();
+                          }
+                      }
+                      render();
+                  }
+                  
+                  void writeString(String s) {
+                      for (char c : s.toCharArray()) writeChar(c);
+                  }
+                  
+                  void scroll() {
+                      for (int i = 0; i < screenY - 1; i++) {
+                          System.arraycopy(screen, (i+1) * screenX, screen, i * screenX, screenX);
+                      }
+                      for (int i = 0; i < screenX; i++) {
+                          screen[(screenY-1) * screenX + i] = ' ';
+                      }
+                      cursorY = screenY - 1;
+                  }
+                  
+                  void render() {
+                      StringBuilder sb = new StringBuilder();
+                      for (int y = 0; y < screenY; y++) {
+                          for (int x = 0; x < screenX; x++) {
+                              sb.append(screen[y * screenX + x]);
+                          }
+                          sb.append("\n");
+                      }
+                      if (callback != null) callback.onOutput(sb.toString());
+                  }
+                  
+                  void clear() {
+                      for (int i = 0; i < screen.length; i++) screen[i] = ' ';
+                      cursorX = 0;
+                      cursorY = 0;
+                      render();
+                  }
+                  
+                  void keyPress(char key) {
+                      if (key == '\n') {
+                          executeCommand();
+                      } else {
+                          writeChar(key);
+                      }
+                  }
+                  
+                  void executeCommand() {
+                      int start = (cursorY - 1) * screenX;
+                      if (start < 0) start = 0;
+                      StringBuilder cmd = new StringBuilder();
+                      for (int i = start; i < start + screenX; i++) {
+                          if (i >= screen.length) break;
+                          char c = screen[i];
+                          if (c == ' ') break;
+                          cmd.append(c);
+                      }
+                      String command = cmd.toString().trim();
+                      
+                      if (command.equals("help")) {
+                          writeString("\nAvailable commands:\n");
+                          writeString("  help, cls, info, run1, run2, exit\n\n> ");
+                      } else if (command.equals("cls")) {
+                          clear();
+                          writeString("> ");
+                      } else if (command.equals("info")) {
+                          writeString("\nTinyOS Virtual Machine\n");
+                          writeString("RAM: " + ram.length + " bytes\n");
+                          writeString("Screen: " + screenX + "x" + screenY + "\n");
+                          writeString("Registers: R0-R7\n\n> ");
+                      } else if (command.equals("run1")) {
+                          runClock();
+                          writeString("\n> ");
+                      } else if (command.equals("run2")) {
+                          runPaint();
+                          writeString("\n> ");
+                      } else if (command.equals("exit")) {
+                          writeString("\nShutting down...\n");
+                          try { Thread.sleep(1000); } catch(Exception e) {}
+                          System.exit(0);
+                      } else if (!command.isEmpty()) {
+                          writeString("\nUnknown: " + command + "\n\n> ");
+                      } else {
+                          writeString("> ");
+                      }
+                  }
+                  
+                  void runClock() {
+                      writeString("\n=== CLOCK DEMO ===\n");
+                      for (int i = 0; i < 10; i++) {
+                          writeString("Tick: " + i + "\n");
+                          try { Thread.sleep(200); } catch(Exception e) {}
+                      }
+                      writeString("Clock finished.\n");
+                  }
+                  
+                  void runPaint() {
+                      writeString("\n=== PAINT DEMO ===\n");
+                      writeString("Use WASD to move cursor, Q to exit\n");
+                      int x = 20, y = 12;
+                      char saved = screen[y * screenX + x];
+                      boolean painting = true;
+                      long startTime = System.currentTimeMillis();
+                      while (painting && (System.currentTimeMillis() - startTime) < 10000) {
+                          screen[y * screenX + x] = '*';
+                          render();
+                          try { Thread.sleep(50); } catch(Exception e) {}
+                          // Simulate movement
+                          x = (x + 1) % (screenX - 1);
+                          y = (y + (x % 3 == 0 ? 1 : 0)) % (screenY - 1);
+                      }
+                      screen[y * screenX + x] = saved;
+                      writeString("\nPaint demo finished.\n");
+                  }
+                  
+                  void update() {
+                      // idle
+                  }
+              }
+          }
+          JAVA
+
+          echo "include ':app'" > settings.gradle
+          
+          cat > build.gradle << 'GRADLE'
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          GRADLE
+          
+          cat > app/build.gradle << 'APP'
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.tinyos.vm'
+              compileSdk 34
+              defaultConfig {
+                  applicationId 'com.tinyos.vm'
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+          }
+          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
+          APP
+
+      - name: Build APK
         run: |
-          timeout 8 qemu-system-x86_64 -drive format=raw,file=tinyos.bin -nographic -no-reboot 2>/dev/null || true
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle-8.5-bin.zip
+          export PATH="$PWD/gradle-8.5/bin:$PATH"
+          gradle wrapper --gradle-version 8.5
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TinyOS
-          path: tinyos.bin
+          name: TinyOS-VM
+          path: app/build/outputs/apk/debug/app-debug.apk
