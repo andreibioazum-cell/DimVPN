@@ -87,7 +87,7 @@ jobs:
                       android:id="@+id/terminalOutput"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:textColor="#00FF00"
+                      android:textColor="#FFFFFF"
                       android:fontFamily="monospace"
                       android:textSize="12sp"/>
               </ScrollView>
@@ -104,7 +104,7 @@ jobs:
                       android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
                       android:text="$ "
-                      android:textColor="#00FF00"
+                      android:textColor="#FFFFFF"
                       android:fontFamily="monospace"
                       android:textSize="14sp"/>
 
@@ -114,13 +114,13 @@ jobs:
                       android:layout_height="wrap_content"
                       android:layout_weight="1"
                       android:background="@android:color/transparent"
-                      android:textColor="#00FF00"
+                      android:textColor="#FFFFFF"
                       android:fontFamily="monospace"
                       android:textSize="14sp"
                       android:inputType="text"
                       android:imeOptions="actionDone"
                       android:hint="enter command..."
-                      android:textColorHint="#005500"/>
+                      android:textColorHint="#666666"/>
               </LinearLayout>
           </LinearLayout>
           EOF
@@ -185,6 +185,23 @@ jobs:
               }
 
               private void showBootSequence() {
+                  if (!os.systemIntact) {
+                      os.terminal.print("====================================");
+                      os.terminal.print("   FATAL: SYSTEM CORRUPTED");
+                      os.terminal.print("====================================");
+                      os.terminal.print("");
+                      os.terminal.print("E: Cannot mount /system");
+                      os.terminal.print("E: Critical system files missing");
+                      os.terminal.print("E: Boot verification failed");
+                      os.terminal.print("");
+                      os.terminal.print("The system has been destroyed.");
+                      os.terminal.print("All commands will fail.");
+                      os.terminal.print("");
+                      os.terminal.print("Reinstall the app to restore.");
+                      os.terminal.print("");
+                      return;
+                  }
+                  
                   os.terminal.print("====================================");
                   os.terminal.print("    TitanOS Terminal v34.0");
                   os.terminal.print("     Gaming Edition");
@@ -193,7 +210,7 @@ jobs:
                   os.terminal.print("Booting system...");
                   os.terminal.print("[OK] File System");
                   os.terminal.print("[OK] Game Engine");
-                  os.terminal.print("[OK] Applications");
+                  os.terminal.print("[OK] System Protection");
                   os.terminal.print("");
                   os.terminal.print("Type 'help' for commands");
                   os.terminal.print("Type 'games' for games list");
@@ -204,6 +221,13 @@ jobs:
                   if (cmd.trim().isEmpty()) return;
                   
                   os.terminal.print(getCurrentPrompt() + cmd);
+                  
+                  if (!os.systemIntact) {
+                      os.terminal.print("bash: " + cmd.split(" ")[0] + ": command not found");
+                      os.terminal.print("E: System is corrupted");
+                      return;
+                  }
+                  
                   os.shell.execute(cmd);
                   updatePrompt();
                   
@@ -211,6 +235,7 @@ jobs:
               }
 
               private String getCurrentPrompt() {
+                  if (!os.systemIntact) return "$ ";
                   String dir = os.shell.getCurrentDir();
                   return dir + "$ ";
               }
@@ -241,35 +266,85 @@ jobs:
               public Shell shell;
               public GameEngine gameEngine;
               public Context context;
+              public boolean systemIntact = true;
 
               public TitanOS(MainActivity activity) {
                   this.context = activity;
                   this.terminal = new Terminal(activity);
-                  this.fs = new FileSystem(activity);
-                  this.gameEngine = new GameEngine(this);
-                  this.shell = new Shell(this);
+                  this.fs = new FileSystem(activity, this);
                   
-                  initializeSystem();
+                  checkSystemIntegrity();
+                  
+                  if (systemIntact) {
+                      this.gameEngine = new GameEngine(this);
+                      this.shell = new Shell(this);
+                      initializeSystem();
+                  }
+              }
+
+              private void checkSystemIntegrity() {
+                  SharedPreferences prefs = context.getSharedPreferences("titan_fs", Context.MODE_PRIVATE);
+                  
+                  if (!prefs.contains("/.system/bin/kernel") || 
+                      !prefs.contains("/.system/version") ||
+                      !prefs.contains("/.system/config/boot.cfg")) {
+                      systemIntact = false;
+                  }
               }
 
               private void initializeSystem() {
+                  fs.mkdir("/.system");
+                  fs.mkdir("/.system/bin");
+                  fs.mkdir("/.system/config");
+                  fs.mkdir("/.cache");
+                  
                   fs.mkdir("/home");
                   fs.mkdir("/games");
                   fs.mkdir("/docs");
                   fs.mkdir("/music");
                   fs.mkdir("/pictures");
+                  fs.mkdir("/downloads");
+                  
+                  if (!fs.exists("/.system/version")) {
+                      fs.writeFile("/.system/version", "TitanOS v34.0 Gaming Edition");
+                  }
+                  
+                  if (!fs.exists("/.system/config/boot.cfg")) {
+                      fs.writeFile("/.system/config/boot.cfg", 
+                          "autostart=true\nshow_hidden=false\nsafe_mode=false");
+                  }
+                  
+                  if (!fs.exists("/.system/bin/kernel")) {
+                      fs.writeFile("/.system/bin/kernel", "TITAN_KERNEL_v34_CORE_BINARY");
+                  }
+                  
+                  if (!fs.exists("/.cache/temp.log")) {
+                      fs.writeFile("/.cache/temp.log", "Boot time: " + System.currentTimeMillis());
+                  }
                   
                   if (!fs.exists("/home/welcome.txt")) {
                       fs.writeFile("/home/welcome.txt", 
-                          "Welcome to TitanOS Gaming Edition!\n\nExplore the file system.\nPlay games.\nHave fun!");
+                          "Welcome to TitanOS Gaming Edition!\n\n" +
+                          "Your files are in /home\n" +
+                          "Games are in /games\n\n" +
+                          "WARNING: Deleting system files will break the OS!");
                   }
                   
                   if (!fs.exists("/docs/readme.txt")) {
                       fs.writeFile("/docs/readme.txt", 
-                          "TitanOS Documentation\n\nUse 'cd' to navigate folders.\nUse 'games' to see available games.");
+                          "TitanOS Documentation\n\n" +
+                          "Commands:\n" +
+                          "  ls     - show files\n" +
+                          "  ls -a  - show all files\n" +
+                          "  games  - list games\n" +
+                          "  help   - show help");
                   }
                   
                   gameEngine.installGames();
+              }
+              
+              public void corruptSystem() {
+                  systemIntact = false;
               }
           }
 
@@ -295,15 +370,21 @@ jobs:
               public void warning(String text) {
                   activity.updateTerminal("WARNING: " + text);
               }
+              
+              public void systemError(String text) {
+                  activity.updateTerminal("E: " + text);
+              }
           }
 
           class FileSystem {
               private SharedPreferences prefs;
               private Map<String, FSNode> nodes;
+              private TitanOS os;
               
-              public FileSystem(Context context) {
+              public FileSystem(Context context, TitanOS os) {
                   prefs = context.getSharedPreferences("titan_fs", Context.MODE_PRIVATE);
                   nodes = new HashMap<>();
+                  this.os = os;
                   loadFromStorage();
               }
               
@@ -337,6 +418,22 @@ jobs:
                   return nodes.containsKey(path);
               }
               
+              public boolean isHidden(String path) {
+                  String[] parts = path.split("/");
+                  for (String part : parts) {
+                      if (part.startsWith(".")) {
+                          return true;
+                      }
+                  }
+                  return false;
+              }
+              
+              public boolean isSystemCritical(String path) {
+                  return path.equals("/.system/bin/kernel") || 
+                         path.equals("/.system/version") ||
+                         path.equals("/.system/config/boot.cfg");
+              }
+              
               public void mkdir(String path) {
                   if (!exists(path)) {
                       nodes.put(path, new FSNode(path, true));
@@ -355,11 +452,28 @@ jobs:
               }
               
               public void delete(String path) {
-                  nodes.remove(path);
-                  saveToStorage();
+                  if (isSystemCritical(path)) {
+                      os.terminal.warning("Deleting critical system file: " + path);
+                      os.terminal.systemError("System integrity compromised!");
+                      nodes.remove(path);
+                      SharedPreferences.Editor editor = prefs.edit();
+                      editor.remove(path);
+                      editor.apply();
+                      
+                      os.terminal.print("");
+                      os.terminal.systemError("FATAL: System has been destroyed");
+                      os.terminal.print("The OS will no longer function.");
+                      os.terminal.print("Restart app to see the damage.");
+                      os.terminal.print("");
+                      
+                      os.corruptSystem();
+                  } else {
+                      nodes.remove(path);
+                      saveToStorage();
+                  }
               }
               
-              public List<String> list(String dir) {
+              public List<String> list(String dir, boolean showHidden) {
                   List<String> result = new ArrayList<>();
                   String normalizedDir = dir.equals("/") ? "/" : dir;
                   if (!normalizedDir.endsWith("/") && !normalizedDir.equals("/")) {
@@ -371,9 +485,16 @@ jobs:
                       
                       if (normalizedDir.equals("/")) {
                           if (!path.substring(1).contains("/")) {
-                              result.add(path.substring(1));
+                              String fileName = path.substring(1);
+                              if (!showHidden && fileName.startsWith(".")) {
+                                  continue;
+                              }
+                              result.add(fileName);
                           } else {
                               String firstPart = path.substring(1, path.indexOf("/", 1));
+                              if (!showHidden && firstPart.startsWith(".")) {
+                                  continue;
+                              }
                               if (!result.contains(firstPart)) {
                                   result.add(firstPart);
                               }
@@ -382,9 +503,15 @@ jobs:
                           if (path.startsWith(normalizedDir)) {
                               String relative = path.substring(normalizedDir.length());
                               if (!relative.contains("/")) {
+                                  if (!showHidden && relative.startsWith(".")) {
+                                      continue;
+                                  }
                                   result.add(relative);
                               } else {
                                   String firstPart = relative.substring(0, relative.indexOf("/"));
+                                  if (!showHidden && firstPart.startsWith(".")) {
+                                      continue;
+                                  }
                                   if (!result.contains(firstPart)) {
                                       result.add(firstPart);
                                   }
@@ -464,9 +591,10 @@ jobs:
                       case "cat": showFile(args); break;
                       case "write": writeFile(args); break;
                       case "rm": removeFile(args); break;
-                      case "tree": showTree(); break;
+                      case "tree": showTree(args); break;
                       case "games": os.gameEngine.listGames(); break;
                       case "play": playGame(args); break;
+                      case "sysinfo": showSystemInfo(); break;
                       case "clear": break;
                       default: os.terminal.error("Unknown command: " + cmd);
                   }
@@ -475,32 +603,42 @@ jobs:
               private void showHelp() {
                   os.terminal.print("");
                   os.terminal.print("FILE SYSTEM:");
-                  os.terminal.print("  ls [dir]   - list files");
+                  os.terminal.print("  ls         - list visible files");
+                  os.terminal.print("  ls -a      - list all files (including hidden)");
                   os.terminal.print("  cd <dir>   - change directory");
-                  os.terminal.print("  pwd        - show current dir");
+                  os.terminal.print("  cd ..      - go to parent directory");
+                  os.terminal.print("  pwd        - show current directory");
                   os.terminal.print("  mkdir <d>  - create directory");
                   os.terminal.print("  touch <f>  - create file");
-                  os.terminal.print("  cat <f>    - show file");
+                  os.terminal.print("  cat <f>    - show file content");
                   os.terminal.print("  write <f> <text> - write to file");
-                  os.terminal.print("  rm <f>     - remove file");
+                  os.terminal.print("  rm <f>     - remove file (DANGEROUS!)");
                   os.terminal.print("  tree       - show directory tree");
                   os.terminal.print("");
                   os.terminal.print("GAMES:");
                   os.terminal.print("  games      - list available games");
                   os.terminal.print("  play <game> - play a game");
                   os.terminal.print("");
-                  os.terminal.print("NAVIGATION:");
-                  os.terminal.print("  cd /       - go to root");
-                  os.terminal.print("  cd ..      - go to parent");
-                  os.terminal.print("  cd folder  - enter folder");
+                  os.terminal.print("SYSTEM:");
+                  os.terminal.print("  sysinfo    - show system information");
+                  os.terminal.print("  clear      - clear screen");
                   os.terminal.print("");
               }
               
               private void listFiles(String[] args) {
-                  String dir = args.length > 0 ? args[0] : currentDir;
+                  boolean showHidden = args.length > 0 && args[0].equals("-a");
+                  String dir = currentDir;
                   
-                  if (!dir.startsWith("/")) {
-                      dir = resolvePath(currentDir, dir);
+                  if (args.length > 0 && !args[0].equals("-a")) {
+                      dir = args[0];
+                      if (!dir.startsWith("/")) {
+                          dir = resolvePath(currentDir, dir);
+                      }
+                  } else if (args.length > 1) {
+                      dir = args[1];
+                      if (!dir.startsWith("/")) {
+                          dir = resolvePath(currentDir, dir);
+                      }
                   }
                   
                   if (!os.fs.exists(dir) && !os.fs.isDirectory(dir)) {
@@ -508,7 +646,7 @@ jobs:
                       return;
                   }
                   
-                  List<String> files = os.fs.list(dir);
+                  List<String> files = os.fs.list(dir, showHidden);
                   
                   if (files.isEmpty()) {
                       os.terminal.print("(empty)");
@@ -519,12 +657,19 @@ jobs:
                           os.terminal.print("  " + prefix + file);
                       }
                   }
+                  
+                  if (!showHidden) {
+                      int hiddenCount = os.fs.list(dir, true).size() - files.size();
+                      if (hiddenCount > 0) {
+                          os.terminal.print("");
+                          os.terminal.print("(" + hiddenCount + " hidden, use 'ls -a')");
+                      }
+                  }
               }
               
               private void changeDirectory(String[] args) {
                   if (args.length == 0) {
                       currentDir = "/";
-                      os.terminal.success("Changed to /");
                       return;
                   }
                   
@@ -532,22 +677,14 @@ jobs:
                   
                   if (newDir.equals("..")) {
                       if (currentDir.equals("/")) {
-                          os.terminal.print("Already at root");
                           return;
                       }
                       int lastSlash = currentDir.lastIndexOf("/");
-                      if (lastSlash == 0) {
-                          currentDir = "/";
-                      } else {
-                          currentDir = currentDir.substring(0, lastSlash);
-                      }
-                      os.terminal.success("Changed to " + currentDir);
+                      currentDir = lastSlash == 0 ? "/" : currentDir.substring(0, lastSlash);
                       return;
                   }
                   
-                  if (newDir.equals(".")) {
-                      return;
-                  }
+                  if (newDir.equals(".")) return;
                   
                   if (!newDir.startsWith("/")) {
                       newDir = resolvePath(currentDir, newDir);
@@ -555,55 +692,35 @@ jobs:
                   
                   if (os.fs.isDirectory(newDir) || os.fs.exists(newDir)) {
                       currentDir = newDir;
-                      os.terminal.success("Changed to " + currentDir);
                   } else {
                       os.terminal.error("Directory not found: " + newDir);
                   }
               }
               
               private String resolvePath(String base, String relative) {
-                  if (base.equals("/")) {
-                      return "/" + relative;
-                  } else {
-                      return base + "/" + relative;
-                  }
+                  return base.equals("/") ? "/" + relative : base + "/" + relative;
               }
               
               private void makeDirectory(String[] args) {
-                  if (args.length == 0) {
-                      os.terminal.error("Usage: mkdir <directory>");
-                      return;
-                  }
+                  if (args.length == 0) return;
                   String path = args[0];
-                  if (!path.startsWith("/")) {
-                      path = resolvePath(currentDir, path);
-                  }
+                  if (!path.startsWith("/")) path = resolvePath(currentDir, path);
                   os.fs.mkdir(path);
                   os.terminal.success("Created: " + path);
               }
               
               private void createFile(String[] args) {
-                  if (args.length == 0) {
-                      os.terminal.error("Usage: touch <file>");
-                      return;
-                  }
+                  if (args.length == 0) return;
                   String path = args[0];
-                  if (!path.startsWith("/")) {
-                      path = resolvePath(currentDir, path);
-                  }
+                  if (!path.startsWith("/")) path = resolvePath(currentDir, path);
                   os.fs.writeFile(path, "");
                   os.terminal.success("Created: " + path);
               }
               
               private void showFile(String[] args) {
-                  if (args.length == 0) {
-                      os.terminal.error("Usage: cat <file>");
-                      return;
-                  }
+                  if (args.length == 0) return;
                   String path = args[0];
-                  if (!path.startsWith("/")) {
-                      path = resolvePath(currentDir, path);
-                  }
+                  if (!path.startsWith("/")) path = resolvePath(currentDir, path);
                   String content = os.fs.readFile(path);
                   if (content != null) {
                       os.terminal.print("");
@@ -615,30 +732,29 @@ jobs:
               }
               
               private void writeFile(String[] args) {
-                  if (args.length < 2) {
-                      os.terminal.error("Usage: write <file> <content>");
-                      return;
-                  }
+                  if (args.length < 2) return;
                   String path = args[0];
-                  if (!path.startsWith("/")) {
-                      path = resolvePath(currentDir, path);
-                  }
+                  if (!path.startsWith("/")) path = resolvePath(currentDir, path);
                   String content = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
                   os.fs.writeFile(path, content);
                   os.terminal.success("Written to: " + path);
               }
               
               private void removeFile(String[] args) {
-                  if (args.length == 0) {
-                      os.terminal.error("Usage: rm <file>");
-                      return;
-                  }
+                  if (args.length == 0) return;
                   String path = args[0];
-                  if (!path.startsWith("/")) {
-                      path = resolvePath(currentDir, path);
+                  if (!path.startsWith("/")) path = resolvePath(currentDir, path);
+                  
+                  if (os.fs.isSystemCritical(path)) {
+                      os.terminal.warning("This is a CRITICAL system file!");
+                      os.terminal.warning("Deleting it will DESTROY the OS!");
                   }
+                  
                   os.fs.delete(path);
-                  os.terminal.success("Removed: " + path);
+                  
+                  if (os.systemIntact) {
+                      os.terminal.success("Removed: " + path);
+                  }
               }
               
               private void playGame(String[] args) {
@@ -649,13 +765,38 @@ jobs:
                   os.gameEngine.playGame(args[0]);
               }
               
-              private void showTree() {
-                  os.terminal.print("/");
-                  showTreeRec("/", "");
+              private void showSystemInfo() {
+                  os.terminal.print("");
+                  os.terminal.print("=== SYSTEM INFORMATION ===");
+                  os.terminal.print("");
+                  
+                  String version = os.fs.readFile("/.system/version");
+                  if (version != null) {
+                      os.terminal.print("Version: " + version);
+                  } else {
+                      os.terminal.systemError("Version file missing!");
+                  }
+                  
+                  String kernel = os.fs.readFile("/.system/bin/kernel");
+                  if (kernel != null) {
+                      os.terminal.print("Kernel: " + kernel);
+                  } else {
+                      os.terminal.systemError("Kernel missing!");
+                  }
+                  
+                  os.terminal.print("");
+                  os.terminal.print("System Status: " + (os.systemIntact ? "OK" : "CORRUPTED"));
+                  os.terminal.print("");
               }
               
-              private void showTreeRec(String dir, String prefix) {
-                  List<String> files = os.fs.list(dir);
+              private void showTree(String[] args) {
+                  boolean showHidden = args.length > 0 && args[0].equals("-a");
+                  os.terminal.print("/");
+                  showTreeRec("/", "", showHidden);
+              }
+              
+              private void showTreeRec(String dir, String prefix, boolean showHidden) {
+                  List<String> files = os.fs.list(dir, showHidden);
                   for (int i = 0; i < files.size(); i++) {
                       boolean isLast = (i == files.size() - 1);
                       String file = files.get(i);
@@ -664,7 +805,7 @@ jobs:
                       os.terminal.print(prefix + (isLast ? "+-- " : "|-- ") + file);
                       
                       if (os.fs.isDirectory(fullPath)) {
-                          showTreeRec(fullPath, prefix + (isLast ? "    " : "|   "));
+                          showTreeRec(fullPath, prefix + (isLast ? "    " : "|   "), showHidden);
                       }
                   }
               }
@@ -690,14 +831,12 @@ jobs:
               public void installGames() {
                   games.put("guess", new GuessNumberGame(os));
                   games.put("quiz", new QuizGame(os));
-                  games.put("maze", new MazeGame(os));
                   games.put("math", new MathGame(os));
-                  games.put("adventure", new AdventureGame(os));
               }
               
               public void listGames() {
                   os.terminal.print("");
-                  os.terminal.print("AVAILABLE GAMES:");
+                  os.terminal.print("=== AVAILABLE GAMES ===");
                   os.terminal.print("");
                   for (String name : games.keySet()) {
                       Game game = games.get(name);
@@ -712,15 +851,12 @@ jobs:
                   Game game = games.get(name.toLowerCase());
                   if (game == null) {
                       os.terminal.error("Game not found: " + name);
-                      os.terminal.print("Type 'games' to see available games");
                       return;
                   }
                   os.terminal.print("");
-                  os.terminal.print("=== Starting " + name + " ===");
+                  os.terminal.print("=== " + name.toUpperCase() + " ===");
                   os.terminal.print("");
                   game.play();
-                  os.terminal.print("");
-                  os.terminal.print("=== Game Over ===");
                   os.terminal.print("");
               }
           }
@@ -748,7 +884,7 @@ jobs:
                   int target = random.nextInt(100) + 1;
                   int[] guesses = {25, 50, 75, 63, target};
                   
-                  os.terminal.print("I'm thinking of a number 1-100");
+                  os.terminal.print("I'm thinking of a number between 1-100");
                   os.terminal.print("");
                   
                   for (int i = 0; i < guesses.length; i++) {
@@ -764,6 +900,7 @@ jobs:
                       } else {
                           os.terminal.print("Too high!");
                       }
+                      os.terminal.print("");
                   }
               }
           }
@@ -779,7 +916,9 @@ jobs:
                   String[][] questions = {
                       {"What is 2+2?", "4"},
                       {"Capital of France?", "Paris"},
-                      {"Largest planet?", "Jupiter"}
+                      {"Largest planet?", "Jupiter"},
+                      {"How many days in a week?", "7"},
+                      {"Color of the sky?", "Blue"}
                   };
                   
                   int score = 0;
@@ -787,35 +926,14 @@ jobs:
                   for (int i = 0; i < questions.length; i++) {
                       os.terminal.print("Q" + (i+1) + ": " + questions[i][0]);
                       String answer = questions[i][1];
-                      os.terminal.print("A: " + answer);
+                      os.terminal.print("Answer: " + answer);
                       os.terminal.print("CORRECT!");
                       score++;
                       os.terminal.print("");
                   }
                   
                   os.terminal.print("Final Score: " + score + "/" + questions.length);
-              }
-          }
-
-          class MazeGame extends Game {
-              public MazeGame(TitanOS os) { super(os); }
-              
-              public String getDescription() {
-                  return "Navigate through a maze";
-              }
-              
-              public void play() {
-                  os.terminal.print("MAZE:");
-                  os.terminal.print("+---+---+---+");
-                  os.terminal.print("| S |   |   |");
-                  os.terminal.print("+   +---+   +");
-                  os.terminal.print("|   |   |   |");
-                  os.terminal.print("+   +   +---+");
-                  os.terminal.print("|   |   | E |");
-                  os.terminal.print("+---+---+---+");
-                  os.terminal.print("");
-                  os.terminal.print("Path: Right -> Down -> Right -> Down");
-                  os.terminal.print("You found the exit!");
+                  os.terminal.print("Perfect!");
               }
           }
 
@@ -823,64 +941,46 @@ jobs:
               public MathGame(TitanOS os) { super(os); }
               
               public String getDescription() {
-                  return "Solve math problems";
+                  return "Solve random math problems";
               }
               
               public void play() {
-                  int[][] problems = {
-                      {5, 3, 8},
-                      {12, 7, 5},
-                      {8, 4, 2}
-                  };
-                  
-                  os.terminal.print("Solve these problems:");
+                  os.terminal.print("Solve 5 math problems:");
                   os.terminal.print("");
                   
-                  for (int i = 0; i < problems.length; i++) {
-                      int a = problems[i][0];
-                      int b = problems[i][1];
-                      int answer = problems[i][2];
+                  int score = 0;
+                  
+                  for (int i = 0; i < 5; i++) {
+                      int a = random.nextInt(20) + 1;
+                      int b = random.nextInt(20) + 1;
+                      int operation = random.nextInt(3);
+                      int answer;
+                      String symbol;
                       
-                      if (i == 2) {
-                          os.terminal.print((i+1) + ". " + a + " / " + b + " = " + answer);
-                      } else if (i == 1) {
-                          os.terminal.print((i+1) + ". " + a + " - " + b + " = " + answer);
-                      } else {
-                          os.terminal.print((i+1) + ". " + a + " + " + b + " = " + answer);
+                      switch (operation) {
+                          case 0:
+                              answer = a + b;
+                              symbol = "+";
+                              break;
+                          case 1:
+                              answer = a - b;
+                              symbol = "-";
+                              break;
+                          default:
+                              answer = a * b;
+                              symbol = "*";
+                              break;
                       }
+                      
+                      os.terminal.print("Problem " + (i+1) + ": " + a + " " + symbol + " " + b);
+                      os.terminal.print("Your answer: " + answer);
                       os.terminal.print("CORRECT!");
+                      score++;
+                      os.terminal.print("");
                   }
                   
-                  os.terminal.print("");
-                  os.terminal.print("Perfect score!");
-              }
-          }
-
-          class AdventureGame extends Game {
-              public AdventureGame(TitanOS os) { super(os); }
-              
-              public String getDescription() {
-                  return "Text-based adventure";
-              }
-              
-              public void play() {
-                  os.terminal.print("ADVENTURE QUEST");
-                  os.terminal.print("");
-                  os.terminal.print("You wake up in a dark forest...");
-                  os.terminal.print("");
-                  os.terminal.print("> Go North");
-                  os.terminal.print("You find a treasure chest!");
-                  os.terminal.print("");
-                  os.terminal.print("> Open chest");
-                  os.terminal.print("You found: Golden Sword!");
-                  os.terminal.print("");
-                  os.terminal.print("> Go East");
-                  os.terminal.print("You encounter a dragon!");
-                  os.terminal.print("");
-                  os.terminal.print("> Attack with sword");
-                  os.terminal.print("Critical hit! Dragon defeated!");
-                  os.terminal.print("");
-                  os.terminal.print("YOU WIN! Kingdom saved!");
+                  os.terminal.print("Final Score: " + score + "/5");
+                  os.terminal.print("Great job!");
               }
           }
           EOF
