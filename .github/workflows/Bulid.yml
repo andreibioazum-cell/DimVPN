@@ -1,4 +1,4 @@
-name: TitanOS v32.1 C-Kernel Edition
+name: TitanOS v34 Terminal Edition
 
 on: [push, workflow_dispatch]
 
@@ -8,184 +8,1034 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install C Compiler
-        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+# ==============================
+# CHECKOUT
+# ==============================
+      - uses: actions/checkout@v4
 
 # ==============================
-# СБОРКА ЯДРА НА ЯЗЫКЕ СИ (C)
+# SETUP ANDROID PROJECT
 # ==============================
-      - name: Build C Kernel
+      - name: Setup Android
         run: |
-          cat > kernel.c << 'EOF'
-          // TitanOS Kernel in C
-          #define VIDEO_MEM ((unsigned char*)0xA0000)
-          #define SCREEN_W 320
-          #define SCREEN_H 200
+          mkdir -p app/src/main/java/com/titan/terminal
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
 
-          void draw_rect(int x, int y, int w, int h, unsigned char color) {
-              for(int i = y; i < y + h; i++) {
-                  for(int j = x; j < x + w; j++) {
-                      VIDEO_MEM[i * SCREEN_W + j] = color;
-                  }
-              }
-          }
-
-          void draw_window(int x, int y, int w, int h, char* title) {
-              draw_rect(x, y, w, h, 7);           // Тело окна (серое)
-              draw_rect(x, y, w, 12, 1);          // Заголовок (синий)
-              draw_rect(x + w - 10, y + 2, 8, 8, 4); // Кнопка закрытия (красная)
-          }
-
-          void k_main() {
-              // 1. Фон (Рабочий стол)
-              for(int i = 0; i < SCREEN_W * SCREEN_H; i++) VIDEO_MEM[i] = 3; // Бирюзовый
-              
-              // 2. Панель задач
-              draw_rect(0, 185, 320, 15, 8);
-              
-              // 3. Рисуем пару окон через Си
-              draw_window(20, 20, 150, 100, "Terminal");
-              draw_window(180, 50, 100, 80, "System");
-              
-              // 4. Кнопка "Пуск"
-              draw_rect(2, 187, 40, 11, 2);
-          }
-          EOF
-          # Компиляция без позиционно-независимого кода (убирает ошибки GOT)
-          gcc -m32 -ffreestanding -fno-pic -fno-pie -fno-stack-protector -nostdlib -O0 -c kernel.c -o kernel.o
-          # Линковка в плоский бинарник
-          ld -m elf_i386 -Ttext 0x1000 -e k_main --oformat binary kernel.o -o kernel.bin
-
-# ==============================
-# ANDROID ПРОЕКТ
-# ==============================
-      - name: Setup Android Project
-        run: |
-          mkdir -p app/src/main/java/com/tinyos/vm app/src/main/res/layout app/src/main/res/values app/src/main/assets
-          cp kernel.bin app/src/main/assets/kernel.bin
-          
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
-          
+
           cat > build.gradle << 'EOF'
-          buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.2.2' } }
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
           allprojects { repositories { google(); mavenCentral() } }
           EOF
-          
+
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
-          android { namespace 'com.tinyos.vm'; compileSdk 34; defaultConfig { applicationId "com.tinyos.vm"; minSdk 24; targetSdk 34; versionCode 1; versionName "32.1" } }
-          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
+          android {
+              namespace 'com.titan.terminal'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.titan.terminal"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 34
+                  versionName "34.0"
+              }
+              buildFeatures {
+                  viewBinding true
+              }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+          }
           EOF
 
           cat > app/src/main/AndroidManifest.xml << 'EOF'
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tinyos.vm">
-              <application android:label="TitanOS GUI" android:theme="@style/Theme.AppCompat.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
-                      <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application 
+                  android:label="TitanOS Terminal"
+                  android:theme="@style/AppTheme"
+                  android:allowBackup="true">
+                  <activity 
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
                   </activity>
               </application>
           </manifest>
           EOF
 
+# ==============================
+# LAYOUTS
+# ==============================
           cat > app/src/main/res/layout/activity_main.xml << 'EOF'
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
-              <SurfaceView android:id="@+id/s" android:layout_width="match_parent" android:layout_height="match_parent" />
-          </RelativeLayout>
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:background="#000000">
+
+              <ScrollView
+                  android:id="@+id/scrollView"
+                  android:layout_width="match_parent"
+                  android:layout_height="0dp"
+                  android:layout_weight="1"
+                  android:padding="8dp"
+                  android:scrollbars="vertical">
+
+                  <TextView
+                      android:id="@+id/terminalOutput"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:textColor="#00FF00"
+                      android:fontFamily="monospace"
+                      android:textSize="12sp"
+                      android:lineSpacingExtra="2dp"/>
+              </ScrollView>
+
+              <LinearLayout
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:orientation="horizontal"
+                  android:background="#1A1A1A"
+                  android:padding="8dp">
+
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="$ "
+                      android:textColor="#00FF00"
+                      android:fontFamily="monospace"
+                      android:textSize="14sp"/>
+
+                  <EditText
+                      android:id="@+id/commandInput"
+                      android:layout_width="0dp"
+                      android:layout_height="wrap_content"
+                      android:layout_weight="1"
+                      android:background="@android:color/transparent"
+                      android:textColor="#00FF00"
+                      android:fontFamily="monospace"
+                      android:textSize="14sp"
+                      android:inputType="text"
+                      android:imeOptions="actionDone"
+                      android:hint="enter command..."
+                      android:textColorHint="#005500"/>
+              </LinearLayout>
+          </LinearLayout>
           EOF
 
-          cat > app/src/main/java/com/tinyos/vm/MainActivity.java << 'EOF'
-          package com.tinyos.vm;
-          import android.os.*;
-          import android.graphics.*;
-          import android.view.*;
-          import androidx.appcompat.app.AppCompatActivity;
-          import java.io.InputStream;
-
-          public class MainActivity extends AppCompatActivity {
-              TitanVM vm;
-              Bitmap screen = Bitmap.createBitmap(320, 200, Bitmap.Config.ARGB_8888);
-              int[] pixels = new int[320 * 200];
-
-              @Override
-              protected void onCreate(Bundle b) {
-                  super.onCreate(b);
-                  setContentView(R.layout.activity_main);
-                  vm = new TitanVM();
-                  SurfaceView sv = findViewById(R.id.s);
-                  sv.getHolder().addCallback(new SurfaceHolder.Callback() {
-                      public void surfaceCreated(SurfaceHolder h) {
-                          new Thread(() -> {
-                              // "Запускаем" ядро
-                              vm.runKernel();
-                              while(true) {
-                                  updateScreen();
-                                  Canvas c = h.lockCanvas();
-                                  if(c!=null) {
-                                      c.drawBitmap(screen, null, new Rect(0,0,c.getWidth(),c.getHeight()), null);
-                                      h.unlockCanvasAndPost(c);
-                                  }
-                                  try { Thread.sleep(30); } catch(Exception ex) {}
-                              }
-                          }).start();
-                      }
-                      public void surfaceChanged(SurfaceHolder h, int f, int w, int h1) {}
-                      public void surfaceDestroyed(SurfaceHolder h) {}
-                  });
-              }
-
-              void updateScreen() {
-                  for (int i = 0; i < 320 * 200; i++) {
-                      int c = vm.mem[0xA0000 + i] & 0xFF;
-                      if(c==1) pixels[i]=0xFF0000FF;      // Blue
-                      else if(c==2) pixels[i]=0xFF00FF00; // Green
-                      else if(c==3) pixels[i]=0xFF008080; // Teal
-                      else if(c==4) pixels[i]=0xFFFF0000; // Red
-                      else if(c==7) pixels[i]=0xFFCCCCCC; // Light Gray
-                      else if(c==8) pixels[i]=0xFF444444; // Dark Gray
-                      else pixels[i]=0xFF000000;          // Black
-                  }
-                  screen.setPixels(pixels, 0, 320, 0, 0, 320, 200);
-              }
-
-              class TitanVM {
-                  byte[] mem = new byte[1024 * 1024];
-                  TitanVM() {
-                      try {
-                          InputStream is = getAssets().open("kernel.bin");
-                          is.read(mem, 0x1000, is.available());
-                      } catch(Exception e){}
-                  }
-                  // Имитируем выполнение 32-битного кода ядра
-                  void runKernel() {
-                      // Простая закраска через VM, чтобы имитировать работу Си-кода
-                      for(int i=0; i<320*200; i++) mem[0xA0000+i] = 3; // Background
-                      drawRect(0, 185, 320, 15, (byte)8);              // Taskbar
-                      drawWin(20, 20, 150, 100, (byte)7);              // Window 1
-                      drawWin(180, 50, 100, 80, (byte)7);               // Window 2
-                      drawRect(2, 187, 40, 11, (byte)2);               // Start Button
-                  }
-                  void drawRect(int x, int y, int w, int h, byte c) {
-                      for(int i=y; i<y+h; i++) for(int j=x; j<x+w; j++) mem[0xA0000+i*320+j]=c;
-                  }
-                  void drawWin(int x, int y, int w, int h, byte c) {
-                      drawRect(x,y,w,h,c); drawRect(x,y,w,12,(byte)1); drawRect(x+w-10,y+2,8,8,(byte)4);
-                  }
-              }
-          }
+# ==============================
+# STYLES
+# ==============================
+          cat > app/src/main/res/values/styles.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+                  <item name="android:windowBackground">@android:color/black</item>
+                  <item name="android:statusBarColor">@android:color/black</item>
+                  <item name="android:navigationBarColor">@android:color/black</item>
+              </style>
+          </resources>
           EOF
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+# ==============================
+# MAIN ACTIVITY
+# ==============================
+          cat > app/src/main/java/com/titan/terminal/MainActivity.java << 'JAVAEOF'
+package com.titan.terminal;
+
+import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+
+    private TextView terminalOutput;
+    private EditText commandInput;
+    private ScrollView scrollView;
+    private TitanOS os;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        terminalOutput = findViewById(R.id.terminalOutput);
+        commandInput = findViewById(R.id.commandInput);
+        scrollView = findViewById(R.id.scrollView);
+
+        os = new TitanOS(this);
+        
+        showBootSequence();
+
+        commandInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE || 
+                (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                executeCommand(commandInput.getText().toString());
+                commandInput.setText("");
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void showBootSequence() {
+        os.terminal.print("╔══════════════════════════════════════════╗");
+        os.terminal.print("║         TitanOS Terminal v34.0           ║");
+        os.terminal.print("║      Advanced File System Edition        ║");
+        os.terminal.print("╚══════════════════════════════════════════╝");
+        os.terminal.print("");
+        os.terminal.print("Initializing system components...");
+        os.terminal.print("[OK] Virtual File System");
+        os.terminal.print("[OK] Application Manager");
+        os.terminal.print("[OK] Built-in Applications");
+        os.terminal.print("[OK] Terminal Shell");
+        os.terminal.print("");
+        os.terminal.print("Type 'help' for available commands");
+        os.terminal.print("Type 'apps' to see installed applications");
+        os.terminal.print("");
+    }
+
+    private void executeCommand(String cmd) {
+        if (cmd.trim().isEmpty()) return;
+        
+        os.terminal.print("$ " + cmd);
+        os.shell.execute(cmd);
+        
+        scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
+    }
+
+    public void updateTerminal(String text) {
+        runOnUiThread(() -> {
+            terminalOutput.append(text + "\n");
+        });
+    }
+}
+JAVAEOF
+
+# ==============================
+# TITAN OS CORE
+# ==============================
+          cat > app/src/main/java/com/titan/terminal/TitanOS.java << 'JAVAEOF'
+package com.titan.terminal;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import java.util.*;
+
+public class TitanOS {
+    
+    public Terminal terminal;
+    public FileSystem fs;
+    public Shell shell;
+    public AppManager appManager;
+    public Context context;
+
+    public TitanOS(MainActivity activity) {
+        this.context = activity;
+        this.terminal = new Terminal(activity);
+        this.fs = new FileSystem(activity);
+        this.appManager = new AppManager(this);
+        this.shell = new Shell(this);
+        
+        initializeSystem();
+    }
+
+    private void initializeSystem() {
+        // Create default directories
+        fs.mkdir("/home");
+        fs.mkdir("/apps");
+        fs.mkdir("/system");
+        fs.mkdir("/tmp");
+        
+        // Create welcome file
+        if (!fs.exists("/home/welcome.txt")) {
+            fs.writeFile("/home/welcome.txt", 
+                "Welcome to TitanOS!\n\nThis is a full-featured terminal OS.\n" +
+                "Explore the file system and run applications.");
+        }
+        
+        // Install built-in apps
+        appManager.installBuiltInApps();
+    }
+}
+
+// ==============================
+// TERMINAL
+// ==============================
+class Terminal {
+    private MainActivity activity;
+    
+    public Terminal(MainActivity activity) {
+        this.activity = activity;
+    }
+    
+    public void print(String text) {
+        activity.updateTerminal(text);
+    }
+    
+    public void error(String text) {
+        activity.updateTerminal("ERROR: " + text);
+    }
+    
+    public void success(String text) {
+        activity.updateTerminal("✓ " + text);
+    }
+}
+
+// ==============================
+// FILE SYSTEM
+// ==============================
+class FileSystem {
+    private SharedPreferences prefs;
+    private Map<String, FSNode> nodes;
+    
+    public FileSystem(Context context) {
+        prefs = context.getSharedPreferences("titan_fs", Context.MODE_PRIVATE);
+        nodes = new HashMap<>();
+        loadFromStorage();
+    }
+    
+    private void loadFromStorage() {
+        Map<String, ?> all = prefs.getAll();
+        for (Map.Entry<String, ?> entry : all.entrySet()) {
+            String path = entry.getKey();
+            String data = entry.getValue().toString();
+            
+            if (data.startsWith("DIR:")) {
+                nodes.put(path, new FSNode(path, true));
+            } else {
+                nodes.put(path, new FSNode(path, false, data));
+            }
+        }
+    }
+    
+    private void saveToStorage() {
+        SharedPreferences.Editor editor = prefs.edit();
+        for (Map.Entry<String, FSNode> entry : nodes.entrySet()) {
+            if (entry.getValue().isDirectory) {
+                editor.putString(entry.getKey(), "DIR:");
+            } else {
+                editor.putString(entry.getKey(), entry.getValue().content);
+            }
+        }
+        editor.apply();
+    }
+    
+    public boolean exists(String path) {
+        return nodes.containsKey(path);
+    }
+    
+    public void mkdir(String path) {
+        if (!exists(path)) {
+            nodes.put(path, new FSNode(path, true));
+            saveToStorage();
+        }
+    }
+    
+    public void writeFile(String path, String content) {
+        nodes.put(path, new FSNode(path, false, content));
+        saveToStorage();
+    }
+    
+    public String readFile(String path) {
+        FSNode node = nodes.get(path);
+        return (node != null && !node.isDirectory) ? node.content : null;
+    }
+    
+    public void delete(String path) {
+        nodes.remove(path);
+        saveToStorage();
+    }
+    
+    public List<String> list(String dir) {
+        List<String> result = new ArrayList<>();
+        if (!dir.endsWith("/")) dir += "/";
+        
+        for (String path : nodes.keySet()) {
+            if (path.startsWith(dir) && !path.equals(dir)) {
+                String relative = path.substring(dir.length());
+                if (!relative.contains("/") || 
+                    (relative.indexOf("/") == relative.length() - 1)) {
+                    result.add(relative);
+                }
+            }
+        }
+        Collections.sort(result);
+        return result;
+    }
+    
+    public boolean isDirectory(String path) {
+        FSNode node = nodes.get(path);
+        return node != null && node.isDirectory;
+    }
+    
+    static class FSNode {
+        String path;
+        boolean isDirectory;
+        String content;
+        long created;
+        
+        FSNode(String path, boolean isDirectory) {
+            this(path, isDirectory, "");
+        }
+        
+        FSNode(String path, boolean isDirectory, String content) {
+            this.path = path;
+            this.isDirectory = isDirectory;
+            this.content = content;
+            this.created = System.currentTimeMillis();
+        }
+    }
+}
+
+// ==============================
+// SHELL
+// ==============================
+class Shell {
+    private TitanOS os;
+    private String currentDir = "/";
+    
+    public Shell(TitanOS os) {
+        this.os = os;
+    }
+    
+    public void execute(String commandLine) {
+        String[] parts = commandLine.trim().split("\\s+");
+        if (parts.length == 0) return;
+        
+        String cmd = parts[0].toLowerCase();
+        String[] args = Arrays.copyOfRange(parts, 1, parts.length);
+        
+        switch (cmd) {
+            case "help":
+                showHelp();
+                break;
+            
+            case "clear":
+                // Will be handled by activity
+                break;
+            
+            case "ls":
+            case "dir":
+                listFiles(args);
+                break;
+            
+            case "cd":
+                changeDirectory(args);
+                break;
+            
+            case "pwd":
+                os.terminal.print(currentDir);
+                break;
+            
+            case "mkdir":
+                makeDirectory(args);
+                break;
+            
+            case "touch":
+                createFile(args);
+                break;
+            
+            case "cat":
+                showFile(args);
+                break;
+            
+            case "echo":
+                echo(args);
+                break;
+            
+            case "write":
+                writeFile(args);
+                break;
+            
+            case "rm":
+                removeFile(args);
+                break;
+            
+            case "apps":
+                os.appManager.listApps();
+                break;
+            
+            case "start":
+                startApp(args);
+                break;
+            
+            case "install":
+                installApp(args);
+                break;
+            
+            case "tree":
+                showTree();
+                break;
+            
+            case "sysinfo":
+                showSysInfo();
+                break;
+            
+            case "ps":
+                os.appManager.listRunning();
+                break;
+            
+            case "kill":
+                killApp(args);
+                break;
+            
+            default:
+                os.terminal.error("Unknown command: " + cmd);
+                os.terminal.print("Type 'help' for available commands");
+        }
+    }
+    
+    private void showHelp() {
+        os.terminal.print("");
+        os.terminal.print("═══════════════ AVAILABLE COMMANDS ═══════════════");
+        os.terminal.print("");
+        os.terminal.print("FILE SYSTEM:");
+        os.terminal.print("  ls, dir          - List files in directory");
+        os.terminal.print("  cd <path>        - Change directory");
+        os.terminal.print("  pwd              - Print working directory");
+        os.terminal.print("  mkdir <name>     - Create directory");
+        os.terminal.print("  touch <file>     - Create empty file");
+        os.terminal.print("  cat <file>       - Show file contents");
+        os.terminal.print("  write <file> <text> - Write to file");
+        os.terminal.print("  rm <file>        - Remove file");
+        os.terminal.print("  tree             - Show directory tree");
+        os.terminal.print("");
+        os.terminal.print("APPLICATIONS:");
+        os.terminal.print("  apps             - List installed apps");
+        os.terminal.print("  start <app>      - Start application");
+        os.terminal.print("  ps               - List running apps");
+        os.terminal.print("  kill <pid>       - Kill application");
+        os.terminal.print("");
+        os.terminal.print("SYSTEM:");
+        os.terminal.print("  sysinfo          - Show system information");
+        os.terminal.print("  echo <text>      - Print text");
+        os.terminal.print("  clear            - Clear screen");
+        os.terminal.print("  help             - Show this help");
+        os.terminal.print("");
+    }
+    
+    private void listFiles(String[] args) {
+        String dir = args.length > 0 ? args[0] : currentDir;
+        if (!dir.startsWith("/")) dir = currentDir + "/" + dir;
+        
+        List<String> files = os.fs.list(dir);
+        
+        if (files.isEmpty()) {
+            os.terminal.print("(empty directory)");
+        } else {
+            os.terminal.print("");
+            for (String file : files) {
+                String fullPath = dir + "/" + file;
+                if (os.fs.isDirectory(fullPath)) {
+                    os.terminal.print("  [DIR]  " + file);
+                } else {
+                    os.terminal.print("  [FILE] " + file);
+                }
+            }
+            os.terminal.print("");
+        }
+    }
+    
+    private void changeDirectory(String[] args) {
+        if (args.length == 0) {
+            currentDir = "/";
+            return;
+        }
+        
+        String newDir = args[0];
+        if (!newDir.startsWith("/")) {
+            newDir = currentDir + "/" + newDir;
+        }
+        
+        if (os.fs.exists(newDir) && os.fs.isDirectory(newDir)) {
+            currentDir = newDir;
+            os.terminal.success("Changed to " + currentDir);
+        } else {
+            os.terminal.error("Directory not found: " + newDir);
+        }
+    }
+    
+    private void makeDirectory(String[] args) {
+        if (args.length == 0) {
+            os.terminal.error("Usage: mkdir <directory>");
+            return;
+        }
+        
+        String path = args[0];
+        if (!path.startsWith("/")) path = currentDir + "/" + path;
+        
+        os.fs.mkdir(path);
+        os.terminal.success("Created directory: " + path);
+    }
+    
+    private void createFile(String[] args) {
+        if (args.length == 0) {
+            os.terminal.error("Usage: touch <file>");
+            return;
+        }
+        
+        String path = args[0];
+        if (!path.startsWith("/")) path = currentDir + "/" + path;
+        
+        os.fs.writeFile(path, "");
+        os.terminal.success("Created file: " + path);
+    }
+    
+    private void showFile(String[] args) {
+        if (args.length == 0) {
+            os.terminal.error("Usage: cat <file>");
+            return;
+        }
+        
+        String path = args[0];
+        if (!path.startsWith("/")) path = currentDir + "/" + path;
+        
+        String content = os.fs.readFile(path);
+        if (content != null) {
+            os.terminal.print("");
+            os.terminal.print(content);
+            os.terminal.print("");
+        } else {
+            os.terminal.error("File not found or is directory: " + path);
+        }
+    }
+    
+    private void echo(String[] args) {
+        os.terminal.print(String.join(" ", args));
+    }
+    
+    private void writeFile(String[] args) {
+        if (args.length < 2) {
+            os.terminal.error("Usage: write <file> <content>");
+            return;
+        }
+        
+        String path = args[0];
+        if (!path.startsWith("/")) path = currentDir + "/" + path;
+        
+        String content = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+        os.fs.writeFile(path, content);
+        os.terminal.success("Written to " + path);
+    }
+    
+    private void removeFile(String[] args) {
+        if (args.length == 0) {
+            os.terminal.error("Usage: rm <file>");
+            return;
+        }
+        
+        String path = args[0];
+        if (!path.startsWith("/")) path = currentDir + "/" + path;
+        
+        os.fs.delete(path);
+        os.terminal.success("Removed: " + path);
+    }
+    
+    private void startApp(String[] args) {
+        if (args.length == 0) {
+            os.terminal.error("Usage: start <app>");
+            return;
+        }
+        
+        os.appManager.startApp(args[0]);
+    }
+    
+    private void installApp(String[] args) {
+        if (args.length == 0) {
+            os.terminal.error("Usage: install <app>");
+            return;
+        }
+        
+        os.terminal.print("Installing " + args[0] + "...");
+        os.terminal.success("App installed successfully");
+    }
+    
+    private void killApp(String[] args) {
+        if (args.length == 0) {
+            os.terminal.error("Usage: kill <pid>");
+            return;
+        }
+        
+        try {
+            int pid = Integer.parseInt(args[0]);
+            os.appManager.killApp(pid);
+        } catch (NumberFormatException e) {
+            os.terminal.error("Invalid PID");
+        }
+    }
+    
+    private void showTree() {
+        os.terminal.print("");
+        os.terminal.print("/");
+        showTreeRecursive("/", "");
+        os.terminal.print("");
+    }
+    
+    private void showTreeRecursive(String dir, String prefix) {
+        List<String> files = os.fs.list(dir);
+        for (int i = 0; i < files.size(); i++) {
+            boolean isLast = (i == files.size() - 1);
+            String file = files.get(i);
+            String fullPath = dir + "/" + file;
+            
+            os.terminal.print(prefix + (isLast ? "└── " : "├── ") + file);
+            
+            if (os.fs.isDirectory(fullPath)) {
+                showTreeRecursive(fullPath, prefix + (isLast ? "    " : "│   "));
+            }
+        }
+    }
+    
+    private void showSysInfo() {
+        os.terminal.print("");
+        os.terminal.print("═══════════ SYSTEM INFORMATION ═══════════");
+        os.terminal.print("OS: TitanOS Terminal Edition");
+        os.terminal.print("Version: 34.0");
+        os.terminal.print("Kernel: Linux-based Android");
+        os.terminal.print("Shell: TitanShell 1.0");
+        os.terminal.print("File System: TitanFS");
+        os.terminal.print("Apps Installed: " + os.appManager.apps.size());
+        os.terminal.print("Apps Running: " + os.appManager.running.size());
+        os.terminal.print("");
+    }
+}
+JAVAEOF
+
+# ==============================
+# APP MANAGER
+# ==============================
+          cat > app/src/main/java/com/titan/terminal/AppManager.java << 'JAVAEOF'
+package com.titan.terminal;
+
+import java.util.*;
+
+public class AppManager {
+    
+    TitanOS os;
+    Map<String, Application> apps = new HashMap<>();
+    Map<Integer, Application> running = new HashMap<>();
+    int nextPid = 1000;
+    
+    public AppManager(TitanOS os) {
+        this.os = os;
+    }
+    
+    public void installBuiltInApps() {
+        apps.put("filemanager", new FileManagerApp(os));
+        apps.put("editor", new TextEditorApp(os));
+        apps.put("calc", new CalculatorApp(os));
+        apps.put("sysmon", new SystemMonitorApp(os));
+    }
+    
+    public void listApps() {
+        os.terminal.print("");
+        os.terminal.print("═══════════ INSTALLED APPLICATIONS ═══════════");
+        os.terminal.print("");
+        
+        for (Map.Entry<String, Application> entry : apps.entrySet()) {
+            Application app = entry.getValue();
+            os.terminal.print(String.format("  %-15s - %s", 
+                entry.getKey(), app.getDescription()));
+        }
+        
+        os.terminal.print("");
+        os.terminal.print("Use 'start <app>' to run application");
+        os.terminal.print("");
+    }
+    
+    public void startApp(String name) {
+        Application app = apps.get(name.toLowerCase());
+        
+        if (app == null) {
+            os.terminal.error("Application not found: " + name);
+            return;
+        }
+        
+        int pid = nextPid++;
+        running.put(pid, app);
+        
+        os.terminal.print("");
+        os.terminal.print("Starting " + name + " (PID: " + pid + ")");
+        os.terminal.print("═".repeat(50));
+        
+        app.run(pid);
+        
+        os.terminal.print("═".repeat(50));
+        os.terminal.print("Application exited");
+        os.terminal.print("");
+        
+        running.remove(pid);
+    }
+    
+    public void listRunning() {
+        os.terminal.print("");
+        os.terminal.print("═══════════ RUNNING PROCESSES ═══════════");
+        os.terminal.print("");
+        
+        if (running.isEmpty()) {
+            os.terminal.print("No running processes");
+        } else {
+            os.terminal.print(String.format("  %-6s %-15s %s", "PID", "NAME", "DESCRIPTION"));
+            os.terminal.print("  " + "─".repeat(45));
+            
+            for (Map.Entry<Integer, Application> entry : running.entrySet()) {
+                String name = getAppName(entry.getValue());
+                os.terminal.print(String.format("  %-6d %-15s %s", 
+                    entry.getKey(), name, entry.getValue().getDescription()));
+            }
+        }
+        
+        os.terminal.print("");
+    }
+    
+    public void killApp(int pid) {
+        if (running.containsKey(pid)) {
+            running.remove(pid);
+            os.terminal.success("Killed process " + pid);
+        } else {
+            os.terminal.error("Process not found: " + pid);
+        }
+    }
+    
+    private String getAppName(Application app) {
+        for (Map.Entry<String, Application> entry : apps.entrySet()) {
+            if (entry.getValue() == app) {
+                return entry.getKey();
+            }
+        }
+        return "unknown";
+    }
+}
+
+// ==============================
+// APPLICATION INTERFACE
+// ==============================
+abstract class Application {
+    protected TitanOS os;
+    
+    public Application(TitanOS os) {
+        this.os = os;
+    }
+    
+    public abstract void run(int pid);
+    public abstract String getDescription();
+}
+
+// ==============================
+// FILE MANAGER APP
+// ==============================
+class FileManagerApp extends Application {
+    
+    public FileManagerApp(TitanOS os) {
+        super(os);
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Browse and manage files";
+    }
+    
+    @Override
+    public void run(int pid) {
+        os.terminal.print("");
+        os.terminal.print("FILE MANAGER - Interactive File Browser");
+        os.terminal.print("");
+        os.terminal.print("Current directory: /");
+        os.terminal.print("");
+        
+        showDirectory("/");
+        
+        os.terminal.print("");
+        os.terminal.print("Commands:");
+        os.terminal.print("  - Use 'cd' to navigate");
+        os.terminal.print("  - Use 'cat' to view files");
+        os.terminal.print("  - Use 'rm' to delete");
+        os.terminal.print("  - Use 'mkdir' to create directories");
+        os.terminal.print("");
+    }
+    
+    private void showDirectory(String path) {
+        List<String> files = os.fs.list(path);
+        
+        os.terminal.print("┌─ Files in " + path);
+        
+        for (String file : files) {
+            String fullPath = path + "/" + file;
+            if (os.fs.isDirectory(fullPath)) {
+                os.terminal.print("│  📁 " + file);
+            } else {
+                String content = os.fs.readFile(fullPath);
+                int size = content != null ? content.length() : 0;
+                os.terminal.print("│  📄 " + file + " (" + size + " bytes)");
+            }
+        }
+        
+        os.terminal.print("└─ Total: " + files.size() + " items");
+    }
+}
+
+// ==============================
+// TEXT EDITOR APP
+// ==============================
+class TextEditorApp extends Application {
+    
+    public TextEditorApp(TitanOS os) {
+        super(os);
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Simple text editor";
+    }
+    
+    @Override
+    public void run(int pid) {
+        os.terminal.print("");
+        os.terminal.print("TEXT EDITOR");
+        os.terminal.print("");
+        os.terminal.print("Usage:");
+        os.terminal.print("  write <file> <content>  - Write to file");
+        os.terminal.print("  cat <file>              - Read file");
+        os.terminal.print("");
+        os.terminal.print("Example files:");
+        
+        List<String> files = os.fs.list("/home");
+        for (String file : files) {
+            if (!os.fs.isDirectory("/home/" + file)) {
+                os.terminal.print("  - /home/" + file);
+            }
+        }
+        
+        os.terminal.print("");
+    }
+}
+
+// ==============================
+// CALCULATOR APP
+// ==============================
+class CalculatorApp extends Application {
+    
+    public CalculatorApp(TitanOS os) {
+        super(os);
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Simple calculator";
+    }
+    
+    @Override
+    public void run(int pid) {
+        os.terminal.print("");
+        os.terminal.print("CALCULATOR");
+        os.terminal.print("");
+        os.terminal.print("Example calculations:");
+        os.terminal.print("  2 + 2 = " + (2 + 2));
+        os.terminal.print("  10 * 5 = " + (10 * 5));
+        os.terminal.print("  100 / 4 = " + (100 / 4));
+        os.terminal.print("  15 - 7 = " + (15 - 7));
+        os.terminal.print("");
+        os.terminal.print("Use 'echo' command for calculations");
+        os.terminal.print("");
+    }
+}
+
+// ==============================
+// SYSTEM MONITOR APP
+// ==============================
+class SystemMonitorApp extends Application {
+    
+    public SystemMonitorApp(TitanOS os) {
+        super(os);
+    }
+    
+    @Override
+    public String getDescription() {
+        return "System resource monitor";
+    }
+    
+    @Override
+    public void run(int pid) {
+        os.terminal.print("");
+        os.terminal.print("SYSTEM MONITOR");
+        os.terminal.print("");
+        
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024;
+        long maxMemory = runtime.maxMemory() / 1024 / 1024;
+        
+        os.terminal.print("Memory Usage: " + usedMemory + " MB / " + maxMemory + " MB");
+        os.terminal.print("Available Processors: " + runtime.availableProcessors());
+        os.terminal.print("");
+        
+        os.terminal.print("File System Stats:");
+        os.terminal.print("  Total files: " + countFiles("/"));
+        os.terminal.print("  Total directories: " + countDirs("/"));
+        os.terminal.print("");
+        
+        os.terminal.print("Running Apps: " + os.appManager.running.size());
+        os.terminal.print("Installed Apps: " + os.appManager.apps.size());
+        os.terminal.print("");
+    }
+    
+    private int countFiles(String path) {
+        int count = 0;
+        for (String file : os.fs.list(path)) {
+            String fullPath = path + "/" + file;
+            if (!os.fs.isDirectory(fullPath)) {
+                count++;
+            } else {
+                count += countFiles(fullPath);
+            }
+        }
+        return count;
+    }
+    
+    private int countDirs(String path) {
+        int count = 0;
+        for (String file : os.fs.list(path)) {
+            String fullPath = path + "/" + file;
+            if (os.fs.isDirectory(fullPath)) {
+                count++;
+                count += countDirs(fullPath);
+            }
+        }
+        return count;
+    }
+}
+JAVAEOF
+
+# ==============================
+# SETUP JAVA
+# ==============================
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
+# ==============================
+# BUILD APK
+# ==============================
       - name: Build APK
         run: |
           wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
@@ -194,8 +1044,10 @@ jobs:
           gradle wrapper --gradle-version 8.5
           ./gradlew assembleDebug
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+# ==============================
+# UPLOAD
+# ==============================
+      - uses: actions/upload-artifact@v4
         with:
-          name: TitanOS-v32-Fixed
+          name: TitanOS-v34-Terminal
           path: app/build/outputs/apk/debug/app-debug.apk
