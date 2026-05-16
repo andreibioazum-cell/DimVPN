@@ -1,4 +1,4 @@
-name: TinyOS App Platform
+name: TinyOS Simple
 on: [push, workflow_dispatch]
 
 permissions:
@@ -8,13 +8,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Install Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-multilib nasm qemu-system-x86
+          sudo apt-get install -y nasm qemu-system-x86
 
       - name: Build Kernel
         run: |
@@ -22,220 +19,36 @@ jobs:
           [bits 32]
           [org 0x10000]
           
-          ; ============== СИСТЕМНЫЕ ВЫЗОВЫ ==============
-          syscall_handler:
-              cmp ah, 0x01
-              je sys_print_string
-              cmp ah, 0x02
-              je sys_print_int
-              cmp ah, 0x03
-              je sys_put_pixel
-              cmp ah, 0x04
-              je sys_draw_rect
-              cmp ah, 0x05
-              je sys_get_key
-              cmp ah, 0x06
-              je sys_sleep
-              cmp ah, 0x07
-              je sys_exec_app
-              cmp ah, 0x08
-              je sys_exit
-              iret
-          
-          sys_print_string:
-              push es
-              push ds
-              pop es
-              mov bp, bx
-              mov cx, 0xFFFF
-              mov ax, 0x1301
-              mov bx, 0x000F
-              int 0x10
-              pop es
-              iret
-          
-          sys_print_int:
-              push eax
-              push ebx
-              push ecx
-              push edx
-              mov eax, ebx
-              mov ebx, 10
-              xor ecx, ecx
-          .div_loop:
-              xor edx, edx
-              div ebx
-              push dx
-              inc ecx
-              test eax, eax
-              jnz .div_loop
-          .print_loop:
-              pop ax
-              add al, '0'
-              mov ah, 0x0E
-              int 0x10
-              loop .print_loop
-              pop edx
-              pop ecx
-              pop ebx
-              pop eax
-              iret
-          
-          sys_put_pixel:
-              mov edi, 0xA0000
-              add edi, ebx
-              mov al, cl
-              stosb
-              iret
-          
-          sys_draw_rect:
-              pusha
-              mov ecx, edx
-          .rect_y:
-              push ecx
-              mov ebp, ebx
-              mov ecx, esi
-          .rect_x:
-              mov edi, 0xA0000
-              add edi, ebp
-              add edi, ecx
-              mov al, [color_tmp]
-              stosb
-              dec ecx
-              jnz .rect_x
-              pop ecx
-              add ebx, 320
-              dec ecx
-              jnz .rect_y
-              popa
-              iret
-          
-          sys_get_key:
-              pusha
-              xor ax, ax
-              int 0x16
-              mov ebx, [esp+32]
-              mov [ebx], al
-              popa
-              iret
-          
-          sys_sleep:
-              push eax
-              push ecx
-              mov ecx, ebx
-              xor eax, eax
-          .delay:
-              inc eax
-              cmp eax, 0xFFFFF
-              jne .delay
-              loop .delay
-              pop ecx
-              pop eax
-              iret
-          
-          sys_exec_app:
-              pusha
-              mov esi, ebx
-              mov edi, 0x20000
-          .load:
-              lodsb
-              stosb
-              cmp al, 0
-              jnz .load
-              mov word [current_app], 1
-              jmp 0x20000
-              popa
-              iret
-          
-          sys_exit:
-              mov word [current_app], 0
-              iret
-          
-          ; ============== ЯДРО ==============
           start:
               mov ax, 0x0013
               int 0x10
               
-              call draw_desktop
+              mov esi, msg
+              call print
               
-              mov esi, welcome_msg
-              call print_string
-              
-              jmp shell_start
-          
-          draw_desktop:
-              mov ecx, 200
-              mov dword [offset_sky], 0
-          .sky:
-              push ecx
-              mov ecx, 320
-          .horizon:
-              mov eax, ecx
-              mov ebx, 320
-              xor edx, edx
-              div ebx
-              add al, 16
-              push ecx
-              mov ebx, [offset_sky]
-              add ebx, ecx
-              mov edi, 0xA0000
-              add edi, ebx
-              stosb
-              pop ecx
-              loop .horizon
-              add dword [offset_sky], 320
-              pop ecx
-              loop .sky
-              
-              mov ecx, 60
-              mov dword [offset_ground], 19200
-          .ground:
-              push ecx
-              mov ecx, 320
-          .ground_row:
-              mov ebx, [offset_ground]
-              add ebx, ecx
-              mov edi, 0xA0000
-              add edi, ebx
-              mov al, 0x02
-              stosb
-              loop .ground_row
-              add dword [offset_ground], 320
-              pop ecx
-              loop .ground
-              ret
-          
-          ; ============== ОБОЛОЧКА ==============
-          shell_start:
-              call draw_shell
-          
-          shell_loop:
               mov esi, prompt
-              call print_string
-              
-              mov edi, cmd_buffer
-              xor ebx, ebx
+              call print
           
-          read_cmd:
+          main_loop:
               xor ax, ax
               int 0x16
               
               cmp al, 0x0D
-              je exec_cmd
+              je process_cmd
               
               cmp al, 0x08
               je backspace
               
-              mov [edi + ebx], al
-              inc ebx
+              mov [buffer], al
               mov ah, 0x0E
               int 0x10
-              jmp read_cmd
+              inc byte [buf_len]
+              jmp main_loop
           
           backspace:
-              cmp ebx, 0
-              je read_cmd
-              dec ebx
+              cmp byte [buf_len], 0
+              je main_loop
+              dec byte [buf_len]
               mov al, 0x08
               mov ah, 0x0E
               int 0x10
@@ -243,121 +56,49 @@ jobs:
               int 0x10
               mov al, 0x08
               int 0x10
-              jmp read_cmd
+              jmp main_loop
           
-          exec_cmd:
+          process_cmd:
               call newline
-              mov byte [edi + ebx], 0
               
-              mov esi, cmd_buffer
-              
-              mov edi, cmd_run
-              call strcmp
-              cmp eax, 1
-              je run_app
-              
-              mov edi, cmd_ls
-              call strcmp
-              cmp eax, 1
-              je list_apps
-              
-              mov edi, cmd_help
-              call strcmp
-              cmp eax, 1
+              mov al, [buffer]
+              cmp al, 'h'
               je show_help
-              
-              mov edi, cmd_clear
-              call strcmp
-              cmp eax, 1
+              cmp al, 'c'
               je clear_screen
+              cmp al, '1'
+              je app_clock
+              cmp al, '2'
+              je app_paint
+              cmp al, '3'
+              je app_snake
               
-              mov esi, unknown_msg
-              call print_string
-              
-          shell_cont:
-              jmp shell_loop
-          
-          run_app:
-              mov esi, cmd_buffer
-              add esi, 4
-              
-              mov edi, app1_name
-              call strcmp
-              cmp eax, 1
-              je run_app1
-              
-              mov edi, app2_name
-              call strcmp
-              cmp eax, 1
-              je run_app2
-              
-              mov edi, app3_name
-              call strcmp
-              cmp eax, 1
-              je run_app3
-              
-              mov esi, app_not_found
-              call print_string
-              jmp shell_cont
-          
-          run_app1:
-              call clear_screen
-              call app1_main
-              call clear_screen
-              call draw_desktop
-              jmp shell_cont
-          
-          run_app2:
-              call clear_screen
-              call app2_main
-              call clear_screen
-              call draw_desktop
-              jmp shell_cont
-          
-          run_app3:
-              call clear_screen
-              call app3_main
-              call clear_screen
-              call draw_desktop
-              jmp shell_cont
-          
-          list_apps:
-              mov esi, app_list
-              call print_string
-              jmp shell_cont
+              mov esi, unknown
+              call print
+              jmp after_cmd
           
           show_help:
               mov esi, help_msg
-              call print_string
-              jmp shell_cont
+              call print
+              jmp after_cmd
           
           clear_screen:
               mov ax, 0x0003
               int 0x10
               mov ax, 0x0013
               int 0x10
-              ret
+              mov esi, prompt
+              call print
+              jmp main_loop
           
-          draw_shell:
-              mov ax, 0x1301
-              mov bx, 0x000F
-              mov cx, 30
-              mov dx, 0x1700
-              push ds
-              pop es
-              mov bp, shell_bar
-              int 0x10
-              ret
-          
-          ; ============== ПРИЛОЖЕНИЕ 1 ==============
-          app1_main:
-              mov esi, app1_title
-              call print_string
+          app_clock:
+              call clear_screen
+              mov esi, clock_msg
+              call print
               mov dword [counter], 0
           clock_loop:
-              mov ebx, 20
-              mov ah, 0x06
-              call syscall_handler
+              call wait_short
+              inc dword [counter]
               
               mov ax, 0x1301
               mov bx, 0x000F
@@ -365,43 +106,29 @@ jobs:
               mov dx, 0x0A08
               push ds
               pop es
-              mov bp, time_msg
+              mov bp, time_text
               int 0x10
               
-              inc dword [counter]
-              mov ebx, [counter]
-              mov ah, 0x02
-              call syscall_handler
+              mov eax, [counter]
+              call print_num
               
-              mov ebx, key_buffer
-              mov ah, 0x05
-              call syscall_handler
-              
-              cmp byte [key_buffer], 'q'
-              je clock_exit
-              cmp byte [key_buffer], 'r'
-              je clock_reset
+              xor ax, ax
+              int 0x16
+              cmp al, 'q'
+              je exit_app
               jmp clock_loop
           
-          clock_reset:
-              mov dword [counter], 0
-              jmp clock_loop
-          clock_exit:
-              ret
-          
-          ; ============== ПРИЛОЖЕНИЕ 2 ==============
-          app2_main:
-              mov esi, app2_title
-              call print_string
-              mov dword [pen_x], 160
-              mov dword [pen_y], 100
-              mov byte [pen_color], 0x0F
+          app_paint:
+              call clear_screen
+              mov esi, paint_msg
+              call print
+              mov byte [px], 160
+              mov byte [py], 100
+              mov byte [pcol], 15
           paint_loop:
-              mov ebx, key_buffer
-              mov ah, 0x05
-              call syscall_handler
+              xor ax, ax
+              int 0x16
               
-              mov al, [key_buffer]
               cmp al, 'w'
               je paint_up
               cmp al, 's'
@@ -413,76 +140,57 @@ jobs:
               cmp al, 'c'
               je paint_color
               cmp al, 'q'
-              je paint_exit
+              je exit_app
               
-              ; Рисование пикселя без imul
-              push eax
-              mov eax, [pen_y]
-              mov ebx, 320
-              mul ebx
-              add eax, [pen_x]
-              mov ebx, eax
-              mov cl, [pen_color]
-              mov ah, 0x03
-              call syscall_handler
-              pop eax
-              
+              call draw_pixel
               jmp paint_loop
           
           paint_up:
-              sub dword [pen_y], 1
-              cmp dword [pen_y], 0
-              jge paint_loop
-              mov dword [pen_y], 0
+              dec byte [py]
               jmp paint_loop
-          
           paint_down:
-              add dword [pen_y], 1
-              cmp dword [pen_y], 199
-              jle paint_loop
-              mov dword [pen_y], 199
+              inc byte [py]
               jmp paint_loop
-          
           paint_left:
-              sub dword [pen_x], 1
-              cmp dword [pen_x], 0
-              jge paint_loop
-              mov dword [pen_x], 0
+              dec byte [px]
               jmp paint_loop
-          
           paint_right:
-              add dword [pen_x], 1
-              cmp dword [pen_x], 319
-              jle paint_loop
-              mov dword [pen_x], 319
+              inc byte [px]
+              jmp paint_loop
+          paint_color:
+              inc byte [pcol]
               jmp paint_loop
           
-          paint_color:
-              inc byte [pen_color]
-              cmp byte [pen_color], 0xFF
-              jne paint_loop
-              mov byte [pen_color], 0
-              jmp paint_loop
-          paint_exit:
+          draw_pixel:
+              pusha
+              movzx eax, byte [py]
+              mov ebx, 320
+              mul ebx
+              movzx ecx, byte [px]
+              add eax, ecx
+              mov edi, 0xA0000
+              add edi, eax
+              mov al, [pcol]
+              stosb
+              popa
               ret
           
-          ; ============== ПРИЛОЖЕНИЕ 3 ==============
-          app3_main:
-              mov esi, app3_title
-              call print_string
-              mov dword [snake_x], 160
-              mov dword [snake_y], 100
-              mov dword [dir_x], 1
-              mov dword [dir_y], 0
-              mov dword [food_x], 50
-              mov dword [food_y], 50
-              mov dword [score_val], 0
-          snake_main:
-              mov ebx, key_buffer
-              mov ah, 0x05
-              call syscall_handler
+          app_snake:
+              call clear_screen
+              mov esi, snake_msg
+              call print
+              mov byte [sx], 160
+              mov byte [sy], 100
+              mov byte [dx], 1
+              mov byte [dy], 0
+              mov byte [fx], 50
+              mov byte [fy], 50
+              mov dword [score], 0
+          
+          snake_loop:
+              xor ax, ax
+              int 0x16
               
-              mov al, [key_buffer]
               cmp al, 'w'
               je snake_up
               cmp al, 's'
@@ -492,53 +200,65 @@ jobs:
               cmp al, 'd'
               je snake_right
               cmp al, 'q'
-              je snake_exit
+              je exit_app
               
-              add dword [snake_x], [dir_x]
-              add dword [snake_y], [dir_y]
+              mov al, [dx]
+              add [sx], al
+              mov al, [dy]
+              add [sy], al
               
-              cmp dword [snake_x], 0
-              jl snake_die
-              cmp dword [snake_x], 319
-              jg snake_die
-              cmp dword [snake_y], 0
-              jl snake_die
-              cmp dword [snake_y], 199
-              jg snake_die
-              
-              ; Рисование еды
-              push eax
-              mov eax, [food_y]
-              mov ebx, 320
-              mul ebx
-              add eax, [food_x]
-              mov ebx, eax
-              mov cl, 0x0C
-              mov ah, 0x03
-              call syscall_handler
-              pop eax
-              
-              mov eax, [snake_x]
-              cmp eax, [food_x]
-              jne snake_draw
-              mov eax, [snake_y]
-              cmp eax, [food_y]
-              jne snake_draw
-              inc dword [score_val]
-              call random_food
+              call draw_food
+              call draw_snake
+              call show_score
+              call wait_short
+              jmp snake_loop
           
-          snake_draw:
-              push eax
-              mov eax, [snake_y]
+          snake_up:
+              mov byte [dx], 0
+              mov byte [dy], -1
+              jmp snake_loop
+          snake_down:
+              mov byte [dx], 0
+              mov byte [dy], 1
+              jmp snake_loop
+          snake_left:
+              mov byte [dx], -1
+              mov byte [dy], 0
+              jmp snake_loop
+          snake_right:
+              mov byte [dx], 1
+              mov byte [dy], 0
+              jmp snake_loop
+          
+          draw_food:
+              pusha
+              movzx eax, byte [fy]
               mov ebx, 320
               mul ebx
-              add eax, [snake_x]
-              mov ebx, eax
-              mov cl, 0x0A
-              mov ah, 0x03
-              call syscall_handler
-              pop eax
-              
+              movzx ecx, byte [fx]
+              add eax, ecx
+              mov edi, 0xA0000
+              add edi, eax
+              mov al, 12
+              stosb
+              popa
+              ret
+          
+          draw_snake:
+              pusha
+              movzx eax, byte [sy]
+              mov ebx, 320
+              mul ebx
+              movzx ecx, byte [sx]
+              add eax, ecx
+              mov edi, 0xA0000
+              add edi, eax
+              mov al, 10
+              stosb
+              popa
+              ret
+          
+          show_score:
               mov ax, 0x1301
               mov bx, 0x000F
               mov cx, 7
@@ -547,72 +267,50 @@ jobs:
               pop es
               mov bp, score_text
               int 0x10
-              
-              mov ebx, [score_val]
-              mov ah, 0x02
-              call syscall_handler
-              
-              mov ebx, 30
-              mov ah, 0x06
-              call syscall_handler
-              jmp snake_main
-          
-          snake_up:
-              mov dword [dir_x], 0
-              mov dword [dir_y], -1
-              jmp snake_main
-          snake_down:
-              mov dword [dir_x], 0
-              mov dword [dir_y], 1
-              jmp snake_main
-          snake_left:
-              mov dword [dir_x], -1
-              mov dword [dir_y], 0
-              jmp snake_main
-          snake_right:
-              mov dword [dir_x], 1
-              mov dword [dir_y], 0
-              jmp snake_main
-          
-          snake_die:
-              mov esi, game_over_msg
-              call print_string
-              mov ebx, 100
-              mov ah, 0x06
-              call syscall_handler
-          snake_exit:
+              mov eax, [score]
+              call print_num
               ret
           
-          random_food:
-              push eax
-              push ebx
-              push edx
-              in al, 0x40
-              mov ah, 0
-              mov ebx, 300
-              xor edx, edx
-              div ebx
-              mov [food_x], dx
-              in al, 0x40
-              mov ah, 0
-              mov ebx, 180
-              xor edx, edx
-              div ebx
-              mov [food_y], dx
-              pop edx
-              pop ebx
-              pop eax
-              ret
+          exit_app:
+              call clear_screen
+              mov ax, 0x0013
+              int 0x10
           
-          ; ============== ВСПОМОГАТЕЛЬНЫЕ ==============
-          print_string:
-              lodsb
-              or al, al
-              jz .done
+          after_cmd:
+              mov byte [buffer], 0
+              mov byte [buf_len], 0
+              mov esi, prompt
+              call print
+              jmp main_loop
+          
+          print_num:
+              pusha
+              mov ecx, 10
+              xor ebx, ebx
+          .div:
+              xor edx, edx
+              div ecx
+              push dx
+              inc ebx
+              test eax, eax
+              jnz .div
+          .print:
+              pop ax
+              add al, '0'
               mov ah, 0x0E
               int 0x10
-              jmp print_string
-          .done:
+              dec ebx
+              jnz .print
+              popa
+              ret
+          
+          wait_short:
+              push ecx
+              mov ecx, 0x1FFFF
+          .wait:
+              dec ecx
+              jnz .wait
+              pop ecx
               ret
           
           newline:
@@ -623,84 +321,47 @@ jobs:
               int 0x10
               ret
           
-          strcmp:
-              push esi
-              push edi
-          .loop:
-              mov al, [esi]
-              mov bl, [edi]
-              cmp al, bl
-              jne .not_equal
-              cmp al, 0
-              je .equal
-              inc esi
-              inc edi
-              jmp .loop
-          .equal:
-              pop edi
-              pop esi
-              mov eax, 1
-              ret
-          .not_equal:
-              pop edi
-              pop esi
-              mov eax, 0
+          print:
+              lodsb
+              or al, al
+              jz .done
+              mov ah, 0x0E
+              int 0x10
+              jmp print
+          .done:
               ret
           
-          ; ============== ДАННЫЕ ==============
-          welcome_msg db 13,10,'TinyOS v4.0',13,10,'Type "help"',13,10,0
-          prompt db 13,10,'tinyos> ',0
-          unknown_msg db 'Command not found',13,10,0
-          app_not_found db 'App not found',13,10,0
-          
-          cmd_run db 'run',0
-          cmd_ls db 'ls',0
-          cmd_help db 'help',0
-          cmd_clear db 'clear',0
-          
-          app1_name db 'clock',0
-          app2_name db 'paint',0
-          app3_name db 'snake',0
-          
-          app_list db 'Apps: clock paint snake',13,10,0
-          help_msg db 'Commands: run <app>, ls, clear, help',13,10,0
-          
-          shell_bar db 'TinyOS',0
-          app1_title db 13,10,'CLOCK - R=reset Q=quit',13,10,0
-          app2_title db 13,10,'PAINT - WASD C Q',13,10,0
-          app3_title db 13,10,'SNAKE - WASD Q',13,10,0
-          
-          time_msg db 'Ticks: ',0
+          msg db 'TinyOS v1.0', 13, 10, 0
+          prompt db 13,10,'> ',0
+          unknown db 'Unknown command',13,10,0
+          help_msg db 'Commands: h=help c=clear 1=clock 2=paint 3=snake',13,10,0
+          clock_msg db 'CLOCK - press Q to exit',13,10,0
+          paint_msg db 'PAINT - WASD move, C color, Q exit',13,10,0
+          snake_msg db 'SNAKE - WASD move, Q exit',13,10,0
+          time_text db 'Ticks: ',0
           score_text db 'Score: ',0
-          game_over_msg db 13,10,'GAME OVER!',13,10,0
           
-          offset_sky dd 0
-          offset_ground dd 19200
-          color_tmp db 0
-          key_buffer db 0
-          current_app dw 0
+          buffer db 0
+          buf_len db 0
           counter dd 0
-          pen_x dd 0
-          pen_y dd 0
-          pen_color db 0
-          snake_x dd 0
-          snake_y dd 0
-          dir_x dd 0
-          dir_y dd 0
-          food_x dd 0
-          food_y dd 0
-          score_val dd 0
+          px db 160
+          py db 100
+          pcol db 15
+          sx db 160
+          sy db 100
+          dx db 1
+          dy db 0
+          fx db 50
+          fy db 50
+          score dd 0
           
-          cmd_buffer times 64 db 0
-          
-          times 16384-($-$$) db 0
+          times 8192-($-$$) db 0
           KERNEL
 
       - name: Build
         run: |
           nasm -f bin kernel.asm -o tinyos.bin
           truncate -s 1474560 tinyos.bin
-          ls -la tinyos.bin
 
       - name: Test
         run: |
