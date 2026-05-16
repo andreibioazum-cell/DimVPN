@@ -13,7 +13,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y nasm
 
-      - name: Build Real TinyOS Kernel
+      - name: Build TinyOS Binary
         run: |
           cat > kernel.asm << 'KERNEL'
           [bits 16]
@@ -23,38 +23,29 @@ jobs:
               int 0x10
               mov si, msg
               call print
-          prompt_loop:
-              mov si, prompt
+          prompt:
+              mov si, p_str
               call print
-          wait_key:
+          wait_k:
               mov ah, 0x00
               int 0x16
               mov ah, 0x0E
-              int 0x10 ; Эхо
-              cmp al, 'c'
-              je clear
-              jmp wait_key
-          clear:
-              mov ax, 0x0003
               int 0x10
-              jmp prompt_loop
+              jmp wait_k
           print:
               lodsb
               or al, al
-              jz .done
+              jz .d
               mov ah, 0x0E
               int 0x10
               jmp print
-          .done:
-              ret
-          msg db 'TinyOS x86 VM Loaded!', 13, 10, 0
-          prompt db 13, 10, '> ', 0
+          .d: ret
+          msg db 'TinyOS VM v4.0 Loaded', 13, 10, 0
+          p_str db 13, 10, '> ', 0
           times 510-($-$$) db 0
           dw 0xAA55
           KERNEL
           nasm -f bin kernel.asm -o tinyos.bin
-          # Кодируем в Base64 для безопасной вставки в Java
-          base64 -w 0 tinyos.bin > tinyos.base64
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -62,29 +53,26 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Create Android Project
+      - name: Create Android Project Structure
         run: |
           mkdir -p app/src/main/java/com/tinyos/vm
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
-
-          # Создаем класс с бинарником в формате Base64
-          echo "package com.tinyos.vm;" > app/src/main/java/com/tinyos/vm/KernelBin.java
-          echo "import android.util.Base64;" >> app/src/main/java/com/tinyos/vm/KernelBin.java
-          echo "public class KernelBin {" >> app/src/main/java/com/tinyos/vm/KernelBin.java
-          echo "    public static String STR = \"$(cat tinyos.base64)\";" >> app/src/main/java/com/tinyos/vm/KernelBin.java
-          echo "    public static byte[] get() { return Base64.decode(STR, Base64.DEFAULT); }" >> app/src/main/java/com/tinyos/vm/KernelBin.java
-          echo "}" >> app/src/main/java/com/tinyos/vm/KernelBin.java
+          mkdir -p app/src/main/assets
+          
+          # Копируем ОС в ресурсы приложения
+          cp tinyos.bin app/src/main/assets/kernel.bin
 
           cat > app/src/main/res/values/strings.xml << 'XML'
           <resources><string name="app_name">TinyOS VM</string></resources>
           XML
 
           cat > app/src/main/res/values/themes.xml << 'XML'
-          <resources><style name="AppTheme" parent="Theme.AppCompat.NoActionBar"/></resources>
+          <resources>
+            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+              <item name="android:windowFullscreen">true</item>
+            </style>
+          </resources>
           XML
 
           cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
@@ -103,11 +91,12 @@ jobs:
 
           cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
           <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
-            <SurfaceView android:id="@+id/screen" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
-            <Button android:id="@+id/btn_c" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Press C to Clear"/>
-          </LinearLayout>
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
+            <SurfaceView android:id="@+id/screen" android:layout_width="match_parent" android:layout_height="match_parent"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" 
+              android:text="x86 Real Mode Emulator" android:textColor="#0F0" android:layout_margin="10dp"/>
+          </RelativeLayout>
           LAYOUT
 
           cat > app/src/main/java/com/tinyos/vm/MainActivity.java << 'JAVA'
@@ -116,38 +105,47 @@ jobs:
           import android.graphics.*;
           import android.view.*;
           import androidx.appcompat.app.AppCompatActivity;
+          import java.io.InputStream;
           import java.util.*;
 
           public class MainActivity extends AppCompatActivity {
               private X86Emulator emu;
+              private boolean running = true;
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   setContentView(R.layout.activity_main);
                   emu = new X86Emulator();
-                  findViewById(R.id.btn_c).setOnClickListener(v -> emu.key = 'c');
                   SurfaceView sv = findViewById(R.id.screen);
                   sv.getHolder().addCallback(new SurfaceHolder.Callback() {
                       @Override public void surfaceCreated(SurfaceHolder h) {
                           new Thread(() -> {
-                              while (true) {
-                                  for(int i=0; i<500; i++) emu.step();
+                              while (running) {
+                                  for(int i=0; i<200; i++) emu.step();
                                   Canvas c = h.lockCanvas();
                                   if(c != null) { emu.draw(c); h.unlockCanvasAndPost(c); }
-                                  try { Thread.sleep(30); } catch(Exception e) {}
+                                  try { Thread.sleep(20); } catch(Exception e) {}
                               }
                           }).start();
                       }
-                      @Override public void surfaceDestroyed(SurfaceHolder h) {}
+                      @Override public void surfaceDestroyed(SurfaceHolder h) { running = false; }
                       @Override public void surfaceChanged(SurfaceHolder h, int f, int w, int h1) {}
                   });
               }
+
               class X86Emulator {
                   byte[] mem = new byte[65536];
                   int ax, si, ip=0x7C00;
-                  char key = 0;
                   List<String> lines = new ArrayList<>(Collections.singletonList(""));
-                  X86Emulator() { byte[] k = KernelBin.get(); System.arraycopy(k, 0, mem, 0x7C00, k.length); }
+
+                  X86Emulator() {
+                      try {
+                          InputStream is = getAssets().open("kernel.bin");
+                          is.read(mem, 0x7C00, is.available());
+                      } catch (Exception e) { lines.add("Error loading kernel"); }
+                  }
+
                   void step() {
                       int op = mem[ip] & 0xFF;
                       if(op == 0xB4) { ax = (ax & 0xFF) | ((mem[ip+1]&0xFF)<<8); ip+=2; }
@@ -160,25 +158,30 @@ jobs:
                               int ah = (ax>>8)&0xFF;
                               if(ah == 0x0E) {
                                   char c = (char)(ax&0xFF);
-                                  if(c==13) lines.add(""); else if(c>=32) lines.set(lines.size()-1, lines.get(lines.size()-1)+c);
+                                  if(c==13) lines.add(""); 
+                                  else if(c>=32) lines.set(lines.size()-1, lines.get(lines.size()-1)+c);
+                                  if(lines.size()>20) lines.remove(0);
                               } else { lines.clear(); lines.add(""); }
-                          } else if(n == 0x16) {
-                              if(key == 0) return;
-                              ax = (ax&0xFF00)|key; key = 0;
                           }
                           ip+=2;
                       } else { ip++; }
                   }
+
                   void draw(Canvas c) {
                       c.drawColor(Color.BLACK);
-                      Paint p = new Paint(); p.setColor(Color.GREEN); p.setTextSize(40);
-                      for(int i=0; i<lines.size(); i++) c.drawText(lines.get(i), 20, 50+i*50, p);
+                      Paint p = new Paint(); p.setColor(Color.GREEN); 
+                      p.setTextSize(40); p.setTypeface(Typeface.MONOSPACE);
+                      for(int i=0; i<lines.size(); i++) c.drawText(lines.get(i), 30, 60+i*45, p);
                   }
               }
           }
           JAVA
 
+          # Настройка Gradle
           echo "include ':app'" > settings.gradle
+          echo "android.useAndroidX=true" > gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          
           cat > build.gradle << 'GRADLE'
           buildscript {
               repositories { google(); mavenCentral() }
@@ -186,17 +189,18 @@ jobs:
           }
           allprojects { repositories { google(); mavenCentral() } }
           GRADLE
+
           cat > app/build.gradle << 'APP'
           plugins { id 'com.android.application' }
           android {
               namespace 'com.tinyos.vm'
               compileSdk 34
-              defaultConfig { applicationId 'com.tinyos.vm'; minSdk 24; targetSdk 34 }
+              defaultConfig { applicationId "com.tinyos.vm"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           APP
 
-      - name: Build APK
+      - name: Build APK with Gradle
         run: |
           wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
           unzip -q gradle-8.5-bin.zip
@@ -207,5 +211,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TinyOS-VM-Final
+          name: TinyOS-VM-Stable
           path: app/build/outputs/apk/debug/app-debug.apk
