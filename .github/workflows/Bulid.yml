@@ -26,22 +26,18 @@ jobs:
               call print
           input_loop:
               mov ah, 0x00
-              int 0x16       ; Ждем ввод (через кнопки в APK)
-              
+              int 0x16
               mov ah, 0x0E
-              int 0x10       ; Показываем нажатый символ
-              
+              int 0x10
               cmp al, '1'
               je cmd_info
               cmp al, 'c'
               je start
               jmp input_loop
-          
           cmd_info:
               mov si, msg_info
               call print
               jmp prompt
-
           print:
               lodsb
               or al, al
@@ -50,11 +46,9 @@ jobs:
               int 0x10
               jmp print
           .done: ret
-
-          msg_welcome db '--- TinyOS x86 Booted ---', 13, 10, 'Commands: 1-Info, C-Clear', 13, 10, 0
+          msg_welcome db '--- TinyOS x86 VM Loaded ---', 13, 10, 'Buttons: 1=Info, C=Clear', 13, 10, 0
           msg_prompt  db 13, 10, 'TinyOS> ', 0
-          msg_info    db 13, 10, 'VM: x86 Real Mode', 13, 10, 'Arch: Java-Emulated', 13, 10, 0
-          
+          msg_info    db 13, 10, 'CPU: x86 Real Mode', 13, 10, 'RAM: 64KB', 13, 10, 0
           times 510-($-$$) db 0
           dw 0xAA55
           KERNEL
@@ -66,38 +60,65 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Android Project
+      - name: Create Android Project Structure
         run: |
-          mkdir -p app/src/main/java/com/tinyos/vm app/src/main/res/layout app/src/main/res/values app/src/main/assets
+          # Создаем структуру папок
+          mkdir -p app/src/main/java/com/tinyos/vm
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/assets
+          
+          # Копируем бинарник ОС
           cp kernel.bin app/src/main/assets/kernel.bin
 
+          # Создаем файлы ресурсов
           cat > app/src/main/res/values/strings.xml << 'XML'
-          <resources><string name="app_name">Real TinyOS VM</string></resources>
-          XML
-          cat > app/src/main/res/values/themes.xml << 'XML'
-          <resources><style name="AppTheme" parent="Theme.AppCompat.NoActionBar"><item name="android:windowFullscreen">true</item></style></resources>
+          <resources><string name="app_name">TinyOS VM</string></resources>
           XML
 
+          cat > app/src/main/res/values/themes.xml << 'XML'
+          <resources>
+            <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+              <item name="android:windowFullscreen">true</item>
+            </style>
+          </resources>
+          XML
+
+          # Создаем Манифест (ВАЖНО: проверяем путь)
+          cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tinyos.vm">
+            <application android:label="@string/app_name" android:theme="@style/AppTheme" android:allowBackup="true">
+              <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          MANIFEST
+
+          # Создаем Лейаут
           cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
             <SurfaceView android:id="@+id/screen" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
-            <GridLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:columnCount="4" android:padding="5dp" android:background="#222">
-              <Button android:id="@+id/btn1" android:text="1" android:layout_columnWeight="1"/>
-              <Button android:id="@+id/btnC" android:text="C" android:layout_columnWeight="1"/>
-              <Button android:id="@+id/btnH" android:text="H" android:layout_columnWeight="1"/>
-              <Button android:id="@+id/btnEnter" android:text="ENTER" android:layout_columnWeight="1"/>
-            </GridLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="#222">
+              <Button android:id="@+id/btn1" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="1"/>
+              <Button android:id="@+id/btnC" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="C"/>
+              <Button android:id="@+id/btnEnter" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="ENTER"/>
+            </LinearLayout>
           </LinearLayout>
           LAYOUT
 
+          # Создаем Java код эмулятора
           cat > app/src/main/java/com/tinyos/vm/MainActivity.java << 'JAVA'
           package com.tinyos.vm;
           import android.os.*;
           import android.graphics.*;
           import android.view.*;
-          import android.widget.Button;
           import androidx.appcompat.app.AppCompatActivity;
           import java.io.InputStream;
           import java.util.*;
@@ -109,11 +130,9 @@ jobs:
                   super.onCreate(savedInstanceState);
                   setContentView(R.layout.activity_main);
                   emu = new X86Emulator();
-                  findViewById(R.id.btn1).setOnClickListener(v -> emu.sendKey('1'));
-                  findViewById(R.id.btnC).setOnClickListener(v -> emu.sendKey('c'));
-                  findViewById(R.id.btnH).setOnClickListener(v -> emu.sendKey('h'));
-                  findViewById(R.id.btnEnter).setOnClickListener(v -> emu.sendKey((char)13));
-                  
+                  findViewById(R.id.btn1).setOnClickListener(v -> emu.key = '1');
+                  findViewById(R.id.btnC).setOnClickListener(v -> emu.key = 'c');
+                  findViewById(R.id.btnEnter).setOnClickListener(v -> emu.key = (char)13);
                   SurfaceView sv = findViewById(R.id.screen);
                   sv.getHolder().addCallback(new SurfaceHolder.Callback() {
                       @Override public void surfaceCreated(SurfaceHolder h) {
@@ -130,54 +149,47 @@ jobs:
                       @Override public void surfaceChanged(SurfaceHolder h, int f, int w, int h1) {}
                   });
               }
-
               class X86Emulator {
                   byte[] mem = new byte[65536];
-                  int ax, bx, cx, dx, si, di, sp=0xFFF0, ip=0x7C00;
+                  int ax, si, ip=0x7C00, sp=0xFFF0;
                   boolean zf = false;
-                  char nextKey = 0;
+                  char key = 0;
                   List<String> lines = new ArrayList<>(Collections.singletonList(""));
-
                   X86Emulator() {
                       try { InputStream is = getAssets().open("kernel.bin"); is.read(mem, 0x7C00, 512); } catch(Exception e) {}
                   }
-                  void sendKey(char k) { nextKey = k; }
-
                   void step() {
                       int op = mem[ip] & 0xFF;
-                      if(op == 0xB8) { ax = (mem[ip+1]&0xFF)|((mem[ip+2]&0xFF)<<8); ip+=3; } // mov ax, imm16
-                      else if(op == 0xB4) { ax = (ax & 0xFF) | ((mem[ip+1]&0xFF)<<8); ip+=2; } // mov ah, imm8
-                      else if(op == 0xB0) { ax = (ax & 0xFF00) | (mem[ip+1]&0xFF); ip+=2; } // mov al, imm8
-                      else if(op == 0xBE) { si = (mem[ip+1]&0xFF)|((mem[ip+2]&0xFF)<<8); ip+=3; } // mov si, imm16
-                      else if(op == 0xAC) { ax = (ax&0xFF00)|(mem[si]&0xFF); si++; ip++; } // lodsb
-                      else if(op == 0xE8) { // call rel16
+                      if(op == 0xB8) { ax = (mem[ip+1]&0xFF)|((mem[ip+2]&0xFF)<<8); ip+=3; }
+                      else if(op == 0xB4) { ax = (ax & 0xFF) | ((mem[ip+1]&0xFF)<<8); ip+=2; }
+                      else if(op == 0xB0) { ax = (ax & 0xFF00) | (mem[ip+1]&0xFF); ip+=2; }
+                      else if(op == 0xBE) { si = (mem[ip+1]&0xFF)|((mem[ip+2]&0xFF)<<8); ip+=3; }
+                      else if(op == 0xAC) { ax = (ax&0xFF00)|(mem[si]&0xFF); si++; ip++; }
+                      else if(op == 0xE8) { 
                           int rel = (mem[ip+1]&0xFF)|((mem[ip+2]&0xFF)<<8);
                           int ret = ip + 3;
                           mem[--sp] = (byte)(ret >> 8); mem[--sp] = (byte)(ret & 0xFF);
                           ip += 3 + rel;
                       }
-                      else if(op == 0xC3) { // ret
-                          ip = (mem[sp++]&0xFF) | ((mem[sp++]&0xFF)<<8);
-                      }
-                      else if(op == 0x3C) { zf = (ax&0xFF) == (mem[ip+1]&0xFF); ip+=2; } // cmp al, imm8
-                      else if(op == 0x74) { if(zf) ip += (byte)mem[ip+1] + 2; else ip+=2; } // je
+                      else if(op == 0xC3) { ip = (mem[sp++]&0xFF) | ((mem[sp++]&0xFF)<<8); }
+                      else if(op == 0x3C) { zf = (ax&0xFF) == (mem[ip+1]&0xFF); ip+=2; }
+                      else if(op == 0x74) { if(zf) ip += (byte)mem[ip+1] + 2; else ip+=2; }
                       else if(op == 0xCD) {
                           int n = mem[ip+1]&0xFF;
-                          if(n == 0x10) { // Video
+                          if(n == 0x10) {
                               int ah = (ax>>8)&0xFF;
                               if(ah == 0x0E) {
                                   char c = (char)(ax&0xFF);
                                   if(c==13) lines.add(""); else if(c>=32) lines.set(lines.size()-1, lines.get(lines.size()-1)+c);
                                   if(lines.size()>20) lines.remove(0);
                               } else { lines.clear(); lines.add(""); }
-                          } else if(n == 0x16) { // Keyboard
-                              if(nextKey == 0) return; // Ждем
-                              ax = (ax&0xFF00)|nextKey; nextKey = 0;
+                          } else if(n == 0x16) {
+                              if(key == 0) return;
+                              ax = (ax&0xFF00)|key; key = 0;
                           }
                           ip+=2;
                       } else { ip++; }
                   }
-
                   void draw(Canvas c) {
                       c.drawColor(Color.BLACK);
                       Paint p = new Paint(); p.setColor(Color.GREEN); p.setTextSize(40);
@@ -188,27 +200,45 @@ jobs:
           }
           JAVA
 
+          # Настройка Gradle
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
+          
           cat > build.gradle << 'GRADLE'
-          buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.2.2' } }
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
           allprojects { repositories { google(); mavenCentral() } }
           GRADLE
+          
           cat > app/build.gradle << 'APP'
           plugins { id 'com.android.application' }
-          android { namespace 'com.tinyos.vm'; compileSdk 34; defaultConfig { applicationId "com.tinyos.vm"; minSdk 24; targetSdk 34 } }
+          android {
+              namespace 'com.tinyos.vm'
+              compileSdk 34
+              defaultConfig { 
+                  applicationId "com.tinyos.vm"
+                  minSdk 24 
+                  targetSdk 34 
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           APP
 
       - name: Build APK
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip && unzip -q gradle-8.5-bin.zip
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle-8.5-bin.zip
           export PATH="$PWD/gradle-8.5/bin:$PATH"
-          gradle wrapper --gradle-version 8.5 && ./gradlew assembleDebug
+          gradle wrapper --gradle-version 8.5
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TinyOS-v4-Final
+          name: TinyOS-VM-Final-Fixed
           path: app/build/outputs/apk/debug/app-debug.apk
