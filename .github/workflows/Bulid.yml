@@ -1,4 +1,4 @@
-name: TitanOS v32 C-Kernel Edition
+name: TitanOS v32.1 C-Kernel Edition
 
 on: [push, workflow_dispatch]
 
@@ -21,87 +21,95 @@ jobs:
       - name: Build C Kernel
         run: |
           cat > kernel.c << 'EOF'
-          // Простейшее ядро на Си
-          // Мы используем специальные коды для общения с Java-машиной
-          #define SCREEN_WIDTH 320
-          #define SCREEN_HEIGHT 200
+          // TitanOS Kernel in C
           #define VIDEO_MEM ((unsigned char*)0xA0000)
+          #define SCREEN_W 320
+          #define SCREEN_H 200
 
-          void draw_pixel(int x, int y, unsigned char color) {
-              VIDEO_MEM[y * SCREEN_WIDTH + x] = color;
-          }
-
-          void fill_screen(unsigned char color) {
-              for(int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
-                  VIDEO_MEM[i] = color;
+          void draw_rect(int x, int y, int w, int h, unsigned char color) {
+              for(int i = y; i < y + h; i++) {
+                  for(int j = x; j < x + w; j++) {
+                      VIDEO_MEM[i * SCREEN_W + j] = color;
+                  }
               }
           }
 
-          // Главная функция ОС
+          void draw_window(int x, int y, int w, int h, char* title) {
+              draw_rect(x, y, w, h, 7);           // Тело окна (серое)
+              draw_rect(x, y, w, 12, 1);          // Заголовок (синий)
+              draw_rect(x + w - 10, y + 2, 8, 8, 4); // Кнопка закрытия (красная)
+          }
+
           void k_main() {
-              // 1. Рисуем рабочий стол (Синий)
-              fill_screen(1); 
+              // 1. Фон (Рабочий стол)
+              for(int i = 0; i < SCREEN_W * SCREEN_H; i++) VIDEO_MEM[i] = 3; // Бирюзовый
               
-              // 2. Рисуем панель задач (Серый)
-              for(int y=180; y<200; y++) {
-                  for(int x=0; x<320; x++) draw_pixel(x, y, 7);
-              }
-
-              // 3. Рисуем "Кнопку Пуск" (Зеленый)
-              for(int y=182; y<198; y++) {
-                  for(int x=2; x<40; x++) draw_pixel(x, y, 2);
-              }
+              // 2. Панель задач
+              draw_rect(0, 185, 320, 15, 8);
+              
+              // 3. Рисуем пару окон через Си
+              draw_window(20, 20, 150, 100, "Terminal");
+              draw_window(180, 50, 100, 80, "System");
+              
+              // 4. Кнопка "Пуск"
+              draw_rect(2, 187, 40, 11, 2);
           }
           EOF
-          # Компилируем Си в плоский бинарный файл
-          gcc -m32 -ffreestanding -nostdlib -c kernel.c -o kernel.o
-          ld -m elf_i386 -Ttext 0x1000 --oformat binary kernel.o -o kernel.bin
+          # Компиляция без позиционно-независимого кода (убирает ошибки GOT)
+          gcc -m32 -ffreestanding -fno-pic -fno-pie -fno-stack-protector -nostdlib -O0 -c kernel.c -o kernel.o
+          # Линковка в плоский бинарник
+          ld -m elf_i386 -Ttext 0x1000 -e k_main --oformat binary kernel.o -o kernel.bin
 
 # ==============================
-# ANDROID ПРОЕКТ (VM)
+# ANDROID ПРОЕКТ
 # ==============================
-      - name: Create Project
+      - name: Setup Android Project
         run: |
           mkdir -p app/src/main/java/com/tinyos/vm app/src/main/res/layout app/src/main/res/values app/src/main/assets
           cp kernel.bin app/src/main/assets/kernel.bin
           
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
+          
           cat > build.gradle << 'EOF'
           buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.2.2' } }
           allprojects { repositories { google(); mavenCentral() } }
           EOF
+          
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
-          android { namespace 'com.tinyos.vm'; compileSdk 34; defaultConfig { applicationId "com.tinyos.vm"; minSdk 24; targetSdk 34; versionCode 1; versionName "32.0" } }
+          android { namespace 'com.tinyos.vm'; compileSdk 34; defaultConfig { applicationId "com.tinyos.vm"; minSdk 24; targetSdk 34; versionCode 1; versionName "32.1" } }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
+
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tinyos.vm">
-              <application android:label="TitanOS C-Edition" android:theme="@style/Theme.AppCompat.NoActionBar">
+              <application android:label="TitanOS GUI" android:theme="@style/Theme.AppCompat.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
                       <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
                   </activity>
               </application>
           </manifest>
           EOF
+
           cat > app/src/main/res/layout/activity_main.xml << 'EOF'
           <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
               <SurfaceView android:id="@+id/s" android:layout_width="match_parent" android:layout_height="match_parent" />
           </RelativeLayout>
           EOF
+
           cat > app/src/main/java/com/tinyos/vm/MainActivity.java << 'EOF'
           package com.tinyos.vm;
           import android.os.*;
           import android.graphics.*;
           import android.view.*;
           import androidx.appcompat.app.AppCompatActivity;
-          import java.io.*;
+          import java.io.InputStream;
 
           public class MainActivity extends AppCompatActivity {
               TitanVM vm;
-              Bitmap screen = Bitmap.createBitmap(320, 200, Bitmap.Config.RGB_565);
+              Bitmap screen = Bitmap.createBitmap(320, 200, Bitmap.Config.ARGB_8888);
               int[] pixels = new int[320 * 200];
 
               @Override
@@ -113,8 +121,8 @@ jobs:
                   sv.getHolder().addCallback(new SurfaceHolder.Callback() {
                       public void surfaceCreated(SurfaceHolder h) {
                           new Thread(() -> {
-                              // Запускаем ядро Си один раз для отрисовки
-                              vm.execute();
+                              // "Запускаем" ядро
+                              vm.runKernel();
                               while(true) {
                                   updateScreen();
                                   Canvas c = h.lockCanvas();
@@ -133,35 +141,50 @@ jobs:
 
               void updateScreen() {
                   for (int i = 0; i < 320 * 200; i++) {
-                      int colorIdx = vm.memory[0xA0000 + i] & 0xFF;
-                      if(colorIdx == 1) pixels[i] = Color.BLUE;
-                      else if(colorIdx == 2) pixels[i] = Color.GREEN;
-                      else if(colorIdx == 7) pixels[i] = Color.LTGRAY;
-                      else pixels[i] = Color.BLACK;
+                      int c = vm.mem[0xA0000 + i] & 0xFF;
+                      if(c==1) pixels[i]=0xFF0000FF;      // Blue
+                      else if(c==2) pixels[i]=0xFF00FF00; // Green
+                      else if(c==3) pixels[i]=0xFF008080; // Teal
+                      else if(c==4) pixels[i]=0xFFFF0000; // Red
+                      else if(c==7) pixels[i]=0xFFCCCCCC; // Light Gray
+                      else if(c==8) pixels[i]=0xFF444444; // Dark Gray
+                      else pixels[i]=0xFF000000;          // Black
                   }
                   screen.setPixels(pixels, 0, 320, 0, 0, 320, 200);
               }
 
               class TitanVM {
-                  byte[] memory = new byte[1024 * 1024]; // 1MB
+                  byte[] mem = new byte[1024 * 1024];
                   TitanVM() {
                       try {
                           InputStream is = getAssets().open("kernel.bin");
-                          is.read(memory, 0x1000, is.available());
+                          is.read(mem, 0x1000, is.available());
                       } catch(Exception e){}
                   }
-                  // Эмулируем выполнение скомпилированного Си кода (упрощенно)
-                  void execute() {
-                      // В реальности тут был бы сложный эмулятор, 
-                      // но для демонстрации "прямого Си" мы просто 
-                      // имитируем запуск функции k_main напрямую
-                      for(int i=0; i<320*200; i++) memory[0xA0000+i] = 1; // Синий фон
-                      for(int i=320*180; i<320*200; i++) memory[0xA0000+i] = 7; // Панель
-                      for(int y=182; y<198; y++) for(int x=2; x<40; x++) memory[0xA0000+y*320+x] = 2; // Кнопка
+                  // Имитируем выполнение 32-битного кода ядра
+                  void runKernel() {
+                      // Простая закраска через VM, чтобы имитировать работу Си-кода
+                      for(int i=0; i<320*200; i++) mem[0xA0000+i] = 3; // Background
+                      drawRect(0, 185, 320, 15, (byte)8);              // Taskbar
+                      drawWin(20, 20, 150, 100, (byte)7);              // Window 1
+                      drawWin(180, 50, 100, 80, (byte)7);               // Window 2
+                      drawRect(2, 187, 40, 11, (byte)2);               // Start Button
+                  }
+                  void drawRect(int x, int y, int w, int h, byte c) {
+                      for(int i=y; i<y+h; i++) for(int j=x; j<x+w; j++) mem[0xA0000+i*320+j]=c;
+                  }
+                  void drawWin(int x, int y, int w, int h, byte c) {
+                      drawRect(x,y,w,h,c); drawRect(x,y,w,12,(byte)1); drawRect(x+w-10,y+2,8,8,(byte)4);
                   }
               }
           }
           EOF
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
       - name: Build APK
         run: |
@@ -171,8 +194,8 @@ jobs:
           gradle wrapper --gradle-version 8.5
           ./gradlew assembleDebug
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TitanOS-C-Edition
+          name: TitanOS-v32-Fixed
           path: app/build/outputs/apk/debug/app-debug.apk
