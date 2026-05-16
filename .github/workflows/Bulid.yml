@@ -58,6 +58,7 @@ jobs:
               push eax
               push ebx
               push ecx
+              push edx
               mov eax, ebx
               mov ebx, 10
               xor ecx, ecx
@@ -74,6 +75,7 @@ jobs:
               mov ah, 0x0E
               int 0x10
               loop .print_loop
+              pop edx
               pop ecx
               pop ebx
               pop eax
@@ -109,10 +111,12 @@ jobs:
               iret
           
           sys_get_key:
+              pusha
               xor ax, ax
               int 0x16
-              mov ebx, [esp+4]
+              mov ebx, [esp+32]
               mov [ebx], al
+              popa
               iret
           
           sys_sleep:
@@ -411,12 +415,18 @@ jobs:
               cmp al, 'q'
               je paint_exit
               
-              mov ebx, [pen_y]
-              imul ebx, 320
-              add ebx, [pen_x]
+              ; Рисование пикселя без imul
+              push eax
+              mov eax, [pen_y]
+              mov ebx, 320
+              mul ebx
+              add eax, [pen_x]
+              mov ebx, eax
               mov cl, [pen_color]
               mov ah, 0x03
               call syscall_handler
+              pop eax
+              
               jmp paint_loop
           
           paint_up:
@@ -496,12 +506,17 @@ jobs:
               cmp dword [snake_y], 199
               jg snake_die
               
-              mov ebx, [food_y]
-              imul ebx, 320
-              add ebx, [food_x]
+              ; Рисование еды
+              push eax
+              mov eax, [food_y]
+              mov ebx, 320
+              mul ebx
+              add eax, [food_x]
+              mov ebx, eax
               mov cl, 0x0C
               mov ah, 0x03
               call syscall_handler
+              pop eax
               
               mov eax, [snake_x]
               cmp eax, [food_x]
@@ -513,12 +528,16 @@ jobs:
               call random_food
           
           snake_draw:
-              mov ebx, [snake_y]
-              imul ebx, 320
-              add ebx, [snake_x]
+              push eax
+              mov eax, [snake_y]
+              mov ebx, 320
+              mul ebx
+              add eax, [snake_x]
+              mov ebx, eax
               mov cl, 0x0A
               mov ah, 0x03
               call syscall_handler
+              pop eax
               
               mov ax, 0x1301
               mov bx, 0x000F
