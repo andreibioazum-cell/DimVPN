@@ -1,4 +1,4 @@
-name: TinyOS v29 Mini-DOS Stable
+name: TinyOS v30 Kernel Engine
 
 on: [push, workflow_dispatch]
 
@@ -16,7 +16,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y nasm
 
 # ==============================
-# НАДЕЖНОЕ ЯДРО (ASM)
+# СТАБИЛЬНОЕ ЯДРО (ASM)
 # ==============================
       - name: Build OS Image
         run: |
@@ -37,7 +37,6 @@ jobs:
               mov di, buffer
               call get_string
               
-              ; Сравнение строк
               mov si, buffer
               mov di, cmd_help
               call strcmp
@@ -78,13 +77,12 @@ jobs:
               xor cx, cx
           .loop:
               mov ah, 0x00
-              int 0x16        ; БЛОКИРУЮЩЕЕ ОЖИДАНИЕ
+              int 0x16
               cmp al, 13
               je .done
               cmp al, 8
               je .back
-              mov [di], al
-              inc di
+              stosb           ; ЗАПИСЬ В ПАМЯТЬ [DI] = AL
               inc cx
               mov ah, 0x0E
               int 0x10
@@ -101,7 +99,8 @@ jobs:
               int 0x10
               jmp .loop
           .done:
-              mov byte [di], 0
+              mov al, 0
+              stosb
               mov al, 13
               int 0x10
               mov al, 10
@@ -117,13 +116,13 @@ jobs:
               jmp print
           .d: ret
 
-          msg_welcome   db 'DimOS v29.0 Mini-DOS', 13, 10, 'Type help', 13, 10, 0
+          msg_welcome   db 'DimOS v30.0 Terminal Active', 13, 10, 0
           msg_prompt    db '~ $ ', 0
-          msg_help_list db 'Available: help, cls', 13, 10, 0
-          msg_err       db 'Unknown command.', 13, 10, 0
+          msg_help_list db 'Commands: help, cls', 13, 10, 0
+          msg_err       db 'Error: unknown command', 13, 10, 0
           cmd_help      db 'help', 0
           cmd_cls       db 'cls', 0
-          buffer        times 32 db 0
+          buffer        times 64 db 0
           times 510-($-$$) db 0
           dw 0xAA55
           EOF
@@ -162,7 +161,7 @@ jobs:
               <SurfaceView android:id="@+id/s" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
               <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="#111" android:padding="5dp">
                   <EditText android:id="@+id/e" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" 
-                      android:hint="Terminal..." android:textColor="#FFF" android:background="#222" android:padding="10dp" android:textSize="14sp" android:inputType="textNoSuggestions" />
+                      android:hint="Command..." android:textColor="#FFF" android:background="#222" android:padding="10dp" android:textSize="14sp" android:inputType="textNoSuggestions" />
                   <Button android:id="@+id/b" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SEND" />
               </LinearLayout>
           </LinearLayout>
@@ -197,9 +196,7 @@ jobs:
                       public void surfaceCreated(SurfaceHolder h) {
                           new Thread(() -> {
                               while(true) {
-                                  for(int i=0; i<1000; i++) {
-                                      if (!emu.step()) break; // Останавливаем цикл, если ждем ввод
-                                  }
+                                  for(int i=0; i<2000; i++) { if (!emu.step()) break; }
                                   Canvas c = h.lockCanvas();
                                   if(c!=null) { emu.draw(c); h.unlockCanvasAndPost(c); }
                                   try { Thread.sleep(20); } catch(Exception ex) {}
@@ -212,7 +209,7 @@ jobs:
               }
               class X86Emulator {
                   byte[] m = new byte[65536]; 
-                  int ax, bx, cx, si, di, ip=0x7C00, sp=0xFFF0;
+                  int ax, bx, cx, dx, si, di, ip=0x7C00, sp=0xFFF0;
                   boolean zf = false;
                   public Queue<Character> keys = new LinkedList<>();
                   List<String> lines = new ArrayList<>(Arrays.asList(""));
@@ -228,14 +225,14 @@ jobs:
                           case 0xBB: bx=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; break;
                           case 0xBE: si=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; break;
                           case 0xBF: di=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; break;
-                          case 0x8A: // mov al, [si] или [di]
+                          case 0x8A: // mov al, [si] или bl, [di]
                               if(m[ip+1]==0x04) ax=(ax&0xFF00)|(m[si]&0xFF);
                               else if(m[ip+1]==0x1D) bx=(bx&0xFF00)|(m[di]&0xFF);
                               ip+=2; break;
-                          case 0x38: // cmp al, bl
-                              if(m[ip+1]==(byte)0xD8) zf=(ax&0xFF)==(bx&0xFF); ip+=2; break;
-                          case 0x3C: zf=(ax&0xFF)==(m[ip+1]&0xFF); ip+=2; break;
-                          case 0xAC: ax=(ax&0xFF00)|(m[si]&0xFF); si++; ip++; break;
+                          case 0x38: if(m[ip+1]==(byte)0xD8) zf=(ax&0xFF)==(bx&0xFF); ip+=2; break; // cmp al, bl
+                          case 0x3C: zf=(ax&0xFF)==(m[ip+1]&0xFF); ip+=2; break; // cmp al, imm8
+                          case 0xAC: ax=(ax&0xFF00)|(m[si]&0xFF); si++; ip++; break; // lodsb
+                          case 0xAA: m[di]=(byte)(ax&0xFF); di++; ip++; break; // stosb
                           case 0x46: si++; ip++; break;
                           case 0x47: di++; ip++; break;
                           case 0xE8: int r=ip+3; m[--sp]=(byte)(r>>8); m[--sp]=(byte)r; 
@@ -245,34 +242,28 @@ jobs:
                           case 0x75: if(!zf) ip+=(byte)m[ip+1]+2; else ip+=2; break;
                           case 0xCD: 
                               if ((m[ip+1]&0xFF) == 0x16) {
-                                  if (keys.isEmpty()) return false; // ЖДЕМ КЛАВИШУ - ВЫХОДИМ ИЗ ЦИКЛА
+                                  if (keys.isEmpty()) return false;
                                   ax=(ax&0xFF00)|keys.poll();
-                              } else {
-                                  handleInt(m[ip+1]&0xFF);
-                              }
+                              } else handleInt(m[ip+1]&0xFF);
                               ip+=2; break;
-                          case 0x08: if(m[ip+1]==(byte)0xC0) zf=(ax&0xFF)==0; ip+=2; break; 
-                          case 0x31: if(m[ip+1]==(byte)0xC0) ax=0; if(m[ip+1]==(byte)0xC9) cx=0; ip+=2; break;
+                          case 0x31: if(m[ip+1]==(byte)0xC0) ax=0; ip+=2; break; // xor ax, ax
                           default: ip++; break;
                       }
                       return true;
                   }
-
                   void handleInt(int n) {
                       if(n==0x10) {
                           if(((ax>>8)&0xFF)==0x0E) {
                               char c=(char)(ax&0xFF);
                               if(c==13) lines.add(""); 
-                              else if(c==8) { String s=lines.get(lines.size()-1); if(s.length()>0) lines.set(lines.size()-1, s.substring(0,s.length()-1)); }
                               else if(c>=32) lines.set(lines.size()-1, lines.get(lines.size()-1)+c);
-                              if(lines.size()>30) lines.remove(0);
+                              if(lines.size()>25) lines.remove(0);
                           } else if(((ax>>8)&0xFF)==0) { lines.clear(); lines.add(""); }
                       }
                   }
-
                   void draw(Canvas c) {
                       c.drawColor(Color.BLACK); Paint p = new Paint(); p.setColor(Color.WHITE); p.setTextSize(22);
-                      p.setTypeface(Typeface.MONOSPACE); p.setAntiAlias(true);
+                      p.setTypeface(Typeface.MONOSPACE);
                       for(int i=0; i<lines.size(); i++) c.drawText(lines.get(i)+(i==lines.size()-1?"█":""), 15, 40+i*32, p);
                   }
               }
@@ -288,5 +279,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: TinyOS-v29-Stable
+          name: TinyOS-v30-Stable
           path: app/build/outputs/apk/debug/app-debug.apk
