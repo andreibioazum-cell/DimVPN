@@ -25,263 +25,129 @@ jobs:
               
               mov esi, msg
               call print
-              
               mov esi, prompt
               call print
           
-          main_loop:
+          main:
               xor ax, ax
               int 0x16
               
-              cmp al, 0x0D
-              je process_cmd
-              
-              cmp al, 0x08
-              je backspace
-              
-              mov [buffer], al
-              mov ah, 0x0E
-              int 0x10
-              inc byte [buf_len]
-              jmp main_loop
-          
-          backspace:
-              cmp byte [buf_len], 0
-              je main_loop
-              dec byte [buf_len]
-              mov al, 0x08
-              mov ah, 0x0E
-              int 0x10
-              mov al, ' '
-              int 0x10
-              mov al, 0x08
-              int 0x10
-              jmp main_loop
-          
-          process_cmd:
-              call newline
-              
-              mov al, [buffer]
-              cmp al, 'h'
-              je show_help
-              cmp al, 'c'
-              je clear_screen
               cmp al, '1'
-              je app_clock
+              je app1
               cmp al, '2'
-              je app_paint
-              cmp al, '3'
-              je app_snake
+              je app2
+              cmp al, 'c'
+              je clear
+              cmp al, 'h'
+              je help
               
               mov esi, unknown
               call print
-              jmp after_cmd
+              jmp main
           
-          show_help:
+          help:
               mov esi, help_msg
               call print
-              jmp after_cmd
+              jmp main
           
-          clear_screen:
+          clear:
               mov ax, 0x0003
               int 0x10
               mov ax, 0x0013
               int 0x10
               mov esi, prompt
               call print
-              jmp main_loop
+              jmp main
           
-          app_clock:
-              call clear_screen
+          app1:
+              call clear
               mov esi, clock_msg
               call print
-              mov dword [counter], 0
-          clock_loop:
-              call wait_short
-              inc dword [counter]
+              mov dword [count], 0
+          clock:
+              call delay
+              inc dword [count]
               
               mov ax, 0x1301
               mov bx, 0x000F
-              mov cx, 15
-              mov dx, 0x0A08
+              mov cx, 10
+              mov dx, 0x0A05
               push ds
               pop es
-              mov bp, time_text
+              mov bp, tick_msg
               int 0x10
               
-              mov eax, [counter]
+              mov eax, [count]
               call print_num
               
               xor ax, ax
               int 0x16
               cmp al, 'q'
-              je exit_app
-              jmp clock_loop
+              je back
+              jmp clock
           
-          app_paint:
-              call clear_screen
+          app2:
+              call clear
               mov esi, paint_msg
               call print
               mov byte [px], 160
               mov byte [py], 100
               mov byte [pcol], 15
-          paint_loop:
+          paint:
               xor ax, ax
               int 0x16
               
               cmp al, 'w'
-              je paint_up
+              je p_up
               cmp al, 's'
-              je paint_down
+              je p_down
               cmp al, 'a'
-              je paint_left
+              je p_left
               cmp al, 'd'
-              je paint_right
+              je p_right
               cmp al, 'c'
-              je paint_color
+              je p_col
               cmp al, 'q'
-              je exit_app
+              je back
               
-              call draw_pixel
-              jmp paint_loop
+              call draw
+              jmp paint
           
-          paint_up:
+          p_up:
               dec byte [py]
-              jmp paint_loop
-          paint_down:
+              jmp paint
+          p_down:
               inc byte [py]
-              jmp paint_loop
-          paint_left:
+              jmp paint
+          p_left:
               dec byte [px]
-              jmp paint_loop
-          paint_right:
+              jmp paint
+          p_right:
               inc byte [px]
-              jmp paint_loop
-          paint_color:
+              jmp paint
+          p_col:
               inc byte [pcol]
-              jmp paint_loop
+              jmp paint
           
-          draw_pixel:
+          draw:
               pusha
-              movzx eax, byte [py]
-              mov ebx, 320
-              mul ebx
-              movzx ecx, byte [px]
-              add eax, ecx
-              mov edi, 0xA0000
-              add edi, eax
               mov al, [pcol]
-              stosb
+              mov ah, [py]
+              mov bh, 320
+              mul bh
+              add al, [px]
+              adc ah, 0
+              mov bx, ax
+              mov byte [0xA0000 + bx], al
               popa
               ret
           
-          app_snake:
-              call clear_screen
-              mov esi, snake_msg
-              call print
-              mov byte [sx], 160
-              mov byte [sy], 100
-              mov byte [dx], 1
-              mov byte [dy], 0
-              mov byte [fx], 50
-              mov byte [fy], 50
-              mov dword [score], 0
-          
-          snake_loop:
-              xor ax, ax
-              int 0x16
-              
-              cmp al, 'w'
-              je snake_up
-              cmp al, 's'
-              je snake_down
-              cmp al, 'a'
-              je snake_left
-              cmp al, 'd'
-              je snake_right
-              cmp al, 'q'
-              je exit_app
-              
-              mov al, [dx]
-              add [sx], al
-              mov al, [dy]
-              add [sy], al
-              
-              call draw_food
-              call draw_snake
-              call show_score
-              call wait_short
-              jmp snake_loop
-          
-          snake_up:
-              mov byte [dx], 0
-              mov byte [dy], -1
-              jmp snake_loop
-          snake_down:
-              mov byte [dx], 0
-              mov byte [dy], 1
-              jmp snake_loop
-          snake_left:
-              mov byte [dx], -1
-              mov byte [dy], 0
-              jmp snake_loop
-          snake_right:
-              mov byte [dx], 1
-              mov byte [dy], 0
-              jmp snake_loop
-          
-          draw_food:
-              pusha
-              movzx eax, byte [fy]
-              mov ebx, 320
-              mul ebx
-              movzx ecx, byte [fx]
-              add eax, ecx
-              mov edi, 0xA0000
-              add edi, eax
-              mov al, 12
-              stosb
-              popa
-              ret
-          
-          draw_snake:
-              pusha
-              movzx eax, byte [sy]
-              mov ebx, 320
-              mul ebx
-              movzx ecx, byte [sx]
-              add eax, ecx
-              mov edi, 0xA0000
-              add edi, eax
-              mov al, 10
-              stosb
-              popa
-              ret
-          
-          show_score:
-              mov ax, 0x1301
-              mov bx, 0x000F
-              mov cx, 7
-              mov dx, 0x0000
-              push ds
-              pop es
-              mov bp, score_text
-              int 0x10
-              mov eax, [score]
-              call print_num
-              ret
-          
-          exit_app:
-              call clear_screen
+          back:
               mov ax, 0x0013
               int 0x10
-          
-          after_cmd:
-              mov byte [buffer], 0
-              mov byte [buf_len], 0
               mov esi, prompt
               call print
-              jmp main_loop
+              jmp main
           
           print_num:
               pusha
@@ -294,31 +160,23 @@ jobs:
               inc ebx
               test eax, eax
               jnz .div
-          .print:
+          .pr:
               pop ax
               add al, '0'
               mov ah, 0x0E
               int 0x10
               dec ebx
-              jnz .print
+              jnz .pr
               popa
               ret
           
-          wait_short:
+          delay:
               push ecx
-              mov ecx, 0x1FFFF
+              mov ecx, 0xFFFFF
           .wait:
               dec ecx
               jnz .wait
               pop ecx
-              ret
-          
-          newline:
-              mov al, 13
-              mov ah, 0x0E
-              int 0x10
-              mov al, 10
-              int 0x10
               ret
           
           print:
@@ -333,29 +191,18 @@ jobs:
           
           msg db 'TinyOS v1.0', 13, 10, 0
           prompt db 13,10,'> ',0
-          unknown db 'Unknown command',13,10,0
-          help_msg db 'Commands: h=help c=clear 1=clock 2=paint 3=snake',13,10,0
-          clock_msg db 'CLOCK - press Q to exit',13,10,0
-          paint_msg db 'PAINT - WASD move, C color, Q exit',13,10,0
-          snake_msg db 'SNAKE - WASD move, Q exit',13,10,0
-          time_text db 'Ticks: ',0
-          score_text db 'Score: ',0
+          unknown db '?',13,10,0
+          help_msg db '1=clock 2=paint c=clear h=help',13,10,0
+          clock_msg db 'CLOCK - Q=quit',13,10,0
+          paint_msg db 'PAINT - WASD C Q',13,10,0
+          tick_msg db 'Tick: ',0
           
-          buffer db 0
-          buf_len db 0
-          counter dd 0
+          count dd 0
           px db 160
           py db 100
           pcol db 15
-          sx db 160
-          sy db 100
-          dx db 1
-          dy db 0
-          fx db 50
-          fy db 50
-          score dd 0
           
-          times 8192-($-$$) db 0
+          times 5120-($-$$) db 0
           KERNEL
 
       - name: Build
@@ -365,7 +212,7 @@ jobs:
 
       - name: Test
         run: |
-          timeout 10 qemu-system-x86_64 -drive format=raw,file=tinyos.bin -nographic -no-reboot 2>/dev/null || true
+          timeout 8 qemu-system-x86_64 -drive format=raw,file=tinyos.bin -nographic -no-reboot 2>/dev/null || true
 
       - name: Upload
         uses: actions/upload-artifact@v4
