@@ -1,4 +1,4 @@
-name: Titan Archive APK Builder
+name: TinyOS App Platform
 on: [push, workflow_dispatch]
 
 permissions:
@@ -11,401 +11,766 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Create Android Project
+      - name: Install Tools
         run: |
-          mkdir -p app/src/main/java/com/titan/archiver
-          mkdir -p app/src/main/res/layout
-          mkdir -p app/src/main/res/values
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib nasm qemu-system-x86
 
-          echo "android.useAndroidX=true" > gradle.properties
-
-          cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.titan.archiver">
-            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-            <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
-            
-            <application android:allowBackup="false" android:theme="@style/AppTheme" 
-              android:requestLegacyExternalStorage="true"
-              android:usesCleartextTraffic="true">
-              <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop">
-                <intent-filter>
-                  <action android:name="android.intent.action.MAIN"/>
-                  <category android:name="android.intent.category.LAUNCHER"/>
-                </intent-filter>
-              </activity>
-            </application>
-          </manifest>
-          MANIFEST
-
-          cat > app/src/main/res/values/themes.xml << 'THEMES'
-          <resources>
-            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-              <item name="android:windowFullscreen">true</item>
-              <item name="android:windowNoTitle">true</item>
-            </style>
-          </resources>
-          THEMES
-
-          cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent" android:layout_height="match_parent"
-            android:orientation="vertical" android:background="#02050A" android:padding="20dp">
-            
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-              android:text="Titan Archiver" android:textSize="28sp" android:textColor="#00BFFF"
-              android:gravity="center" android:layout_marginTop="20dp"/>
-            
-            <TextView android:id="@+id/tv_permission" android:layout_width="match_parent"
-              android:layout_height="wrap_content" android:text="📁 Нажмите для запроса разрешений"
-              android:textColor="#FFD700" android:gravity="center" android:clickable="true"
-              android:focusable="true" android:background="#332200" android:padding="12dp"
-              android:layout_marginTop="15dp" android:textSize="13sp"/>
-            
-            <EditText android:id="@+id/et_path" android:layout_width="match_parent"
-              android:layout_height="wrap_content" android:hint="Пример: /sdcard/Download/file.mp3"
-              android:textColor="#FFF" android:textColorHint="#666" android:background="#222"
-              android:padding="14dp" android:layout_marginTop="25dp" android:textSize="12sp"/>
-            
-            <Button android:id="@+id/btn_compress" android:layout_width="match_parent"
-              android:layout_height="55dp" android:text="📦 Сжать"
-              android:textSize="16sp" android:background="#101820" android:textColor="#00BFFF"
-              android:layout_marginTop="20dp"/>
-            
-            <Button android:id="@+id/btn_decompress" android:layout_width="match_parent"
-              android:layout_height="55dp" android:text="📂 Распаковать"
-              android:textSize="16sp" android:background="#101820" android:textColor="#00BFFF"
-              android:layout_marginTop="10dp"/>
-            
-            <TextView android:id="@+id/tv_status" android:layout_width="match_parent"
-              android:layout_height="wrap_content" android:text="✅ Готов"
-              android:textColor="#44FF44" android:gravity="center"
-              android:layout_marginTop="30dp" android:textSize="12sp"/>
-            
-            <ProgressBar android:id="@+id/progress" android:layout_width="match_parent"
-              android:layout_height="3dp" android:layout_marginTop="10dp"
-              android:visibility="gone" style="?android:attr/progressBarStyleHorizontal"/>
-            
-          </LinearLayout>
-          LAYOUT
-
-          cat > app/src/main/java/com/titan/archiver/MainActivity.java << 'JAVA'
-          package com.titan.archiver;
-          
-          import android.Manifest;
-          import android.content.Intent;
-          import android.content.pm.PackageManager;
-          import android.net.Uri;
-          import android.os.Build;
-          import android.os.Bundle;
-          import android.os.Environment;
-          import android.os.Handler;
-          import android.os.Looper;
-          import android.provider.Settings;
-          import android.widget.Button;
-          import android.widget.EditText;
-          import android.widget.ProgressBar;
-          import android.widget.TextView;
-          import android.widget.Toast;
-          import androidx.appcompat.app.AppCompatActivity;
-          import androidx.core.app.ActivityCompat;
-          import androidx.core.content.ContextCompat;
-          import java.io.*;
-          import java.util.concurrent.ExecutorService;
-          import java.util.concurrent.Executors;
-          
-          public class MainActivity extends AppCompatActivity {
-              private EditText etPath;
-              private TextView tvStatus, tvPermission;
-              private ProgressBar progressBar;
-              private ExecutorService executor;
-              private Handler mainHandler;
-              private static final int PERMISSION_REQUEST = 100;
-              
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-                  
-                  etPath = findViewById(R.id.et_path);
-                  tvStatus = findViewById(R.id.tv_status);
-                  tvPermission = findViewById(R.id.tv_permission);
-                  progressBar = findViewById(R.id.progress);
-                  
-                  executor = Executors.newSingleThreadExecutor();
-                  mainHandler = new Handler(Looper.getMainLooper());
-                  
-                  findViewById(R.id.btn_compress).setOnClickListener(v -> startCompress());
-                  findViewById(R.id.btn_decompress).setOnClickListener(v -> startDecompress());
-                  tvPermission.setOnClickListener(v -> requestAllPermissions());
-                  
-                  checkPermissions();
-                  
-                  // Пример пути по умолчанию
-                  etPath.setText("/sdcard/Download/");
-              }
-              
-              private void checkPermissions() {
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                      if (Environment.isExternalStorageManager()) {
-                          tvPermission.setVisibility(android.view.View.GONE);
-                      } else {
-                          tvPermission.setVisibility(android.view.View.VISIBLE);
-                      }
-                  } else {
-                      if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                          tvPermission.setVisibility(android.view.View.GONE);
-                      } else {
-                          tvPermission.setVisibility(android.view.View.VISIBLE);
-                      }
-                  }
-              }
-              
-              private void requestAllPermissions() {
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                      try {
-                          Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                          intent.setData(Uri.parse("package:" + getPackageName()));
-                          startActivityForResult(intent, PERMISSION_REQUEST);
-                      } catch (Exception e) {
-                          Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                          startActivityForResult(intent, PERMISSION_REQUEST);
-                      }
-                  } else {
-                      ActivityCompat.requestPermissions(this, new String[]{
-                          Manifest.permission.READ_EXTERNAL_STORAGE,
-                          Manifest.permission.WRITE_EXTERNAL_STORAGE
-                      }, PERMISSION_REQUEST);
-                  }
-              }
-              
-              @Override
-              protected void onResume() {
-                  super.onResume();
-                  checkPermissions();
-              }
-              
-              private void startCompress() {
-                  String path = etPath.getText().toString().trim();
-                  if (path.isEmpty()) {
-                      Toast.makeText(this, "Введите путь к файлу", Toast.LENGTH_SHORT).show();
-                      return;
-                  }
-                  
-                  File file = new File(path);
-                  if (!file.exists()) {
-                      Toast.makeText(this, "Файл не найден: " + path, Toast.LENGTH_LONG).show();
-                      return;
-                  }
-                  
-                  if (file.isDirectory()) {
-                      Toast.makeText(this, "Это папка, выберите файл", Toast.LENGTH_LONG).show();
-                      return;
-                  }
-                  
-                  progressBar.setVisibility(android.view.View.VISIBLE);
-                  tvStatus.setText("⏳ Сжатие...");
-                  
-                  executor.execute(() -> {
-                      try {
-                          byte[] data = readFile(file);
-                          byte[] compressed = compressData(data);
-                          File archive = new File(path + ".titz");
-                          writeFile(archive, compressed);
-                          
-                          // Удаляем оригинал в отдельном потоке
-                          boolean deleted = file.delete();
-                          
-                          mainHandler.post(() -> {
-                              progressBar.setVisibility(android.view.View.GONE);
-                              if (deleted) {
-                                  tvStatus.setText("✅ Сжато! " + compressed.length + " байт (" + 
-                                      (compressed.length * 100 / data.length) + "%)");
-                                  Toast.makeText(MainActivity.this, "Оригинал удалён", Toast.LENGTH_SHORT).show();
-                              } else {
-                                  tvStatus.setText("⚠️ Сжато, но оригинал не удалён");
-                              }
-                          });
-                      } catch (Exception e) {
-                          mainHandler.post(() -> {
-                              progressBar.setVisibility(android.view.View.GONE);
-                              tvStatus.setText("❌ Ошибка: " + e.getMessage());
-                              Toast.makeText(MainActivity.this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                          });
-                      }
-                  });
-              }
-              
-              private void startDecompress() {
-                  String path = etPath.getText().toString().trim();
-                  if (!path.endsWith(".titz")) {
-                      Toast.makeText(this, "Нужен .titz файл", Toast.LENGTH_SHORT).show();
-                      return;
-                  }
-                  
-                  File file = new File(path);
-                  if (!file.exists()) {
-                      Toast.makeText(this, "Файл не найден", Toast.LENGTH_SHORT).show();
-                      return;
-                  }
-                  
-                  progressBar.setVisibility(android.view.View.VISIBLE);
-                  tvStatus.setText("⏳ Распаковка...");
-                  
-                  executor.execute(() -> {
-                      try {
-                          byte[] data = readFile(file);
-                          byte[] decompressed = decompressData(data);
-                          String outPath = path.substring(0, path.length() - 5);
-                          writeFile(new File(outPath), decompressed);
-                          boolean deleted = file.delete();
-                          
-                          mainHandler.post(() -> {
-                              progressBar.setVisibility(android.view.View.GONE);
-                              if (deleted) {
-                                  tvStatus.setText("✅ Распаковано! " + decompressed.length + " байт");
-                                  Toast.makeText(MainActivity.this, "Архив удалён", Toast.LENGTH_SHORT).show();
-                              } else {
-                                  tvStatus.setText("⚠️ Распаковано, но архив не удалён");
-                              }
-                          });
-                      } catch (Exception e) {
-                          mainHandler.post(() -> {
-                              progressBar.setVisibility(android.view.View.GONE);
-                              tvStatus.setText("❌ Ошибка: " + e.getMessage());
-                          });
-                      }
-                  });
-              }
-              
-              private byte[] compressData(byte[] data) {
-                  ByteArrayOutputStream out = new ByteArrayOutputStream();
-                  int i = 0;
-                  
-                  while (i < data.length) {
-                      int matchPos = -1, matchLen = 0;
-                      int start = Math.max(0, i - 4096);
-                      
-                      for (int j = start; j < i; j++) {
-                          if (data[j] == data[i]) {
-                              int len = 0;
-                              while (i + len < data.length && j + len < i && 
-                                     data[j + len] == data[i + len] && len < 255) {
-                                  len++;
-                              }
-                              if (len > matchLen) {
-                                  matchLen = len;
-                                  matchPos = i - j;
-                              }
-                          }
-                      }
-                      
-                      if (matchLen >= 3) {
-                          out.write(0x80 | (matchLen - 3));
-                          out.write(matchPos & 0xFF);
-                          out.write((matchPos >> 8) & 0xFF);
-                          i += matchLen;
-                      } else {
-                          out.write(data[i]);
-                          i++;
-                      }
-                  }
-                  return out.toByteArray();
-              }
-              
-              private byte[] decompressData(byte[] data) {
-                  ByteArrayOutputStream out = new ByteArrayOutputStream();
-                  int i = 0;
-                  
-                  while (i < data.length) {
-                      if ((data[i] & 0x80) != 0) {
-                          int matchLen = (data[i] & 0x7F) + 3;
-                          i++;
-                          if (i + 1 >= data.length) break;
-                          int matchPos = (data[i] & 0xFF) | ((data[i+1] & 0xFF) << 8);
-                          i += 2;
-                          
-                          byte[] result = out.toByteArray();
-                          int start = result.length - matchPos;
-                          for (int j = 0; j < matchLen && start + j < result.length; j++) {
-                              out.write(result[start + j]);
-                          }
-                      } else {
-                          out.write(data[i]);
-                          i++;
-                      }
-                  }
-                  return out.toByteArray();
-              }
-              
-              private byte[] readFile(File file) throws IOException {
-                  byte[] data = new byte[(int) file.length()];
-                  FileInputStream fis = new FileInputStream(file);
-                  fis.read(data);
-                  fis.close();
-                  return data;
-              }
-              
-              private void writeFile(File file, byte[] data) throws IOException {
-                  FileOutputStream fos = new FileOutputStream(file);
-                  fos.write(data);
-                  fos.close();
-              }
-          }
-          JAVA
-
-          echo "include ':app'" > settings.gradle
-          
-          cat > build.gradle << 'EOF'
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
-          }
-          allprojects { repositories { google(); mavenCentral() } }
-          EOF
-          
-          cat > app/build.gradle << 'EOF'
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.titan.archiver'
-              compileSdk 34
-              defaultConfig {
-                  applicationId 'com.titan.archiver'
-                  minSdk 21
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_1_8
-                  targetCompatibility JavaVersion.VERSION_1_8
-              }
-          }
-          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
-          EOF
-
-      - name: Build APK
+      - name: Build Kernel with App Support
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
-          unzip -q gradle-8.5-bin.zip
-          export PATH="$PWD/gradle-8.5/bin:$PATH"
-          gradle wrapper --gradle-version 8.5
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          cat > kernel.asm << 'KERNEL'
+          [bits 32]
+          [org 0x10000]
+          
+          ; ============== СИСТЕМНЫЕ ВЫЗОВЫ (API) ==============
+          ; Номер вызова в AH:
+          ; 0x01 - print_string
+          ; 0x02 - print_int
+          ; 0x03 - put_pixel
+          ; 0x04 - draw_rect
+          ; 0x05 - get_key
+          ; 0x06 - sleep
+          ; 0x07 - exec_app
+          ; 0x08 - exit
+          
+          syscall_handler:
+              cmp ah, 0x01
+              je sys_print_string
+              cmp ah, 0x02
+              je sys_print_int
+              cmp ah, 0x03
+              je sys_put_pixel
+              cmp ah, 0x04
+              je sys_draw_rect
+              cmp ah, 0x05
+              je sys_get_key
+              cmp ah, 0x06
+              je sys_sleep
+              cmp ah, 0x07
+              je sys_exec_app
+              cmp ah, 0x08
+              je sys_exit
+              iret
+          
+          sys_print_string:
+              push es
+              push ds
+              pop es
+              mov bp, ebx
+              mov cx, 0xFFFF
+              mov ax, 0x1301
+              mov bx, 0x000F
+              int 0x10
+              pop es
+              iret
+          
+          sys_print_int:
+              push eax
+              push ebx
+              push ecx
+              mov eax, ebx
+              mov ebx, 10
+              xor ecx, ecx
+          .div_loop:
+              xor edx, edx
+              div ebx
+              push dx
+              inc ecx
+              test eax, eax
+              jnz .div_loop
+          .print_loop:
+              pop ax
+              add al, '0'
+              mov ah, 0x0E
+              int 0x10
+              loop .print_loop
+              pop ecx
+              pop ebx
+              pop eax
+              iret
+          
+          sys_put_pixel:
+              mov edi, 0xA0000
+              add edi, ebx
+              mov al, cl
+              stosb
+              iret
+          
+          sys_draw_rect:
+              pusha
+              mov ecx, edx
+          .rect_y:
+              push ecx
+              mov ebp, ebx
+              mov ecx, esi
+          .rect_x:
+              mov edi, 0xA0000
+              add edi, ebp
+              add edi, ecx
+              mov al, [color]
+              stosb
+              dec ecx
+              jnz .rect_x
+              pop ecx
+              add ebx, 320
+              dec ecx
+              jnz .rect_y
+              popa
+              iret
+          
+          sys_get_key:
+              xor ax, ax
+              int 0x16
+              mov eax, ebx
+              mov [ebx], al
+              iret
+          
+          sys_sleep:
+              push eax
+              push ecx
+              mov ecx, ebx
+              xor eax, eax
+          .delay:
+              inc eax
+              cmp eax, 0xFFFFF
+              jne .delay
+              loop .delay
+              pop ecx
+              pop eax
+              iret
+          
+          sys_exec_app:
+              pusha
+              ; Загрузка программы
+              mov esi, ebx
+              mov edi, 0x20000
+          .load:
+              lodsb
+              stosb
+              cmp al, 0
+              jnz .load
+              jmp 0x20000
+              popa
+              iret
+          
+          sys_exit:
+              mov word [current_app], 0
+              iret
+          
+          ; ============== ЯДРО ==============
+          start:
+              mov ax, 0x0013
+              int 0x10
+              
+              call draw_desktop
+              
+              mov esi, welcome_msg
+              call print_string
+              
+              call load_apps
+              
+              jmp shell_start
+          
+          draw_desktop:
+              ; Фон
+              mov ecx, 200
+          .sky:
+              push ecx
+              mov ecx, 320
+          .horizon:
+              mov eax, ecx
+              mov ebx, 320
+              xor edx, edx
+              div ebx
+              add al, 16
+              push ecx
+              mov ebx, [offset]
+              add ebx, ecx
+              mov edi, 0xA0000
+              add edi, ebx
+              stosb
+              pop ecx
+              loop .horizon
+              add dword [offset], 320
+              pop ecx
+              loop .sky
+              
+              ; Трава
+              mov ecx, 60
+          .ground:
+              push ecx
+              mov ecx, 320
+          .ground_row:
+              mov ebx, [offset2]
+              add ebx, ecx
+              mov edi, 0xA0000
+              add edi, ebx
+              mov al, 0x02
+              stosb
+              loop .ground_row
+              add dword [offset2], 320
+              pop ecx
+              loop .ground
+              ret
+          
+          load_apps:
+              mov esi, app1_data
+              mov edi, app1_start
+              call copy_app
+              
+              mov esi, app2_data
+              mov edi, app2_start
+              call copy_app
+              
+              mov esi, app3_data
+              mov edi, app3_start
+              call copy_app
+              ret
+          
+          copy_app:
+          .loop:
+              lodsb
+              stosb
+              cmp al, 0
+              jnz .loop
+              ret
+          
+          ; ============== ОБОЛОЧКА ==============
+          shell_start:
+              call draw_shell
+          
+          shell_loop:
+              mov esi, prompt
+              call print_string
+              
+              mov edi, cmd_buffer
+              xor ebx, ebx
+          
+          read_cmd:
+              xor ax, ax
+              int 0x16
+              
+              cmp al, 0x0D
+              je exec_cmd
+              
+              cmp al, 0x08
+              je backspace
+              
+              mov [edi + ebx], al
+              inc ebx
+              mov ah, 0x0E
+              int 0x10
+              jmp read_cmd
+          
+          backspace:
+              cmp ebx, 0
+              je read_cmd
+              dec ebx
+              mov al, 0x08
+              mov ah, 0x0E
+              int 0x10
+              mov al, ' '
+              int 0x10
+              mov al, 0x08
+              int 0x10
+              jmp read_cmd
+          
+          exec_cmd:
+              call newline
+              mov byte [edi + ebx], 0
+              
+              mov esi, cmd_buffer
+              
+              mov edi, cmd_run
+              call strcmp
+              cmp eax, 1
+              je run_app
+              
+              mov edi, cmd_ls
+              call strcmp
+              cmp eax, 1
+              je list_apps
+              
+              mov edi, cmd_help
+              call strcmp
+              cmp eax, 1
+              je show_help
+              
+              mov edi, cmd_clear
+              call strcmp
+              cmp eax, 1
+              je clear_screen
+              
+              mov esi, unknown_msg
+              call print_string
+              
+          shell_cont:
+              jmp shell_loop
+          
+          run_app:
+              mov esi, cmd_buffer
+              add esi, 4
+              
+              mov edi, app1_name
+              call strcmp
+              cmp eax, 1
+              je start_app1
+              
+              mov edi, app2_name
+              call strcmp
+              cmp eax, 1
+              je start_app2
+              
+              mov edi, app3_name
+              call strcmp
+              cmp eax, 1
+              je start_app3
+              
+              mov esi, app_not_found
+              call print_string
+              jmp shell_cont
+          
+          start_app1:
+              call clear_screen
+              jmp app1_start
+          
+          start_app2:
+              call clear_screen
+              jmp app2_start
+          
+          start_app3:
+              call clear_screen
+              jmp app3_start
+          
+          list_apps:
+              mov esi, app_list
+              call print_string
+              jmp shell_cont
+          
+          show_help:
+              mov esi, help_msg
+              call print_string
+              jmp shell_cont
+          
+          clear_screen:
+              mov ax, 0x0003
+              int 0x10
+              mov ax, 0x0013
+              int 0x10
+              call draw_desktop
+              ret
+          
+          draw_shell:
+              mov ax, 0x1301
+              mov bx, 0x000F
+              mov cx, 30
+              mov dx, 0x1700
+              push ds
+              pop es
+              mov bp, shell_bar
+              int 0x10
+              ret
+          
+          ; ============== ПРИЛОЖЕНИЕ 1: Часы ==============
+          app1_start:
+              mov esi, app1_title
+              call print_string
+              
+              mov dword [counter], 0
+          clock_loop:
+              mov ah, 0x06
+              mov ebx, 50
+              call syscall_handler
+              
+              mov ax, 0x1301
+              mov bx, 0x000F
+              mov cx, 15
+              mov dx, 0x0A08
+              push ds
+              pop es
+              mov bp, time_msg
+              int 0x10
+              
+              inc dword [counter]
+              mov ebx, [counter]
+              mov ah, 0x02
+              call syscall_handler
+              
+              mov ah, 0x05
+              mov ebx, key_buffer
+              call syscall_handler
+              
+              cmp byte [key_buffer], 'q'
+              je exit_app1
+              cmp byte [key_buffer], 'r'
+              je refresh_clock
+              
+              jmp clock_loop
+          
+          refresh_clock:
+              mov dword [counter], 0
+              jmp clock_loop
+          
+          exit_app1:
+              call clear_screen
+              call draw_desktop
+              jmp shell_cont
+          
+          ; ============== ПРИЛОЖЕНИЕ 2: Графический редактор ==============
+          app2_start:
+              mov esi, app2_title
+              call print_string
+              
+              mov dword [pen_x], 160
+              mov dword [pen_y], 100
+              mov byte [pen_color], 0x0F
+          
+          editor_loop:
+              mov ah, 0x05
+              mov ebx, key_buffer
+              call syscall_handler
+              
+              mov al, [key_buffer]
+              
+              cmp al, 'w'
+              je move_up
+              cmp al, 's'
+              je move_down
+              cmp al, 'a'
+              je move_left
+              cmp al, 'd'
+              je move_right
+              cmp al, 'c'
+              je change_color
+              cmp al, 'q'
+              je exit_app2
+              
+              ; Рисование
+              mov ebx, [pen_y]
+              imul ebx, 320
+              add ebx, [pen_x]
+              mov cl, [pen_color]
+              mov ah, 0x03
+              call syscall_handler
+              
+              jmp editor_loop
+          
+          move_up:
+              sub dword [pen_y], 1
+              cmp dword [pen_y], 0
+              jge editor_loop
+              mov dword [pen_y], 0
+              jmp editor_loop
+          
+          move_down:
+              add dword [pen_y], 1
+              cmp dword [pen_y], 199
+              jle editor_loop
+              mov dword [pen_y], 199
+              jmp editor_loop
+          
+          move_left:
+              sub dword [pen_x], 1
+              cmp dword [pen_x], 0
+              jge editor_loop
+              mov dword [pen_x], 0
+              jmp editor_loop
+          
+          move_right:
+              add dword [pen_x], 1
+              cmp dword [pen_x], 319
+              jle editor_loop
+              mov dword [pen_x], 319
+              jmp editor_loop
+          
+          change_color:
+              inc byte [pen_color]
+              cmp byte [pen_color], 0xFF
+              jne editor_loop
+              mov byte [pen_color], 0
+              jmp editor_loop
+          
+          exit_app2:
+              call clear_screen
+              call draw_desktop
+              jmp shell_cont
+          
+          ; ============== ПРИЛОЖЕНИЕ 3: Игра Змейка ==============
+          app3_start:
+              mov esi, app3_title
+              call print_string
+              
+              ; Инициализация змейки
+              mov dword [snake_x], 160
+              mov dword [snake_y], 100
+              mov dword [dir_x], 1
+              mov dword [dir_y], 0
+              mov dword [food_x], 50
+              mov dword [food_y], 50
+              mov dword [score], 0
+          
+          snake_loop:
+              ; Управление
+              mov ah, 0x05
+              mov ebx, key_buffer
+              call syscall_handler
+              
+              mov al, [key_buffer]
+              cmp al, 'w'
+              je set_up
+              cmp al, 's'
+              je set_down
+              cmp al, 'a'
+              je set_left
+              cmp al, 'd'
+              je set_right
+              cmp al, 'q'
+              je exit_app3
+              
+              ; Движение
+              add dword [snake_x], [dir_x]
+              add dword [snake_y], [dir_y]
+              
+              ; Проверка границ
+              cmp dword [snake_x], 0
+              jl snake_die
+              cmp dword [snake_x], 319
+              jg snake_die
+              cmp dword [snake_y], 0
+              jl snake_die
+              cmp dword [snake_y], 199
+              jg snake_die
+              
+              ; Рисование еды
+              mov ebx, [food_y]
+              imul ebx, 320
+              add ebx, [food_x]
+              mov cl, 0x0C
+              mov ah, 0x03
+              call syscall_handler
+              
+              ; Проверка съедания
+              mov eax, [snake_x]
+              cmp eax, [food_x]
+              jne check_eat
+              mov eax, [snake_y]
+              cmp eax, [food_y]
+              jne check_eat
+              
+              inc dword [score]
+              call random_food
+              
+          check_eat:
+              ; Рисование змейки
+              mov ebx, [snake_y]
+              imul ebx, 320
+              add ebx, [snake_x]
+              mov cl, 0x0A
+              mov ah, 0x03
+              call syscall_handler
+              
+              ; Показать счёт
+              mov ax, 0x1301
+              mov bx, 0x000F
+              mov cx, 7
+              mov dx, 0x0000
+              push ds
+              pop es
+              mov bp, score_text
+              int 0x10
+              
+              mov ebx, [score]
+              mov ah, 0x02
+              call syscall_handler
+              
+              mov ah, 0x06
+              mov ebx, 30
+              call syscall_handler
+              
+              jmp snake_loop
+          
+          set_up:
+              mov dword [dir_x], 0
+              mov dword [dir_y], -1
+              jmp snake_loop
+          
+          set_down:
+              mov dword [dir_x], 0
+              mov dword [dir_y], 1
+              jmp snake_loop
+          
+          set_left:
+              mov dword [dir_x], -1
+              mov dword [dir_y], 0
+              jmp snake_loop
+          
+          set_right:
+              mov dword [dir_x], 1
+              mov dword [dir_y], 0
+              jmp snake_loop
+          
+          snake_die:
+              mov esi, game_over_msg
+              call print_string
+              mov ah, 0x06
+              mov ebx, 100
+              call syscall_handler
+              jmp exit_app3
+          
+          random_food:
+              push eax
+              push ebx
+              in al, 0x40
+              xor ah, ah
+              mov ebx, 300
+              xor edx, edx
+              div ebx
+              mov [food_x], dx
+              in al, 0x40
+              xor ah, ah
+              mov ebx, 180
+              xor edx, edx
+              div ebx
+              mov [food_y], dx
+              pop ebx
+              pop eax
+              ret
+          
+          exit_app3:
+              call clear_screen
+              call draw_desktop
+              jmp shell_cont
+          
+          ; ============== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==============
+          print_string:
+              lodsb
+              or al, al
+              jz .done
+              mov ah, 0x0E
+              int 0x10
+              jmp print_string
+          .done:
+              ret
+          
+          newline:
+              mov al, 13
+              mov ah, 0x0E
+              int 0x10
+              mov al, 10
+              int 0x10
+              ret
+          
+          strcmp:
+              push esi
+              push edi
+          .loop:
+              mov al, [esi]
+              mov bl, [edi]
+              cmp al, bl
+              jne .not_equal
+              cmp al, 0
+              je .equal
+              inc esi
+              inc edi
+              jmp .loop
+          .equal:
+              pop edi
+              pop esi
+              mov eax, 1
+              ret
+          .not_equal:
+              pop edi
+              pop esi
+              mov eax, 0
+              ret
+          
+          ; ============== ДАННЫЕ ==============
+          welcome_msg db 13,10,'TinyOS App Platform v4.0',13,10,'Type "help" for commands',13,10,0
+          prompt db 13,10,'tinyos> ',0
+          unknown_msg db 'Command not found',13,10,0
+          app_not_found db 'App not found',13,10,0
+          
+          cmd_run db 'run',0
+          cmd_ls db 'ls',0
+          cmd_help db 'help',0
+          cmd_clear db 'clear',0
+          
+          app1_name db 'clock',0
+          app2_name db 'paint',0
+          app3_name db 'snake',0
+          
+          app_list db 'Available apps:',13,10
+                    db '  clock - Digital clock',13,10
+                    db '  paint - Drawing app (WASD + C)',13,10
+                    db '  snake - Snake game',13,10,0
+          
+          help_msg db 'Commands:',13,10
+                    db '  run <app> - Start application',13,10
+                    db '  ls         - List apps',13,10
+                    db '  clear      - Clear screen',13,10
+                    db '  help       - Show help',13,10
+                    db '',13,10
+                    db 'Press Q to exit app',13,10,0
+          
+          shell_bar db 'TinyOS - App Platform',0
+          app1_title db 13,10,'=== Clock App ===',13,10,'Press R to reset, Q to quit',13,10,0
+          app2_title db 13,10,'=== Paint App ===',13,10,'WASD to move, C to change color, Q to quit',13,10,0
+          app3_title db 13,10,'=== Snake Game ===',13,10,'WASD to move, Q to quit',13,10,0
+          
+          time_msg db 'Ticks: ',0
+          score_text db 'Score: ',0
+          game_over_msg db 13,10,'GAME OVER!',13,10,0
+          
+          offset dd 0
+          offset2 dd 19200
+          
+          key_buffer db 0
+          counter dd 0
+          pen_x dd 0
+          pen_y dd 0
+          pen_color db 0
+          snake_x dd 0
+          snake_y dd 0
+          dir_x dd 0
+          dir_y dd 0
+          food_x dd 0
+          food_y dd 0
+          score dd 0
+          
+          cmd_buffer times 64 db 0
+          
+          ; Приложения (бинарные данные)
+          app1_data:
+              incbin "app_clock.bin"
+              db 0
+          app2_data:
+              incbin "app_paint.bin"
+              db 0
+          app3_data:
+              incbin "app_snake.bin"
+              db 0
+          
+          app1_start equ 0x20000
+          app2_start equ 0x21000
+          app3_start equ 0x22000
+          
+          times 32768-($-$$) db 0
+          KERNEL
 
-      - name: Upload APK
+      - name: Create App Binaries
+        run: |
+          # Просто заглушки для приложений (код уже в ядре)
+          echo > app_clock.bin
+          echo > app_paint.bin
+          echo > app_snake.bin
+
+      - name: Build
+        run: |
+          nasm -f bin kernel.asm -o tinyos.bin
+          truncate -s 1474560 tinyos.bin
+
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Titan-Archiver
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: TinyOS-Apps
+          path: tinyos.bin
