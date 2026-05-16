@@ -1,4 +1,4 @@
-name: TinyOS v26.1 Stable Build
+name: TinyOS v27 Full Logic Fix
 
 on: [push, workflow_dispatch]
 
@@ -16,7 +16,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y nasm
 
 # ==============================
-# СБОРКА ЯДРА (SHELL)
+# ИСПРАВЛЕННОЕ ЯДРО (ASM)
 # ==============================
       - name: Build OS Image
         run: |
@@ -24,6 +24,9 @@ jobs:
           [bits 16]
           [org 0x7c00]
           start:
+              mov ax, 0
+              mov ds, ax
+              mov es, ax
               mov ax, 0x0003
               int 0x10
               mov si, msg_welcome
@@ -34,55 +37,80 @@ jobs:
               mov di, buffer
               call get_string
               
+              ; Сравнение с 'help'
               mov si, buffer
               mov di, cmd_help
               call strcmp
-              jz .help
+              jz do_help
+              
+              ; Сравнение с 'cls'
               mov si, buffer
               mov di, cmd_cls
               call strcmp
               jz start
+
+              ; Если ввели что-то другое
               mov al, [buffer]
               or al, al
               jz shell
               mov si, msg_err
               call print
               jmp shell
-          .help:
-              mov si, msg_help
+
+          do_help:
+              mov si, msg_help_list
               call print
               jmp shell
+
           strcmp:
-          .l: mov al, [si]
+          .loop:
+              mov al, [si]
               mov bl, [di]
               cmp al, bl
-              jne .ne
-              or al, al
-              jz .e
+              jne .done
+              cmp al, 0
+              je .done
               inc si
               inc di
-              jmp .l
-          .e: mov al, 1
+              jmp .loop
+          .done:
               ret
-          .ne: mov al, 0
-              ret
+
           get_string:
               xor cx, cx
-          .l: mov ah, 0x00
+          .loop:
+              mov ah, 0x00
               int 0x16
               cmp al, 13
-              je .d
+              je .done
+              cmp al, 8
+              je .backspace
               mov [di], al
               inc di
+              inc cx
               mov ah, 0x0E
               int 0x10
-              jmp .l
-          .d: mov byte [di], 0
+              jmp .loop
+          .backspace:
+              jcxz .loop
+              dec di
+              dec cx
+              mov ah, 0x0E
+              mov al, 8
+              int 0x10
+              mov al, ' '
+              int 0x10
+              mov al, 8
+              int 0x10
+              jmp .loop
+          .done:
+              mov byte [di], 0
               mov al, 13
               int 0x10
               mov al, 10
               int 0x10
               ret
+
           print:
               lodsb
               or al, al
@@ -91,80 +119,57 @@ jobs:
               int 0x10
               jmp print
           .d: ret
-          msg_welcome db 'DimOS v26.1 Stable', 13, 10, 0
-          msg_prompt  db '~ $ ', 0
-          msg_help    db 'help, cls', 13, 10, 0
-          msg_err     db 'Error!', 13, 10, 0
-          cmd_help    db 'help', 0
-          cmd_cls     db 'cls', 0
-          buffer      times 32 db 0
+
+          msg_welcome   db 'Welcome to DimOS v27.1', 13, 10, 'Type "help" to start.', 13, 10, 0
+          msg_prompt    db '~ $ ', 0
+          msg_help_list db 'Commands: help, cls', 13, 10, 0
+          msg_err       db 'Command not found.', 13, 10, 0
+          cmd_help      db 'help', 0
+          cmd_cls       db 'cls', 0
+          buffer        times 32 db 0
           times 510-($-$$) db 0
           dw 0xAA55
           EOF
           nasm -f bin kernel.asm -o kernel.img
 
 # ==============================
-# СОЗДАНИЕ ПРОЕКТА
+# ANDROID ПРОЕКТ
 # ==============================
       - name: Create Project
         run: |
           mkdir -p app/src/main/java/com/tinyos/vm app/src/main/res/layout app/src/main/res/values app/src/main/assets
           cp kernel.img app/src/main/assets/kernel.img
-          
-          # Root Settings
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
-
-          # Root Build File (ИСПРАВЛЯЕТ ОШИБКУ PLUGINS)
           cat > build.gradle << 'EOF'
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
+          buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.2.2' } }
+          allprojects { repositories { google(); mavenCentral() } }
           EOF
-          
-          # App Build File
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
-          android {
-              namespace 'com.tinyos.vm'
-              compileSdk 34
-              defaultConfig { 
-                  applicationId "com.tinyos.vm"
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-          }
+          android { namespace 'com.tinyos.vm'; compileSdk 34; defaultConfig { applicationId "com.tinyos.vm"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" } }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
-
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tinyos.vm">
-              <application android:label="TinyOS Stable" android:theme="@style/Theme.AppCompat.NoActionBar">
+              <application android:label="DimOS" android:theme="@style/Theme.AppCompat.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
                       <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
                   </activity>
               </application>
           </manifest>
           EOF
-
           cat > app/src/main/res/layout/activity_main.xml << 'EOF'
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
               <SurfaceView android:id="@+id/s" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
               <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="#111" android:padding="5dp">
                   <EditText android:id="@+id/e" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" 
-                      android:hint="Command..." android:textColor="#FFF" android:background="#222" android:padding="10dp" android:textSize="14sp" />
-                  <Button android:id="@+id/b" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="RUN" />
+                      android:hint="Terminal..." android:textColor="#FFF" android:background="#222" android:padding="10dp" android:textSize="14sp" />
+                  <Button android:id="@+id/b" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SEND" />
               </LinearLayout>
           </LinearLayout>
           EOF
-
           cat > app/src/main/java/com/tinyos/vm/MainActivity.java << 'EOF'
           package com.tinyos.vm;
           import android.os.*;
@@ -184,14 +189,12 @@ jobs:
                   emu = new X86Emulator();
                   EditText et = findViewById(R.id.e);
                   Button btn = findViewById(R.id.b);
-                  
                   btn.setOnClickListener(v -> {
                       String cmd = et.getText().toString();
                       for (char c : cmd.toCharArray()) emu.keys.add(c);
                       emu.keys.add((char)13);
                       et.setText("");
                   });
-
                   SurfaceView sv = findViewById(R.id.s);
                   sv.getHolder().addCallback(new SurfaceHolder.Callback() {
                       public void surfaceCreated(SurfaceHolder h) {
@@ -200,7 +203,7 @@ jobs:
                                   for(int i=0; i<3000; i++) emu.step();
                                   Canvas c = h.lockCanvas();
                                   if(c!=null) { emu.draw(c); h.unlockCanvasAndPost(c); }
-                                  try { Thread.sleep(20); } catch(Exception ex) {}
+                                  try { Thread.sleep(16); } catch(Exception ex) {}
                               }
                           }).start();
                       }
@@ -208,72 +211,71 @@ jobs:
                       public void surfaceDestroyed(SurfaceHolder h) {}
                   });
               }
-
               class X86Emulator {
                   byte[] m = new byte[65536]; 
-                  int ax, si, di, ip=0x7C00, sp=0x9000;
+                  int ax, bx, si, di, ip=0x7C00, sp=0x9000;
                   boolean zf = false;
                   public Queue<Character> keys = new LinkedList<>();
                   List<String> lines = new ArrayList<>(Arrays.asList(""));
-
-                  X86Emulator() {
-                      try { InputStream is = getAssets().open("kernel.img"); is.read(m, 0x7C00, 512); } catch(Exception e){}
-                  }
-                  
+                  X86Emulator() { try { getAssets().open("kernel.img").read(m, 0x7C00, 512); } catch(Exception e){} }
                   void step() {
                       int op = m[ip] & 0xFF;
                       switch(op) {
                           case 0xB8: ax=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; break;
                           case 0xB4: ax=(ax&0xFF)|((m[ip+1]&0xFF)<<8); ip+=2; break;
                           case 0xB0: ax=(ax&0xFF00)|(m[ip+1]&0xFF); ip+=2; break;
+                          case 0xBB: bx=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; break;
                           case 0xBE: si=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; break;
-                          case 0xAC: ax=(ax&0xFF00)|(m[si]&0xFF); si++; ip++; break;
-                          case 0xE8: int r=ip+3; m[--sp]=(byte)(r>>8); m[--sp]=(byte)r; ip+=3+((short)((m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8))); break;
-                          case 0xC3: ip=(m[sp++]&0xFF)|((m[sp++]&0xFF)<<8); break;
-                          case 0xCD: handleInt(m[ip+1]&0xFF); ip+=2; break;
+                          case 0xBF: di=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; break;
+                          case 0x8A: // mov al, [si]
+                              if(m[ip+1]==(byte)0x04) { ax=(ax&0xFF00)|(m[si]&0xFF); ip+=2; }
+                              else if(m[ip+1]==(byte)0x05) { ax=(ax&0xFF00)|(m[di]&0xFF); ip+=2; } else ip++; break;
+                          case 0x38: // cmp al, bl
+                              if(m[ip+1]==(byte)0xD8) { zf=(ax&0xFF)==(bx&0xFF); ip+=2; } else ip++; break;
                           case 0x3C: zf=(ax&0xFF)==(m[ip+1]&0xFF); ip+=2; break;
+                          case 0xAC: ax=(ax&0xFF00)|(m[si]&0xFF); si++; ip++; break;
+                          case 0x46: si++; ip++; break;
+                          case 0x47: di++; ip++; break;
+                          case 0xE8: int r=ip+3; m[--sp]=(byte)(r>>8); m[--sp]=(byte)r; 
+                                     ip+=3+(short)((m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8)); break;
+                          case 0xC3: ip=(m[sp++]&0xFF)|((m[sp++]&0xFF)<<8); break;
                           case 0x74: if(zf) ip+=(byte)m[ip+1]+2; else ip+=2; break;
+                          case 0x75: if(!zf) ip+=(byte)m[ip+1]+2; else ip+=2; break;
+                          case 0xCD: handleInt(m[ip+1]&0xFF); ip+=2; break;
+                          case 0x08: if(m[ip+1]==(byte)0xC0) zf=(ax&0xFF)==0; ip+=2; break; // or al, al
                           default: ip++; break;
                       }
                   }
-
                   void handleInt(int n) {
                       if(n==0x10) {
                           if(((ax>>8)&0xFF)==0x0E) {
                               char c=(char)(ax&0xFF);
-                              if(c==13) lines.add(""); else if(c>=32) lines.set(lines.size()-1, lines.get(lines.size()-1)+c);
+                              if(c==13) lines.add(""); 
+                              else if(c==8) { String s=lines.get(lines.size()-1); if(s.length()>0) lines.set(lines.size()-1, s.substring(0,s.length()-1)); }
+                              else if(c>=32) lines.set(lines.size()-1, lines.get(lines.size()-1)+c);
                               if(lines.size()>25) lines.remove(0);
-                          } else { lines.clear(); lines.add(""); }
+                          } else if(((ax>>8)&0xFF)==0) { lines.clear(); lines.add(""); }
                       } else if(n==0x16) {
                           if(!keys.isEmpty()) ax=(ax&0xFF00)|keys.poll(); else ip-=2;
                       }
                   }
-
                   void draw(Canvas c) {
-                      c.drawColor(Color.BLACK); Paint p = new Paint(); p.setColor(Color.WHITE); p.setTextSize(24);
-                      p.setTypeface(Typeface.MONOSPACE);
-                      for(int i=0; i<lines.size(); i++) c.drawText(lines.get(i)+(i==lines.size()-1?"█":""), 20, 50+i*35, p);
+                      c.drawColor(Color.BLACK); Paint p = new Paint(); p.setColor(Color.WHITE); p.setTextSize(22);
+                      p.setTypeface(Typeface.MONOSPACE); p.setAntiAlias(true);
+                      for(int i=0; i<lines.size(); i++) c.drawText(lines.get(i)+(i==lines.size()-1?"█":""), 15, 40+i*32, p);
                   }
               }
           }
           EOF
 
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
       - name: Build APK
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
-          unzip -q gradle-8.5-bin.zip
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip && unzip -q gradle-8.5-bin.zip
           export PATH="$PWD/gradle-8.5/bin:$PATH"
-          gradle wrapper --gradle-version 8.5
-          ./gradlew assembleDebug
+          gradle wrapper --gradle-version 8.5 && ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: TinyOS-v26-Fixed
+          name: TinyOS-v27-Fixed
           path: app/build/outputs/apk/debug/app-debug.apk
