@@ -10,20 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-# ==============================
-# CHECKOUT
-# ==============================
       - uses: actions/checkout@v4
 
-# ==============================
-# SETUP ANDROID PROJECT
-# ==============================
-      - name: Setup Android
+      - name: Setup Android Project
         run: |
           mkdir -p app/src/main/java/com/titan/terminal
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/drawable
 
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
@@ -48,9 +41,6 @@ jobs:
                   versionCode 34
                   versionName "34.0"
               }
-              buildFeatures {
-                  viewBinding true
-              }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
@@ -62,8 +52,7 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application 
                   android:label="TitanOS Terminal"
-                  android:theme="@style/AppTheme"
-                  android:allowBackup="true">
+                  android:theme="@style/AppTheme">
                   <activity 
                       android:name=".MainActivity"
                       android:exported="true"
@@ -77,9 +66,8 @@ jobs:
           </manifest>
           EOF
 
-# ==============================
-# LAYOUTS
-# ==============================
+      - name: Create Layouts
+        run: |
           cat > app/src/main/res/layout/activity_main.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -93,8 +81,7 @@ jobs:
                   android:layout_width="match_parent"
                   android:layout_height="0dp"
                   android:layout_weight="1"
-                  android:padding="8dp"
-                  android:scrollbars="vertical">
+                  android:padding="8dp">
 
                   <TextView
                       android:id="@+id/terminalOutput"
@@ -102,8 +89,7 @@ jobs:
                       android:layout_height="wrap_content"
                       android:textColor="#00FF00"
                       android:fontFamily="monospace"
-                      android:textSize="12sp"
-                      android:lineSpacingExtra="2dp"/>
+                      android:textSize="12sp"/>
               </ScrollView>
 
               <LinearLayout
@@ -138,904 +124,523 @@ jobs:
           </LinearLayout>
           EOF
 
-# ==============================
-# STYLES
-# ==============================
+      - name: Create Styles
+        run: |
           cat > app/src/main/res/values/styles.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
                   <item name="android:windowBackground">@android:color/black</item>
                   <item name="android:statusBarColor">@android:color/black</item>
-                  <item name="android:navigationBarColor">@android:color/black</item>
               </style>
           </resources>
           EOF
 
-# ==============================
-# MAIN ACTIVITY
-# ==============================
-          cat > app/src/main/java/com/titan/terminal/MainActivity.java << 'JAVAEOF'
-package com.titan.terminal;
+      - name: Create MainActivity
+        run: |
+          cat > app/src/main/java/com/titan/terminal/MainActivity.java << 'EOF'
+          package com.titan.terminal;
 
-import android.os.Bundle;
-import android.view.KeyEvent;
-import android.view.inputmethod.EditorInfo;
-import android.widget.EditText;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import androidx.appcompat.app.AppCompatActivity;
+          import android.os.Bundle;
+          import android.view.KeyEvent;
+          import android.view.inputmethod.EditorInfo;
+          import android.widget.EditText;
+          import android.widget.ScrollView;
+          import android.widget.TextView;
+          import androidx.appcompat.app.AppCompatActivity;
 
-public class MainActivity extends AppCompatActivity {
+          public class MainActivity extends AppCompatActivity {
 
-    private TextView terminalOutput;
-    private EditText commandInput;
-    private ScrollView scrollView;
-    private TitanOS os;
+              private TextView terminalOutput;
+              private EditText commandInput;
+              private ScrollView scrollView;
+              private TitanOS os;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
 
-        terminalOutput = findViewById(R.id.terminalOutput);
-        commandInput = findViewById(R.id.commandInput);
-        scrollView = findViewById(R.id.scrollView);
+                  terminalOutput = findViewById(R.id.terminalOutput);
+                  commandInput = findViewById(R.id.commandInput);
+                  scrollView = findViewById(R.id.scrollView);
 
-        os = new TitanOS(this);
-        
-        showBootSequence();
+                  os = new TitanOS(this);
+                  
+                  showBootSequence();
 
-        commandInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE || 
-                (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-                executeCommand(commandInput.getText().toString());
-                commandInput.setText("");
-                return true;
-            }
-            return false;
-        });
-    }
+                  commandInput.setOnEditorActionListener((v, actionId, event) -> {
+                      if (actionId == EditorInfo.IME_ACTION_DONE || 
+                          (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                          executeCommand(commandInput.getText().toString());
+                          commandInput.setText("");
+                          return true;
+                      }
+                      return false;
+                  });
+              }
 
-    private void showBootSequence() {
-        os.terminal.print("╔══════════════════════════════════════════╗");
-        os.terminal.print("║         TitanOS Terminal v34.0           ║");
-        os.terminal.print("║      Advanced File System Edition        ║");
-        os.terminal.print("╚══════════════════════════════════════════╝");
-        os.terminal.print("");
-        os.terminal.print("Initializing system components...");
-        os.terminal.print("[OK] Virtual File System");
-        os.terminal.print("[OK] Application Manager");
-        os.terminal.print("[OK] Built-in Applications");
-        os.terminal.print("[OK] Terminal Shell");
-        os.terminal.print("");
-        os.terminal.print("Type 'help' for available commands");
-        os.terminal.print("Type 'apps' to see installed applications");
-        os.terminal.print("");
-    }
+              private void showBootSequence() {
+                  os.terminal.print("====================================");
+                  os.terminal.print("    TitanOS Terminal v34.0");
+                  os.terminal.print("  Advanced File System Edition");
+                  os.terminal.print("====================================");
+                  os.terminal.print("");
+                  os.terminal.print("Initializing system...");
+                  os.terminal.print("[OK] Virtual File System");
+                  os.terminal.print("[OK] Application Manager");
+                  os.terminal.print("[OK] Terminal Shell");
+                  os.terminal.print("");
+                  os.terminal.print("Type 'help' for commands");
+                  os.terminal.print("");
+              }
 
-    private void executeCommand(String cmd) {
-        if (cmd.trim().isEmpty()) return;
-        
-        os.terminal.print("$ " + cmd);
-        os.shell.execute(cmd);
-        
-        scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
-    }
+              private void executeCommand(String cmd) {
+                  if (cmd.trim().isEmpty()) return;
+                  
+                  os.terminal.print("$ " + cmd);
+                  os.shell.execute(cmd);
+                  
+                  scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
+              }
 
-    public void updateTerminal(String text) {
-        runOnUiThread(() -> {
-            terminalOutput.append(text + "\n");
-        });
-    }
-}
-JAVAEOF
+              public void updateTerminal(String text) {
+                  runOnUiThread(() -> terminalOutput.append(text + "\n"));
+              }
+          }
+          EOF
 
-# ==============================
-# TITAN OS CORE
-# ==============================
-          cat > app/src/main/java/com/titan/terminal/TitanOS.java << 'JAVAEOF'
-package com.titan.terminal;
+      - name: Create TitanOS Core
+        run: |
+          cat > app/src/main/java/com/titan/terminal/TitanOS.java << 'EOF'
+          package com.titan.terminal;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import java.util.*;
+          import android.content.Context;
+          import android.content.SharedPreferences;
+          import java.util.*;
 
-public class TitanOS {
-    
-    public Terminal terminal;
-    public FileSystem fs;
-    public Shell shell;
-    public AppManager appManager;
-    public Context context;
+          public class TitanOS {
+              
+              public Terminal terminal;
+              public FileSystem fs;
+              public Shell shell;
+              public AppManager appManager;
+              public Context context;
 
-    public TitanOS(MainActivity activity) {
-        this.context = activity;
-        this.terminal = new Terminal(activity);
-        this.fs = new FileSystem(activity);
-        this.appManager = new AppManager(this);
-        this.shell = new Shell(this);
-        
-        initializeSystem();
-    }
+              public TitanOS(MainActivity activity) {
+                  this.context = activity;
+                  this.terminal = new Terminal(activity);
+                  this.fs = new FileSystem(activity);
+                  this.appManager = new AppManager(this);
+                  this.shell = new Shell(this);
+                  
+                  initializeSystem();
+              }
 
-    private void initializeSystem() {
-        // Create default directories
-        fs.mkdir("/home");
-        fs.mkdir("/apps");
-        fs.mkdir("/system");
-        fs.mkdir("/tmp");
-        
-        // Create welcome file
-        if (!fs.exists("/home/welcome.txt")) {
-            fs.writeFile("/home/welcome.txt", 
-                "Welcome to TitanOS!\n\nThis is a full-featured terminal OS.\n" +
-                "Explore the file system and run applications.");
-        }
-        
-        // Install built-in apps
-        appManager.installBuiltInApps();
-    }
-}
+              private void initializeSystem() {
+                  fs.mkdir("/home");
+                  fs.mkdir("/apps");
+                  fs.mkdir("/system");
+                  
+                  if (!fs.exists("/home/welcome.txt")) {
+                      fs.writeFile("/home/welcome.txt", 
+                          "Welcome to TitanOS!\nFull-featured terminal OS.");
+                  }
+                  
+                  appManager.installBuiltInApps();
+              }
+          }
 
-// ==============================
-// TERMINAL
-// ==============================
-class Terminal {
-    private MainActivity activity;
-    
-    public Terminal(MainActivity activity) {
-        this.activity = activity;
-    }
-    
-    public void print(String text) {
-        activity.updateTerminal(text);
-    }
-    
-    public void error(String text) {
-        activity.updateTerminal("ERROR: " + text);
-    }
-    
-    public void success(String text) {
-        activity.updateTerminal("✓ " + text);
-    }
-}
+          class Terminal {
+              private MainActivity activity;
+              
+              public Terminal(MainActivity activity) {
+                  this.activity = activity;
+              }
+              
+              public void print(String text) {
+                  activity.updateTerminal(text);
+              }
+              
+              public void error(String text) {
+                  activity.updateTerminal("ERROR: " + text);
+              }
+              
+              public void success(String text) {
+                  activity.updateTerminal("[OK] " + text);
+              }
+          }
 
-// ==============================
-// FILE SYSTEM
-// ==============================
-class FileSystem {
-    private SharedPreferences prefs;
-    private Map<String, FSNode> nodes;
-    
-    public FileSystem(Context context) {
-        prefs = context.getSharedPreferences("titan_fs", Context.MODE_PRIVATE);
-        nodes = new HashMap<>();
-        loadFromStorage();
-    }
-    
-    private void loadFromStorage() {
-        Map<String, ?> all = prefs.getAll();
-        for (Map.Entry<String, ?> entry : all.entrySet()) {
-            String path = entry.getKey();
-            String data = entry.getValue().toString();
-            
-            if (data.startsWith("DIR:")) {
-                nodes.put(path, new FSNode(path, true));
-            } else {
-                nodes.put(path, new FSNode(path, false, data));
-            }
-        }
-    }
-    
-    private void saveToStorage() {
-        SharedPreferences.Editor editor = prefs.edit();
-        for (Map.Entry<String, FSNode> entry : nodes.entrySet()) {
-            if (entry.getValue().isDirectory) {
-                editor.putString(entry.getKey(), "DIR:");
-            } else {
-                editor.putString(entry.getKey(), entry.getValue().content);
-            }
-        }
-        editor.apply();
-    }
-    
-    public boolean exists(String path) {
-        return nodes.containsKey(path);
-    }
-    
-    public void mkdir(String path) {
-        if (!exists(path)) {
-            nodes.put(path, new FSNode(path, true));
-            saveToStorage();
-        }
-    }
-    
-    public void writeFile(String path, String content) {
-        nodes.put(path, new FSNode(path, false, content));
-        saveToStorage();
-    }
-    
-    public String readFile(String path) {
-        FSNode node = nodes.get(path);
-        return (node != null && !node.isDirectory) ? node.content : null;
-    }
-    
-    public void delete(String path) {
-        nodes.remove(path);
-        saveToStorage();
-    }
-    
-    public List<String> list(String dir) {
-        List<String> result = new ArrayList<>();
-        if (!dir.endsWith("/")) dir += "/";
-        
-        for (String path : nodes.keySet()) {
-            if (path.startsWith(dir) && !path.equals(dir)) {
-                String relative = path.substring(dir.length());
-                if (!relative.contains("/") || 
-                    (relative.indexOf("/") == relative.length() - 1)) {
-                    result.add(relative);
-                }
-            }
-        }
-        Collections.sort(result);
-        return result;
-    }
-    
-    public boolean isDirectory(String path) {
-        FSNode node = nodes.get(path);
-        return node != null && node.isDirectory;
-    }
-    
-    static class FSNode {
-        String path;
-        boolean isDirectory;
-        String content;
-        long created;
-        
-        FSNode(String path, boolean isDirectory) {
-            this(path, isDirectory, "");
-        }
-        
-        FSNode(String path, boolean isDirectory, String content) {
-            this.path = path;
-            this.isDirectory = isDirectory;
-            this.content = content;
-            this.created = System.currentTimeMillis();
-        }
-    }
-}
+          class FileSystem {
+              private SharedPreferences prefs;
+              private Map<String, FSNode> nodes;
+              
+              public FileSystem(Context context) {
+                  prefs = context.getSharedPreferences("titan_fs", Context.MODE_PRIVATE);
+                  nodes = new HashMap<>();
+                  loadFromStorage();
+              }
+              
+              private void loadFromStorage() {
+                  Map<String, ?> all = prefs.getAll();
+                  for (Map.Entry<String, ?> entry : all.entrySet()) {
+                      String path = entry.getKey();
+                      String data = entry.getValue().toString();
+                      
+                      if (data.startsWith("DIR:")) {
+                          nodes.put(path, new FSNode(path, true));
+                      } else {
+                          nodes.put(path, new FSNode(path, false, data));
+                      }
+                  }
+              }
+              
+              private void saveToStorage() {
+                  SharedPreferences.Editor editor = prefs.edit();
+                  for (Map.Entry<String, FSNode> entry : nodes.entrySet()) {
+                      if (entry.getValue().isDirectory) {
+                          editor.putString(entry.getKey(), "DIR:");
+                      } else {
+                          editor.putString(entry.getKey(), entry.getValue().content);
+                      }
+                  }
+                  editor.apply();
+              }
+              
+              public boolean exists(String path) {
+                  return nodes.containsKey(path);
+              }
+              
+              public void mkdir(String path) {
+                  if (!exists(path)) {
+                      nodes.put(path, new FSNode(path, true));
+                      saveToStorage();
+                  }
+              }
+              
+              public void writeFile(String path, String content) {
+                  nodes.put(path, new FSNode(path, false, content));
+                  saveToStorage();
+              }
+              
+              public String readFile(String path) {
+                  FSNode node = nodes.get(path);
+                  return (node != null && !node.isDirectory) ? node.content : null;
+              }
+              
+              public void delete(String path) {
+                  nodes.remove(path);
+                  saveToStorage();
+              }
+              
+              public List<String> list(String dir) {
+                  List<String> result = new ArrayList<>();
+                  if (!dir.endsWith("/")) dir += "/";
+                  
+                  for (String path : nodes.keySet()) {
+                      if (path.startsWith(dir) && !path.equals(dir)) {
+                          String relative = path.substring(dir.length());
+                          if (!relative.contains("/") || 
+                              (relative.indexOf("/") == relative.length() - 1)) {
+                              result.add(relative);
+                          }
+                      }
+                  }
+                  Collections.sort(result);
+                  return result;
+              }
+              
+              public boolean isDirectory(String path) {
+                  FSNode node = nodes.get(path);
+                  return node != null && node.isDirectory;
+              }
+              
+              static class FSNode {
+                  String path;
+                  boolean isDirectory;
+                  String content;
+                  
+                  FSNode(String path, boolean isDirectory) {
+                      this(path, isDirectory, "");
+                  }
+                  
+                  FSNode(String path, boolean isDirectory, String content) {
+                      this.path = path;
+                      this.isDirectory = isDirectory;
+                      this.content = content;
+                  }
+              }
+          }
+          EOF
 
-// ==============================
-// SHELL
-// ==============================
-class Shell {
-    private TitanOS os;
-    private String currentDir = "/";
-    
-    public Shell(TitanOS os) {
-        this.os = os;
-    }
-    
-    public void execute(String commandLine) {
-        String[] parts = commandLine.trim().split("\\s+");
-        if (parts.length == 0) return;
-        
-        String cmd = parts[0].toLowerCase();
-        String[] args = Arrays.copyOfRange(parts, 1, parts.length);
-        
-        switch (cmd) {
-            case "help":
-                showHelp();
-                break;
-            
-            case "clear":
-                // Will be handled by activity
-                break;
-            
-            case "ls":
-            case "dir":
-                listFiles(args);
-                break;
-            
-            case "cd":
-                changeDirectory(args);
-                break;
-            
-            case "pwd":
-                os.terminal.print(currentDir);
-                break;
-            
-            case "mkdir":
-                makeDirectory(args);
-                break;
-            
-            case "touch":
-                createFile(args);
-                break;
-            
-            case "cat":
-                showFile(args);
-                break;
-            
-            case "echo":
-                echo(args);
-                break;
-            
-            case "write":
-                writeFile(args);
-                break;
-            
-            case "rm":
-                removeFile(args);
-                break;
-            
-            case "apps":
-                os.appManager.listApps();
-                break;
-            
-            case "start":
-                startApp(args);
-                break;
-            
-            case "install":
-                installApp(args);
-                break;
-            
-            case "tree":
-                showTree();
-                break;
-            
-            case "sysinfo":
-                showSysInfo();
-                break;
-            
-            case "ps":
-                os.appManager.listRunning();
-                break;
-            
-            case "kill":
-                killApp(args);
-                break;
-            
-            default:
-                os.terminal.error("Unknown command: " + cmd);
-                os.terminal.print("Type 'help' for available commands");
-        }
-    }
-    
-    private void showHelp() {
-        os.terminal.print("");
-        os.terminal.print("═══════════════ AVAILABLE COMMANDS ═══════════════");
-        os.terminal.print("");
-        os.terminal.print("FILE SYSTEM:");
-        os.terminal.print("  ls, dir          - List files in directory");
-        os.terminal.print("  cd <path>        - Change directory");
-        os.terminal.print("  pwd              - Print working directory");
-        os.terminal.print("  mkdir <name>     - Create directory");
-        os.terminal.print("  touch <file>     - Create empty file");
-        os.terminal.print("  cat <file>       - Show file contents");
-        os.terminal.print("  write <file> <text> - Write to file");
-        os.terminal.print("  rm <file>        - Remove file");
-        os.terminal.print("  tree             - Show directory tree");
-        os.terminal.print("");
-        os.terminal.print("APPLICATIONS:");
-        os.terminal.print("  apps             - List installed apps");
-        os.terminal.print("  start <app>      - Start application");
-        os.terminal.print("  ps               - List running apps");
-        os.terminal.print("  kill <pid>       - Kill application");
-        os.terminal.print("");
-        os.terminal.print("SYSTEM:");
-        os.terminal.print("  sysinfo          - Show system information");
-        os.terminal.print("  echo <text>      - Print text");
-        os.terminal.print("  clear            - Clear screen");
-        os.terminal.print("  help             - Show this help");
-        os.terminal.print("");
-    }
-    
-    private void listFiles(String[] args) {
-        String dir = args.length > 0 ? args[0] : currentDir;
-        if (!dir.startsWith("/")) dir = currentDir + "/" + dir;
-        
-        List<String> files = os.fs.list(dir);
-        
-        if (files.isEmpty()) {
-            os.terminal.print("(empty directory)");
-        } else {
-            os.terminal.print("");
-            for (String file : files) {
-                String fullPath = dir + "/" + file;
-                if (os.fs.isDirectory(fullPath)) {
-                    os.terminal.print("  [DIR]  " + file);
-                } else {
-                    os.terminal.print("  [FILE] " + file);
-                }
-            }
-            os.terminal.print("");
-        }
-    }
-    
-    private void changeDirectory(String[] args) {
-        if (args.length == 0) {
-            currentDir = "/";
-            return;
-        }
-        
-        String newDir = args[0];
-        if (!newDir.startsWith("/")) {
-            newDir = currentDir + "/" + newDir;
-        }
-        
-        if (os.fs.exists(newDir) && os.fs.isDirectory(newDir)) {
-            currentDir = newDir;
-            os.terminal.success("Changed to " + currentDir);
-        } else {
-            os.terminal.error("Directory not found: " + newDir);
-        }
-    }
-    
-    private void makeDirectory(String[] args) {
-        if (args.length == 0) {
-            os.terminal.error("Usage: mkdir <directory>");
-            return;
-        }
-        
-        String path = args[0];
-        if (!path.startsWith("/")) path = currentDir + "/" + path;
-        
-        os.fs.mkdir(path);
-        os.terminal.success("Created directory: " + path);
-    }
-    
-    private void createFile(String[] args) {
-        if (args.length == 0) {
-            os.terminal.error("Usage: touch <file>");
-            return;
-        }
-        
-        String path = args[0];
-        if (!path.startsWith("/")) path = currentDir + "/" + path;
-        
-        os.fs.writeFile(path, "");
-        os.terminal.success("Created file: " + path);
-    }
-    
-    private void showFile(String[] args) {
-        if (args.length == 0) {
-            os.terminal.error("Usage: cat <file>");
-            return;
-        }
-        
-        String path = args[0];
-        if (!path.startsWith("/")) path = currentDir + "/" + path;
-        
-        String content = os.fs.readFile(path);
-        if (content != null) {
-            os.terminal.print("");
-            os.terminal.print(content);
-            os.terminal.print("");
-        } else {
-            os.terminal.error("File not found or is directory: " + path);
-        }
-    }
-    
-    private void echo(String[] args) {
-        os.terminal.print(String.join(" ", args));
-    }
-    
-    private void writeFile(String[] args) {
-        if (args.length < 2) {
-            os.terminal.error("Usage: write <file> <content>");
-            return;
-        }
-        
-        String path = args[0];
-        if (!path.startsWith("/")) path = currentDir + "/" + path;
-        
-        String content = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
-        os.fs.writeFile(path, content);
-        os.terminal.success("Written to " + path);
-    }
-    
-    private void removeFile(String[] args) {
-        if (args.length == 0) {
-            os.terminal.error("Usage: rm <file>");
-            return;
-        }
-        
-        String path = args[0];
-        if (!path.startsWith("/")) path = currentDir + "/" + path;
-        
-        os.fs.delete(path);
-        os.terminal.success("Removed: " + path);
-    }
-    
-    private void startApp(String[] args) {
-        if (args.length == 0) {
-            os.terminal.error("Usage: start <app>");
-            return;
-        }
-        
-        os.appManager.startApp(args[0]);
-    }
-    
-    private void installApp(String[] args) {
-        if (args.length == 0) {
-            os.terminal.error("Usage: install <app>");
-            return;
-        }
-        
-        os.terminal.print("Installing " + args[0] + "...");
-        os.terminal.success("App installed successfully");
-    }
-    
-    private void killApp(String[] args) {
-        if (args.length == 0) {
-            os.terminal.error("Usage: kill <pid>");
-            return;
-        }
-        
-        try {
-            int pid = Integer.parseInt(args[0]);
-            os.appManager.killApp(pid);
-        } catch (NumberFormatException e) {
-            os.terminal.error("Invalid PID");
-        }
-    }
-    
-    private void showTree() {
-        os.terminal.print("");
-        os.terminal.print("/");
-        showTreeRecursive("/", "");
-        os.terminal.print("");
-    }
-    
-    private void showTreeRecursive(String dir, String prefix) {
-        List<String> files = os.fs.list(dir);
-        for (int i = 0; i < files.size(); i++) {
-            boolean isLast = (i == files.size() - 1);
-            String file = files.get(i);
-            String fullPath = dir + "/" + file;
-            
-            os.terminal.print(prefix + (isLast ? "└── " : "├── ") + file);
-            
-            if (os.fs.isDirectory(fullPath)) {
-                showTreeRecursive(fullPath, prefix + (isLast ? "    " : "│   "));
-            }
-        }
-    }
-    
-    private void showSysInfo() {
-        os.terminal.print("");
-        os.terminal.print("═══════════ SYSTEM INFORMATION ═══════════");
-        os.terminal.print("OS: TitanOS Terminal Edition");
-        os.terminal.print("Version: 34.0");
-        os.terminal.print("Kernel: Linux-based Android");
-        os.terminal.print("Shell: TitanShell 1.0");
-        os.terminal.print("File System: TitanFS");
-        os.terminal.print("Apps Installed: " + os.appManager.apps.size());
-        os.terminal.print("Apps Running: " + os.appManager.running.size());
-        os.terminal.print("");
-    }
-}
-JAVAEOF
+      - name: Create Shell
+        run: |
+          cat > app/src/main/java/com/titan/terminal/Shell.java << 'EOF'
+          package com.titan.terminal;
 
-# ==============================
-# APP MANAGER
-# ==============================
-          cat > app/src/main/java/com/titan/terminal/AppManager.java << 'JAVAEOF'
-package com.titan.terminal;
+          import java.util.Arrays;
 
-import java.util.*;
+          public class Shell {
+              private TitanOS os;
+              private String currentDir = "/";
+              
+              public Shell(TitanOS os) {
+                  this.os = os;
+              }
+              
+              public void execute(String commandLine) {
+                  String[] parts = commandLine.trim().split("\\s+");
+                  if (parts.length == 0) return;
+                  
+                  String cmd = parts[0].toLowerCase();
+                  String[] args = Arrays.copyOfRange(parts, 1, parts.length);
+                  
+                  switch (cmd) {
+                      case "help": showHelp(); break;
+                      case "ls": listFiles(args); break;
+                      case "cd": changeDirectory(args); break;
+                      case "pwd": os.terminal.print(currentDir); break;
+                      case "mkdir": makeDirectory(args); break;
+                      case "touch": createFile(args); break;
+                      case "cat": showFile(args); break;
+                      case "write": writeFile(args); break;
+                      case "rm": removeFile(args); break;
+                      case "apps": os.appManager.listApps(); break;
+                      case "start": startApp(args); break;
+                      case "tree": showTree(); break;
+                      case "clear": break;
+                      default: os.terminal.error("Unknown: " + cmd);
+                  }
+              }
+              
+              private void showHelp() {
+                  os.terminal.print("");
+                  os.terminal.print("COMMANDS:");
+                  os.terminal.print("  ls         - list files");
+                  os.terminal.print("  cd <dir>   - change dir");
+                  os.terminal.print("  pwd        - current dir");
+                  os.terminal.print("  mkdir <d>  - create dir");
+                  os.terminal.print("  touch <f>  - create file");
+                  os.terminal.print("  cat <f>    - show file");
+                  os.terminal.print("  write <f> <text> - write");
+                  os.terminal.print("  rm <f>     - remove");
+                  os.terminal.print("  apps       - list apps");
+                  os.terminal.print("  start <a>  - run app");
+                  os.terminal.print("  tree       - show tree");
+                  os.terminal.print("");
+              }
+              
+              private void listFiles(String[] args) {
+                  String dir = args.length > 0 ? args[0] : currentDir;
+                  if (!dir.startsWith("/")) dir = currentDir + "/" + dir;
+                  
+                  for (String file : os.fs.list(dir)) {
+                      String fullPath = dir + "/" + file;
+                      String prefix = os.fs.isDirectory(fullPath) ? "[DIR] " : "[FILE]";
+                      os.terminal.print("  " + prefix + file);
+                  }
+              }
+              
+              private void changeDirectory(String[] args) {
+                  if (args.length == 0) { currentDir = "/"; return; }
+                  
+                  String newDir = args[0];
+                  if (!newDir.startsWith("/")) newDir = currentDir + "/" + newDir;
+                  
+                  if (os.fs.exists(newDir) && os.fs.isDirectory(newDir)) {
+                      currentDir = newDir;
+                      os.terminal.success("Changed to " + currentDir);
+                  } else {
+                      os.terminal.error("Not found: " + newDir);
+                  }
+              }
+              
+              private void makeDirectory(String[] args) {
+                  if (args.length == 0) return;
+                  String path = args[0];
+                  if (!path.startsWith("/")) path = currentDir + "/" + path;
+                  os.fs.mkdir(path);
+                  os.terminal.success("Created: " + path);
+              }
+              
+              private void createFile(String[] args) {
+                  if (args.length == 0) return;
+                  String path = args[0];
+                  if (!path.startsWith("/")) path = currentDir + "/" + path;
+                  os.fs.writeFile(path, "");
+                  os.terminal.success("Created: " + path);
+              }
+              
+              private void showFile(String[] args) {
+                  if (args.length == 0) return;
+                  String path = args[0];
+                  if (!path.startsWith("/")) path = currentDir + "/" + path;
+                  String content = os.fs.readFile(path);
+                  if (content != null) {
+                      os.terminal.print("");
+                      os.terminal.print(content);
+                      os.terminal.print("");
+                  } else {
+                      os.terminal.error("Not found: " + path);
+                  }
+              }
+              
+              private void writeFile(String[] args) {
+                  if (args.length < 2) return;
+                  String path = args[0];
+                  if (!path.startsWith("/")) path = currentDir + "/" + path;
+                  String content = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+                  os.fs.writeFile(path, content);
+                  os.terminal.success("Written: " + path);
+              }
+              
+              private void removeFile(String[] args) {
+                  if (args.length == 0) return;
+                  String path = args[0];
+                  if (!path.startsWith("/")) path = currentDir + "/" + path;
+                  os.fs.delete(path);
+                  os.terminal.success("Removed: " + path);
+              }
+              
+              private void startApp(String[] args) {
+                  if (args.length == 0) return;
+                  os.appManager.startApp(args[0]);
+              }
+              
+              private void showTree() {
+                  os.terminal.print("/");
+                  showTreeRec("/", "");
+              }
+              
+              private void showTreeRec(String dir, String prefix) {
+                  for (String file : os.fs.list(dir)) {
+                      String fullPath = dir + "/" + file;
+                      os.terminal.print(prefix + "  " + file);
+                      if (os.fs.isDirectory(fullPath)) {
+                          showTreeRec(fullPath, prefix + "  ");
+                      }
+                  }
+              }
+          }
+          EOF
 
-public class AppManager {
-    
-    TitanOS os;
-    Map<String, Application> apps = new HashMap<>();
-    Map<Integer, Application> running = new HashMap<>();
-    int nextPid = 1000;
-    
-    public AppManager(TitanOS os) {
-        this.os = os;
-    }
-    
-    public void installBuiltInApps() {
-        apps.put("filemanager", new FileManagerApp(os));
-        apps.put("editor", new TextEditorApp(os));
-        apps.put("calc", new CalculatorApp(os));
-        apps.put("sysmon", new SystemMonitorApp(os));
-    }
-    
-    public void listApps() {
-        os.terminal.print("");
-        os.terminal.print("═══════════ INSTALLED APPLICATIONS ═══════════");
-        os.terminal.print("");
-        
-        for (Map.Entry<String, Application> entry : apps.entrySet()) {
-            Application app = entry.getValue();
-            os.terminal.print(String.format("  %-15s - %s", 
-                entry.getKey(), app.getDescription()));
-        }
-        
-        os.terminal.print("");
-        os.terminal.print("Use 'start <app>' to run application");
-        os.terminal.print("");
-    }
-    
-    public void startApp(String name) {
-        Application app = apps.get(name.toLowerCase());
-        
-        if (app == null) {
-            os.terminal.error("Application not found: " + name);
-            return;
-        }
-        
-        int pid = nextPid++;
-        running.put(pid, app);
-        
-        os.terminal.print("");
-        os.terminal.print("Starting " + name + " (PID: " + pid + ")");
-        os.terminal.print("═".repeat(50));
-        
-        app.run(pid);
-        
-        os.terminal.print("═".repeat(50));
-        os.terminal.print("Application exited");
-        os.terminal.print("");
-        
-        running.remove(pid);
-    }
-    
-    public void listRunning() {
-        os.terminal.print("");
-        os.terminal.print("═══════════ RUNNING PROCESSES ═══════════");
-        os.terminal.print("");
-        
-        if (running.isEmpty()) {
-            os.terminal.print("No running processes");
-        } else {
-            os.terminal.print(String.format("  %-6s %-15s %s", "PID", "NAME", "DESCRIPTION"));
-            os.terminal.print("  " + "─".repeat(45));
-            
-            for (Map.Entry<Integer, Application> entry : running.entrySet()) {
-                String name = getAppName(entry.getValue());
-                os.terminal.print(String.format("  %-6d %-15s %s", 
-                    entry.getKey(), name, entry.getValue().getDescription()));
-            }
-        }
-        
-        os.terminal.print("");
-    }
-    
-    public void killApp(int pid) {
-        if (running.containsKey(pid)) {
-            running.remove(pid);
-            os.terminal.success("Killed process " + pid);
-        } else {
-            os.terminal.error("Process not found: " + pid);
-        }
-    }
-    
-    private String getAppName(Application app) {
-        for (Map.Entry<String, Application> entry : apps.entrySet()) {
-            if (entry.getValue() == app) {
-                return entry.getKey();
-            }
-        }
-        return "unknown";
-    }
-}
+      - name: Create AppManager
+        run: |
+          cat > app/src/main/java/com/titan/terminal/AppManager.java << 'EOF'
+          package com.titan.terminal;
 
-// ==============================
-// APPLICATION INTERFACE
-// ==============================
-abstract class Application {
-    protected TitanOS os;
-    
-    public Application(TitanOS os) {
-        this.os = os;
-    }
-    
-    public abstract void run(int pid);
-    public abstract String getDescription();
-}
+          import java.util.*;
 
-// ==============================
-// FILE MANAGER APP
-// ==============================
-class FileManagerApp extends Application {
-    
-    public FileManagerApp(TitanOS os) {
-        super(os);
-    }
-    
-    @Override
-    public String getDescription() {
-        return "Browse and manage files";
-    }
-    
-    @Override
-    public void run(int pid) {
-        os.terminal.print("");
-        os.terminal.print("FILE MANAGER - Interactive File Browser");
-        os.terminal.print("");
-        os.terminal.print("Current directory: /");
-        os.terminal.print("");
-        
-        showDirectory("/");
-        
-        os.terminal.print("");
-        os.terminal.print("Commands:");
-        os.terminal.print("  - Use 'cd' to navigate");
-        os.terminal.print("  - Use 'cat' to view files");
-        os.terminal.print("  - Use 'rm' to delete");
-        os.terminal.print("  - Use 'mkdir' to create directories");
-        os.terminal.print("");
-    }
-    
-    private void showDirectory(String path) {
-        List<String> files = os.fs.list(path);
-        
-        os.terminal.print("┌─ Files in " + path);
-        
-        for (String file : files) {
-            String fullPath = path + "/" + file;
-            if (os.fs.isDirectory(fullPath)) {
-                os.terminal.print("│  📁 " + file);
-            } else {
-                String content = os.fs.readFile(fullPath);
-                int size = content != null ? content.length() : 0;
-                os.terminal.print("│  📄 " + file + " (" + size + " bytes)");
-            }
-        }
-        
-        os.terminal.print("└─ Total: " + files.size() + " items");
-    }
-}
+          public class AppManager {
+              
+              TitanOS os;
+              Map<String, Application> apps = new HashMap<>();
+              
+              public AppManager(TitanOS os) {
+                  this.os = os;
+              }
+              
+              public void installBuiltInApps() {
+                  apps.put("filemanager", new FileManagerApp(os));
+                  apps.put("editor", new TextEditorApp(os));
+                  apps.put("calc", new CalculatorApp(os));
+              }
+              
+              public void listApps() {
+                  os.terminal.print("");
+                  os.terminal.print("INSTALLED APPS:");
+                  for (String name : apps.keySet()) {
+                      Application app = apps.get(name);
+                      os.terminal.print("  " + name + " - " + app.getDescription());
+                  }
+                  os.terminal.print("");
+              }
+              
+              public void startApp(String name) {
+                  Application app = apps.get(name.toLowerCase());
+                  if (app == null) {
+                      os.terminal.error("App not found: " + name);
+                      return;
+                  }
+                  os.terminal.print("");
+                  os.terminal.print("=== Starting " + name + " ===");
+                  app.run();
+                  os.terminal.print("=== Exited ===");
+                  os.terminal.print("");
+              }
+          }
 
-// ==============================
-// TEXT EDITOR APP
-// ==============================
-class TextEditorApp extends Application {
-    
-    public TextEditorApp(TitanOS os) {
-        super(os);
-    }
-    
-    @Override
-    public String getDescription() {
-        return "Simple text editor";
-    }
-    
-    @Override
-    public void run(int pid) {
-        os.terminal.print("");
-        os.terminal.print("TEXT EDITOR");
-        os.terminal.print("");
-        os.terminal.print("Usage:");
-        os.terminal.print("  write <file> <content>  - Write to file");
-        os.terminal.print("  cat <file>              - Read file");
-        os.terminal.print("");
-        os.terminal.print("Example files:");
-        
-        List<String> files = os.fs.list("/home");
-        for (String file : files) {
-            if (!os.fs.isDirectory("/home/" + file)) {
-                os.terminal.print("  - /home/" + file);
-            }
-        }
-        
-        os.terminal.print("");
-    }
-}
+          abstract class Application {
+              protected TitanOS os;
+              public Application(TitanOS os) { this.os = os; }
+              public abstract void run();
+              public abstract String getDescription();
+          }
 
-// ==============================
-// CALCULATOR APP
-// ==============================
-class CalculatorApp extends Application {
-    
-    public CalculatorApp(TitanOS os) {
-        super(os);
-    }
-    
-    @Override
-    public String getDescription() {
-        return "Simple calculator";
-    }
-    
-    @Override
-    public void run(int pid) {
-        os.terminal.print("");
-        os.terminal.print("CALCULATOR");
-        os.terminal.print("");
-        os.terminal.print("Example calculations:");
-        os.terminal.print("  2 + 2 = " + (2 + 2));
-        os.terminal.print("  10 * 5 = " + (10 * 5));
-        os.terminal.print("  100 / 4 = " + (100 / 4));
-        os.terminal.print("  15 - 7 = " + (15 - 7));
-        os.terminal.print("");
-        os.terminal.print("Use 'echo' command for calculations");
-        os.terminal.print("");
-    }
-}
+          class FileManagerApp extends Application {
+              public FileManagerApp(TitanOS os) { super(os); }
+              
+              public String getDescription() {
+                  return "Browse files";
+              }
+              
+              public void run() {
+                  os.terminal.print("");
+                  os.terminal.print("FILE MANAGER");
+                  showDirectory("/");
+              }
+              
+              private void showDirectory(String path) {
+                  List<String> files = os.fs.list(path);
+                  os.terminal.print("");
+                  os.terminal.print("Directory: " + path);
+                  for (String file : files) {
+                      String fullPath = path + "/" + file;
+                      if (os.fs.isDirectory(fullPath)) {
+                          os.terminal.print("  [D] " + file);
+                      } else {
+                          os.terminal.print("  [F] " + file);
+                      }
+                  }
+              }
+          }
 
-// ==============================
-// SYSTEM MONITOR APP
-// ==============================
-class SystemMonitorApp extends Application {
-    
-    public SystemMonitorApp(TitanOS os) {
-        super(os);
-    }
-    
-    @Override
-    public String getDescription() {
-        return "System resource monitor";
-    }
-    
-    @Override
-    public void run(int pid) {
-        os.terminal.print("");
-        os.terminal.print("SYSTEM MONITOR");
-        os.terminal.print("");
-        
-        Runtime runtime = Runtime.getRuntime();
-        long usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024;
-        long maxMemory = runtime.maxMemory() / 1024 / 1024;
-        
-        os.terminal.print("Memory Usage: " + usedMemory + " MB / " + maxMemory + " MB");
-        os.terminal.print("Available Processors: " + runtime.availableProcessors());
-        os.terminal.print("");
-        
-        os.terminal.print("File System Stats:");
-        os.terminal.print("  Total files: " + countFiles("/"));
-        os.terminal.print("  Total directories: " + countDirs("/"));
-        os.terminal.print("");
-        
-        os.terminal.print("Running Apps: " + os.appManager.running.size());
-        os.terminal.print("Installed Apps: " + os.appManager.apps.size());
-        os.terminal.print("");
-    }
-    
-    private int countFiles(String path) {
-        int count = 0;
-        for (String file : os.fs.list(path)) {
-            String fullPath = path + "/" + file;
-            if (!os.fs.isDirectory(fullPath)) {
-                count++;
-            } else {
-                count += countFiles(fullPath);
-            }
-        }
-        return count;
-    }
-    
-    private int countDirs(String path) {
-        int count = 0;
-        for (String file : os.fs.list(path)) {
-            String fullPath = path + "/" + file;
-            if (os.fs.isDirectory(fullPath)) {
-                count++;
-                count += countDirs(fullPath);
-            }
-        }
-        return count;
-    }
-}
-JAVAEOF
+          class TextEditorApp extends Application {
+              public TextEditorApp(TitanOS os) { super(os); }
+              
+              public String getDescription() {
+                  return "Text editor";
+              }
+              
+              public void run() {
+                  os.terminal.print("");
+                  os.terminal.print("TEXT EDITOR");
+                  os.terminal.print("Use: write <file> <text>");
+                  os.terminal.print("Use: cat <file>");
+              }
+          }
 
-# ==============================
-# SETUP JAVA
-# ==============================
+          class CalculatorApp extends Application {
+              public CalculatorApp(TitanOS os) { super(os); }
+              
+              public String getDescription() {
+                  return "Calculator";
+              }
+              
+              public void run() {
+                  os.terminal.print("");
+                  os.terminal.print("CALCULATOR");
+                  os.terminal.print("2 + 2 = 4");
+                  os.terminal.print("10 * 5 = 50");
+              }
+          }
+          EOF
+
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-# ==============================
-# BUILD APK
-# ==============================
       - name: Build APK
         run: |
           wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
@@ -1044,10 +649,7 @@ JAVAEOF
           gradle wrapper --gradle-version 8.5
           ./gradlew assembleDebug
 
-# ==============================
-# UPLOAD
-# ==============================
       - uses: actions/upload-artifact@v4
         with:
-          name: TitanOS-v34-Terminal
+          name: TitanOS-Terminal
           path: app/build/outputs/apk/debug/app-debug.apk
