@@ -22,7 +22,6 @@ jobs:
           start:
               mov ax, 0x0003
               int 0x10
-              
               mov si, msg
               call print
           
@@ -32,7 +31,7 @@ jobs:
           
           main_loop:
               mov ah, 0x00
-              int 0x16 ; Ждем клавишу (результат в AL)
+              int 0x16 
               
               cmp al, '1'
               je clock_app
@@ -44,7 +43,7 @@ jobs:
               je clear_screen
               
               mov ah, 0x0E
-              int 0x10 ; Эхо символа
+              int 0x10
               jmp main_loop
           
           show_help:
@@ -77,11 +76,11 @@ jobs:
           .done:
               ret
           
-          msg db 'Real TinyOS v3.0 - x86 VM Loaded', 13, 10, 0
+          msg db 'Real TinyOS v3.1 - x86 VM', 13, 10, 0
           prompt db 13,10,'> ',0
-          help_msg db 13,10,'1=clock 2=paint c=clear h=help',13,10,0
-          clock_msg db 13,10,'[System Clock Active]',13,10,0
-          paint_msg db 13,10,'[VGA Paint Mode Ready]',13,10,0
+          help_msg db 13,10,'Commands: 1, 2, C, H', 13, 10, 0
+          clock_msg db 13,10,'[Clock Mode]',13,10,0
+          paint_msg db 13,10,'[Paint Mode]',13,10,0
           
           times 510-($-$$) db 0
           dw 0xAA55
@@ -104,10 +103,10 @@ jobs:
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
-          # Конвертация бинарника ОС в Java-класс
+          # Правильная генерация KernelBin.java
           echo "package com.tinyos.vm;" > app/src/main/java/com/tinyos/vm/KernelBin.java
           echo "public class KernelBin {" >> app/src/main/java/com/tinyos/vm/KernelBin.java
-          echo "    public static final byte[] KERNEL = {" >> app/src/main/java/com/tinyos/vm/KernelBin.java
+          echo "    public static final byte[] KERNEL = new byte[] {" >> app/src/main/java/com/tinyos/vm/KernelBin.java
           hexdump -v -e '1/1 " (byte)0x%02x,"' tinyos.bin >> app/src/main/java/com/tinyos/vm/KernelBin.java
           echo "    };" >> app/src/main/java/com/tinyos/vm/KernelBin.java
           echo "}" >> app/src/main/java/com/tinyos/vm/KernelBin.java
@@ -115,7 +114,7 @@ jobs:
           cat > app/src/main/AndroidManifest.xml << 'MANIFEST'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tinyos.vm">
-            <application android:label="Real TinyOS VM" android:theme="@style/Theme.AppCompat.NoActionBar">
+            <application android:label="TinyOS VM" android:theme="@style/Theme.AppCompat.NoActionBar">
               <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
                 <intent-filter>
                   <action android:name="android.intent.action.MAIN"/>
@@ -131,7 +130,7 @@ jobs:
           <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
             <SurfaceView android:id="@+id/screen" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_above="@+id/kb"/>
-            <LinearLayout android:id="@+id/kb" android:layout_width="match_parent" android:layout_height="60dp" android:layout_alignParentBottom="true" android:orientation="horizontal" android:background="#222">
+            <LinearLayout android:id="@+id/kb" android:layout_width="match_parent" android:layout_height="60dp" android:layout_alignParentBottom="true" android:orientation="horizontal">
               <Button android:id="@+id/btn_1" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="1"/>
               <Button android:id="@+id/btn_2" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="2"/>
               <Button android:id="@+id/btn_h" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="H"/>
@@ -147,7 +146,6 @@ jobs:
           import android.os.Bundle;
           import android.graphics.*;
           import android.view.*;
-          import android.widget.Button;
           import androidx.appcompat.app.AppCompatActivity;
           import java.util.*;
 
@@ -159,9 +157,7 @@ jobs:
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   setContentView(R.layout.activity_main);
-                  
                   emu = new X86Emulator();
-                  
                   findViewById(R.id.btn_1).setOnClickListener(v -> emu.keyPress('1'));
                   findViewById(R.id.btn_2).setOnClickListener(v -> emu.keyPress('2'));
                   findViewById(R.id.btn_h).setOnClickListener(v -> emu.keyPress('h'));
@@ -173,9 +169,9 @@ jobs:
                       @Override public void surfaceCreated(SurfaceHolder h) {
                           new Thread(() -> {
                               while (running) {
-                                  for(int i=0; i<500; i++) emu.step();
+                                  for(int i=0; i<100; i++) emu.step();
                                   emu.draw(h);
-                                  try { Thread.sleep(20); } catch(Exception e) {}
+                                  try { Thread.sleep(16); } catch(Exception e) {}
                               }
                           }).start();
                       }
@@ -186,58 +182,44 @@ jobs:
               
               class X86Emulator {
                   byte[] ram = new byte[65536];
-                  int[] reg = new int[8]; // AX, CX, DX, BX, SP, BP, SI, DI
-                  int ip = 0x7C00, sp = 0x9000;
+                  int ax, cx, dx, bx, sp=0x9000, bp, si, di, ip=0x7C00;
                   boolean zf = false;
                   char lastKey = 0;
                   List<String> lines = new ArrayList<>(Collections.singletonList(""));
 
                   X86Emulator() { System.arraycopy(KernelBin.KERNEL, 0, ram, 0x7C00, KernelBin.KERNEL.length); }
-                  
                   void keyPress(char k) { lastKey = k; }
 
                   void step() {
                       int op = ram[ip] & 0xFF;
-                      if (op == 0xB4) { // mov ah, imm8
-                          reg[0] = (reg[0] & 0x00FF) | ((ram[ip+1] & 0xFF) << 8);
-                          ip += 2;
-                      } else if (op == 0xB0) { // mov al, imm8
-                          reg[0] = (reg[0] & 0xFF00) | (ram[ip+1] & 0xFF);
-                          ip += 2;
-                      } else if (op == 0xBE) { // mov si, imm16
-                          reg[6] = (ram[ip+1] & 0xFF) | ((ram[ip+2] & 0xFF) << 8);
-                          ip += 3;
-                      } else if (op == 0xAC) { // lodsb
-                          reg[0] = (reg[0] & 0xFF00) | (ram[reg[6]] & 0xFF);
-                          reg[6]++; ip++;
-                      } else if (op == 0xCD) { // int
+                      if (op == 0xB4) { ax = (ax & 0x00FF) | ((ram[ip+1] & 0xFF) << 8); ip += 2; }
+                      else if (op == 0xB0) { ax = (ax & 0xFF00) | (ram[ip+1] & 0xFF); ip += 2; }
+                      else if (op == 0xBE) { si = (ram[ip+1] & 0xFF) | ((ram[ip+2] & 0xFF) << 8); ip += 3; }
+                      else if (op == 0xAC) { ax = (ax & 0xFF00) | (ram[si] & 0xFF); si++; ip++; }
+                      else if (op == 0xCD) {
                           int n = ram[ip+1] & 0xFF;
-                          if (n == 0x10) { // Video
-                              int ah = (reg[0] >> 8) & 0xFF;
+                          if (n == 0x10) {
+                              int ah = (ax >> 8) & 0xFF;
                               if (ah == 0x0E) {
-                                  char c = (char)(reg[0] & 0xFF);
-                                  if (c == 13) lines.add(""); else lines.set(lines.size()-1, lines.get(lines.size()-1) + c);
+                                  char c = (char)(ax & 0xFF);
+                                  if (c == 13) lines.add(""); else if(c >= 32) lines.set(lines.size()-1, lines.get(lines.size()-1) + c);
                                   if (lines.size() > 15) lines.remove(0);
                               } else if (ah == 0x03 || ah == 0x00) { lines.clear(); lines.add(""); }
-                          } else if (n == 0x16) { // Keyboard
-                              if (lastKey != 0) { reg[0] = (reg[0] & 0xFF00) | lastKey; lastKey = 0; }
-                              else { ip -= 2; } // Ждать
+                          } else if (n == 0x16) {
+                              if (lastKey != 0) { ax = (ax & 0xFF00) | lastKey; lastKey = 0; ip += 2; }
+                              return;
                           }
                           ip += 2;
-                      } else if (op == 0xE8) { // call
+                      } else if (op == 0xE8) {
                           int rel = (ram[ip+1] & 0xFF) | ((ram[ip+2] & 0xFF) << 8);
-                          ram[--sp] = (byte)((ip+3) >> 8); ram[--sp] = (byte)(ip+3);
+                          int retAddr = ip + 3;
+                          ram[--sp] = (byte)(retAddr >> 8); ram[--sp] = (byte)retAddr;
                           ip += 3 + rel;
-                      } else if (op == 0xC3) { // ret
-                          ip = (ram[sp++] & 0xFF) | ((ram[sp++] & 0xFF) << 8);
-                      } else if (op == 0x3C) { // cmp al, imm8
-                          zf = (reg[0] & 0xFF) == (ram[ip+1] & 0xFF);
-                          ip += 2;
-                      } else if (op == 0x74) { // je
-                          if (zf) ip += (byte)ram[ip+1] + 2; else ip += 2;
-                      } else if (op == 0x08 || op == 0x0A) { // or / test al, al
-                          zf = (reg[0] & 0xFF) == 0; ip += 2;
-                      } else { ip++; }
+                      } else if (op == 0xC3) { ip = (ram[sp++] & 0xFF) | ((ram[sp++] & 0xFF) << 8); }
+                      else if (op == 0x3C) { zf = (ax & 0xFF) == (ram[ip+1] & 0xFF); ip += 2; }
+                      else if (op == 0x74) { if (zf) ip += (byte)ram[ip+1] + 2; else ip += 2; }
+                      else if (op == 0x08 || op == 0x0A) { zf = (ax & 0xFF) == 0; ip += 2; }
+                      else { ip++; }
                   }
 
                   void draw(SurfaceHolder h) {
@@ -254,8 +236,6 @@ jobs:
           JAVA
 
           echo "include ':app'" > settings.gradle
-          echo "rootProject.name='TinyOSVM'" >> settings.gradle
-          
           cat > build.gradle << 'GRADLE'
           buildscript {
               repositories { google(); mavenCentral() }
@@ -273,8 +253,6 @@ jobs:
                   applicationId 'com.tinyos.vm'
                   minSdk 24
                   targetSdk 34
-                  versionCode 1
-                  versionName "3.0"
               }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
@@ -292,5 +270,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Real-TinyOS-V3
+          name: TinyOS-VM-Fixed
           path: app/build/outputs/apk/debug/app-debug.apk
