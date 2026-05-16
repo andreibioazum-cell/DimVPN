@@ -1,4 +1,4 @@
-name: TinyOS v26 Titan Input
+name: TinyOS v26.1 Stable Build
 
 on: [push, workflow_dispatch]
 
@@ -91,10 +91,10 @@ jobs:
               int 0x10
               jmp print
           .d: ret
-          msg_welcome db 'DimOS v26.0 - Titan Input System', 13, 10, 0
+          msg_welcome db 'DimOS v26.1 Stable', 13, 10, 0
           msg_prompt  db '~ $ ', 0
-          msg_help    db 'Commands: help, cls', 13, 10, 0
-          msg_err     db 'Unknown command', 13, 10, 0
+          msg_help    db 'help, cls', 13, 10, 0
+          msg_err     db 'Error!', 13, 10, 0
           cmd_help    db 'help', 0
           cmd_cls     db 'cls', 0
           buffer      times 32 db 0
@@ -104,29 +104,48 @@ jobs:
           nasm -f bin kernel.asm -o kernel.img
 
 # ==============================
-# СОЗДАНИЕ ANDROID ПРОЕКТА
+# СОЗДАНИЕ ПРОЕКТА
 # ==============================
       - name: Create Project
         run: |
           mkdir -p app/src/main/java/com/tinyos/vm app/src/main/res/layout app/src/main/res/values app/src/main/assets
           cp kernel.img app/src/main/assets/kernel.img
           
+          # Root Settings
           echo "include ':app'" > settings.gradle
           echo "android.useAndroidX=true" > gradle.properties
 
+          # Root Build File (ИСПРАВЛЯЕТ ОШИБКУ PLUGINS)
+          cat > build.gradle << 'EOF'
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects {
+              repositories { google(); mavenCentral() }
+          }
+          EOF
+          
+          # App Build File
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
           android {
               namespace 'com.tinyos.vm'
               compileSdk 34
-              defaultConfig { applicationId "com.tinyos.vm"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" }
+              defaultConfig { 
+                  applicationId "com.tinyos.vm"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
 
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tinyos.vm">
-              <application android:label="TinyOS Titan" android:theme="@style/Theme.AppCompat.NoActionBar">
+              <application android:label="TinyOS Stable" android:theme="@style/Theme.AppCompat.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
                       <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
                   </activity>
@@ -140,7 +159,7 @@ jobs:
               <SurfaceView android:id="@+id/s" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
               <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:background="#111" android:padding="5dp">
                   <EditText android:id="@+id/e" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" 
-                      android:hint="Type command..." android:textColor="#FFF" android:background="#222" android:padding="10dp" android:textSize="14sp" />
+                      android:hint="Command..." android:textColor="#FFF" android:background="#222" android:padding="10dp" android:textSize="14sp" />
                   <Button android:id="@+id/b" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="RUN" />
               </LinearLayout>
           </LinearLayout>
@@ -169,13 +188,8 @@ jobs:
                   btn.setOnClickListener(v -> {
                       String cmd = et.getText().toString();
                       for (char c : cmd.toCharArray()) emu.keys.add(c);
-                      emu.keys.add((char)13); // Отправляем Enter
+                      emu.keys.add((char)13);
                       et.setText("");
-                  });
-
-                  et.setOnEditorActionListener((v, actionId, event) -> {
-                      btn.performClick();
-                      return true;
                   });
 
                   SurfaceView sv = findViewById(R.id.s);
@@ -186,7 +200,7 @@ jobs:
                                   for(int i=0; i<3000; i++) emu.step();
                                   Canvas c = h.lockCanvas();
                                   if(c!=null) { emu.draw(c); h.unlockCanvasAndPost(c); }
-                                  try { Thread.sleep(16); } catch(Exception ex) {}
+                                  try { Thread.sleep(20); } catch(Exception ex) {}
                               }
                           }).start();
                       }
@@ -213,7 +227,6 @@ jobs:
                           case 0xB4: ax=(ax&0xFF)|((m[ip+1]&0xFF)<<8); ip+=2; break;
                           case 0xB0: ax=(ax&0xFF00)|(m[ip+1]&0xFF); ip+=2; break;
                           case 0xBE: si=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; break;
-                          case 0xBF: di=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; break;
                           case 0xAC: ax=(ax&0xFF00)|(m[si]&0xFF); si++; ip++; break;
                           case 0xE8: int r=ip+3; m[--sp]=(byte)(r>>8); m[--sp]=(byte)r; ip+=3+((short)((m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8))); break;
                           case 0xC3: ip=(m[sp++]&0xFF)|((m[sp++]&0xFF)<<8); break;
@@ -245,7 +258,7 @@ jobs:
           }
           EOF
 
-      - name: Set up JDK 17
+      - name: Setup JDK
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -259,8 +272,8 @@ jobs:
           gradle wrapper --gradle-version 8.5
           ./gradlew assembleDebug
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TinyOS-v26-TitanInput
+          name: TinyOS-v26-Fixed
           path: app/build/outputs/apk/debug/app-debug.apk
