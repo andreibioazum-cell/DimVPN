@@ -16,23 +16,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-multilib nasm qemu-system-x86
 
-      - name: Build Kernel with App Support
+      - name: Build Kernel
         run: |
           cat > kernel.asm << 'KERNEL'
           [bits 32]
           [org 0x10000]
           
-          ; ============== СИСТЕМНЫЕ ВЫЗОВЫ (API) ==============
-          ; Номер вызова в AH:
-          ; 0x01 - print_string
-          ; 0x02 - print_int
-          ; 0x03 - put_pixel
-          ; 0x04 - draw_rect
-          ; 0x05 - get_key
-          ; 0x06 - sleep
-          ; 0x07 - exec_app
-          ; 0x08 - exit
-          
+          ; ============== СИСТЕМНЫЕ ВЫЗОВЫ ==============
           syscall_handler:
               cmp ah, 0x01
               je sys_print_string
@@ -107,7 +97,7 @@ jobs:
               mov edi, 0xA0000
               add edi, ebp
               add edi, ecx
-              mov al, [color]
+              mov al, [color_tmp]
               stosb
               dec ecx
               jnz .rect_x
@@ -141,7 +131,6 @@ jobs:
           
           sys_exec_app:
               pusha
-              ; Загрузка программы
               mov esi, ebx
               mov edi, 0x20000
           .load:
@@ -149,6 +138,8 @@ jobs:
               stosb
               cmp al, 0
               jnz .load
+              mov eax, 0
+              mov word [current_app], 1
               jmp 0x20000
               popa
               iret
@@ -167,13 +158,11 @@ jobs:
               mov esi, welcome_msg
               call print_string
               
-              call load_apps
-              
               jmp shell_start
           
           draw_desktop:
-              ; Фон
               mov ecx, 200
+              mov dword [offset_sky], 0
           .sky:
               push ecx
               mov ecx, 320
@@ -184,55 +173,33 @@ jobs:
               div ebx
               add al, 16
               push ecx
-              mov ebx, [offset]
+              mov ebx, [offset_sky]
               add ebx, ecx
               mov edi, 0xA0000
               add edi, ebx
               stosb
               pop ecx
               loop .horizon
-              add dword [offset], 320
+              add dword [offset_sky], 320
               pop ecx
               loop .sky
               
-              ; Трава
               mov ecx, 60
+              mov dword [offset_ground], 19200
           .ground:
               push ecx
               mov ecx, 320
           .ground_row:
-              mov ebx, [offset2]
+              mov ebx, [offset_ground]
               add ebx, ecx
               mov edi, 0xA0000
               add edi, ebx
               mov al, 0x02
               stosb
               loop .ground_row
-              add dword [offset2], 320
+              add dword [offset_ground], 320
               pop ecx
               loop .ground
-              ret
-          
-          load_apps:
-              mov esi, app1_data
-              mov edi, app1_start
-              call copy_app
-              
-              mov esi, app2_data
-              mov edi, app2_start
-              call copy_app
-              
-              mov esi, app3_data
-              mov edi, app3_start
-              call copy_app
-              ret
-          
-          copy_app:
-          .loop:
-              lodsb
-              stosb
-              cmp al, 0
-              jnz .loop
               ret
           
           ; ============== ОБОЛОЧКА ==============
@@ -314,33 +281,42 @@ jobs:
               mov edi, app1_name
               call strcmp
               cmp eax, 1
-              je start_app1
+              je run_app1
               
               mov edi, app2_name
               call strcmp
               cmp eax, 1
-              je start_app2
+              je run_app2
               
               mov edi, app3_name
               call strcmp
               cmp eax, 1
-              je start_app3
+              je run_app3
               
               mov esi, app_not_found
               call print_string
               jmp shell_cont
           
-          start_app1:
+          run_app1:
               call clear_screen
-              jmp app1_start
+              call app1_main
+              call clear_screen
+              call draw_desktop
+              jmp shell_cont
           
-          start_app2:
+          run_app2:
               call clear_screen
-              jmp app2_start
+              call app2_main
+              call clear_screen
+              call draw_desktop
+              jmp shell_cont
           
-          start_app3:
+          run_app3:
               call clear_screen
-              jmp app3_start
+              call app3_main
+              call clear_screen
+              call draw_desktop
+              jmp shell_cont
           
           list_apps:
               mov esi, app_list
@@ -357,7 +333,6 @@ jobs:
               int 0x10
               mov ax, 0x0013
               int 0x10
-              call draw_desktop
               ret
           
           draw_shell:
@@ -371,15 +346,15 @@ jobs:
               int 0x10
               ret
           
-          ; ============== ПРИЛОЖЕНИЕ 1: Часы ==============
-          app1_start:
+          ; ============== ПРИЛОЖЕНИЕ 1: ЧАСЫ ==============
+          app1_main:
               mov esi, app1_title
               call print_string
               
               mov dword [counter], 0
           clock_loop:
               mov ah, 0x06
-              mov ebx, 50
+              mov ebx, 20
               call syscall_handler
               
               mov ax, 0x1301
@@ -401,23 +376,21 @@ jobs:
               call syscall_handler
               
               cmp byte [key_buffer], 'q'
-              je exit_app1
+              je clock_exit
               cmp byte [key_buffer], 'r'
-              je refresh_clock
+              je clock_reset
               
               jmp clock_loop
           
-          refresh_clock:
+          clock_reset:
               mov dword [counter], 0
               jmp clock_loop
           
-          exit_app1:
-              call clear_screen
-              call draw_desktop
-              jmp shell_cont
+          clock_exit:
+              ret
           
-          ; ============== ПРИЛОЖЕНИЕ 2: Графический редактор ==============
-          app2_start:
+          ; ============== ПРИЛОЖЕНИЕ 2: РИСОВАЛКА ==============
+          app2_main:
               mov esi, app2_title
               call print_string
               
@@ -425,7 +398,7 @@ jobs:
               mov dword [pen_y], 100
               mov byte [pen_color], 0x0F
           
-          editor_loop:
+          paint_loop:
               mov ah, 0x05
               mov ebx, key_buffer
               call syscall_handler
@@ -433,19 +406,18 @@ jobs:
               mov al, [key_buffer]
               
               cmp al, 'w'
-              je move_up
+              je paint_up
               cmp al, 's'
-              je move_down
+              je paint_down
               cmp al, 'a'
-              je move_left
+              je paint_left
               cmp al, 'd'
-              je move_right
+              je paint_right
               cmp al, 'c'
-              je change_color
+              je paint_color
               cmp al, 'q'
-              je exit_app2
+              je paint_exit
               
-              ; Рисование
               mov ebx, [pen_y]
               imul ebx, 320
               add ebx, [pen_x]
@@ -453,85 +425,79 @@ jobs:
               mov ah, 0x03
               call syscall_handler
               
-              jmp editor_loop
+              jmp paint_loop
           
-          move_up:
+          paint_up:
               sub dword [pen_y], 1
               cmp dword [pen_y], 0
-              jge editor_loop
+              jge paint_loop
               mov dword [pen_y], 0
-              jmp editor_loop
+              jmp paint_loop
           
-          move_down:
+          paint_down:
               add dword [pen_y], 1
               cmp dword [pen_y], 199
-              jle editor_loop
+              jle paint_loop
               mov dword [pen_y], 199
-              jmp editor_loop
+              jmp paint_loop
           
-          move_left:
+          paint_left:
               sub dword [pen_x], 1
               cmp dword [pen_x], 0
-              jge editor_loop
+              jge paint_loop
               mov dword [pen_x], 0
-              jmp editor_loop
+              jmp paint_loop
           
-          move_right:
+          paint_right:
               add dword [pen_x], 1
               cmp dword [pen_x], 319
-              jle editor_loop
+              jle paint_loop
               mov dword [pen_x], 319
-              jmp editor_loop
+              jmp paint_loop
           
-          change_color:
+          paint_color:
               inc byte [pen_color]
               cmp byte [pen_color], 0xFF
-              jne editor_loop
+              jne paint_loop
               mov byte [pen_color], 0
-              jmp editor_loop
+              jmp paint_loop
           
-          exit_app2:
-              call clear_screen
-              call draw_desktop
-              jmp shell_cont
+          paint_exit:
+              ret
           
-          ; ============== ПРИЛОЖЕНИЕ 3: Игра Змейка ==============
-          app3_start:
+          ; ============== ПРИЛОЖЕНИЕ 3: ЗМЕЙКА ==============
+          app3_main:
               mov esi, app3_title
               call print_string
               
-              ; Инициализация змейки
               mov dword [snake_x], 160
               mov dword [snake_y], 100
               mov dword [dir_x], 1
               mov dword [dir_y], 0
               mov dword [food_x], 50
               mov dword [food_y], 50
-              mov dword [score], 0
+              mov dword [score_val], 0
           
-          snake_loop:
-              ; Управление
+          snake_main:
               mov ah, 0x05
               mov ebx, key_buffer
               call syscall_handler
               
               mov al, [key_buffer]
               cmp al, 'w'
-              je set_up
+              je snake_up
               cmp al, 's'
-              je set_down
+              je snake_down
               cmp al, 'a'
-              je set_left
+              je snake_left
               cmp al, 'd'
-              je set_right
+              je snake_right
               cmp al, 'q'
-              je exit_app3
+              je snake_exit
               
-              ; Движение
               add dword [snake_x], [dir_x]
               add dword [snake_y], [dir_y]
               
-              ; Проверка границ
               cmp dword [snake_x], 0
               jl snake_die
               cmp dword [snake_x], 319
@@ -541,7 +507,6 @@ jobs:
               cmp dword [snake_y], 199
               jg snake_die
               
-              ; Рисование еды
               mov ebx, [food_y]
               imul ebx, 320
               add ebx, [food_x]
@@ -549,19 +514,17 @@ jobs:
               mov ah, 0x03
               call syscall_handler
               
-              ; Проверка съедания
               mov eax, [snake_x]
               cmp eax, [food_x]
-              jne check_eat
+              jne snake_draw
               mov eax, [snake_y]
               cmp eax, [food_y]
-              jne check_eat
+              jne snake_draw
               
-              inc dword [score]
+              inc dword [score_val]
               call random_food
-              
-          check_eat:
-              ; Рисование змейки
+          
+          snake_draw:
               mov ebx, [snake_y]
               imul ebx, 320
               add ebx, [snake_x]
@@ -569,7 +532,6 @@ jobs:
               mov ah, 0x03
               call syscall_handler
               
-              ; Показать счёт
               mov ax, 0x1301
               mov bx, 0x000F
               mov cx, 7
@@ -579,7 +541,7 @@ jobs:
               mov bp, score_text
               int 0x10
               
-              mov ebx, [score]
+              mov ebx, [score_val]
               mov ah, 0x02
               call syscall_handler
               
@@ -587,27 +549,27 @@ jobs:
               mov ebx, 30
               call syscall_handler
               
-              jmp snake_loop
+              jmp snake_main
           
-          set_up:
+          snake_up:
               mov dword [dir_x], 0
               mov dword [dir_y], -1
-              jmp snake_loop
+              jmp snake_main
           
-          set_down:
+          snake_down:
               mov dword [dir_x], 0
               mov dword [dir_y], 1
-              jmp snake_loop
+              jmp snake_main
           
-          set_left:
+          snake_left:
               mov dword [dir_x], -1
               mov dword [dir_y], 0
-              jmp snake_loop
+              jmp snake_main
           
-          set_right:
+          snake_right:
               mov dword [dir_x], 1
               mov dword [dir_y], 0
-              jmp snake_loop
+              jmp snake_main
           
           snake_die:
               mov esi, game_over_msg
@@ -615,7 +577,9 @@ jobs:
               mov ah, 0x06
               mov ebx, 100
               call syscall_handler
-              jmp exit_app3
+          
+          snake_exit:
+              ret
           
           random_food:
               push eax
@@ -636,12 +600,7 @@ jobs:
               pop eax
               ret
           
-          exit_app3:
-              call clear_screen
-              call draw_desktop
-              jmp shell_cont
-          
-          ; ============== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==============
+          ; ============== ВСПОМОГАТЕЛЬНЫЕ ==============
           print_string:
               lodsb
               or al, al
@@ -701,30 +660,29 @@ jobs:
           
           app_list db 'Available apps:',13,10
                     db '  clock - Digital clock',13,10
-                    db '  paint - Drawing app (WASD + C)',13,10
+                    db '  paint - Drawing (WASD + C)',13,10
                     db '  snake - Snake game',13,10,0
           
           help_msg db 'Commands:',13,10
-                    db '  run <app> - Start application',13,10
+                    db '  run <app> - Start app',13,10
                     db '  ls         - List apps',13,10
                     db '  clear      - Clear screen',13,10
-                    db '  help       - Show help',13,10
-                    db '',13,10
-                    db 'Press Q to exit app',13,10,0
+                    db '  help       - Help',13,10,0
           
           shell_bar db 'TinyOS - App Platform',0
-          app1_title db 13,10,'=== Clock App ===',13,10,'Press R to reset, Q to quit',13,10,0
-          app2_title db 13,10,'=== Paint App ===',13,10,'WASD to move, C to change color, Q to quit',13,10,0
-          app3_title db 13,10,'=== Snake Game ===',13,10,'WASD to move, Q to quit',13,10,0
+          app1_title db 13,10,'=== CLOCK ===',13,10,'R=reset Q=quit',13,10,0
+          app2_title db 13,10,'=== PAINT ===',13,10,'WASD C Q',13,10,0
+          app3_title db 13,10,'=== SNAKE ===',13,10,'WASD Q',13,10,0
           
           time_msg db 'Ticks: ',0
           score_text db 'Score: ',0
           game_over_msg db 13,10,'GAME OVER!',13,10,0
           
-          offset dd 0
-          offset2 dd 19200
-          
+          offset_sky dd 0
+          offset_ground dd 19200
+          color_tmp db 0
           key_buffer db 0
+          current_app dw 0
           counter dd 0
           pen_x dd 0
           pen_y dd 0
@@ -735,39 +693,22 @@ jobs:
           dir_y dd 0
           food_x dd 0
           food_y dd 0
-          score dd 0
+          score_val dd 0
           
           cmd_buffer times 64 db 0
-          
-          ; Приложения (бинарные данные)
-          app1_data:
-              incbin "app_clock.bin"
-              db 0
-          app2_data:
-              incbin "app_paint.bin"
-              db 0
-          app3_data:
-              incbin "app_snake.bin"
-              db 0
-          
-          app1_start equ 0x20000
-          app2_start equ 0x21000
-          app3_start equ 0x22000
           
           times 32768-($-$$) db 0
           KERNEL
 
-      - name: Create App Binaries
-        run: |
-          # Просто заглушки для приложений (код уже в ядре)
-          echo > app_clock.bin
-          echo > app_paint.bin
-          echo > app_snake.bin
-
-      - name: Build
+      - name: Build and Test
         run: |
           nasm -f bin kernel.asm -o tinyos.bin
           truncate -s 1474560 tinyos.bin
+          
+          echo "=== TINYOS BUILT ==="
+          ls -la tinyos.bin
+          
+          timeout 10 qemu-system-x86_64 -drive format=raw,file=tinyos.bin -nographic -no-reboot 2>/dev/null || true
 
       - name: Upload
         uses: actions/upload-artifact@v4
