@@ -1,4 +1,4 @@
-name: TitanOS v34 Terminal Edition
+name: TitanOS v34 Terminal Gaming Edition
 
 on: [push, workflow_dispatch]
 
@@ -100,6 +100,7 @@ jobs:
                   android:padding="8dp">
 
                   <TextView
+                      android:id="@+id/prompt"
                       android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
                       android:text="$ "
@@ -152,6 +153,7 @@ jobs:
           public class MainActivity extends AppCompatActivity {
 
               private TextView terminalOutput;
+              private TextView prompt;
               private EditText commandInput;
               private ScrollView scrollView;
               private TitanOS os;
@@ -162,12 +164,14 @@ jobs:
                   setContentView(R.layout.activity_main);
 
                   terminalOutput = findViewById(R.id.terminalOutput);
+                  prompt = findViewById(R.id.prompt);
                   commandInput = findViewById(R.id.commandInput);
                   scrollView = findViewById(R.id.scrollView);
 
                   os = new TitanOS(this);
                   
                   showBootSequence();
+                  updatePrompt();
 
                   commandInput.setOnEditorActionListener((v, actionId, event) -> {
                       if (actionId == EditorInfo.IME_ACTION_DONE || 
@@ -183,25 +187,36 @@ jobs:
               private void showBootSequence() {
                   os.terminal.print("====================================");
                   os.terminal.print("    TitanOS Terminal v34.0");
-                  os.terminal.print("  Advanced File System Edition");
+                  os.terminal.print("     Gaming Edition");
                   os.terminal.print("====================================");
                   os.terminal.print("");
-                  os.terminal.print("Initializing system...");
-                  os.terminal.print("[OK] Virtual File System");
-                  os.terminal.print("[OK] Application Manager");
-                  os.terminal.print("[OK] Terminal Shell");
+                  os.terminal.print("Booting system...");
+                  os.terminal.print("[OK] File System");
+                  os.terminal.print("[OK] Game Engine");
+                  os.terminal.print("[OK] Applications");
                   os.terminal.print("");
                   os.terminal.print("Type 'help' for commands");
+                  os.terminal.print("Type 'games' for games list");
                   os.terminal.print("");
               }
 
               private void executeCommand(String cmd) {
                   if (cmd.trim().isEmpty()) return;
                   
-                  os.terminal.print("$ " + cmd);
+                  os.terminal.print(getCurrentPrompt() + cmd);
                   os.shell.execute(cmd);
+                  updatePrompt();
                   
                   scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
+              }
+
+              private String getCurrentPrompt() {
+                  String dir = os.shell.getCurrentDir();
+                  return dir + "$ ";
+              }
+
+              private void updatePrompt() {
+                  runOnUiThread(() -> prompt.setText(getCurrentPrompt()));
               }
 
               public void updateTerminal(String text) {
@@ -224,14 +239,14 @@ jobs:
               public Terminal terminal;
               public FileSystem fs;
               public Shell shell;
-              public AppManager appManager;
+              public GameEngine gameEngine;
               public Context context;
 
               public TitanOS(MainActivity activity) {
                   this.context = activity;
                   this.terminal = new Terminal(activity);
                   this.fs = new FileSystem(activity);
-                  this.appManager = new AppManager(this);
+                  this.gameEngine = new GameEngine(this);
                   this.shell = new Shell(this);
                   
                   initializeSystem();
@@ -239,15 +254,22 @@ jobs:
 
               private void initializeSystem() {
                   fs.mkdir("/home");
-                  fs.mkdir("/apps");
-                  fs.mkdir("/system");
+                  fs.mkdir("/games");
+                  fs.mkdir("/docs");
+                  fs.mkdir("/music");
+                  fs.mkdir("/pictures");
                   
                   if (!fs.exists("/home/welcome.txt")) {
                       fs.writeFile("/home/welcome.txt", 
-                          "Welcome to TitanOS!\nFull-featured terminal OS.");
+                          "Welcome to TitanOS Gaming Edition!\n\nExplore the file system.\nPlay games.\nHave fun!");
                   }
                   
-                  appManager.installBuiltInApps();
+                  if (!fs.exists("/docs/readme.txt")) {
+                      fs.writeFile("/docs/readme.txt", 
+                          "TitanOS Documentation\n\nUse 'cd' to navigate folders.\nUse 'games' to see available games.");
+                  }
+                  
+                  gameEngine.installGames();
               }
           }
 
@@ -268,6 +290,10 @@ jobs:
               
               public void success(String text) {
                   activity.updateTerminal("[OK] " + text);
+              }
+              
+              public void warning(String text) {
+                  activity.updateTerminal("WARNING: " + text);
               }
           }
 
@@ -335,14 +361,34 @@ jobs:
               
               public List<String> list(String dir) {
                   List<String> result = new ArrayList<>();
-                  if (!dir.endsWith("/")) dir += "/";
+                  String normalizedDir = dir.equals("/") ? "/" : dir;
+                  if (!normalizedDir.endsWith("/") && !normalizedDir.equals("/")) {
+                      normalizedDir += "/";
+                  }
                   
                   for (String path : nodes.keySet()) {
-                      if (path.startsWith(dir) && !path.equals(dir)) {
-                          String relative = path.substring(dir.length());
-                          if (!relative.contains("/") || 
-                              (relative.indexOf("/") == relative.length() - 1)) {
-                              result.add(relative);
+                      if (path.equals(normalizedDir)) continue;
+                      
+                      if (normalizedDir.equals("/")) {
+                          if (!path.substring(1).contains("/")) {
+                              result.add(path.substring(1));
+                          } else {
+                              String firstPart = path.substring(1, path.indexOf("/", 1));
+                              if (!result.contains(firstPart)) {
+                                  result.add(firstPart);
+                              }
+                          }
+                      } else {
+                          if (path.startsWith(normalizedDir)) {
+                              String relative = path.substring(normalizedDir.length());
+                              if (!relative.contains("/")) {
+                                  result.add(relative);
+                              } else {
+                                  String firstPart = relative.substring(0, relative.indexOf("/"));
+                                  if (!result.contains(firstPart)) {
+                                      result.add(firstPart);
+                                  }
+                              }
                           }
                       }
                   }
@@ -352,7 +398,15 @@ jobs:
               
               public boolean isDirectory(String path) {
                   FSNode node = nodes.get(path);
-                  return node != null && node.isDirectory;
+                  if (node != null) return node.isDirectory;
+                  
+                  String normalizedPath = path.endsWith("/") ? path : path + "/";
+                  for (String p : nodes.keySet()) {
+                      if (p.startsWith(normalizedPath)) {
+                          return true;
+                      }
+                  }
+                  return false;
               }
               
               static class FSNode {
@@ -379,6 +433,7 @@ jobs:
           package com.titan.terminal;
 
           import java.util.Arrays;
+          import java.util.List;
 
           public class Shell {
               private TitanOS os;
@@ -386,6 +441,10 @@ jobs:
               
               public Shell(TitanOS os) {
                   this.os = os;
+              }
+              
+              public String getCurrentDir() {
+                  return currentDir;
               }
               
               public void execute(String commandLine) {
@@ -405,106 +464,189 @@ jobs:
                       case "cat": showFile(args); break;
                       case "write": writeFile(args); break;
                       case "rm": removeFile(args); break;
-                      case "apps": os.appManager.listApps(); break;
-                      case "start": startApp(args); break;
                       case "tree": showTree(); break;
+                      case "games": os.gameEngine.listGames(); break;
+                      case "play": playGame(args); break;
                       case "clear": break;
-                      default: os.terminal.error("Unknown: " + cmd);
+                      default: os.terminal.error("Unknown command: " + cmd);
                   }
               }
               
               private void showHelp() {
                   os.terminal.print("");
-                  os.terminal.print("COMMANDS:");
-                  os.terminal.print("  ls         - list files");
-                  os.terminal.print("  cd <dir>   - change dir");
-                  os.terminal.print("  pwd        - current dir");
-                  os.terminal.print("  mkdir <d>  - create dir");
+                  os.terminal.print("FILE SYSTEM:");
+                  os.terminal.print("  ls [dir]   - list files");
+                  os.terminal.print("  cd <dir>   - change directory");
+                  os.terminal.print("  pwd        - show current dir");
+                  os.terminal.print("  mkdir <d>  - create directory");
                   os.terminal.print("  touch <f>  - create file");
                   os.terminal.print("  cat <f>    - show file");
-                  os.terminal.print("  write <f> <text> - write");
-                  os.terminal.print("  rm <f>     - remove");
-                  os.terminal.print("  apps       - list apps");
-                  os.terminal.print("  start <a>  - run app");
-                  os.terminal.print("  tree       - show tree");
+                  os.terminal.print("  write <f> <text> - write to file");
+                  os.terminal.print("  rm <f>     - remove file");
+                  os.terminal.print("  tree       - show directory tree");
+                  os.terminal.print("");
+                  os.terminal.print("GAMES:");
+                  os.terminal.print("  games      - list available games");
+                  os.terminal.print("  play <game> - play a game");
+                  os.terminal.print("");
+                  os.terminal.print("NAVIGATION:");
+                  os.terminal.print("  cd /       - go to root");
+                  os.terminal.print("  cd ..      - go to parent");
+                  os.terminal.print("  cd folder  - enter folder");
                   os.terminal.print("");
               }
               
               private void listFiles(String[] args) {
                   String dir = args.length > 0 ? args[0] : currentDir;
-                  if (!dir.startsWith("/")) dir = currentDir + "/" + dir;
                   
-                  for (String file : os.fs.list(dir)) {
-                      String fullPath = dir + "/" + file;
-                      String prefix = os.fs.isDirectory(fullPath) ? "[DIR] " : "[FILE]";
-                      os.terminal.print("  " + prefix + file);
+                  if (!dir.startsWith("/")) {
+                      dir = resolvePath(currentDir, dir);
+                  }
+                  
+                  if (!os.fs.exists(dir) && !os.fs.isDirectory(dir)) {
+                      os.terminal.error("Directory not found: " + dir);
+                      return;
+                  }
+                  
+                  List<String> files = os.fs.list(dir);
+                  
+                  if (files.isEmpty()) {
+                      os.terminal.print("(empty)");
+                  } else {
+                      for (String file : files) {
+                          String fullPath = dir.equals("/") ? "/" + file : dir + "/" + file;
+                          String prefix = os.fs.isDirectory(fullPath) ? "[DIR]  " : "[FILE] ";
+                          os.terminal.print("  " + prefix + file);
+                      }
                   }
               }
               
               private void changeDirectory(String[] args) {
-                  if (args.length == 0) { currentDir = "/"; return; }
+                  if (args.length == 0) {
+                      currentDir = "/";
+                      os.terminal.success("Changed to /");
+                      return;
+                  }
                   
                   String newDir = args[0];
-                  if (!newDir.startsWith("/")) newDir = currentDir + "/" + newDir;
                   
-                  if (os.fs.exists(newDir) && os.fs.isDirectory(newDir)) {
+                  if (newDir.equals("..")) {
+                      if (currentDir.equals("/")) {
+                          os.terminal.print("Already at root");
+                          return;
+                      }
+                      int lastSlash = currentDir.lastIndexOf("/");
+                      if (lastSlash == 0) {
+                          currentDir = "/";
+                      } else {
+                          currentDir = currentDir.substring(0, lastSlash);
+                      }
+                      os.terminal.success("Changed to " + currentDir);
+                      return;
+                  }
+                  
+                  if (newDir.equals(".")) {
+                      return;
+                  }
+                  
+                  if (!newDir.startsWith("/")) {
+                      newDir = resolvePath(currentDir, newDir);
+                  }
+                  
+                  if (os.fs.isDirectory(newDir) || os.fs.exists(newDir)) {
                       currentDir = newDir;
                       os.terminal.success("Changed to " + currentDir);
                   } else {
-                      os.terminal.error("Not found: " + newDir);
+                      os.terminal.error("Directory not found: " + newDir);
+                  }
+              }
+              
+              private String resolvePath(String base, String relative) {
+                  if (base.equals("/")) {
+                      return "/" + relative;
+                  } else {
+                      return base + "/" + relative;
                   }
               }
               
               private void makeDirectory(String[] args) {
-                  if (args.length == 0) return;
+                  if (args.length == 0) {
+                      os.terminal.error("Usage: mkdir <directory>");
+                      return;
+                  }
                   String path = args[0];
-                  if (!path.startsWith("/")) path = currentDir + "/" + path;
+                  if (!path.startsWith("/")) {
+                      path = resolvePath(currentDir, path);
+                  }
                   os.fs.mkdir(path);
                   os.terminal.success("Created: " + path);
               }
               
               private void createFile(String[] args) {
-                  if (args.length == 0) return;
+                  if (args.length == 0) {
+                      os.terminal.error("Usage: touch <file>");
+                      return;
+                  }
                   String path = args[0];
-                  if (!path.startsWith("/")) path = currentDir + "/" + path;
+                  if (!path.startsWith("/")) {
+                      path = resolvePath(currentDir, path);
+                  }
                   os.fs.writeFile(path, "");
                   os.terminal.success("Created: " + path);
               }
               
               private void showFile(String[] args) {
-                  if (args.length == 0) return;
+                  if (args.length == 0) {
+                      os.terminal.error("Usage: cat <file>");
+                      return;
+                  }
                   String path = args[0];
-                  if (!path.startsWith("/")) path = currentDir + "/" + path;
+                  if (!path.startsWith("/")) {
+                      path = resolvePath(currentDir, path);
+                  }
                   String content = os.fs.readFile(path);
                   if (content != null) {
                       os.terminal.print("");
                       os.terminal.print(content);
                       os.terminal.print("");
                   } else {
-                      os.terminal.error("Not found: " + path);
+                      os.terminal.error("File not found: " + path);
                   }
               }
               
               private void writeFile(String[] args) {
-                  if (args.length < 2) return;
+                  if (args.length < 2) {
+                      os.terminal.error("Usage: write <file> <content>");
+                      return;
+                  }
                   String path = args[0];
-                  if (!path.startsWith("/")) path = currentDir + "/" + path;
+                  if (!path.startsWith("/")) {
+                      path = resolvePath(currentDir, path);
+                  }
                   String content = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
                   os.fs.writeFile(path, content);
-                  os.terminal.success("Written: " + path);
+                  os.terminal.success("Written to: " + path);
               }
               
               private void removeFile(String[] args) {
-                  if (args.length == 0) return;
+                  if (args.length == 0) {
+                      os.terminal.error("Usage: rm <file>");
+                      return;
+                  }
                   String path = args[0];
-                  if (!path.startsWith("/")) path = currentDir + "/" + path;
+                  if (!path.startsWith("/")) {
+                      path = resolvePath(currentDir, path);
+                  }
                   os.fs.delete(path);
                   os.terminal.success("Removed: " + path);
               }
               
-              private void startApp(String[] args) {
-                  if (args.length == 0) return;
-                  os.appManager.startApp(args[0]);
+              private void playGame(String[] args) {
+                  if (args.length == 0) {
+                      os.terminal.error("Usage: play <game>");
+                      return;
+                  }
+                  os.gameEngine.playGame(args[0]);
               }
               
               private void showTree() {
@@ -513,125 +655,232 @@ jobs:
               }
               
               private void showTreeRec(String dir, String prefix) {
-                  for (String file : os.fs.list(dir)) {
-                      String fullPath = dir + "/" + file;
-                      os.terminal.print(prefix + "  " + file);
+                  List<String> files = os.fs.list(dir);
+                  for (int i = 0; i < files.size(); i++) {
+                      boolean isLast = (i == files.size() - 1);
+                      String file = files.get(i);
+                      String fullPath = dir.equals("/") ? "/" + file : dir + "/" + file;
+                      
+                      os.terminal.print(prefix + (isLast ? "+-- " : "|-- ") + file);
+                      
                       if (os.fs.isDirectory(fullPath)) {
-                          showTreeRec(fullPath, prefix + "  ");
+                          showTreeRec(fullPath, prefix + (isLast ? "    " : "|   "));
                       }
                   }
               }
           }
           EOF
 
-      - name: Create AppManager
+      - name: Create GameEngine
         run: |
-          cat > app/src/main/java/com/titan/terminal/AppManager.java << 'EOF'
+          cat > app/src/main/java/com/titan/terminal/GameEngine.java << 'EOF'
           package com.titan.terminal;
 
           import java.util.*;
 
-          public class AppManager {
+          public class GameEngine {
               
               TitanOS os;
-              Map<String, Application> apps = new HashMap<>();
+              Map<String, Game> games = new HashMap<>();
               
-              public AppManager(TitanOS os) {
+              public GameEngine(TitanOS os) {
                   this.os = os;
               }
               
-              public void installBuiltInApps() {
-                  apps.put("filemanager", new FileManagerApp(os));
-                  apps.put("editor", new TextEditorApp(os));
-                  apps.put("calc", new CalculatorApp(os));
+              public void installGames() {
+                  games.put("guess", new GuessNumberGame(os));
+                  games.put("quiz", new QuizGame(os));
+                  games.put("maze", new MazeGame(os));
+                  games.put("math", new MathGame(os));
+                  games.put("adventure", new AdventureGame(os));
               }
               
-              public void listApps() {
+              public void listGames() {
                   os.terminal.print("");
-                  os.terminal.print("INSTALLED APPS:");
-                  for (String name : apps.keySet()) {
-                      Application app = apps.get(name);
-                      os.terminal.print("  " + name + " - " + app.getDescription());
+                  os.terminal.print("AVAILABLE GAMES:");
+                  os.terminal.print("");
+                  for (String name : games.keySet()) {
+                      Game game = games.get(name);
+                      os.terminal.print("  " + name + " - " + game.getDescription());
                   }
                   os.terminal.print("");
+                  os.terminal.print("Use 'play <game>' to start");
+                  os.terminal.print("");
               }
               
-              public void startApp(String name) {
-                  Application app = apps.get(name.toLowerCase());
-                  if (app == null) {
-                      os.terminal.error("App not found: " + name);
+              public void playGame(String name) {
+                  Game game = games.get(name.toLowerCase());
+                  if (game == null) {
+                      os.terminal.error("Game not found: " + name);
+                      os.terminal.print("Type 'games' to see available games");
                       return;
                   }
                   os.terminal.print("");
                   os.terminal.print("=== Starting " + name + " ===");
-                  app.run();
-                  os.terminal.print("=== Exited ===");
+                  os.terminal.print("");
+                  game.play();
+                  os.terminal.print("");
+                  os.terminal.print("=== Game Over ===");
                   os.terminal.print("");
               }
           }
 
-          abstract class Application {
+          abstract class Game {
               protected TitanOS os;
-              public Application(TitanOS os) { this.os = os; }
-              public abstract void run();
+              protected Random random = new Random();
+              
+              public Game(TitanOS os) {
+                  this.os = os;
+              }
+              
+              public abstract void play();
               public abstract String getDescription();
           }
 
-          class FileManagerApp extends Application {
-              public FileManagerApp(TitanOS os) { super(os); }
+          class GuessNumberGame extends Game {
+              public GuessNumberGame(TitanOS os) { super(os); }
               
               public String getDescription() {
-                  return "Browse files";
+                  return "Guess the number (1-100)";
               }
               
-              public void run() {
+              public void play() {
+                  int target = random.nextInt(100) + 1;
+                  int[] guesses = {25, 50, 75, 63, target};
+                  
+                  os.terminal.print("I'm thinking of a number 1-100");
                   os.terminal.print("");
-                  os.terminal.print("FILE MANAGER");
-                  showDirectory("/");
-              }
-              
-              private void showDirectory(String path) {
-                  List<String> files = os.fs.list(path);
-                  os.terminal.print("");
-                  os.terminal.print("Directory: " + path);
-                  for (String file : files) {
-                      String fullPath = path + "/" + file;
-                      if (os.fs.isDirectory(fullPath)) {
-                          os.terminal.print("  [D] " + file);
+                  
+                  for (int i = 0; i < guesses.length; i++) {
+                      int guess = guesses[i];
+                      os.terminal.print("Attempt " + (i+1) + ": " + guess);
+                      
+                      if (guess == target) {
+                          os.terminal.print("CORRECT! The number was " + target);
+                          os.terminal.print("You won in " + (i+1) + " attempts!");
+                          return;
+                      } else if (guess < target) {
+                          os.terminal.print("Too low!");
                       } else {
-                          os.terminal.print("  [F] " + file);
+                          os.terminal.print("Too high!");
                       }
                   }
               }
           }
 
-          class TextEditorApp extends Application {
-              public TextEditorApp(TitanOS os) { super(os); }
+          class QuizGame extends Game {
+              public QuizGame(TitanOS os) { super(os); }
               
               public String getDescription() {
-                  return "Text editor";
+                  return "Answer trivia questions";
               }
               
-              public void run() {
-                  os.terminal.print("");
-                  os.terminal.print("TEXT EDITOR");
-                  os.terminal.print("Use: write <file> <text>");
-                  os.terminal.print("Use: cat <file>");
+              public void play() {
+                  String[][] questions = {
+                      {"What is 2+2?", "4"},
+                      {"Capital of France?", "Paris"},
+                      {"Largest planet?", "Jupiter"}
+                  };
+                  
+                  int score = 0;
+                  
+                  for (int i = 0; i < questions.length; i++) {
+                      os.terminal.print("Q" + (i+1) + ": " + questions[i][0]);
+                      String answer = questions[i][1];
+                      os.terminal.print("A: " + answer);
+                      os.terminal.print("CORRECT!");
+                      score++;
+                      os.terminal.print("");
+                  }
+                  
+                  os.terminal.print("Final Score: " + score + "/" + questions.length);
               }
           }
 
-          class CalculatorApp extends Application {
-              public CalculatorApp(TitanOS os) { super(os); }
+          class MazeGame extends Game {
+              public MazeGame(TitanOS os) { super(os); }
               
               public String getDescription() {
-                  return "Calculator";
+                  return "Navigate through a maze";
               }
               
-              public void run() {
+              public void play() {
+                  os.terminal.print("MAZE:");
+                  os.terminal.print("+---+---+---+");
+                  os.terminal.print("| S |   |   |");
+                  os.terminal.print("+   +---+   +");
+                  os.terminal.print("|   |   |   |");
+                  os.terminal.print("+   +   +---+");
+                  os.terminal.print("|   |   | E |");
+                  os.terminal.print("+---+---+---+");
                   os.terminal.print("");
-                  os.terminal.print("CALCULATOR");
-                  os.terminal.print("2 + 2 = 4");
-                  os.terminal.print("10 * 5 = 50");
+                  os.terminal.print("Path: Right -> Down -> Right -> Down");
+                  os.terminal.print("You found the exit!");
+              }
+          }
+
+          class MathGame extends Game {
+              public MathGame(TitanOS os) { super(os); }
+              
+              public String getDescription() {
+                  return "Solve math problems";
+              }
+              
+              public void play() {
+                  int[][] problems = {
+                      {5, 3, 8},
+                      {12, 7, 5},
+                      {8, 4, 2}
+                  };
+                  
+                  os.terminal.print("Solve these problems:");
+                  os.terminal.print("");
+                  
+                  for (int i = 0; i < problems.length; i++) {
+                      int a = problems[i][0];
+                      int b = problems[i][1];
+                      int answer = problems[i][2];
+                      
+                      if (i == 2) {
+                          os.terminal.print((i+1) + ". " + a + " / " + b + " = " + answer);
+                      } else if (i == 1) {
+                          os.terminal.print((i+1) + ". " + a + " - " + b + " = " + answer);
+                      } else {
+                          os.terminal.print((i+1) + ". " + a + " + " + b + " = " + answer);
+                      }
+                      os.terminal.print("CORRECT!");
+                  }
+                  
+                  os.terminal.print("");
+                  os.terminal.print("Perfect score!");
+              }
+          }
+
+          class AdventureGame extends Game {
+              public AdventureGame(TitanOS os) { super(os); }
+              
+              public String getDescription() {
+                  return "Text-based adventure";
+              }
+              
+              public void play() {
+                  os.terminal.print("ADVENTURE QUEST");
+                  os.terminal.print("");
+                  os.terminal.print("You wake up in a dark forest...");
+                  os.terminal.print("");
+                  os.terminal.print("> Go North");
+                  os.terminal.print("You find a treasure chest!");
+                  os.terminal.print("");
+                  os.terminal.print("> Open chest");
+                  os.terminal.print("You found: Golden Sword!");
+                  os.terminal.print("");
+                  os.terminal.print("> Go East");
+                  os.terminal.print("You encounter a dragon!");
+                  os.terminal.print("");
+                  os.terminal.print("> Attack with sword");
+                  os.terminal.print("Critical hit! Dragon defeated!");
+                  os.terminal.print("");
+                  os.terminal.print("YOU WIN! Kingdom saved!");
               }
           }
           EOF
@@ -651,5 +900,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TitanOS-Terminal
+          name: TitanOS-Terminal-Gaming
           path: app/build/outputs/apk/debug/app-debug.apk
