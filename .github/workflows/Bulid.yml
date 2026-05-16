@@ -34,15 +34,11 @@ jobs:
             <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
             <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
-            <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-            <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
-            <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
-            <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
             
-            <application android:allowBackup="true" android:theme="@style/AppTheme" 
+            <application android:allowBackup="false" android:theme="@style/AppTheme" 
               android:requestLegacyExternalStorage="true"
               android:usesCleartextTraffic="true">
-              <activity android:name=".MainActivity" android:exported="true">
+              <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop">
                 <intent-filter>
                   <action android:name="android.intent.action.MAIN"/>
                   <category android:name="android.intent.category.LAUNCHER"/>
@@ -56,6 +52,7 @@ jobs:
           <resources>
             <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
               <item name="android:windowFullscreen">true</item>
+              <item name="android:windowNoTitle">true</item>
             </style>
           </resources>
           THEMES
@@ -68,33 +65,37 @@ jobs:
             
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
               android:text="Titan Archiver" android:textSize="28sp" android:textColor="#00BFFF"
-              android:gravity="center" android:layout_marginTop="30dp"/>
+              android:gravity="center" android:layout_marginTop="20dp"/>
             
             <TextView android:id="@+id/tv_permission" android:layout_width="match_parent"
-              android:layout_height="wrap_content" android:text="⚠️ Нажмите для запроса разрешений"
+              android:layout_height="wrap_content" android:text="📁 Нажмите для запроса разрешений"
               android:textColor="#FFD700" android:gravity="center" android:clickable="true"
-              android:focusable="true" android:background="#332200" android:padding="10dp"
-              android:layout_marginTop="10dp" android:textSize="12sp"/>
+              android:focusable="true" android:background="#332200" android:padding="12dp"
+              android:layout_marginTop="15dp" android:textSize="13sp"/>
             
             <EditText android:id="@+id/et_path" android:layout_width="match_parent"
-              android:layout_height="wrap_content" android:hint="Путь к файлу"
+              android:layout_height="wrap_content" android:hint="Пример: /sdcard/Download/file.mp3"
               android:textColor="#FFF" android:textColorHint="#666" android:background="#222"
-              android:padding="12dp" android:layout_marginTop="30dp" android:textSize="12sp"/>
+              android:padding="14dp" android:layout_marginTop="25dp" android:textSize="12sp"/>
             
             <Button android:id="@+id/btn_compress" android:layout_width="match_parent"
-              android:layout_height="55dp" android:text="Сжать (оригинал удалится)"
-              android:textSize="14sp" android:background="#101820" android:textColor="#00BFFF"
+              android:layout_height="55dp" android:text="📦 Сжать"
+              android:textSize="16sp" android:background="#101820" android:textColor="#00BFFF"
               android:layout_marginTop="20dp"/>
             
             <Button android:id="@+id/btn_decompress" android:layout_width="match_parent"
-              android:layout_height="55dp" android:text="Распаковать .titz"
-              android:textSize="14sp" android:background="#101820" android:textColor="#00BFFF"
+              android:layout_height="55dp" android:text="📂 Распаковать"
+              android:textSize="16sp" android:background="#101820" android:textColor="#00BFFF"
               android:layout_marginTop="10dp"/>
             
             <TextView android:id="@+id/tv_status" android:layout_width="match_parent"
-              android:layout_height="wrap_content" android:text="Готов"
+              android:layout_height="wrap_content" android:text="✅ Готов"
               android:textColor="#44FF44" android:gravity="center"
               android:layout_marginTop="30dp" android:textSize="12sp"/>
+            
+            <ProgressBar android:id="@+id/progress" android:layout_width="match_parent"
+              android:layout_height="3dp" android:layout_marginTop="10dp"
+              android:visibility="gone" style="?android:attr/progressBarStyleHorizontal"/>
             
           </LinearLayout>
           LAYOUT
@@ -109,21 +110,28 @@ jobs:
           import android.os.Build;
           import android.os.Bundle;
           import android.os.Environment;
+          import android.os.Handler;
+          import android.os.Looper;
           import android.provider.Settings;
           import android.widget.Button;
           import android.widget.EditText;
+          import android.widget.ProgressBar;
           import android.widget.TextView;
           import android.widget.Toast;
           import androidx.appcompat.app.AppCompatActivity;
           import androidx.core.app.ActivityCompat;
           import androidx.core.content.ContextCompat;
           import java.io.*;
+          import java.util.concurrent.ExecutorService;
+          import java.util.concurrent.Executors;
           
           public class MainActivity extends AppCompatActivity {
               private EditText etPath;
               private TextView tvStatus, tvPermission;
+              private ProgressBar progressBar;
+              private ExecutorService executor;
+              private Handler mainHandler;
               private static final int PERMISSION_REQUEST = 100;
-              private boolean hasPermissions = false;
               
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -133,27 +141,34 @@ jobs:
                   etPath = findViewById(R.id.et_path);
                   tvStatus = findViewById(R.id.tv_status);
                   tvPermission = findViewById(R.id.tv_permission);
+                  progressBar = findViewById(R.id.progress);
                   
-                  findViewById(R.id.btn_compress).setOnClickListener(v -> compress());
-                  findViewById(R.id.btn_decompress).setOnClickListener(v -> decompress());
+                  executor = Executors.newSingleThreadExecutor();
+                  mainHandler = new Handler(Looper.getMainLooper());
                   
+                  findViewById(R.id.btn_compress).setOnClickListener(v -> startCompress());
+                  findViewById(R.id.btn_decompress).setOnClickListener(v -> startDecompress());
                   tvPermission.setOnClickListener(v -> requestAllPermissions());
                   
                   checkPermissions();
+                  
+                  // Пример пути по умолчанию
+                  etPath.setText("/sdcard/Download/");
               }
               
               private void checkPermissions() {
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                      hasPermissions = Environment.isExternalStorageManager();
+                      if (Environment.isExternalStorageManager()) {
+                          tvPermission.setVisibility(android.view.View.GONE);
+                      } else {
+                          tvPermission.setVisibility(android.view.View.VISIBLE);
+                      }
                   } else {
-                      hasPermissions = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-                  }
-                  
-                  if (hasPermissions) {
-                      tvPermission.setVisibility(android.view.View.GONE);
-                  } else {
-                      tvPermission.setVisibility(android.view.View.VISIBLE);
-                      tvPermission.setText("⚠️ Нужны разрешения - нажмите здесь ⚠️");
+                      if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                          tvPermission.setVisibility(android.view.View.GONE);
+                      } else {
+                          tvPermission.setVisibility(android.view.View.VISIBLE);
+                      }
                   }
               }
               
@@ -161,12 +176,10 @@ jobs:
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                       try {
                           Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                          intent.addCategory("android.intent.category.DEFAULT");
                           intent.setData(Uri.parse("package:" + getPackageName()));
                           startActivityForResult(intent, PERMISSION_REQUEST);
                       } catch (Exception e) {
-                          Intent intent = new Intent();
-                          intent.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                          Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
                           startActivityForResult(intent, PERMISSION_REQUEST);
                       }
                   } else {
@@ -183,12 +196,7 @@ jobs:
                   checkPermissions();
               }
               
-              private void compress() {
-                  if (!hasPermissions) {
-                      Toast.makeText(this, "Сначала дайте разрешения!", Toast.LENGTH_SHORT).show();
-                      return;
-                  }
-                  
+              private void startCompress() {
                   String path = etPath.getText().toString().trim();
                   if (path.isEmpty()) {
                       Toast.makeText(this, "Введите путь к файлу", Toast.LENGTH_SHORT).show();
@@ -197,35 +205,49 @@ jobs:
                   
                   File file = new File(path);
                   if (!file.exists()) {
-                      Toast.makeText(this, "Файл не найден", Toast.LENGTH_SHORT).show();
+                      Toast.makeText(this, "Файл не найден: " + path, Toast.LENGTH_LONG).show();
                       return;
                   }
                   
-                  try {
-                      byte[] data = readFile(file);
-                      tvStatus.setText("Сжатие: " + data.length + " байт");
-                      
-                      byte[] compressed = compressData(data);
-                      writeFile(new File(path + ".titz"), compressed);
-                      
-                      if (file.delete()) {
-                          tvStatus.setText("Готово! " + compressed.length + " байт (" + 
-                              (compressed.length * 100 / data.length) + "%)");
-                          Toast.makeText(this, "Оригинал удалён", Toast.LENGTH_SHORT).show();
-                      } else {
-                          tvStatus.setText("Ошибка удаления оригинала");
-                      }
-                  } catch (Exception e) {
-                      tvStatus.setText("Ошибка: " + e.getMessage());
+                  if (file.isDirectory()) {
+                      Toast.makeText(this, "Это папка, выберите файл", Toast.LENGTH_LONG).show();
+                      return;
                   }
+                  
+                  progressBar.setVisibility(android.view.View.VISIBLE);
+                  tvStatus.setText("⏳ Сжатие...");
+                  
+                  executor.execute(() -> {
+                      try {
+                          byte[] data = readFile(file);
+                          byte[] compressed = compressData(data);
+                          File archive = new File(path + ".titz");
+                          writeFile(archive, compressed);
+                          
+                          // Удаляем оригинал в отдельном потоке
+                          boolean deleted = file.delete();
+                          
+                          mainHandler.post(() -> {
+                              progressBar.setVisibility(android.view.View.GONE);
+                              if (deleted) {
+                                  tvStatus.setText("✅ Сжато! " + compressed.length + " байт (" + 
+                                      (compressed.length * 100 / data.length) + "%)");
+                                  Toast.makeText(MainActivity.this, "Оригинал удалён", Toast.LENGTH_SHORT).show();
+                              } else {
+                                  tvStatus.setText("⚠️ Сжато, но оригинал не удалён");
+                              }
+                          });
+                      } catch (Exception e) {
+                          mainHandler.post(() -> {
+                              progressBar.setVisibility(android.view.View.GONE);
+                              tvStatus.setText("❌ Ошибка: " + e.getMessage());
+                              Toast.makeText(MainActivity.this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                          });
+                      }
+                  });
               }
               
-              private void decompress() {
-                  if (!hasPermissions) {
-                      Toast.makeText(this, "Сначала дайте разрешения!", Toast.LENGTH_SHORT).show();
-                      return;
-                  }
-                  
+              private void startDecompress() {
                   String path = etPath.getText().toString().trim();
                   if (!path.endsWith(".titz")) {
                       Toast.makeText(this, "Нужен .titz файл", Toast.LENGTH_SHORT).show();
@@ -238,23 +260,33 @@ jobs:
                       return;
                   }
                   
-                  try {
-                      byte[] data = readFile(file);
-                      tvStatus.setText("Распаковка...");
-                      
-                      byte[] decompressed = decompressData(data);
-                      String outPath = path.substring(0, path.length() - 5);
-                      writeFile(new File(outPath), decompressed);
-                      
-                      if (file.delete()) {
-                          tvStatus.setText("Восстановлено: " + decompressed.length + " байт");
-                          Toast.makeText(this, "Архив удалён", Toast.LENGTH_SHORT).show();
-                      } else {
-                          tvStatus.setText("Ошибка удаления архива");
+                  progressBar.setVisibility(android.view.View.VISIBLE);
+                  tvStatus.setText("⏳ Распаковка...");
+                  
+                  executor.execute(() -> {
+                      try {
+                          byte[] data = readFile(file);
+                          byte[] decompressed = decompressData(data);
+                          String outPath = path.substring(0, path.length() - 5);
+                          writeFile(new File(outPath), decompressed);
+                          boolean deleted = file.delete();
+                          
+                          mainHandler.post(() -> {
+                              progressBar.setVisibility(android.view.View.GONE);
+                              if (deleted) {
+                                  tvStatus.setText("✅ Распаковано! " + decompressed.length + " байт");
+                                  Toast.makeText(MainActivity.this, "Архив удалён", Toast.LENGTH_SHORT).show();
+                              } else {
+                                  tvStatus.setText("⚠️ Распаковано, но архив не удалён");
+                              }
+                          });
+                      } catch (Exception e) {
+                          mainHandler.post(() -> {
+                              progressBar.setVisibility(android.view.View.GONE);
+                              tvStatus.setText("❌ Ошибка: " + e.getMessage());
+                          });
                       }
-                  } catch (Exception e) {
-                      tvStatus.setText("Ошибка: " + e.getMessage());
-                  }
+                  });
               }
               
               private byte[] compressData(byte[] data) {
@@ -269,7 +301,9 @@ jobs:
                           if (data[j] == data[i]) {
                               int len = 0;
                               while (i + len < data.length && j + len < i && 
-                                     data[j + len] == data[i + len] && len < 255) len++;
+                                     data[j + len] == data[i + len] && len < 255) {
+                                  len++;
+                              }
                               if (len > matchLen) {
                                   matchLen = len;
                                   matchPos = i - j;
@@ -303,8 +337,9 @@ jobs:
                           i += 2;
                           
                           byte[] result = out.toByteArray();
-                          for (int j = 0; j < matchLen; j++) {
-                              out.write(result[result.length - matchPos + j]);
+                          int start = result.length - matchPos;
+                          for (int j = 0; j < matchLen && start + j < result.length; j++) {
+                              out.write(result[start + j]);
                           }
                       } else {
                           out.write(data[i]);
@@ -347,8 +382,14 @@ jobs:
               compileSdk 34
               defaultConfig {
                   applicationId 'com.titan.archiver'
-                  minSdk 24
+                  minSdk 21
                   targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
               }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
