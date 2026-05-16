@@ -11,118 +11,66 @@ jobs:
       - name: Install NASM
         run: sudo apt-get update && sudo apt-get install -y nasm
 
-      - name: Build x86 Shell Kernel
+      - name: Build Terminal Kernel
         run: |
           cat > kernel.asm << 'KERNEL'
           [bits 16]
           [org 0x7c00]
-          
           start:
               mov ax, 0x0003
               int 0x10
               mov si, msg_boot
               call print
-
-          main_shell:
+          shell:
               mov si, msg_prompt
               call print
-              mov di, cmd_buffer
+              mov di, buffer
               call get_string
-
-              ; Проверка команды 'help'
-              mov si, cmd_buffer
-              mov di, str_help
+              mov si, buffer
+              mov di, cmd_help
               call strcmp
-              jz do_help
-
-              ; Проверка команды 'cls'
-              mov si, cmd_buffer
-              mov di, str_cls
+              jz .help
+              mov si, buffer
+              mov di, cmd_cls
               call strcmp
               jz start
-
-              ; Проверка команды 'matrix'
-              mov si, cmd_buffer
-              mov di, str_matrix
-              call strcmp
-              jz do_matrix
-
-              ; Если команда не пустая и не распознана
-              mov al, [cmd_buffer]
-              or al, al
-              jz main_shell
-              mov si, msg_unknown
+              mov si, msg_err
               call print
-              jmp main_shell
-
-          do_help:
+              jmp shell
+          .help:
               mov si, msg_help
               call print
-              jmp main_shell
-
-          do_matrix:
-              mov cx, 150
-          .l: mov al, '0'
-              mov ah, 0x0E
-              int 0x10
-              mov al, '1'
-              int 0x10
-              loop .l
-              mov si, msg_nl
-              call print
-              jmp main_shell
-
-          ; --- Функция сравнения строк (ZF=1 если равны) ---
+              jmp shell
           strcmp:
-          .loop:
-              mov al, [si]
+          .l: mov al, [si]
               mov bl, [di]
               cmp al, bl
-              jne .done
+              jne .ne
               or al, al
-              jz .done
+              jz .e
               inc si
               inc di
-              jmp .loop
-          .done:
+              jmp .l
+          .e: ret
+          .ne: add sp, 2 ; Выход из call
               ret
-
-          ; --- Функция ввода строки ---
           get_string:
               xor cx, cx
-          .loop:
-              mov ah, 0x00
+          .l: mov ah, 0x00
               int 0x16
-              cmp al, 13      ; Enter
-              je .finish
-              cmp al, 8       ; Backspace
-              je .backspace
-              cmp cx, 30      ; Лимит буфера
-              je .loop
-              
+              cmp al, 13
+              je .d
               mov [di], al
               inc di
-              inc cx
-              mov ah, 0x0E    ; Эхо
-              int 0x10
-              jmp .loop
-          .backspace:
-              jcxz .loop
-              dec di
-              dec cx
               mov ah, 0x0E
-              int 0x10        ; Курсор назад
-              mov al, ' '
-              int 0x10        ; Затереть пробелом
-              mov al, 8
-              int 0x10        ; Снова назад
-              jmp .loop
-          .finish:
-              mov byte [di], 0
-              mov si, msg_nl
-              call print
+              int 0x10
+              jmp .l
+          .d: mov byte [di], 0
+              mov al, 13
+              int 0x10
+              mov al, 10
+              int 0x10
               ret
-
           print:
               lodsb
               or al, al
@@ -131,18 +79,13 @@ jobs:
               int 0x10
               jmp print
           .d: ret
-
-          msg_boot   db 'DimOS Terminal v7.0', 13, 10, 'Type help for list', 13, 10, 0
-          msg_prompt db 'DimOS> ', 0
-          msg_unknown db 'Error: Bad command', 13, 10, 0
-          msg_help   db 'Commands: help, cls, matrix', 13, 10, 0
-          msg_nl     db 13, 10, 0
-          
-          str_help   db 'help', 0
-          str_cls    db 'cls', 0
-          str_matrix db 'matrix', 0
-          cmd_buffer db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-
+          msg_boot db 'Terminal OS v8.0', 13, 10, 0
+          msg_prompt db '> ', 0
+          msg_help db 'Commands: help, cls', 13, 10, 0
+          msg_err db 'Unknown!', 13, 10, 0
+          cmd_help db 'help', 0
+          cmd_cls db 'cls', 0
+          buffer db 0,0,0,0,0,0,0,0,0,0
           times 510-($-$$) db 0
           dw 0xAA55
           KERNEL
@@ -154,161 +97,147 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Android Project
+      - name: Setup Android Project
         run: |
-          mkdir -p app/src/main/java/com/tinyos/vm app/src/main/res/layout app/src/main/res/values app/src/main/assets
+          # Создаем папки по одной для надежности
+          mkdir -p app/src/main
+          mkdir -p app/src/main/java/com/tinyos/vm
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/assets
+          
           cp kernel.bin app/src/main/assets/kernel.bin
-          cat > app/src/main/res/values/strings.xml << 'XML'
-          <resources><string name="app_name">DimOS Terminal</string></resources>
-          XML
-          cat > app/src/main/res/values/themes.xml << 'XML'
-          <resources><style name="AppTheme" parent="Theme.AppCompat.NoActionBar"><item name="android:windowFullscreen">true</item></style></resources>
-          XML
-          cat > app/src/main/res/layout/activity_main.xml << 'LAYOUT'
+
+          cat > app/src/main/AndroidManifest.xml << 'XML'
           <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tinyos.vm">
+              <application android:label="TinyOS Terminal" android:theme="@style/Theme.AppCompat.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="stateVisible">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          XML
+
+          cat > app/src/main/res/values/strings.xml << 'XML'
+          <resources><string name="app_name">TinyOS</string></resources>
+          XML
+
+          cat > app/src/main/res/layout/activity_main.xml << 'XML'
           <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
-            <SurfaceView android:id="@+id/screen" android:layout_width="match_parent" android:layout_height="match_parent"/>
-            <EditText android:id="@+id/input" android:layout_width="1dp" android:layout_height="1dp" 
-              android:background="#000" android:inputType="textNoSuggestions" android:focusable="true"/>
+              android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
+              <SurfaceView android:id="@+id/s" android:layout_width="match_parent" android:layout_height="match_parent" />
+              <EditText android:id="@+id/e" android:layout_width="0dp" android:layout_height="0dp" android:inputType="text" />
           </RelativeLayout>
-          LAYOUT
+          XML
 
           cat > app/src/main/java/com/tinyos/vm/MainActivity.java << 'JAVA'
           package com.tinyos.vm;
           import android.os.*;
           import android.graphics.*;
           import android.view.*;
-          import android.view.inputmethod.InputMethodManager;
           import android.widget.EditText;
           import androidx.appcompat.app.AppCompatActivity;
-          import java.io.InputStream;
           import java.util.*;
 
           public class MainActivity extends AppCompatActivity {
-              private X86Emulator emu;
-              private Queue<Character> keyQueue = new LinkedList<>();
-
+              X86Emulator emu;
+              Queue<Character> keys = new LinkedList<>();
               @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
+              protected void onCreate(Bundle b) {
+                  super.onCreate(b);
                   setContentView(R.layout.activity_main);
                   emu = new X86Emulator();
-                  EditText input = findViewById(R.id.input);
-                  input.requestFocus();
-                  input.setOnKeyListener((v, keyCode, event) -> {
-                      if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                          char c = (char) event.getUnicodeChar();
-                          if (keyCode == KeyEvent.KEYCODE_ENTER) c = (char)13;
-                          if (keyCode == KeyEvent.KEYCODE_DEL) c = (char)8;
-                          if (c != 0) keyQueue.add(c);
+                  EditText et = findViewById(R.id.e);
+                  et.requestFocus();
+                  et.setOnKeyListener((v, k, e) -> {
+                      if(e.getAction()==KeyEvent.ACTION_DOWN) {
+                          char c = (char)e.getUnicodeChar();
+                          if(k==KeyEvent.KEYCODE_ENTER) c = (char)13;
+                          if(c != 0) keys.add(c);
                       }
                       return false;
                   });
-                  SurfaceView sv = findViewById(R.id.screen);
-                  sv.setOnClickListener(v -> {
-                      InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-                      imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT);
-                  });
+                  SurfaceView sv = findViewById(R.id.s);
                   sv.getHolder().addCallback(new SurfaceHolder.Callback() {
-                      @Override public void surfaceCreated(SurfaceHolder h) {
+                      public void surfaceCreated(SurfaceHolder h) {
                           new Thread(() -> {
-                              while (true) {
-                                  for(int i=0; i<300; i++) emu.step();
+                              while(true) {
+                                  for(int i=0; i<500; i++) emu.step();
                                   Canvas c = h.lockCanvas();
-                                  if(c != null) { emu.draw(c); h.unlockCanvasAndPost(c); }
-                                  try { Thread.sleep(16); } catch(Exception e) {}
+                                  if(c!=null) { emu.draw(c); h.unlockCanvasAndPost(c); }
+                                  try { Thread.sleep(20); } catch(Exception ex) {}
                               }
                           }).start();
                       }
-                      @Override public void surfaceDestroyed(SurfaceHolder h) {}
-                      @Override public void surfaceChanged(SurfaceHolder h, int f, int w, int h1) {}
+                      public void surfaceChanged(SurfaceHolder h, int f, int w, int h1) {}
+                      public void surfaceDestroyed(SurfaceHolder h) {}
                   });
               }
-
               class X86Emulator {
-                  byte[] mem = new byte[65536];
-                  int ax, bx, cx, dx, si, di, sp=0xFFF0, ip=0x7C00;
-                  boolean zf = false;
-                  List<String> lines = new ArrayList<>(Collections.singletonList(""));
-
-                  X86Emulator() {
-                      try { InputStream is = getAssets().open("kernel.bin"); is.read(mem, 0x7C00, 512); } catch(Exception e) {}
-                  }
-
+                  byte[] m = new byte[65536];
+                  int ax, si, di, ip=0x7C00;
+                  List<String> lines = new ArrayList<>(Arrays.asList(""));
+                  X86Emulator() { try { getAssets().open("kernel.bin").read(m, 0x7C00, 512); } catch(Exception e){} }
                   void step() {
-                      int op = mem[ip] & 0xFF;
-                      if(op == 0xB8) { ax = (mem[ip+1]&0xFF)|((mem[ip+2]&0xFF)<<8); ip+=3; }
-                      else if(op == 0xB9) { cx = (mem[ip+1]&0xFF)|((mem[ip+2]&0xFF)<<8); ip+=3; }
-                      else if(op == 0xBE) { si = (mem[ip+1]&0xFF)|((mem[ip+2]&0xFF)<<8); ip+=3; }
-                      else if(op == 0xBF) { di = (mem[ip+1]&0xFF)|((mem[ip+2]&0xFF)<<8); ip+=3; }
-                      else if(op == 0xB4) { ax = (ax & 0xFF) | ((mem[ip+1]&0xFF)<<8); ip+=2; }
-                      else if(op == 0xB0) { ax = (ax & 0xFF00) | (mem[ip+1]&0xFF); ip+=2; }
-                      else if(op == 0xAC) { ax = (ax&0xFF00)|(mem[si]&0xFF); si++; ip++; }
-                      else if(op == 0x38) { zf = (mem[si]&0xFF) == (mem[di]&0xFF); ip+=2; }
-                      else if(op == 0x3C) { zf = (ax&0xFF) == (mem[ip+1]&0xFF); ip+=2; }
-                      else if(op == 0x0A) { zf = (ax&0xFF) == 0; ip+=2; }
-                      else if(op == 0x46) { si++; ip++; }
-                      else if(op == 0x47) { di++; ip++; }
-                      else if(op == 0xE2) { cx--; if(cx > 0) ip += (byte)mem[ip+1] + 2; else ip+=2; }
-                      else if(op == 0xE8) { 
-                          int rel = (mem[ip+1]&0xFF)|((mem[ip+2]&0xFF)<<8);
-                          int r = ip + 3; mem[--sp] = (byte)(r >> 8); mem[--sp] = (byte)(r & 0xFF);
-                          ip += 3 + rel;
-                      }
-                      else if(op == 0xC3) { ip = (mem[sp++]&0xFF) | ((mem[sp++]&0xFF)<<8); }
-                      else if(op == 0x74) { if(zf) ip += (byte)mem[ip+1] + 2; else ip+=2; }
-                      else if(op == 0x75) { if(!zf) ip += (byte)mem[ip+1] + 2; else ip+=2; }
-                      else if(op == 0xCD) {
-                          int n = mem[ip+1]&0xFF;
-                          if(n == 0x10) {
-                              int ah = (ax>>8)&0xFF;
-                              if(ah == 0x0E) {
-                                  char c = (char)(ax&0xFF);
-                                  if(c==13) lines.add(""); 
-                                  else if(c==8) { if(lines.get(lines.size()-1).length()>0) { String s = lines.get(lines.size()-1); lines.set(lines.size()-1, s.substring(0, s.length()-1)); } }
-                                  else if(c>=32) lines.set(lines.size()-1, lines.get(lines.size()-1)+c);
-                                  if(lines.size()>25) lines.remove(0);
-                              } else if(ah==0x03) { lines.clear(); lines.add(""); }
-                          } else if(n == 0x16) {
-                              if(keyQueue.isEmpty()) return;
-                              ax = (ax&0xFF00)|keyQueue.poll();
+                      int op = m[ip] & 0xFF;
+                      if(op==0xB4) { ax=(ax&0xFF)|((m[ip+1]&0xFF)<<8); ip+=2; }
+                      else if(op==0xB0) { ax=(ax&0xFF00)|(m[ip+1]&0xFF); ip+=2; }
+                      else if(op==0xBE) { si=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; }
+                      else if(op==0xBF) { di=(m[ip+1]&0xFF)|((m[ip+2]&0xFF)<<8); ip+=3; }
+                      else if(op==0xAC) { ax=(ax&0xFF00)|(m[si]&0xFF); si++; ip++; }
+                      else if(op==0xCD) {
+                          int n=m[ip+1]&0xFF;
+                          if(n==0x10) {
+                              if(((ax>>8)&0xFF)==0x0E) {
+                                  char c=(char)(ax&0xFF);
+                                  if(c==13) lines.add(""); else lines.set(lines.size()-1, lines.get(lines.size()-1)+c);
+                              } else { lines.clear(); lines.add(""); }
+                          } else if(n==0x16) {
+                              if(keys.isEmpty()) return;
+                              ax=(ax&0xFF00)|keys.poll();
                           }
                           ip+=2;
                       } else { ip++; }
                   }
-
                   void draw(Canvas c) {
                       c.drawColor(Color.BLACK);
-                      Paint p = new Paint(); p.setColor(Color.GREEN); p.setTextSize(35);
-                      p.setTypeface(Typeface.MONOSPACE);
-                      for(int i=0; i<lines.size(); i++) c.drawText(lines.get(i) + (i==lines.size()-1?"_":""), 20, 50+i*40, p);
+                      Paint p = new Paint(); p.setColor(Color.GREEN); p.setTextSize(40);
+                      for(int i=0; i<lines.size(); i++) c.drawText(lines.get(i), 20, 60+i*50, p);
                   }
               }
           }
           JAVA
 
-          echo "android.useAndroidX=true" > gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
           echo "include ':app'" > settings.gradle
-          cat > build.gradle << 'GRADLE'
+          echo "android.useAndroidX=true" > gradle.properties
+          cat > build.gradle << 'XML'
           buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.2.2' } }
           allprojects { repositories { google(); mavenCentral() } }
-          GRADLE
-          cat > app/build.gradle << 'APP'
+          XML
+          cat > app/build.gradle << 'XML'
           plugins { id 'com.android.application' }
-          android { namespace 'com.tinyos.vm'; compileSdk 34; defaultConfig { applicationId "com.tinyos.vm"; minSdk 24; targetSdk 34 } }
+          android {
+              namespace 'com.tinyos.vm'
+              compileSdk 34
+              defaultConfig { applicationId "com.tinyos.vm"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" }
+          }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
-          APP
+          XML
 
       - name: Build APK
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip && unzip -q gradle-8.5-bin.zip
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle-8.5-bin.zip
           export PATH="$PWD/gradle-8.5/bin:$PATH"
-          gradle wrapper --gradle-version 8.5 && ./gradlew assembleDebug
+          gradle wrapper --gradle-version 8.5
+          ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DimOS-v7-Shell
+          name: TinyOS-Terminal
           path: app/build/outputs/apk/debug/app-debug.apk
