@@ -46,7 +46,7 @@ jobs:
               push es
               push ds
               pop es
-              mov bp, ebx
+              mov bp, bx
               mov cx, 0xFFFF
               mov ax, 0x1301
               mov bx, 0x000F
@@ -111,7 +111,7 @@ jobs:
           sys_get_key:
               xor ax, ax
               int 0x16
-              mov eax, ebx
+              mov ebx, [esp+4]
               mov [ebx], al
               iret
           
@@ -138,7 +138,6 @@ jobs:
               stosb
               cmp al, 0
               jnz .load
-              mov eax, 0
               mov word [current_app], 1
               jmp 0x20000
               popa
@@ -346,15 +345,14 @@ jobs:
               int 0x10
               ret
           
-          ; ============== ПРИЛОЖЕНИЕ 1: ЧАСЫ ==============
+          ; ============== ПРИЛОЖЕНИЕ 1 ==============
           app1_main:
               mov esi, app1_title
               call print_string
-              
               mov dword [counter], 0
           clock_loop:
-              mov ah, 0x06
               mov ebx, 20
+              mov ah, 0x06
               call syscall_handler
               
               mov ax, 0x1301
@@ -371,40 +369,35 @@ jobs:
               mov ah, 0x02
               call syscall_handler
               
-              mov ah, 0x05
               mov ebx, key_buffer
+              mov ah, 0x05
               call syscall_handler
               
               cmp byte [key_buffer], 'q'
               je clock_exit
               cmp byte [key_buffer], 'r'
               je clock_reset
-              
               jmp clock_loop
           
           clock_reset:
               mov dword [counter], 0
               jmp clock_loop
-          
           clock_exit:
               ret
           
-          ; ============== ПРИЛОЖЕНИЕ 2: РИСОВАЛКА ==============
+          ; ============== ПРИЛОЖЕНИЕ 2 ==============
           app2_main:
               mov esi, app2_title
               call print_string
-              
               mov dword [pen_x], 160
               mov dword [pen_y], 100
               mov byte [pen_color], 0x0F
-          
           paint_loop:
-              mov ah, 0x05
               mov ebx, key_buffer
+              mov ah, 0x05
               call syscall_handler
               
               mov al, [key_buffer]
-              
               cmp al, 'w'
               je paint_up
               cmp al, 's'
@@ -424,7 +417,6 @@ jobs:
               mov cl, [pen_color]
               mov ah, 0x03
               call syscall_handler
-              
               jmp paint_loop
           
           paint_up:
@@ -461,15 +453,13 @@ jobs:
               jne paint_loop
               mov byte [pen_color], 0
               jmp paint_loop
-          
           paint_exit:
               ret
           
-          ; ============== ПРИЛОЖЕНИЕ 3: ЗМЕЙКА ==============
+          ; ============== ПРИЛОЖЕНИЕ 3 ==============
           app3_main:
               mov esi, app3_title
               call print_string
-              
               mov dword [snake_x], 160
               mov dword [snake_y], 100
               mov dword [dir_x], 1
@@ -477,10 +467,9 @@ jobs:
               mov dword [food_x], 50
               mov dword [food_y], 50
               mov dword [score_val], 0
-          
           snake_main:
-              mov ah, 0x05
               mov ebx, key_buffer
+              mov ah, 0x05
               call syscall_handler
               
               mov al, [key_buffer]
@@ -520,7 +509,6 @@ jobs:
               mov eax, [snake_y]
               cmp eax, [food_y]
               jne snake_draw
-              
               inc dword [score_val]
               call random_food
           
@@ -545,27 +533,23 @@ jobs:
               mov ah, 0x02
               call syscall_handler
               
-              mov ah, 0x06
               mov ebx, 30
+              mov ah, 0x06
               call syscall_handler
-              
               jmp snake_main
           
           snake_up:
               mov dword [dir_x], 0
               mov dword [dir_y], -1
               jmp snake_main
-          
           snake_down:
               mov dword [dir_x], 0
               mov dword [dir_y], 1
               jmp snake_main
-          
           snake_left:
               mov dword [dir_x], -1
               mov dword [dir_y], 0
               jmp snake_main
-          
           snake_right:
               mov dword [dir_x], 1
               mov dword [dir_y], 0
@@ -574,28 +558,29 @@ jobs:
           snake_die:
               mov esi, game_over_msg
               call print_string
-              mov ah, 0x06
               mov ebx, 100
+              mov ah, 0x06
               call syscall_handler
-          
           snake_exit:
               ret
           
           random_food:
               push eax
               push ebx
+              push edx
               in al, 0x40
-              xor ah, ah
+              mov ah, 0
               mov ebx, 300
               xor edx, edx
               div ebx
               mov [food_x], dx
               in al, 0x40
-              xor ah, ah
+              mov ah, 0
               mov ebx, 180
               xor edx, edx
               div ebx
               mov [food_y], dx
+              pop edx
               pop ebx
               pop eax
               ret
@@ -644,7 +629,7 @@ jobs:
               ret
           
           ; ============== ДАННЫЕ ==============
-          welcome_msg db 13,10,'TinyOS App Platform v4.0',13,10,'Type "help" for commands',13,10,0
+          welcome_msg db 13,10,'TinyOS v4.0',13,10,'Type "help"',13,10,0
           prompt db 13,10,'tinyos> ',0
           unknown_msg db 'Command not found',13,10,0
           app_not_found db 'App not found',13,10,0
@@ -658,21 +643,13 @@ jobs:
           app2_name db 'paint',0
           app3_name db 'snake',0
           
-          app_list db 'Available apps:',13,10
-                    db '  clock - Digital clock',13,10
-                    db '  paint - Drawing (WASD + C)',13,10
-                    db '  snake - Snake game',13,10,0
+          app_list db 'Apps: clock paint snake',13,10,0
+          help_msg db 'Commands: run <app>, ls, clear, help',13,10,0
           
-          help_msg db 'Commands:',13,10
-                    db '  run <app> - Start app',13,10
-                    db '  ls         - List apps',13,10
-                    db '  clear      - Clear screen',13,10
-                    db '  help       - Help',13,10,0
-          
-          shell_bar db 'TinyOS - App Platform',0
-          app1_title db 13,10,'=== CLOCK ===',13,10,'R=reset Q=quit',13,10,0
-          app2_title db 13,10,'=== PAINT ===',13,10,'WASD C Q',13,10,0
-          app3_title db 13,10,'=== SNAKE ===',13,10,'WASD Q',13,10,0
+          shell_bar db 'TinyOS',0
+          app1_title db 13,10,'CLOCK - R=reset Q=quit',13,10,0
+          app2_title db 13,10,'PAINT - WASD C Q',13,10,0
+          app3_title db 13,10,'SNAKE - WASD Q',13,10,0
           
           time_msg db 'Ticks: ',0
           score_text db 'Score: ',0
@@ -697,21 +674,21 @@ jobs:
           
           cmd_buffer times 64 db 0
           
-          times 32768-($-$$) db 0
+          times 16384-($-$$) db 0
           KERNEL
 
-      - name: Build and Test
+      - name: Build
         run: |
           nasm -f bin kernel.asm -o tinyos.bin
           truncate -s 1474560 tinyos.bin
-          
-          echo "=== TINYOS BUILT ==="
           ls -la tinyos.bin
-          
+
+      - name: Test
+        run: |
           timeout 10 qemu-system-x86_64 -drive format=raw,file=tinyos.bin -nographic -no-reboot 2>/dev/null || true
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: TinyOS-Apps
+          name: TinyOS
           path: tinyos.bin
