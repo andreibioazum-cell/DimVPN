@@ -1,20 +1,16 @@
-name: TitanOS v34 Terminal Gaming Edition
+name: Virus Deep Evolution
 
 on: [push, workflow_dispatch]
-
-permissions:
-  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Android Project
         run: |
-          mkdir -p app/src/main/java/com/titan/terminal
+          mkdir -p app/src/main/java/com/spruce/virus
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
@@ -32,14 +28,14 @@ jobs:
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
           android {
-              namespace 'com.titan.terminal'
+              namespace "com.spruce.virus"
               compileSdk 34
               defaultConfig {
-                  applicationId "com.titan.terminal"
-                  minSdk 24
+                  applicationId "com.spruce.virus"
+                  minSdk 26
                   targetSdk 34
-                  versionCode 34
-                  versionName "34.0"
+                  versionCode 1
+                  versionName "2.0-EVOLUTION"
               }
           }
           dependencies {
@@ -50,939 +46,230 @@ jobs:
 
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application 
-                  android:label="TitanOS Terminal"
-                  android:theme="@style/AppTheme">
-                  <activity 
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:windowSoftInputMode="adjustResize">
+              <application android:label="Virus Evolution" android:theme="@style/Theme.AppCompat.NoActionBar.FullScreen">
+                  <activity android:name=".GameActivity" android:exported="true" android:screenOrientation="landscape">
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
+                          <action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/>
                       </intent-filter>
                   </activity>
               </application>
+              <style name="Theme.AppCompat.NoActionBar.FullScreen" parent="Theme.AppCompat.Light.NoActionBar">
+                  <item name="android:windowNoTitle">true</item>
+                  <item name="android:windowFullscreen">true</item>
+              </style>
           </manifest>
           EOF
 
-      - name: Create Layouts
+      - name: Create Game Logic
         run: |
-          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:background="#000000">
+          cat > app/src/main/java/com/spruce/virus/Country.java << 'EOF'
+          package com.spruce.virus;
+          import android.widget.Button;
 
-              <ScrollView
-                  android:id="@+id/scrollView"
-                  android:layout_width="match_parent"
-                  android:layout_height="0dp"
-                  android:layout_weight="1"
-                  android:padding="8dp">
-
-                  <TextView
-                      android:id="@+id/terminalOutput"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:textColor="#FFFFFF"
-                      android:fontFamily="monospace"
-                      android:textSize="12sp"/>
-              </ScrollView>
-
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:orientation="horizontal"
-                  android:background="#1A1A1A"
-                  android:padding="8dp">
-
-                  <TextView
-                      android:id="@+id/prompt"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="$ "
-                      android:textColor="#FFFFFF"
-                      android:fontFamily="monospace"
-                      android:textSize="14sp"/>
-
-                  <EditText
-                      android:id="@+id/commandInput"
-                      android:layout_width="0dp"
-                      android:layout_height="wrap_content"
-                      android:layout_weight="1"
-                      android:background="@android:color/transparent"
-                      android:textColor="#FFFFFF"
-                      android:fontFamily="monospace"
-                      android:textSize="14sp"
-                      android:inputType="text"
-                      android:imeOptions="actionDone"
-                      android:hint="enter command..."
-                      android:textColorHint="#666666"/>
-              </LinearLayout>
-          </LinearLayout>
+          public class Country {
+              public String name;
+              public long pop, inf = 0, dead = 0;
+              public boolean isCold = false;
+              public Button btn;
+              
+              public Country(String n, long p, boolean cold) { 
+                  this.name = n; this.pop = p; this.isCold = cold;
+              }
+              
+              public void updateVisual() {
+                  if (dead >= pop) {
+                      btn.setBackgroundColor(0xFF000000); // Мертвая страна
+                      btn.setText(name + "\nDEAD");
+                  } else if (inf > 0) {
+                      float p = (float)inf / pop;
+                      if (p > 0.5f) btn.setBackgroundColor(0xFFFF0000); // 50%+ заражено
+                      else btn.setBackgroundColor(0xFF880000); // Мало заражено
+                  }
+              }
+          }
           EOF
 
-      - name: Create Styles
-        run: |
-          cat > app/src/main/res/values/styles.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
-                  <item name="android:windowBackground">@android:color/black</item>
-                  <item name="android:statusBarColor">@android:color/black</item>
-              </style>
-          </resources>
-          EOF
-
-      - name: Create MainActivity
-        run: |
-          cat > app/src/main/java/com/titan/terminal/MainActivity.java << 'EOF'
-          package com.titan.terminal;
-
-          import android.os.Bundle;
-          import android.view.KeyEvent;
-          import android.view.inputmethod.EditorInfo;
-          import android.widget.EditText;
-          import android.widget.ScrollView;
-          import android.widget.TextView;
+          cat > app/src/main/java/com/spruce/virus/GameActivity.java << 'EOF'
+          package com.spruce.virus;
+          import android.os.*;
+          import android.view.View;
+          import android.widget.*;
           import androidx.appcompat.app.AppCompatActivity;
+          import java.util.*;
 
-          public class MainActivity extends AppCompatActivity {
-
-              private TextView terminalOutput;
-              private TextView prompt;
-              private EditText commandInput;
-              private ScrollView scrollView;
-              private TitanOS os;
+          public class GameActivity extends AppCompatActivity {
+              private Map<String, Country> world = new HashMap<>();
+              private int dna = 10;
+              private float spread = 0.04f, lethal = 0.0f, resist = 1.0f, coldResist = 1.0f;
+              private float cure = 0;
+              private boolean active = false;
+              private Handler handler = new Handler();
+              private TextView stats, dnaView, cureView;
+              private LinearLayout tabTrans, tabSymp, tabAbil;
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-
-                  terminalOutput = findViewById(R.id.terminalOutput);
-                  prompt = findViewById(R.id.prompt);
-                  commandInput = findViewById(R.id.commandInput);
-                  scrollView = findViewById(R.id.scrollView);
-
-                  os = new TitanOS(this);
+                  setContentView(R.layout.activity_game);
                   
-                  showBootSequence();
-                  updatePrompt();
+                  stats = findViewById(R.id.globalStats);
+                  dnaView = findViewById(R.id.dnaText);
+                  cureView = findViewById(R.id.cureText);
+                  tabTrans = findViewById(R.id.tabTransmission);
+                  tabSymp = findViewById(R.id.tabSymptoms);
+                  tabAbil = findViewById(R.id.tabAbilities);
 
-                  commandInput.setOnEditorActionListener((v, actionId, event) -> {
-                      if (actionId == EditorInfo.IME_ACTION_DONE || 
-                          (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-                          executeCommand(commandInput.getText().toString());
-                          commandInput.setText("");
-                          return true;
+                  createCountry("Canada", 38000000, true, R.id.c_canada);
+                  createCountry("Russia", 144000000, true, R.id.c_russia);
+                  createCountry("USA", 331000000, false, R.id.c_usa);
+                  createCountry("China", 1400000000, false, R.id.c_china);
+                  createCountry("Brazil", 212000000, false, R.id.c_brazil);
+                  createCountry("Egypt", 102000000, false, R.id.c_egypt);
+                  createCountry("Australia", 25000000, false, R.id.c_australia);
+
+                  setupUpgradeSystem();
+                  
+                  handler.postDelayed(new Runnable() {
+                      @Override public void run() {
+                          if(active) tick();
+                          handler.postDelayed(this, 1000);
                       }
-                      return false;
+                  }, 1000);
+              }
+
+              private void createCountry(String name, long pop, boolean cold, int id) {
+                  Country c = new Country(name, pop, cold);
+                  c.btn = findViewById(id);
+                  c.btn.setOnClickListener(v -> { if(!active) { c.inf = 1; active = true; } });
+                  world.put(name, c);
+              }
+
+              private void setupUpgradeSystem() {
+                  findViewById(R.id.evolveBtn).setOnClickListener(v -> {
+                      View p = findViewById(R.id.upgradePanel);
+                      p.setVisibility(p.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+                  });
+
+                  // Переключение вкладок
+                  findViewById(R.id.btnShowTrans).setOnClickListener(v -> showTab(tabTrans));
+                  findViewById(R.id.btnShowSymp).setOnClickListener(v -> showTab(tabSymp));
+                  findViewById(R.id.btnShowAbil).setOnClickListener(v -> showTab(tabAbil));
+
+                  // Кнопки прокачки
+                  findViewById(R.id.upAir).setOnClickListener(v -> buy(10, () -> spread += 0.05f));
+                  findViewById(R.id.upWater).setOnClickListener(v -> buy(15, () -> spread += 0.08f));
+                  findViewById(R.id.upCough).setOnClickListener(v -> buy(10, () -> lethal += 0.005f));
+                  findViewById(R.id.upOrgan).setOnClickListener(v -> buy(40, () -> lethal += 0.05f));
+                  findViewById(R.id.upCold).setOnClickListener(v -> buy(20, () -> coldResist += 1.5f));
+                  findViewById(R.id.upDrug).setOnClickListener(v -> buy(30, () -> resist += 1.0f));
+              }
+
+              private void showTab(View tab) {
+                  tabTrans.setVisibility(View.GONE);
+                  tabSymp.setVisibility(View.GONE);
+                  tabAbil.setVisibility(View.GONE);
+                  tab.setVisibility(View.VISIBLE);
+              }
+
+              private void buy(int cost, Runnable action) {
+                  if (dna >= cost) { dna -= cost; action.run(); updateUI(); }
+              }
+
+              private void tick() {
+                  long totalI = 0, totalD = 0;
+                  for(Country c : world.values()) {
+                      if(c.inf > 0 && c.dead < c.pop) {
+                          float localSpread = spread;
+                          if (c.isCold) localSpread *= (coldResist / 2.0f); // Холод замедляет без резиста
+                          
+                          long n = (long)(c.inf * (1 + localSpread));
+                          if(n > c.pop - c.dead) n = c.pop - c.dead;
+                          c.inf = n;
+                          long d = (long)(c.inf * lethal);
+                          c.inf -= d; c.dead += d;
+                          if(new Random().nextInt(10) > 7) dna++;
+                      }
+                      c.updateVisual();
+                      totalI += c.inf; totalD += c.dead;
+                  }
+                  if(totalI > 1000000) cure += (0.15f * (1 + lethal * 200)) / resist;
+                  if(cure >= 100) active = false;
+                  updateUI();
+              }
+
+              private void updateUI() {
+                  runOnUiThread(() -> {
+                      dnaView.setText("DNA: " + dna);
+                      cureView.setText("CURE: " + (int)cure + "%");
                   });
               }
-
-              private void showBootSequence() {
-                  if (!os.systemIntact) {
-                      os.terminal.print("====================================");
-                      os.terminal.print("   FATAL: SYSTEM CORRUPTED");
-                      os.terminal.print("====================================");
-                      os.terminal.print("");
-                      os.terminal.print("E: Cannot mount /system");
-                      os.terminal.print("E: Critical system files missing");
-                      os.terminal.print("E: Boot verification failed");
-                      os.terminal.print("");
-                      os.terminal.print("The system has been destroyed.");
-                      os.terminal.print("All commands will fail.");
-                      os.terminal.print("");
-                      os.terminal.print("Reinstall the app to restore.");
-                      os.terminal.print("");
-                      return;
-                  }
-                  
-                  os.terminal.print("====================================");
-                  os.terminal.print("    TitanOS Terminal v34.0");
-                  os.terminal.print("     Gaming Edition");
-                  os.terminal.print("====================================");
-                  os.terminal.print("");
-                  os.terminal.print("Booting system...");
-                  os.terminal.print("[OK] File System");
-                  os.terminal.print("[OK] Game Engine");
-                  os.terminal.print("[OK] System Protection");
-                  os.terminal.print("");
-                  os.terminal.print("Type 'help' for commands");
-                  os.terminal.print("Type 'games' for games list");
-                  os.terminal.print("");
-              }
-
-              private void executeCommand(String cmd) {
-                  if (cmd.trim().isEmpty()) return;
-                  
-                  os.terminal.print(getCurrentPrompt() + cmd);
-                  
-                  if (!os.systemIntact) {
-                      os.terminal.print("bash: " + cmd.split(" ")[0] + ": command not found");
-                      os.terminal.print("E: System is corrupted");
-                      return;
-                  }
-                  
-                  os.shell.execute(cmd);
-                  updatePrompt();
-                  
-                  scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
-              }
-
-              private String getCurrentPrompt() {
-                  if (!os.systemIntact) return "$ ";
-                  String dir = os.shell.getCurrentDir();
-                  return dir + "$ ";
-              }
-
-              private void updatePrompt() {
-                  runOnUiThread(() -> prompt.setText(getCurrentPrompt()));
-              }
-
-              public void updateTerminal(String text) {
-                  runOnUiThread(() -> terminalOutput.append(text + "\n"));
-              }
           }
           EOF
 
-      - name: Create TitanOS Core
+      - name: Create Complex UI Layout
         run: |
-          cat > app/src/main/java/com/titan/terminal/TitanOS.java << 'EOF'
-          package com.titan.terminal;
+          cat > app/src/main/res/layout/activity_game.xml << 'EOF'
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:background="#0A0A0A" android:padding="8dp">
 
-          import android.content.Context;
-          import android.content.SharedPreferences;
-          import java.util.*;
+              <LinearLayout android:id="@+id/header" android:layout_width="match_parent"
+                  android:layout_height="wrap_content" android:background="#1A1A1A" android:padding="5dp">
+                  <TextView android:id="@+id/globalStats" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="#FF3333" android:text="WORLD STATUS: ACTIVE" android:fontFamily="monospace"/>
+                  <TextView android:id="@+id/dnaText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFCC00" android:text="DNA: 10" android:layout_marginEnd="20dp"/>
+                  <TextView android:id="@+id/cureText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#00AAFF" android:text="CURE: 0%"/>
+              </LinearLayout>
 
-          public class TitanOS {
-              
-              public Terminal terminal;
-              public FileSystem fs;
-              public Shell shell;
-              public GameEngine gameEngine;
-              public Context context;
-              public boolean systemIntact = true;
+              <GridLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:layout_centerInParent="true" android:columnCount="4" android:rowCount="3">
+                  <Button android:id="@+id/c_canada" android:layout_width="90dp" android:layout_height="90dp" android:text="CANADA" android:textSize="9sp" android:layout_margin="4dp" android:backgroundTint="#2A2A2A"/>
+                  <Button android:id="@+id/c_russia" android:layout_width="90dp" android:layout_height="90dp" android:text="RUSSIA" android:textSize="9sp" android:layout_margin="4dp" android:backgroundTint="#2A2A2A"/>
+                  <Button android:id="@+id/c_china" android:layout_width="90dp" android:layout_height="90dp" android:text="CHINA" android:textSize="9sp" android:layout_margin="4dp" android:backgroundTint="#2A2A2A"/>
+                  <Space android:layout_width="90dp" android:layout_height="90dp"/>
+                  <Button android:id="@+id/c_usa" android:layout_width="90dp" android:layout_height="90dp" android:text="USA" android:textSize="9sp" android:layout_margin="4dp" android:backgroundTint="#2A2A2A"/>
+                  <Button android:id="@+id/c_egypt" android:layout_width="90dp" android:layout_height="90dp" android:text="EGYPT" android:textSize="9sp" android:layout_margin="4dp" android:backgroundTint="#2A2A2A"/>
+                  <Space android:layout_width="90dp" android:layout_height="90dp"/>
+                  <Space android:layout_width="90dp" android:layout_height="90dp"/>
+                  <Button android:id="@+id/c_brazil" android:layout_width="90dp" android:layout_height="90dp" android:text="BRAZIL" android:textSize="9sp" android:layout_margin="4dp" android:backgroundTint="#2A2A2A"/>
+                  <Space android:layout_width="90dp" android:layout_height="90dp"/>
+                  <Space android:layout_width="90dp" android:layout_height="90dp"/>
+                  <Button android:id="@+id/c_australia" android:layout_width="90dp" android:layout_height="90dp" android:text="AUSTRALIA" android:textSize="9sp" android:layout_margin="4dp" android:backgroundTint="#2A2A2A"/>
+              </GridLayout>
 
-              public TitanOS(MainActivity activity) {
-                  this.context = activity;
-                  this.terminal = new Terminal(activity);
-                  this.fs = new FileSystem(activity, this);
-                  
-                  checkSystemIntegrity();
-                  
-                  if (systemIntact) {
-                      this.gameEngine = new GameEngine(this);
-                      this.shell = new Shell(this);
-                      initializeSystem();
-                  }
-              }
+              <Button android:id="@+id/evolveBtn" android:layout_width="wrap_content"
+                  android:layout_height="wrap_content" android:layout_alignParentBottom="true"
+                  android:text="DNA EVOLVE" android:backgroundTint="#550000"/>
 
-              private void checkSystemIntegrity() {
-                  SharedPreferences prefs = context.getSharedPreferences("titan_fs", Context.MODE_PRIVATE);
+              <LinearLayout android:id="@+id/upgradePanel" android:layout_width="300dp"
+                  android:layout_height="220dp" android:layout_above="@id/evolveBtn"
+                  android:background="#EE050505" android:orientation="vertical"
+                  android:padding="5dp" android:visibility="gone" android:elevation="10dp">
                   
-                  if (!prefs.contains("/.system/bin/kernel") || 
-                      !prefs.contains("/.system/version") ||
-                      !prefs.contains("/.system/config/boot.cfg")) {
-                      systemIntact = false;
-                  }
-              }
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                      <Button android:id="@+id/btnShowTrans" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:text="Trans" android:textSize="8sp"/>
+                      <Button android:id="@+id/btnShowSymp" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:text="Symp" android:textSize="8sp"/>
+                      <Button android:id="@+id/btnShowAbil" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:text="Abil" android:textSize="8sp"/>
+                  </LinearLayout>
 
-              private void initializeSystem() {
-                  fs.mkdir("/.system");
-                  fs.mkdir("/.system/bin");
-                  fs.mkdir("/.system/config");
-                  fs.mkdir("/.cache");
-                  
-                  fs.mkdir("/home");
-                  fs.mkdir("/games");
-                  fs.mkdir("/docs");
-                  fs.mkdir("/music");
-                  fs.mkdir("/pictures");
-                  fs.mkdir("/downloads");
-                  
-                  if (!fs.exists("/.system/version")) {
-                      fs.writeFile("/.system/version", "TitanOS v34.0 Gaming Edition");
-                  }
-                  
-                  if (!fs.exists("/.system/config/boot.cfg")) {
-                      fs.writeFile("/.system/config/boot.cfg", 
-                          "autostart=true\nshow_hidden=false\nsafe_mode=false");
-                  }
-                  
-                  if (!fs.exists("/.system/bin/kernel")) {
-                      fs.writeFile("/.system/bin/kernel", "TITAN_KERNEL_v34_CORE_BINARY");
-                  }
-                  
-                  if (!fs.exists("/.cache/temp.log")) {
-                      fs.writeFile("/.cache/temp.log", "Boot time: " + System.currentTimeMillis());
-                  }
-                  
-                  if (!fs.exists("/home/welcome.txt")) {
-                      fs.writeFile("/home/welcome.txt", 
-                          "Welcome to TitanOS Gaming Edition!\n\n" +
-                          "Your files are in /home\n" +
-                          "Games are in /games\n\n" +
-                          "WARNING: Deleting system files will break the OS!");
-                  }
-                  
-                  if (!fs.exists("/docs/readme.txt")) {
-                      fs.writeFile("/docs/readme.txt", 
-                          "TitanOS Documentation\n\n" +
-                          "Commands:\n" +
-                          "  ls     - show files\n" +
-                          "  ls -a  - show all files\n" +
-                          "  games  - list games\n" +
-                          "  help   - show help");
-                  }
-                  
-                  gameEngine.installGames();
-              }
-              
-              public void corruptSystem() {
-                  systemIntact = false;
-              }
-          }
+                  <!-- Tab 1: Transmission -->
+                  <LinearLayout android:id="@+id/tabTransmission" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                      <Button android:id="@+id/upAir" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Air Transmission (10 DNA)" android:textSize="9sp"/>
+                      <Button android:id="@+id/upWater" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Water Transmission (15 DNA)" android:textSize="9sp"/>
+                  </LinearLayout>
 
-          class Terminal {
-              private MainActivity activity;
-              
-              public Terminal(MainActivity activity) {
-                  this.activity = activity;
-              }
-              
-              public void print(String text) {
-                  activity.updateTerminal(text);
-              }
-              
-              public void error(String text) {
-                  activity.updateTerminal("ERROR: " + text);
-              }
-              
-              public void success(String text) {
-                  activity.updateTerminal("[OK] " + text);
-              }
-              
-              public void warning(String text) {
-                  activity.updateTerminal("WARNING: " + text);
-              }
-              
-              public void systemError(String text) {
-                  activity.updateTerminal("E: " + text);
-              }
-          }
+                  <!-- Tab 2: Symptoms -->
+                  <LinearLayout android:id="@+id/tabSymptoms" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+                      <Button android:id="@+id/upCough" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Coughing (10 DNA)" android:textSize="9sp"/>
+                      <Button android:id="@+id/upOrgan" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Total Organ Failure (40 DNA)" android:textSize="9sp"/>
+                  </LinearLayout>
 
-          class FileSystem {
-              private SharedPreferences prefs;
-              private Map<String, FSNode> nodes;
-              private TitanOS os;
-              
-              public FileSystem(Context context, TitanOS os) {
-                  prefs = context.getSharedPreferences("titan_fs", Context.MODE_PRIVATE);
-                  nodes = new HashMap<>();
-                  this.os = os;
-                  loadFromStorage();
-              }
-              
-              private void loadFromStorage() {
-                  Map<String, ?> all = prefs.getAll();
-                  for (Map.Entry<String, ?> entry : all.entrySet()) {
-                      String path = entry.getKey();
-                      String data = entry.getValue().toString();
-                      
-                      if (data.startsWith("DIR:")) {
-                          nodes.put(path, new FSNode(path, true));
-                      } else {
-                          nodes.put(path, new FSNode(path, false, data));
-                      }
-                  }
-              }
-              
-              private void saveToStorage() {
-                  SharedPreferences.Editor editor = prefs.edit();
-                  for (Map.Entry<String, FSNode> entry : nodes.entrySet()) {
-                      if (entry.getValue().isDirectory) {
-                          editor.putString(entry.getKey(), "DIR:");
-                      } else {
-                          editor.putString(entry.getKey(), entry.getValue().content);
-                      }
-                  }
-                  editor.apply();
-              }
-              
-              public boolean exists(String path) {
-                  return nodes.containsKey(path);
-              }
-              
-              public boolean isHidden(String path) {
-                  String[] parts = path.split("/");
-                  for (String part : parts) {
-                      if (part.startsWith(".")) {
-                          return true;
-                      }
-                  }
-                  return false;
-              }
-              
-              public boolean isSystemCritical(String path) {
-                  return path.equals("/.system/bin/kernel") || 
-                         path.equals("/.system/version") ||
-                         path.equals("/.system/config/boot.cfg");
-              }
-              
-              public void mkdir(String path) {
-                  if (!exists(path)) {
-                      nodes.put(path, new FSNode(path, true));
-                      saveToStorage();
-                  }
-              }
-              
-              public void writeFile(String path, String content) {
-                  nodes.put(path, new FSNode(path, false, content));
-                  saveToStorage();
-              }
-              
-              public String readFile(String path) {
-                  FSNode node = nodes.get(path);
-                  return (node != null && !node.isDirectory) ? node.content : null;
-              }
-              
-              public void delete(String path) {
-                  if (isSystemCritical(path)) {
-                      os.terminal.warning("Deleting critical system file: " + path);
-                      os.terminal.systemError("System integrity compromised!");
-                      nodes.remove(path);
-                      SharedPreferences.Editor editor = prefs.edit();
-                      editor.remove(path);
-                      editor.apply();
-                      
-                      os.terminal.print("");
-                      os.terminal.systemError("FATAL: System has been destroyed");
-                      os.terminal.print("The OS will no longer function.");
-                      os.terminal.print("Restart app to see the damage.");
-                      os.terminal.print("");
-                      
-                      os.corruptSystem();
-                  } else {
-                      nodes.remove(path);
-                      saveToStorage();
-                  }
-              }
-              
-              public List<String> list(String dir, boolean showHidden) {
-                  List<String> result = new ArrayList<>();
-                  String normalizedDir = dir.equals("/") ? "/" : dir;
-                  if (!normalizedDir.endsWith("/") && !normalizedDir.equals("/")) {
-                      normalizedDir += "/";
-                  }
-                  
-                  for (String path : nodes.keySet()) {
-                      if (path.equals(normalizedDir)) continue;
-                      
-                      if (normalizedDir.equals("/")) {
-                          if (!path.substring(1).contains("/")) {
-                              String fileName = path.substring(1);
-                              if (!showHidden && fileName.startsWith(".")) {
-                                  continue;
-                              }
-                              result.add(fileName);
-                          } else {
-                              String firstPart = path.substring(1, path.indexOf("/", 1));
-                              if (!showHidden && firstPart.startsWith(".")) {
-                                  continue;
-                              }
-                              if (!result.contains(firstPart)) {
-                                  result.add(firstPart);
-                              }
-                          }
-                      } else {
-                          if (path.startsWith(normalizedDir)) {
-                              String relative = path.substring(normalizedDir.length());
-                              if (!relative.contains("/")) {
-                                  if (!showHidden && relative.startsWith(".")) {
-                                      continue;
-                                  }
-                                  result.add(relative);
-                              } else {
-                                  String firstPart = relative.substring(0, relative.indexOf("/"));
-                                  if (!showHidden && firstPart.startsWith(".")) {
-                                      continue;
-                                  }
-                                  if (!result.contains(firstPart)) {
-                                      result.add(firstPart);
-                                  }
-                              }
-                          }
-                      }
-                  }
-                  Collections.sort(result);
-                  return result;
-              }
-              
-              public boolean isDirectory(String path) {
-                  FSNode node = nodes.get(path);
-                  if (node != null) return node.isDirectory;
-                  
-                  String normalizedPath = path.endsWith("/") ? path : path + "/";
-                  for (String p : nodes.keySet()) {
-                      if (p.startsWith(normalizedPath)) {
-                          return true;
-                      }
-                  }
-                  return false;
-              }
-              
-              static class FSNode {
-                  String path;
-                  boolean isDirectory;
-                  String content;
-                  
-                  FSNode(String path, boolean isDirectory) {
-                      this(path, isDirectory, "");
-                  }
-                  
-                  FSNode(String path, boolean isDirectory, String content) {
-                      this.path = path;
-                      this.isDirectory = isDirectory;
-                      this.content = content;
-                  }
-              }
-          }
-          EOF
-
-      - name: Create Shell
-        run: |
-          cat > app/src/main/java/com/titan/terminal/Shell.java << 'EOF'
-          package com.titan.terminal;
-
-          import java.util.Arrays;
-          import java.util.List;
-
-          public class Shell {
-              private TitanOS os;
-              private String currentDir = "/";
-              
-              public Shell(TitanOS os) {
-                  this.os = os;
-              }
-              
-              public String getCurrentDir() {
-                  return currentDir;
-              }
-              
-              public void execute(String commandLine) {
-                  String[] parts = commandLine.trim().split("\\s+");
-                  if (parts.length == 0) return;
-                  
-                  String cmd = parts[0].toLowerCase();
-                  String[] args = Arrays.copyOfRange(parts, 1, parts.length);
-                  
-                  switch (cmd) {
-                      case "help": showHelp(); break;
-                      case "ls": listFiles(args); break;
-                      case "cd": changeDirectory(args); break;
-                      case "pwd": os.terminal.print(currentDir); break;
-                      case "mkdir": makeDirectory(args); break;
-                      case "touch": createFile(args); break;
-                      case "cat": showFile(args); break;
-                      case "write": writeFile(args); break;
-                      case "rm": removeFile(args); break;
-                      case "tree": showTree(args); break;
-                      case "games": os.gameEngine.listGames(); break;
-                      case "play": playGame(args); break;
-                      case "sysinfo": showSystemInfo(); break;
-                      case "clear": break;
-                      default: os.terminal.error("Unknown command: " + cmd);
-                  }
-              }
-              
-              private void showHelp() {
-                  os.terminal.print("");
-                  os.terminal.print("FILE SYSTEM:");
-                  os.terminal.print("  ls         - list visible files");
-                  os.terminal.print("  ls -a      - list all files (including hidden)");
-                  os.terminal.print("  cd <dir>   - change directory");
-                  os.terminal.print("  cd ..      - go to parent directory");
-                  os.terminal.print("  pwd        - show current directory");
-                  os.terminal.print("  mkdir <d>  - create directory");
-                  os.terminal.print("  touch <f>  - create file");
-                  os.terminal.print("  cat <f>    - show file content");
-                  os.terminal.print("  write <f> <text> - write to file");
-                  os.terminal.print("  rm <f>     - remove file (DANGEROUS!)");
-                  os.terminal.print("  tree       - show directory tree");
-                  os.terminal.print("");
-                  os.terminal.print("GAMES:");
-                  os.terminal.print("  games      - list available games");
-                  os.terminal.print("  play <game> - play a game");
-                  os.terminal.print("");
-                  os.terminal.print("SYSTEM:");
-                  os.terminal.print("  sysinfo    - show system information");
-                  os.terminal.print("  clear      - clear screen");
-                  os.terminal.print("");
-              }
-              
-              private void listFiles(String[] args) {
-                  boolean showHidden = args.length > 0 && args[0].equals("-a");
-                  String dir = currentDir;
-                  
-                  if (args.length > 0 && !args[0].equals("-a")) {
-                      dir = args[0];
-                      if (!dir.startsWith("/")) {
-                          dir = resolvePath(currentDir, dir);
-                      }
-                  } else if (args.length > 1) {
-                      dir = args[1];
-                      if (!dir.startsWith("/")) {
-                          dir = resolvePath(currentDir, dir);
-                      }
-                  }
-                  
-                  if (!os.fs.exists(dir) && !os.fs.isDirectory(dir)) {
-                      os.terminal.error("Directory not found: " + dir);
-                      return;
-                  }
-                  
-                  List<String> files = os.fs.list(dir, showHidden);
-                  
-                  if (files.isEmpty()) {
-                      os.terminal.print("(empty)");
-                  } else {
-                      for (String file : files) {
-                          String fullPath = dir.equals("/") ? "/" + file : dir + "/" + file;
-                          String prefix = os.fs.isDirectory(fullPath) ? "[DIR]  " : "[FILE] ";
-                          os.terminal.print("  " + prefix + file);
-                      }
-                  }
-                  
-                  if (!showHidden) {
-                      int hiddenCount = os.fs.list(dir, true).size() - files.size();
-                      if (hiddenCount > 0) {
-                          os.terminal.print("");
-                          os.terminal.print("(" + hiddenCount + " hidden, use 'ls -a')");
-                      }
-                  }
-              }
-              
-              private void changeDirectory(String[] args) {
-                  if (args.length == 0) {
-                      currentDir = "/";
-                      return;
-                  }
-                  
-                  String newDir = args[0];
-                  
-                  if (newDir.equals("..")) {
-                      if (currentDir.equals("/")) {
-                          return;
-                      }
-                      int lastSlash = currentDir.lastIndexOf("/");
-                      currentDir = lastSlash == 0 ? "/" : currentDir.substring(0, lastSlash);
-                      return;
-                  }
-                  
-                  if (newDir.equals(".")) return;
-                  
-                  if (!newDir.startsWith("/")) {
-                      newDir = resolvePath(currentDir, newDir);
-                  }
-                  
-                  if (os.fs.isDirectory(newDir) || os.fs.exists(newDir)) {
-                      currentDir = newDir;
-                  } else {
-                      os.terminal.error("Directory not found: " + newDir);
-                  }
-              }
-              
-              private String resolvePath(String base, String relative) {
-                  return base.equals("/") ? "/" + relative : base + "/" + relative;
-              }
-              
-              private void makeDirectory(String[] args) {
-                  if (args.length == 0) return;
-                  String path = args[0];
-                  if (!path.startsWith("/")) path = resolvePath(currentDir, path);
-                  os.fs.mkdir(path);
-                  os.terminal.success("Created: " + path);
-              }
-              
-              private void createFile(String[] args) {
-                  if (args.length == 0) return;
-                  String path = args[0];
-                  if (!path.startsWith("/")) path = resolvePath(currentDir, path);
-                  os.fs.writeFile(path, "");
-                  os.terminal.success("Created: " + path);
-              }
-              
-              private void showFile(String[] args) {
-                  if (args.length == 0) return;
-                  String path = args[0];
-                  if (!path.startsWith("/")) path = resolvePath(currentDir, path);
-                  String content = os.fs.readFile(path);
-                  if (content != null) {
-                      os.terminal.print("");
-                      os.terminal.print(content);
-                      os.terminal.print("");
-                  } else {
-                      os.terminal.error("File not found: " + path);
-                  }
-              }
-              
-              private void writeFile(String[] args) {
-                  if (args.length < 2) return;
-                  String path = args[0];
-                  if (!path.startsWith("/")) path = resolvePath(currentDir, path);
-                  String content = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
-                  os.fs.writeFile(path, content);
-                  os.terminal.success("Written to: " + path);
-              }
-              
-              private void removeFile(String[] args) {
-                  if (args.length == 0) return;
-                  String path = args[0];
-                  if (!path.startsWith("/")) path = resolvePath(currentDir, path);
-                  
-                  if (os.fs.isSystemCritical(path)) {
-                      os.terminal.warning("This is a CRITICAL system file!");
-                      os.terminal.warning("Deleting it will DESTROY the OS!");
-                  }
-                  
-                  os.fs.delete(path);
-                  
-                  if (os.systemIntact) {
-                      os.terminal.success("Removed: " + path);
-                  }
-              }
-              
-              private void playGame(String[] args) {
-                  if (args.length == 0) {
-                      os.terminal.error("Usage: play <game>");
-                      return;
-                  }
-                  os.gameEngine.playGame(args[0]);
-              }
-              
-              private void showSystemInfo() {
-                  os.terminal.print("");
-                  os.terminal.print("=== SYSTEM INFORMATION ===");
-                  os.terminal.print("");
-                  
-                  String version = os.fs.readFile("/.system/version");
-                  if (version != null) {
-                      os.terminal.print("Version: " + version);
-                  } else {
-                      os.terminal.systemError("Version file missing!");
-                  }
-                  
-                  String kernel = os.fs.readFile("/.system/bin/kernel");
-                  if (kernel != null) {
-                      os.terminal.print("Kernel: " + kernel);
-                  } else {
-                      os.terminal.systemError("Kernel missing!");
-                  }
-                  
-                  os.terminal.print("");
-                  os.terminal.print("System Status: " + (os.systemIntact ? "OK" : "CORRUPTED"));
-                  os.terminal.print("");
-              }
-              
-              private void showTree(String[] args) {
-                  boolean showHidden = args.length > 0 && args[0].equals("-a");
-                  os.terminal.print("/");
-                  showTreeRec("/", "", showHidden);
-              }
-              
-              private void showTreeRec(String dir, String prefix, boolean showHidden) {
-                  List<String> files = os.fs.list(dir, showHidden);
-                  for (int i = 0; i < files.size(); i++) {
-                      boolean isLast = (i == files.size() - 1);
-                      String file = files.get(i);
-                      String fullPath = dir.equals("/") ? "/" + file : dir + "/" + file;
-                      
-                      os.terminal.print(prefix + (isLast ? "+-- " : "|-- ") + file);
-                      
-                      if (os.fs.isDirectory(fullPath)) {
-                          showTreeRec(fullPath, prefix + (isLast ? "    " : "|   "), showHidden);
-                      }
-                  }
-              }
-          }
-          EOF
-
-      - name: Create GameEngine
-        run: |
-          cat > app/src/main/java/com/titan/terminal/GameEngine.java << 'EOF'
-          package com.titan.terminal;
-
-          import java.util.*;
-
-          public class GameEngine {
-              
-              TitanOS os;
-              Map<String, Game> games = new HashMap<>();
-              
-              public GameEngine(TitanOS os) {
-                  this.os = os;
-              }
-              
-              public void installGames() {
-                  games.put("guess", new GuessNumberGame(os));
-                  games.put("quiz", new QuizGame(os));
-                  games.put("math", new MathGame(os));
-              }
-              
-              public void listGames() {
-                  os.terminal.print("");
-                  os.terminal.print("=== AVAILABLE GAMES ===");
-                  os.terminal.print("");
-                  for (String name : games.keySet()) {
-                      Game game = games.get(name);
-                      os.terminal.print("  " + name + " - " + game.getDescription());
-                  }
-                  os.terminal.print("");
-                  os.terminal.print("Use 'play <game>' to start");
-                  os.terminal.print("");
-              }
-              
-              public void playGame(String name) {
-                  Game game = games.get(name.toLowerCase());
-                  if (game == null) {
-                      os.terminal.error("Game not found: " + name);
-                      return;
-                  }
-                  os.terminal.print("");
-                  os.terminal.print("=== " + name.toUpperCase() + " ===");
-                  os.terminal.print("");
-                  game.play();
-                  os.terminal.print("");
-              }
-          }
-
-          abstract class Game {
-              protected TitanOS os;
-              protected Random random = new Random();
-              
-              public Game(TitanOS os) {
-                  this.os = os;
-              }
-              
-              public abstract void play();
-              public abstract String getDescription();
-          }
-
-          class GuessNumberGame extends Game {
-              public GuessNumberGame(TitanOS os) { super(os); }
-              
-              public String getDescription() {
-                  return "Guess the number (1-100)";
-              }
-              
-              public void play() {
-                  int target = random.nextInt(100) + 1;
-                  int[] guesses = {25, 50, 75, 63, target};
-                  
-                  os.terminal.print("I'm thinking of a number between 1-100");
-                  os.terminal.print("");
-                  
-                  for (int i = 0; i < guesses.length; i++) {
-                      int guess = guesses[i];
-                      os.terminal.print("Attempt " + (i+1) + ": " + guess);
-                      
-                      if (guess == target) {
-                          os.terminal.print("CORRECT! The number was " + target);
-                          os.terminal.print("You won in " + (i+1) + " attempts!");
-                          return;
-                      } else if (guess < target) {
-                          os.terminal.print("Too low!");
-                      } else {
-                          os.terminal.print("Too high!");
-                      }
-                      os.terminal.print("");
-                  }
-              }
-          }
-
-          class QuizGame extends Game {
-              public QuizGame(TitanOS os) { super(os); }
-              
-              public String getDescription() {
-                  return "Answer trivia questions";
-              }
-              
-              public void play() {
-                  String[][] questions = {
-                      {"What is 2+2?", "4"},
-                      {"Capital of France?", "Paris"},
-                      {"Largest planet?", "Jupiter"},
-                      {"How many days in a week?", "7"},
-                      {"Color of the sky?", "Blue"}
-                  };
-                  
-                  int score = 0;
-                  
-                  for (int i = 0; i < questions.length; i++) {
-                      os.terminal.print("Q" + (i+1) + ": " + questions[i][0]);
-                      String answer = questions[i][1];
-                      os.terminal.print("Answer: " + answer);
-                      os.terminal.print("CORRECT!");
-                      score++;
-                      os.terminal.print("");
-                  }
-                  
-                  os.terminal.print("Final Score: " + score + "/" + questions.length);
-                  os.terminal.print("Perfect!");
-              }
-          }
-
-          class MathGame extends Game {
-              public MathGame(TitanOS os) { super(os); }
-              
-              public String getDescription() {
-                  return "Solve random math problems";
-              }
-              
-              public void play() {
-                  os.terminal.print("Solve 5 math problems:");
-                  os.terminal.print("");
-                  
-                  int score = 0;
-                  
-                  for (int i = 0; i < 5; i++) {
-                      int a = random.nextInt(20) + 1;
-                      int b = random.nextInt(20) + 1;
-                      int operation = random.nextInt(3);
-                      int answer;
-                      String symbol;
-                      
-                      switch (operation) {
-                          case 0:
-                              answer = a + b;
-                              symbol = "+";
-                              break;
-                          case 1:
-                              answer = a - b;
-                              symbol = "-";
-                              break;
-                          default:
-                              answer = a * b;
-                              symbol = "*";
-                              break;
-                      }
-                      
-                      os.terminal.print("Problem " + (i+1) + ": " + a + " " + symbol + " " + b);
-                      os.terminal.print("Your answer: " + answer);
-                      os.terminal.print("CORRECT!");
-                      score++;
-                      os.terminal.print("");
-                  }
-                  
-                  os.terminal.print("Final Score: " + score + "/5");
-                  os.terminal.print("Great job!");
-              }
-          }
+                  <!-- Tab 3: Abilities -->
+                  <LinearLayout android:id="@+id/tabAbilities" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+                      <Button android:id="@+id/upCold" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Cold Resistance (20 DNA)" android:textSize="9sp"/>
+                      <Button android:id="@+id/upDrug" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Drug Resistance (30 DNA)" android:textSize="9sp"/>
+                  </LinearLayout>
+              </LinearLayout>
+          </RelativeLayout>
           EOF
 
       - uses: actions/setup-java@v4
@@ -990,7 +277,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build APK
+      - name: Build Virus Evolution Pro
         run: |
           wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
           unzip -q gradle-8.5-bin.zip
@@ -1000,5 +287,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TitanOS-Terminal-Gaming
+          name: Virus-Evolution-Pro
           path: app/build/outputs/apk/debug/app-debug.apk
