@@ -1,0 +1,100 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Enof Neon Messenger</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body class="neon-theme">
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Экран приветствия -->
+    <div id="welcome-overlay" class="neon-overlay" style="display: flex;">
+        <div class="welcome-card">
+            <h1 class="neon-text-yellow" style="font-size: 42px;">Enof</h1>
+            <p class="welcome-desc">Простой и надежный чат для общения с друзьями.</p>
+            <div class="features">
+                <div class="feature-item"><i data-lucide="shield-check"></i> <span>Ваши сообщения видим только вы</span></div>
+                <div class="feature-item"><i data-lucide="zap"></i> <span>Прямая связь без лишних посредников</span></div>
+                <div class="feature-item"><i data-lucide="lock"></i> <span>Полная секретность ваших данных</span></div>
+            </div>
+            <button id="start-btn" class="neon-btn" disabled>Подождите (5)...</button>
+        </div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="glass-header">
+            <div class="sidebar-top">
+                <h1 class="neon-text">ENOF</h1>
+                <div class="my-id-badge" id="my-id-btn">
+                    ID: <span id="my-id">...</span>
+                </div>
+            </div>
+            <div class="search-wrap">
+                <input type="text" id="connect-to-id" placeholder="ID узла для подключения...">
+            </div>
+            <button id="connect-btn" class="neon-btn">УСТАНОВИТЬ СВЯЗЬ</button>
+        </div>
+        <div class="chat-list" id="chat-list"></div>
+    </div>
+
+    <div class="main-content" id="main-content">
+        <div class="glass-header chat-head">
+            <button class="icon-btn" id="back-btn"><i data-lucide="chevron-left"></i></button>
+            <div class="user-meta">
+                <div id="header-avatar" class="neon-avatar" style="width: 40px; height: 40px; font-size: 14px;">?</div>
+                <div>
+                    <h3 id="header-name" class="neon-text-yellow">...</h3>
+                    <p id="header-status" style="display: flex; align-items: center; gap: 4px;">
+                        <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> E2EE Encrypted
+                    </p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn call-trigger" id="screen-btn" title="Показ экрана"><i data-lucide="monitor"></i></button>
+                <button class="icon-btn call-trigger" id="call-btn" title="Голосовая связь"><i data-lucide="zap"></i></button>
+            </div>
+        </div>
+
+        <div class="messages-container" id="messages-container"></div>
+
+        <div class="input-wrap">
+            <div class="input-inner">
+                <button id="attach-btn" class="icon-btn" style="color: var(--neon-yellow);"><i data-lucide="plus"></i></button>
+                <input type="file" id="file-input" style="display: none;" accept="image/*, .pdf, .doc, .docx, .zip">
+                <input type="text" id="message-input" placeholder="Введите сообщение..." autocomplete="off">
+                <button id="voice-btn" class="icon-btn" style="color: var(--neon-yellow);"><i data-lucide="mic"></i></button>
+                <button id="send-btn" class="send-neon"><i data-lucide="send"></i></button>
+            </div>
+            <div id="recording-status" style="display: none; color: #ff3b30; font-size: 12px; margin-top: 5px; text-align: center;">
+                <span class="pulse-dot"></span> Идет запись голоса...
+            </div>
+        </div>
+    </div>
+
+    <div id="call-overlay" class="neon-overlay">
+        <div class="call-card-neon" id="call-card">
+            <div class="scanner-line"></div>
+            <div id="video-container" style="display: none;">
+                <video id="remote-video" autoplay playsinline class="neon-video"></video>
+            </div>
+            <div id="audio-ui">
+                <div class="avatar-huge" id="call-avatar">?</div>
+                <h2 id="call-name" class="neon-text">ENOF USER</h2>
+            </div>
+            <p id="call-status">BUFFERING...</p>
+            <div class="call-btns">
+                <button class="c-btn-neon c-red" id="end-call-btn"><i data-lucide="x"></i></button>
+                <button class="c-btn-neon c-green" id="accept-call-btn" style="display: none;"><i data-lucide="check"></i></button>
+            </div>
+        </div>
+        <audio id="remote-audio" autoplay></audio>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
