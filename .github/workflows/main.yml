@@ -1,0 +1,27 @@
+name: Cleanup Repository
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Remove all files except README.md
+        run: |
+          find . -maxdepth 1 -type f ! -name "README.md" ! -name ".gitignore" -delete
+          find . -maxdepth 1 -type d ! -name "." ! -name ".git" ! -name ".github" -exec rm -rf {} + 2>/dev/null || true
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: cleanup repository" || echo "Nothing to commit"
+          git push
